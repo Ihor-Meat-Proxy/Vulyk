@@ -277,6 +277,189 @@ select.project-select {
   min-width: 12rem;
 }
 
+.panel-header h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+}
+
+.admin-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--line);
+}
+
+.admin-section h3 {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.stack-form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 32rem;
+  margin-bottom: 1rem;
+}
+
+.stack-form label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.stack-form input,
+.stack-form select,
+.stack-form textarea,
+.chat-compose input {
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  border-radius: 0.4rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.stack-form button,
+.chat-compose button {
+  justify-self: start;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+}
+
+.stack-form button:disabled,
+.chat-compose button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.plain-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: baseline;
+}
+
+.linkish {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.notice {
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  margin: 0.75rem 0;
+}
+
+.notice code {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
+.chat-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 8rem);
+}
+
+.chat-log {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+
+.chat-bubble {
+  max-width: 40rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  animation: rise 220ms ease-out;
+}
+
+.chat-bubble.user {
+  align-self: flex-end;
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--bg-elevated));
+}
+
+.chat-role {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-muted);
+  margin-bottom: 0.25rem;
+}
+
+.chat-text {
+  white-space: pre-wrap;
+}
+
+.chat-meta {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+}
+
+.chat-compose {
+  display: flex;
+  gap: 0.6rem;
+  position: sticky;
+  bottom: 0;
+  padding-top: 0.5rem;
+  background: linear-gradient(transparent, var(--bg) 30%);
+}
+
+.chat-compose input {
+  flex: 1;
+}
+
+.code-block {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: #1c1914;
+  color: #f3f0e8;
+  padding: 1rem;
+  border-radius: 0.55rem;
+  overflow: auto;
+  max-height: 28rem;
+  animation: rise 240ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;

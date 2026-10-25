@@ -30,6 +30,8 @@ export function Layout({
           <NavLink to="/" end>
             Cases
           </NavLink>
+          <NavLink to="/generate">Generate</NavLink>
+          <NavLink to="/chat">Chat</NavLink>
           <NavLink to="/runs">Runs</NavLink>
           <NavLink to="/reports">Reports</NavLink>
           <NavLink to="/admin">Admin</NavLink>

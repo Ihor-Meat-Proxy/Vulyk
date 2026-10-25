@@ -35,7 +35,7 @@ pub struct TestCaseDetail {
     pub steps: Vec<TestStep>,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct CreateStep {
     pub action: String,
     #[serde(default)]

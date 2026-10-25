@@ -1,17 +1,22 @@
 use utoipa::OpenApi;
 
 use crate::models::{
-    CreateCase, CreateProject, CreateStep, CreateSuite, Project, Suite, TestCase, TestCaseDetail,
-    TestStep, UpdateCase, UpdateProject, UpdateSuite,
+    ApiTokenPublic, AskTestsRequest, AskTestsResponse, BulkIngestResults, CreateApiToken,
+    CreateApiTokenResponse, CreateCase, CreateLlmConfig, CreateProject, CreateRun, CreateStep,
+    CreateSuite, GenerateCasesRequest, GenerateCasesResponse, GenerateCodeRequest,
+    GenerateCodeResponse, GeneratedCaseDraft, LlmConfigPublic, Project, Suite, TestCase,
+    TestCaseDetail, TestResult, TestRun, TestStep, UpdateCase, UpdateLlmConfig, UpdateProject,
+    UpdateRun, UpdateSuite,
 };
 use crate::routes::health::{HealthResponse, ReadyResponse};
+use crate::routes::llm::ProviderKindInfo;
 
 #[derive(OpenApi)]
 #[openapi(
     info(
         title = "Vulyk API",
         version = "0.1.0",
-        description = "Open-source test management system (beehive). Phase 1 foundation.",
+        description = "Open-source test management system (beehive). Includes LLM (W9) and token APIs for MCP (W10).",
         license(name = "AGPL-3.0")
     ),
     paths(
@@ -32,6 +37,25 @@ use crate::routes::health::{HealthResponse, ReadyResponse};
         crate::routes::cases::get_case,
         crate::routes::cases::update_case,
         crate::routes::cases::delete_case,
+        crate::routes::runs::list_runs,
+        crate::routes::runs::create_run,
+        crate::routes::runs::get_run,
+        crate::routes::runs::update_run,
+        crate::routes::runs::trigger_run,
+        crate::routes::runs::list_results,
+        crate::routes::runs::ingest_results,
+        crate::routes::llm::list_provider_kinds,
+        crate::routes::llm::list_configs,
+        crate::routes::llm::create_config,
+        crate::routes::llm::get_config,
+        crate::routes::llm::update_config,
+        crate::routes::llm::delete_config,
+        crate::routes::llm::generate_cases,
+        crate::routes::llm::generate_code,
+        crate::routes::llm::ask_tests,
+        crate::routes::tokens::list_tokens,
+        crate::routes::tokens::create_token,
+        crate::routes::tokens::revoke_token,
     ),
     components(schemas(
         HealthResponse,
@@ -48,12 +72,35 @@ use crate::routes::health::{HealthResponse, ReadyResponse};
         CreateCase,
         CreateStep,
         UpdateCase,
+        TestRun,
+        CreateRun,
+        UpdateRun,
+        TestResult,
+        BulkIngestResults,
+        crate::models::IngestResultItem,
+        LlmConfigPublic,
+        CreateLlmConfig,
+        UpdateLlmConfig,
+        ProviderKindInfo,
+        GenerateCasesRequest,
+        GenerateCasesResponse,
+        GeneratedCaseDraft,
+        GenerateCodeRequest,
+        GenerateCodeResponse,
+        AskTestsRequest,
+        AskTestsResponse,
+        ApiTokenPublic,
+        CreateApiToken,
+        CreateApiTokenResponse,
     )),
     tags(
         (name = "system", description = "Health and readiness"),
         (name = "projects", description = "Projects"),
         (name = "suites", description = "Suites / sections"),
         (name = "cases", description = "Test cases and steps"),
+        (name = "runs", description = "Test runs and results"),
+        (name = "llm", description = "LLM providers and generation"),
+        (name = "tokens", description = "API tokens for MCP / automation"),
     )
 )]
 pub struct ApiDoc;

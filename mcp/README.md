@@ -1,7 +1,12 @@
 # vulyk-mcp
 
-MCP server for Vulyk. Phase 1 is a stub binary; workstream **W10** wires `rmcp` and tools that call the HTTP API (`VULYK_API_URL`, `VULYK_API_TOKEN`).
+Production MCP server for Vulyk (workstream **W10**). Tools call `/api/v1` with `VULYK_API_TOKEN`.
 
 ```bash
-cargo run -p vulyk-mcp
+export VULYK_API_URL=http://localhost:8080
+export VULYK_API_TOKEN=vulk_…
+cargo run -p vulyk-mcp          # stdio
+cargo run -p vulyk-mcp -- http  # http://127.0.0.1:8090/mcp
 ```
+
+See **[docs/mcp.md](../docs/mcp.md)** for Claude Desktop, Cursor, and tool reference.
