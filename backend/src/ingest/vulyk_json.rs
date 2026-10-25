@@ -69,14 +69,7 @@ pub struct VulykDoc {
 }
 
 fn normalize_status(s: &str) -> String {
-    match s.trim().to_lowercase().as_str() {
-        "pass" | "passed" | "success" | "successful" | "ok" => "passed".into(),
-        "fail" | "failed" | "failure" => "failed".into(),
-        "skip" | "skipped" | "ignored" => "skipped".into(),
-        "error" | "errored" => "error".into(),
-        "blocked" => "blocked".into(),
-        other => other.to_string(),
-    }
+    crate::models::normalize_result_status(s)
 }
 
 #[cfg(test)]
@@ -105,6 +98,6 @@ mod tests {
         let doc = parse_vulyk_json(raw).expect("parse");
         assert_eq!(doc.run_name.as_deref(), Some("CI smoke"));
         assert_eq!(doc.results.len(), 2);
-        assert_eq!(doc.results[1].status, "failed");
+        assert_eq!(doc.results[1].status, crate::models::FAILED);
     }
 }

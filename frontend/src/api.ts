@@ -206,6 +206,22 @@ export type ResultStep = {
   comment: string
 }
 
+/** Canonical execution statuses (PascalCase), matching the API/DB. */
+export const RESULT_STATUSES = [
+  'Untested',
+  'Passed',
+  'Failed',
+  'Blocked',
+  'Skipped',
+  'Retest',
+] as const
+
+export type ResultStatus = (typeof RESULT_STATUSES)[number]
+
+export function statusClass(status: string): string {
+  return `status-${status.toLowerCase()}`
+}
+
 export type TestResult = {
   id: string
   run_id: string
@@ -218,7 +234,10 @@ export type TestResult = {
   duration_ms: number | null
   assignee: string | null
   elapsed_ms: number | null
+  executed_by: string | null
+  case_version: number | null
   executed_at: string
+  created_at?: string
 }
 
 export type TestResultDetail = {
@@ -226,10 +245,42 @@ export type TestResultDetail = {
   steps: ResultStep[]
 }
 
+export type TestResultHistoryItem = {
+  result: TestResult
+  run_name: string | null
+  executed_by_name: string | null
+  executed_by_email: string | null
+  attachment_count: number
+  defect_count: number
+  steps: ResultStep[]
+}
+
+export type CaseResultsSummary = {
+  case_id: string
+  latest_status: string | null
+  latest_executed_at: string | null
+  total_results: number
+  passed: number
+  failed: number
+  blocked: number
+  skipped: number
+  retest: number
+  pass_rate: number
+}
+
+export type CaseResultsPage = {
+  summary: CaseResultsSummary
+  items: TestResultHistoryItem[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export type RunItemExecution = {
   item: RunItemView
   steps: TestStep[]
   latest_result: TestResultDetail | null
+  history: TestResultHistoryItem[]
 }
 
 export type ListCasesParams = {
@@ -633,6 +684,38 @@ export const api = {
   listVersions: (projectId: string, caseId: string) =>
     request<CaseVersionSummary[]>(
       `/api/v1/projects/${projectId}/cases/${caseId}/versions`,
+    ),
+  listCaseResults: (
+    projectId: string,
+    caseId: string,
+    params: {
+      run_id?: string
+      status?: string
+      user_id?: string
+      from?: string
+      to?: string
+      limit?: number
+      offset?: number
+      include_steps?: boolean
+    } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    if (params.run_id) qs.set('run_id', params.run_id)
+    if (params.status) qs.set('status', params.status)
+    if (params.user_id) qs.set('user_id', params.user_id)
+    if (params.from) qs.set('from', params.from)
+    if (params.to) qs.set('to', params.to)
+    if (params.limit != null) qs.set('limit', String(params.limit))
+    if (params.offset != null) qs.set('offset', String(params.offset))
+    if (params.include_steps) qs.set('include_steps', 'true')
+    const q = qs.toString()
+    return request<CaseResultsPage>(
+      `/api/v1/projects/${projectId}/cases/${caseId}/results${q ? `?${q}` : ''}`,
+    )
+  },
+  listRunItemResults: (projectId: string, runId: string, itemId: string) =>
+    request<TestResultHistoryItem[]>(
+      `/api/v1/projects/${projectId}/runs/${runId}/items/${itemId}/results`,
     ),
   setCustomFields: (
     projectId: string,

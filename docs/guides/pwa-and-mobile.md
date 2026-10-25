@@ -26,7 +26,7 @@ Recording a pass/fail/blocked/skipped result on a run while offline enqueues the
 - **Bottom navigation** (Cases / Runs / Reports / Admin) on viewports ≤860px
 - **Suite tree drawer** — open with the **Suites** control in the top bar
 - Case list → detail stacks full-width; tables scroll horizontally when needed
-- **Run execution** is one-handed: case queue list → single-step card → large Pass / Fail / Blocked buttons near the thumb; camera capture for result attachments (`capture="environment"`)
+- **Run execution** is one-handed: case queue list → single-step card → large **Passed / Failed / Blocked / Skipped** buttons near the thumb; camera capture for result attachments (`capture="environment"`)
 - Admin tabs and report tables use larger tap targets and stacked grids
 
 ## Local development

@@ -135,8 +135,48 @@ pub struct TestResult {
     pub raw: Option<Value>,
     pub assignee: Option<String>,
     pub elapsed_ms: Option<i32>,
+    /// User who recorded this result (nullable for anonymous / CI ingest).
+    pub executed_by: Option<Uuid>,
+    /// Case version at the time of execution.
+    pub case_version: Option<i32>,
     pub executed_at: DateTime<Utc>,
     pub created_at: DateTime<Utc>,
+}
+
+/// A result row enriched for history timelines (run name, executor, counts).
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct TestResultHistoryItem {
+    pub result: TestResult,
+    pub run_name: Option<String>,
+    pub executed_by_name: Option<String>,
+    pub executed_by_email: Option<String>,
+    pub attachment_count: i64,
+    pub defect_count: i64,
+    pub steps: Vec<ResultStep>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct CaseResultsSummary {
+    pub case_id: Uuid,
+    pub latest_status: Option<String>,
+    pub latest_executed_at: Option<DateTime<Utc>>,
+    pub total_results: i64,
+    pub passed: i64,
+    pub failed: i64,
+    pub blocked: i64,
+    pub skipped: i64,
+    pub retest: i64,
+    /// Pass rate over decided results (Passed / (Passed + Failed)).
+    pub pass_rate: f64,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct CaseResultsPage {
+    pub summary: CaseResultsSummary,
+    pub items: Vec<TestResultHistoryItem>,
+    pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
@@ -196,6 +236,9 @@ pub struct RunItemExecution {
     pub item: RunItemView,
     pub steps: Vec<TestStep>,
     pub latest_result: Option<TestResultDetail>,
+    /// Chronological result history for this run item (append-only timeline).
+    #[serde(default)]
+    pub history: Vec<TestResultHistoryItem>,
 }
 
 /// Legacy/simple bulk item used by MCP-friendly `POST .../results`.
@@ -237,7 +280,8 @@ pub struct BulkResultItem {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BulkResultsRequest {
     pub results: Vec<BulkResultItem>,
-    /// When true, replace existing results with the same external_id.
+    /// Deprecated: results are append-only. When true with a matching external_id,
+    /// a new history row is still inserted (never overwritten). Kept for API compat.
     #[serde(default)]
     pub upsert: bool,
 }

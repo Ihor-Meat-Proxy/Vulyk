@@ -1,4 +1,5 @@
 //! Persist parsed results with bulk inserts and optional case-key matching.
+//! Results are append-only: every ingest inserts new history rows (never UPDATE).
 
 use chrono::Utc;
 use serde_json::Value;
@@ -6,7 +7,7 @@ use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::models::{BulkResultItem, BulkResultsResponse};
+use crate::models::{normalize_result_status, BulkResultItem, BulkResultsResponse};
 
 const SYNC_BATCH: usize = 500;
 
@@ -19,19 +20,20 @@ pub async fn persist_results(
     project_id: Uuid,
     items: &[BulkResultItem],
     source: &str,
-    upsert: bool,
+    _upsert: bool,
 ) -> AppResult<BulkResultsResponse> {
     ensure_run(pool, run_id, project_id).await?;
 
     let mut unmatched_case_keys = Vec::new();
     let mut inserted: i64 = 0;
-    let mut updated: i64 = 0;
+    // Results are immutable; `updated` stays 0 for API compatibility.
+    let updated: i64 = 0;
 
     for chunk in items.chunks(SYNC_BATCH) {
         let mut resolved = Vec::with_capacity(chunk.len());
         for item in chunk {
             let mut row = item.clone();
-            row.status = normalize_status(&row.status);
+            row.status = normalize_result_status(&row.status);
             if row.case_id.is_none() {
                 if let Some(ref key) = row.case_key {
                     match find_case_id(pool, project_id, key).await? {
@@ -40,52 +42,14 @@ pub async fn persist_results(
                     }
                 }
             }
+            // Stamp case_version at ingest time when we know the case.
             resolved.push(row);
         }
 
-        if upsert {
-            for row in &resolved {
-                if let Some(ref ext) = row.external_id {
-                    let existing: Option<(Uuid,)> = sqlx::query_as(
-                        r#"SELECT id FROM test_results
-                           WHERE run_id = $1 AND external_id = $2
-                           LIMIT 1"#,
-                    )
-                    .bind(run_id)
-                    .bind(ext)
-                    .fetch_optional(pool)
-                    .await?;
-
-                    if let Some((id,)) = existing {
-                        sqlx::query(
-                            r#"UPDATE test_results
-                               SET case_id = $2, status = $3, message = $4, source = $5,
-                                   duration_ms = $6, raw = $7, executed_at = $8
-                               WHERE id = $1"#,
-                        )
-                        .bind(id)
-                        .bind(row.case_id)
-                        .bind(&row.status)
-                        .bind(&row.message)
-                        .bind(source)
-                        .bind(row.duration_ms)
-                        .bind(row.raw.clone().unwrap_or(Value::Null))
-                        .bind(row.executed_at.unwrap_or_else(Utc::now))
-                        .execute(pool)
-                        .await?;
-                        updated += 1;
-                        continue;
-                    }
-                }
-                insert_one(pool, run_id, row, source).await?;
-                inserted += 1;
-            }
-        } else {
-            inserted += insert_batch(pool, run_id, &resolved, source).await?;
-        }
+        inserted += insert_batch(pool, run_id, &resolved, source).await?;
     }
 
-    if inserted + updated > 0 {
+    if inserted > 0 {
         sqlx::query(
             r#"UPDATE test_runs
                SET status = CASE WHEN status IN ('draft', 'running', 'queued') THEN 'completed' ELSE status END,
@@ -141,31 +105,6 @@ async fn find_case_id(pool: &PgPool, project_id: Uuid, key: &str) -> AppResult<O
     Ok(row.map(|r| r.0))
 }
 
-async fn insert_one(
-    pool: &PgPool,
-    run_id: Uuid,
-    row: &BulkResultItem,
-    source: &str,
-) -> AppResult<()> {
-    sqlx::query(
-        r#"INSERT INTO test_results
-           (run_id, case_id, status, message, source, external_id, duration_ms, raw, executed_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"#,
-    )
-    .bind(run_id)
-    .bind(row.case_id)
-    .bind(&row.status)
-    .bind(&row.message)
-    .bind(source)
-    .bind(&row.external_id)
-    .bind(row.duration_ms)
-    .bind(row.raw.clone().unwrap_or(Value::Null))
-    .bind(row.executed_at.unwrap_or_else(Utc::now))
-    .execute(pool)
-    .await?;
-    Ok(())
-}
-
 async fn insert_batch(
     pool: &PgPool,
     run_id: Uuid,
@@ -176,10 +115,23 @@ async fn insert_batch(
         return Ok(0);
     }
 
+    let case_ids: Vec<Uuid> = rows.iter().filter_map(|r| r.case_id).collect();
+    let version_map: std::collections::HashMap<Uuid, i32> = if case_ids.is_empty() {
+        std::collections::HashMap::new()
+    } else {
+        let pairs: Vec<(Uuid, i32)> =
+            sqlx::query_as("SELECT id, version FROM test_cases WHERE id = ANY($1)")
+                .bind(&case_ids)
+                .fetch_all(pool)
+                .await?;
+        pairs.into_iter().collect()
+    };
+
     let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
-        "INSERT INTO test_results (run_id, case_id, status, message, source, external_id, duration_ms, raw, executed_at) ",
+        "INSERT INTO test_results (run_id, case_id, status, message, source, external_id, duration_ms, raw, executed_at, case_version) ",
     );
     qb.push_values(rows, |mut b, row| {
+        let ver = row.case_id.and_then(|id| version_map.get(&id).copied());
         b.push_bind(run_id)
             .push_bind(row.case_id)
             .push_bind(row.status.clone())
@@ -188,20 +140,10 @@ async fn insert_batch(
             .push_bind(row.external_id.clone())
             .push_bind(row.duration_ms)
             .push_bind(row.raw.clone().unwrap_or(Value::Null))
-            .push_bind(row.executed_at.unwrap_or_else(Utc::now));
+            .push_bind(row.executed_at.unwrap_or_else(Utc::now))
+            .push_bind(ver);
     });
 
     let result = qb.build().execute(pool).await?;
     Ok(result.rows_affected() as i64)
-}
-
-fn normalize_status(s: &str) -> String {
-    match s.trim().to_lowercase().as_str() {
-        "pass" | "passed" | "success" | "successful" | "ok" => "passed".into(),
-        "fail" | "failed" | "failure" => "failed".into(),
-        "skip" | "skipped" | "ignored" => "skipped".into(),
-        "error" | "errored" => "error".into(),
-        "blocked" => "blocked".into(),
-        other => other.to_string(),
-    }
 }

@@ -35,7 +35,16 @@ Migrations: `004_20261025140100_plans_runs_results.sql`.
 
 ## Status vocabulary
 
-Run items / manual results: `untested`, `passed`, `failed`, `blocked`, `skipped`, `retest` (results also allow `error` for ingest).
+Canonical PascalCase (DB / API / UI): `Untested`, `Passed`, `Failed`, `Blocked`, `Skipped`, `Retest`.
+
+Input is normalized case-insensitively (and JUnit `error` → `Failed`, `skipped` → `Skipped`). Result rows are **append-only** history; never updated in place.
+
+History APIs:
+
+- `GET /api/v1/cases/{id}/results` (+ project-scoped twin) — paginated, filter by run/status/user/date; includes summary (latest status, pass rate)
+- `GET .../runs/{id}/items/{item_id}/results` — chronological timeline for a run item
+- `GET .../runs/{id}/results/history` — run-level history (optional `case_id`)
+- MCP: `list_case_results`
 
 ## Out of scope (other workstreams)
 

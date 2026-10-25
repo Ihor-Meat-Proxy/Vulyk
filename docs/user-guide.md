@@ -22,9 +22,11 @@ When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the 
 
 - **Runs** creates an execution queue from a plan, suite, or all cases.
 - Open a run to execute items, record step results, and attach notes.
-- On phones, use the bottom nav and large Pass / Fail / Blocked controls; you can attach a camera photo to a result.
+- Result statuses are **Untested** (initial), **Passed**, **Failed**, **Blocked**, **Skipped**, and **Retest**. Every status change is stored as an immutable history row (who, when, comment, elapsed, case version, attachments/defects).
+- The run execution panel shows a **Result history** timeline for the selected case. The case page **History / Results** tab lists all results across runs (filter by run, status, date, user) with latest status and pass-rate summary. Case **edit/version** history remains on the Details tab.
+- On phones, use the bottom nav and large **Passed / Failed / Blocked / Skipped** controls; you can attach a camera photo to a result.
 - Offline: recently viewed cases/runs stay readable; step results queue locally and sync when you are back online. See [PWA and mobile](guides/pwa-and-mobile.md).
-- **Upload JUnit results** on the Runs page to ingest CI XML into a selected run.
+- **Upload JUnit results** on the Runs page to ingest CI XML into a selected run. JUnit `skipped` → Skipped; JUnit `error` → Failed.
 - **CI** configures GitHub Actions / GitLab triggers and dispatch history.
 
 ## Requirements & coverage

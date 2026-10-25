@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
+  statusClass,
+  type CaseResultsPage,
   type CaseVersionSummary,
   type CustomField,
   type Requirement,
@@ -18,6 +20,8 @@ type DraftStep = {
   expected_result: string
   data: string
 }
+
+type Tab = 'details' | 'history'
 
 export function CaseDetail({ projectId }: Props) {
   const { caseId } = useParams()
@@ -40,6 +44,13 @@ export function CaseDetail({ projectId }: Props) {
   const [tagInput, setTagInput] = useState('')
   const [steps, setSteps] = useState<DraftStep[]>([])
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [tab, setTab] = useState<Tab>('details')
+  const [resultsPage, setResultsPage] = useState<CaseResultsPage | null>(null)
+  const [resultsLoading, setResultsLoading] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('')
+  const [filterRunId, setFilterRunId] = useState('')
+  const [resultsOffset, setResultsOffset] = useState(0)
+  const resultsLimit = 25
 
   const applyDetail = (data: TestCaseDetail) => {
     setDetail(data)
@@ -95,6 +106,26 @@ export function CaseDetail({ projectId }: Props) {
     }
   }
 
+  const loadResults = async (offset = 0) => {
+    if (!projectId || !caseId) return
+    setResultsLoading(true)
+    try {
+      const page = await api.listCaseResults(projectId, caseId, {
+        status: filterStatus || undefined,
+        run_id: filterRunId.trim() || undefined,
+        limit: resultsLimit,
+        offset,
+      })
+      setResultsPage(page)
+      setResultsOffset(offset)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setResultsLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (!projectId || !caseId) {
       setLoading(false)
@@ -116,6 +147,12 @@ export function CaseDetail({ projectId }: Props) {
       cancelled = true
     }
   }, [projectId, caseId])
+
+  useEffect(() => {
+    if (tab === 'history' && projectId && caseId) {
+      void loadResults(0)
+    }
+  }, [tab, projectId, caseId])
 
   const save = async () => {
     if (!projectId || !caseId) return
@@ -169,6 +206,7 @@ export function CaseDetail({ projectId }: Props) {
   }
 
   const { case: c, tags } = detail
+  const summary = resultsPage?.summary
 
   return (
     <div className="panel case-detail">
@@ -215,268 +253,405 @@ export function CaseDetail({ projectId }: Props) {
         </div>
       </div>
 
-      {error && <p className="error">{error}</p>}
-
-      <div className="meta-row">
-        <span>
-          Priority:{' '}
-          {editing ? (
-            <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-              <option value="low">low</option>
-              <option value="medium">medium</option>
-              <option value="high">high</option>
-              <option value="critical">critical</option>
-            </select>
-          ) : (
-            c.priority
-          )}
-        </span>
-        <span>
-          Status:{' '}
-          {editing ? (
-            <select value={status} onChange={(e) => setStatus(e.target.value)}>
-              <option value="draft">draft</option>
-              <option value="ready">ready</option>
-              <option value="deprecated">deprecated</option>
-            </select>
-          ) : (
-            c.status
-          )}
-        </span>
-        <span>Version: {c.version}</span>
+      <div className="case-tabs" role="tablist" aria-label="Case sections">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'details'}
+          className={tab === 'details' ? 'active' : ''}
+          onClick={() => setTab('details')}
+        >
+          Details
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'history'}
+          className={tab === 'history' ? 'active' : ''}
+          onClick={() => setTab('history')}
+        >
+          History / Results
+        </button>
       </div>
 
-      <section className="tag-row">
-        <strong>Tags</strong>
-        {editing ? (
-          <input
-            className="search-input"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            placeholder="comma-separated tags"
-          />
-        ) : tags.length === 0 ? (
-          <span className="muted">none</span>
-        ) : (
-          tags.map((t) => (
-            <span key={t.id} className="tag-chip" style={{ borderColor: t.color }}>
-              {t.name}
+      {tab === 'details' && (
+        <>
+          <div className="meta-row">
+            <span>
+              Priority:{' '}
+              {editing ? (
+                <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                  <option value="low">low</option>
+                  <option value="medium">medium</option>
+                  <option value="high">high</option>
+                  <option value="critical">critical</option>
+                </select>
+              ) : (
+                c.priority
+              )}
             </span>
-          ))
-        )}
-      </section>
-
-      <section style={{ marginBottom: '1rem' }}>
-        <h3 style={{ marginBottom: '0.35rem' }}>Preconditions</h3>
-        {editing ? (
-          <textarea
-            className="area"
-            value={precondition}
-            onChange={(e) => setPrecondition(e.target.value)}
-            rows={3}
-          />
-        ) : (
-          <p className="muted" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
-            {c.precondition || '—'}
-          </p>
-        )}
-      </section>
-
-      <section style={{ marginBottom: '1rem' }}>
-        <h3 style={{ marginBottom: '0.35rem' }}>Description</h3>
-        {editing ? (
-          <textarea
-            className="area"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            rows={4}
-          />
-        ) : (
-          <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{c.description || '—'}</p>
-        )}
-      </section>
-
-      {(fields.length > 0 || detail.custom_fields.length > 0) && (
-        <section style={{ marginBottom: '1rem' }}>
-          <h3>Custom fields</h3>
-          <div className="cf-grid">
-            {editing
-              ? fields.map((cf) => (
-                  <label key={cf.id} className="cf-field">
-                    <span className="muted">{cf.name}</span>
-                    <input
-                      value={fieldValues[cf.id] ?? ''}
-                      onChange={(e) =>
-                        setFieldValues((prev) => ({
-                          ...prev,
-                          [cf.id]: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-                ))
-              : detail.custom_fields.map((cf) => (
-                  <label key={cf.field_id} className="cf-field">
-                    <span className="muted">{cf.name}</span>
-                    <span>
-                      {cf.value === null || cf.value === undefined
-                        ? '—'
-                        : String(cf.value)}
-                    </span>
-                  </label>
-                ))}
+            <span>
+              Status:{' '}
+              {editing ? (
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option value="draft">draft</option>
+                  <option value="ready">ready</option>
+                  <option value="deprecated">deprecated</option>
+                </select>
+              ) : (
+                c.status
+              )}
+            </span>
+            <span>Version: {c.version}</span>
           </div>
-        </section>
+
+          <section className="tag-row">
+            <strong>Tags</strong>
+            {editing ? (
+              <input
+                className="search-input"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                placeholder="comma-separated tags"
+              />
+            ) : tags.length === 0 ? (
+              <span className="muted">none</span>
+            ) : (
+              tags.map((t) => (
+                <span key={t.id} className="tag-chip" style={{ borderColor: t.color }}>
+                  {t.name}
+                </span>
+              ))
+            )}
+          </section>
+
+          <section style={{ marginBottom: '1rem' }}>
+            <h3 style={{ marginBottom: '0.35rem' }}>Preconditions</h3>
+            {editing ? (
+              <textarea
+                className="area"
+                value={precondition}
+                onChange={(e) => setPrecondition(e.target.value)}
+                rows={3}
+              />
+            ) : (
+              <p className="muted" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                {c.precondition || '—'}
+              </p>
+            )}
+          </section>
+
+          <section style={{ marginBottom: '1rem' }}>
+            <h3 style={{ marginBottom: '0.35rem' }}>Description</h3>
+            {editing ? (
+              <textarea
+                className="area"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={4}
+              />
+            ) : (
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{c.description || '—'}</p>
+            )}
+          </section>
+
+          {(fields.length > 0 || detail.custom_fields.length > 0) && (
+            <section style={{ marginBottom: '1rem' }}>
+              <h3>Custom fields</h3>
+              <div className="cf-grid">
+                {editing
+                  ? fields.map((cf) => (
+                      <label key={cf.id} className="cf-field">
+                        <span className="muted">{cf.name}</span>
+                        <input
+                          value={fieldValues[cf.id] ?? ''}
+                          onChange={(e) =>
+                            setFieldValues((prev) => ({
+                              ...prev,
+                              [cf.id]: e.target.value,
+                            }))
+                          }
+                        />
+                      </label>
+                    ))
+                  : detail.custom_fields.map((cf) => (
+                      <label key={cf.field_id} className="cf-field">
+                        <span className="muted">{cf.name}</span>
+                        <span>
+                          {cf.value === null || cf.value === undefined
+                            ? '—'
+                            : String(cf.value)}
+                        </span>
+                      </label>
+                    ))}
+              </div>
+            </section>
+          )}
+
+          <section>
+            <div className="detail-header">
+              <h3>Steps</h3>
+              {editing && (
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() =>
+                    setSteps((prev) => [
+                      ...prev,
+                      { action: '', expected_result: '', data: '' },
+                    ])
+                  }
+                >
+                  Add step
+                </button>
+              )}
+            </div>
+            {steps.length === 0 ? (
+              <p className="muted">No steps defined.</p>
+            ) : (
+              <div className="steps">
+                {steps.map((step, idx) => (
+                  <div className="step" key={idx}>
+                    <div className="step-num">{idx + 1}</div>
+                    <div>
+                      <div className="muted" style={{ fontSize: '0.78rem' }}>
+                        Action
+                      </div>
+                      {editing ? (
+                        <textarea
+                          className="area"
+                          rows={2}
+                          value={step.action}
+                          onChange={(e) => {
+                            const next = [...steps]
+                            next[idx] = { ...step, action: e.target.value }
+                            setSteps(next)
+                          }}
+                        />
+                      ) : (
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
+                      )}
+                    </div>
+                    <div>
+                      <div className="muted" style={{ fontSize: '0.78rem' }}>
+                        Expected
+                      </div>
+                      {editing ? (
+                        <textarea
+                          className="area"
+                          rows={2}
+                          value={step.expected_result}
+                          onChange={(e) => {
+                            const next = [...steps]
+                            next[idx] = { ...step, expected_result: e.target.value }
+                            setSteps(next)
+                          }}
+                        />
+                      ) : (
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
+                      )}
+                      {editing && (
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          style={{ marginTop: '0.35rem' }}
+                          onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx))}
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section style={{ marginTop: '1.5rem' }}>
+            <h3>Linked requirements</h3>
+            {linked.length === 0 ? (
+              <p className="muted">No requirements linked.</p>
+            ) : (
+              <ul className="req-list">
+                {linked.map((r) => (
+                  <li key={r.id}>
+                    <span className="badge">{r.external_key ?? r.source}</span>{' '}
+                    {r.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="req-form" style={{ marginTop: '0.75rem' }}>
+              <select
+                value={linkId}
+                onChange={(e) => setLinkId(e.target.value)}
+                aria-label="Requirement to link"
+              >
+                <option value="">Link a requirement…</option>
+                {allReqs
+                  .filter((r) => !linked.some((l) => l.id === r.id))
+                  .map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.title}
+                    </option>
+                  ))}
+              </select>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={!linkId || !caseId}
+                onClick={() => {
+                  if (!projectId || !caseId || !linkId) return
+                  void api
+                    .linkRequirement(projectId, {
+                      case_id: caseId,
+                      requirement_id: linkId,
+                    })
+                    .then(() => api.listCaseRequirements(projectId, caseId))
+                    .then(setLinked)
+                    .then(() => setLinkId(''))
+                    .catch((err: Error) => setError(err.message))
+                }}
+              >
+                Link
+              </button>
+            </div>
+          </section>
+
+          <section style={{ marginTop: '1.5rem' }}>
+            <h3>Edit history</h3>
+            {versions.length === 0 ? (
+              <p className="muted">No snapshots yet.</p>
+            ) : (
+              <ul className="history-list">
+                {versions.map((v) => (
+                  <li key={v.id}>
+                    <span className="badge">v{v.version}</span>{' '}
+                    {v.change_summary || 'snapshot'}{' '}
+                    <span className="muted">
+                      · {new Date(v.created_at).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
       )}
 
-      <section>
-        <div className="detail-header">
-          <h3>Steps</h3>
-          {editing && (
+      {tab === 'history' && (
+        <section className="case-results-history" aria-label="Result history">
+          {summary && (
+            <div className="meta-row results-summary">
+              <span>
+                Latest:{' '}
+                {summary.latest_status ? (
+                  <span className={`status-pill ${statusClass(summary.latest_status)}`}>
+                    {summary.latest_status}
+                  </span>
+                ) : (
+                  '—'
+                )}
+              </span>
+              <span>Total results: {summary.total_results}</span>
+              <span>Pass rate: {summary.pass_rate.toFixed(0)}%</span>
+              <span className="muted">
+                P{summary.passed} / F{summary.failed} / B{summary.blocked} / S
+                {summary.skipped}
+              </span>
+            </div>
+          )}
+
+          <div className="form-row" style={{ marginBottom: '0.75rem' }}>
+            <select
+              className="filter-input"
+              aria-label="Filter by status"
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <option value="">All statuses</option>
+              <option value="Passed">Passed</option>
+              <option value="Failed">Failed</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Skipped">Skipped</option>
+              <option value="Retest">Retest</option>
+              <option value="Untested">Untested</option>
+            </select>
+            <input
+              className="search-input"
+              placeholder="Filter by run id"
+              aria-label="Filter by run id"
+              value={filterRunId}
+              onChange={(e) => setFilterRunId(e.target.value)}
+            />
             <button
               type="button"
               className="btn secondary"
-              onClick={() =>
-                setSteps((prev) => [
-                  ...prev,
-                  { action: '', expected_result: '', data: '' },
-                ])
-              }
+              disabled={resultsLoading}
+              onClick={() => void loadResults(0)}
             >
-              Add step
+              Apply filters
             </button>
-          )}
-        </div>
-        {steps.length === 0 ? (
-          <p className="muted">No steps defined.</p>
-        ) : (
-          <div className="steps">
-            {steps.map((step, idx) => (
-              <div className="step" key={idx}>
-                <div className="step-num">{idx + 1}</div>
-                <div>
-                  <div className="muted" style={{ fontSize: '0.78rem' }}>
-                    Action
-                  </div>
-                  {editing ? (
-                    <textarea
-                      className="area"
-                      rows={2}
-                      value={step.action}
-                      onChange={(e) => {
-                        const next = [...steps]
-                        next[idx] = { ...step, action: e.target.value }
-                        setSteps(next)
-                      }}
-                    />
-                  ) : (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
-                  )}
-                </div>
-                <div>
-                  <div className="muted" style={{ fontSize: '0.78rem' }}>
-                    Expected
-                  </div>
-                  {editing ? (
-                    <textarea
-                      className="area"
-                      rows={2}
-                      value={step.expected_result}
-                      onChange={(e) => {
-                        const next = [...steps]
-                        next[idx] = { ...step, expected_result: e.target.value }
-                        setSteps(next)
-                      }}
-                    />
-                  ) : (
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
-                  )}
-                  {editing && (
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      style={{ marginTop: '0.35rem' }}
-                      onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx))}
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
           </div>
-        )}
-      </section>
 
-      <section style={{ marginTop: '1.5rem' }}>
-        <h3>Linked requirements</h3>
-        {linked.length === 0 ? (
-          <p className="muted">No requirements linked.</p>
-        ) : (
-          <ul className="req-list">
-            {linked.map((r) => (
-              <li key={r.id}>
-                <span className="badge">{r.external_key ?? r.source}</span>{' '}
-                {r.title}
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="req-form" style={{ marginTop: '0.75rem' }}>
-          <select
-            value={linkId}
-            onChange={(e) => setLinkId(e.target.value)}
-            aria-label="Requirement to link"
-          >
-            <option value="">Link a requirement…</option>
-            {allReqs
-              .filter((r) => !linked.some((l) => l.id === r.id))
-              .map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title}
-                </option>
-              ))}
-          </select>
-          <button
-            type="button"
-            className="btn secondary"
-            disabled={!linkId || !caseId}
-            onClick={() => {
-              if (!projectId || !caseId || !linkId) return
-              void api
-                .linkRequirement(projectId, {
-                  case_id: caseId,
-                  requirement_id: linkId,
-                })
-                .then(() => api.listCaseRequirements(projectId, caseId))
-                .then(setLinked)
-                .then(() => setLinkId(''))
-                .catch((err: Error) => setError(err.message))
-            }}
-          >
-            Link
-          </button>
-        </div>
-      </section>
-
-      <section style={{ marginTop: '1.5rem' }}>
-        <h3>History</h3>
-        {versions.length === 0 ? (
-          <p className="muted">No snapshots yet.</p>
-        ) : (
-          <ul className="history-list">
-            {versions.map((v) => (
-              <li key={v.id}>
-                <span className="badge">v{v.version}</span>{' '}
-                {v.change_summary || 'snapshot'}{' '}
+          {resultsLoading && !resultsPage ? (
+            <p className="muted">Loading results…</p>
+          ) : !resultsPage || resultsPage.items.length === 0 ? (
+            <p className="muted">No results yet.</p>
+          ) : (
+            <>
+              <ol className="timeline-list" aria-label="Case results across runs">
+                {resultsPage.items.map((h) => (
+                  <li key={h.result.id}>
+                    <span className={`status-pill ${statusClass(h.result.status)}`}>
+                      {h.result.status}
+                    </span>{' '}
+                    <strong>{h.run_name || 'Run'}</strong>{' '}
+                    <span className="muted">
+                      {new Date(h.result.executed_at).toLocaleString()}
+                      {h.executed_by_name ? ` · ${h.executed_by_name}` : ''}
+                      {h.result.case_version != null
+                        ? ` · case v${h.result.case_version}`
+                        : ''}
+                      {h.attachment_count > 0
+                        ? ` · ${h.attachment_count} attachment(s)`
+                        : ''}
+                      {h.defect_count > 0 ? ` · ${h.defect_count} defect(s)` : ''}
+                      {h.result.message ? ` — ${h.result.message}` : ''}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <div className="pager">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={resultsOffset <= 0 || resultsLoading}
+                  onClick={() => void loadResults(Math.max(0, resultsOffset - resultsLimit))}
+                >
+                  Previous
+                </button>
                 <span className="muted">
-                  · {new Date(v.created_at).toLocaleString()}
+                  {resultsOffset + 1}–
+                  {Math.min(resultsOffset + resultsLimit, resultsPage.total)} of{' '}
+                  {resultsPage.total}
                 </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={
+                    resultsLoading ||
+                    resultsOffset + resultsLimit >= resultsPage.total
+                  }
+                  onClick={() => void loadResults(resultsOffset + resultsLimit)}
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
     </div>
   )
 }

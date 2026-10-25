@@ -8,14 +8,15 @@ use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    BulkCasesRequest, BulkCasesResponse, CaseVersion, CaseVersionSummary, CreateCase, Page,
-    PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
+    BulkCasesRequest, BulkCasesResponse, CaseResultsPage, CaseVersion, CaseVersionSummary,
+    CreateCase, Page, PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
 };
 use crate::routes::AppState;
 use crate::services::cases::{
     add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
     snapshot_case,
 };
+use crate::services::results::{list_case_results, CaseResultsQuery};
 
 // Re-exports for LLM/MCP routes that historically imported these helpers from here.
 pub use crate::services::cases::{ensure_project, load_steps, replace_steps};
@@ -44,8 +45,16 @@ pub fn router() -> Router<AppState> {
             get(get_version),
         )
         .route(
+            "/api/v1/projects/{project_id}/cases/{case_id}/results",
+            get(list_case_results_project),
+        )
+        .route(
             "/api/v1/projects/{project_id}/cases/{case_id}/custom-fields",
             post(set_custom_fields),
+        )
+        .route(
+            "/api/v1/cases/{case_id}/results",
+            get(list_case_results_by_id),
         )
 }
 
@@ -619,4 +628,65 @@ pub async fn set_custom_fields(
 
     tx.commit().await?;
     Ok(Json(load_case_detail(&state.pool, case).await?))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/cases/{case_id}/results",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path),
+        ("case_id" = Uuid, Path),
+        ("run_id" = Option<Uuid>, Query),
+        ("status" = Option<String>, Query),
+        ("user_id" = Option<Uuid>, Query),
+        ("from" = Option<String>, Query),
+        ("to" = Option<String>, Query),
+        ("limit" = Option<i64>, Query),
+        ("offset" = Option<i64>, Query),
+        ("include_steps" = Option<bool>, Query)
+    ),
+    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage))
+)]
+pub async fn list_case_results_project(
+    State(state): State<AppState>,
+    Path((project_id, case_id)): Path<(Uuid, Uuid)>,
+    Query(query): Query<CaseResultsQuery>,
+) -> AppResult<Json<CaseResultsPage>> {
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
+    )
+    .bind(project_id)
+    .bind(case_id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !exists {
+        return Err(AppError::NotFound("case".into()));
+    }
+    Ok(Json(list_case_results(&state.pool, case_id, &query).await?))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cases/{case_id}/results",
+    tag = "cases",
+    params(
+        ("case_id" = Uuid, Path),
+        ("run_id" = Option<Uuid>, Query),
+        ("status" = Option<String>, Query),
+        ("user_id" = Option<Uuid>, Query),
+        ("from" = Option<String>, Query),
+        ("to" = Option<String>, Query),
+        ("limit" = Option<i64>, Query),
+        ("offset" = Option<i64>, Query),
+        ("include_steps" = Option<bool>, Query)
+    ),
+    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage))
+)]
+pub async fn list_case_results_by_id(
+    State(state): State<AppState>,
+    Path(case_id): Path<Uuid>,
+    Query(query): Query<CaseResultsQuery>,
+) -> AppResult<Json<CaseResultsPage>> {
+    Ok(Json(list_case_results(&state.pool, case_id, &query).await?))
 }
