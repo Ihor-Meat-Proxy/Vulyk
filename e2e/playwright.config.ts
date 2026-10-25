@@ -16,5 +16,21 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    {
+      name: 'chromium',
+      testIgnore: /mobile\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'Mobile Safari',
+      testMatch: /mobile\.spec\.ts/,
+      use: { ...devices['iPhone 13'] },
+    },
+    {
+      name: 'Mobile Chrome',
+      testMatch: /mobile\.spec\.ts/,
+      use: { ...devices['Pixel 5'] },
+    },
+  ],
 })

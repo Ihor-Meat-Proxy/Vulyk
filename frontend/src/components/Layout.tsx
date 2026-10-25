@@ -1,6 +1,9 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useId, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { Project, Suite } from '../api'
 import { useAuth } from '../auth'
+import { BottomNav } from './BottomNav'
+import { PwaToasts } from './PwaToasts'
 
 type Props = {
   projects: Project[]
@@ -20,16 +23,54 @@ export function Layout({
   onSelectSuite,
 }: Props) {
   const { user, logout, status } = useAuth()
+  const location = useLocation()
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const drawerTitleId = useId()
+
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [location.pathname, selectedSuiteId])
+
+  useEffect(() => {
+    if (!drawerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setDrawerOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [drawerOpen])
+
+  const selectSuite = (id: string | null) => {
+    onSelectSuite(id)
+    setDrawerOpen(false)
+  }
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={`app-shell${drawerOpen ? ' drawer-open' : ''}`}>
+      <PwaToasts />
+
+      {drawerOpen && (
+        <button
+          type="button"
+          className="drawer-backdrop"
+          aria-label="Close suite drawer"
+          onClick={() => setDrawerOpen(false)}
+        />
+      )}
+
+      <aside
+        className="sidebar"
+        id="suite-drawer"
+        aria-labelledby={drawerTitleId}
+      >
         <div className="brand">
-          <span className="brand-mark">Vulyk</span>
+          <span className="brand-mark" id={drawerTitleId}>
+            Vulyk
+          </span>
           <span className="brand-tag">Test management</span>
         </div>
 
-        <nav className="nav" aria-label="Primary">
+        <nav className="nav nav-desktop" aria-label="Primary">
           <NavLink to="/" end>
             Cases
           </NavLink>
@@ -43,7 +84,7 @@ export function Layout({
           <NavLink to="/admin">Admin</NavLink>
         </nav>
 
-        <div>
+        <div className="suite-block">
           <div className="muted" style={{ marginBottom: '0.5rem', fontSize: '0.8rem' }}>
             Suites
           </div>
@@ -51,7 +92,7 @@ export function Layout({
             <button
               type="button"
               className={selectedSuiteId === null ? 'active' : undefined}
-              onClick={() => onSelectSuite(null)}
+              onClick={() => selectSuite(null)}
             >
               All cases
             </button>
@@ -60,7 +101,7 @@ export function Layout({
                 key={suite.id}
                 type="button"
                 className={selectedSuiteId === suite.id ? 'active' : undefined}
-                onClick={() => onSelectSuite(suite.id)}
+                onClick={() => selectSuite(suite.id)}
               >
                 {suite.name}
               </button>
@@ -76,7 +117,18 @@ export function Layout({
 
       <div className="main">
         <header className="topbar">
-          <h1>{project ? project.name : 'Vulyk'}</h1>
+          <div className="topbar-lead">
+            <button
+              type="button"
+              className="btn secondary menu-toggle"
+              aria-expanded={drawerOpen}
+              aria-controls="suite-drawer"
+              onClick={() => setDrawerOpen((v) => !v)}
+            >
+              Suites
+            </button>
+            <h1>{project ? project.name : 'Vulyk'}</h1>
+          </div>
           <div className="topbar-actions">
             <label>
               <span className="muted" style={{ marginRight: '0.5rem' }}>
@@ -115,6 +167,7 @@ export function Layout({
         <main className="content">
           <Outlet />
         </main>
+        <BottomNav />
       </div>
     </div>
   )

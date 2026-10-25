@@ -59,6 +59,7 @@ helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namesp
 | [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
 | [docs/llm.md](docs/llm.md) | LLM providers |
 | [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | JUnit ingest & CI triggers |
+| [docs/guides/pwa-and-mobile.md](docs/guides/pwa-and-mobile.md) | PWA install, offline queue, mobile UX |
 
 ## Repository layout
 

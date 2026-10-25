@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
   type RunItemExecution,
   type TestRunDetail,
 } from '../api'
+import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
+import { bumpPendingCount } from '../pwa/offlineSync'
 
 type Props = {
   projectId: string | null
@@ -12,21 +14,51 @@ type Props = {
 
 const STATUSES = ['untested', 'passed', 'failed', 'blocked', 'skipped', 'retest'] as const
 
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = String(reader.result ?? '')
+      const comma = result.indexOf(',')
+      resolve(comma >= 0 ? result.slice(comma + 1) : result)
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('read failed'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export function RunDetail({ projectId }: Props) {
   const { runId } = useParams()
   const [detail, setDetail] = useState<TestRunDetail | null>(null)
   const [active, setActive] = useState<RunItemExecution | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [fromCache, setFromCache] = useState(false)
   const [loading, setLoading] = useState(true)
   const [assignee, setAssignee] = useState('')
   const [comment, setComment] = useState('')
   const [stepStatuses, setStepStatuses] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [mobileStep, setMobileStep] = useState(0)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const reload = async () => {
     if (!projectId || !runId) return
-    const data = await api.getRun(projectId, runId)
-    setDetail(data)
+    try {
+      const data = await api.getRun(projectId, runId)
+      setDetail(data)
+      setFromCache(false)
+      void cacheRun(projectId, runId, data)
+    } catch (err) {
+      const cached = (await getCachedRun(projectId, runId)) as TestRunDetail | null
+      if (cached) {
+        setDetail(cached)
+        setFromCache(true)
+        setNotice('Showing cached run (offline).')
+        return
+      }
+      throw err
+    }
   }
 
   useEffect(() => {
@@ -53,45 +85,95 @@ export function RunDetail({ projectId }: Props) {
 
   const openItem = async (itemId: string) => {
     if (!projectId || !runId) return
-    const exec = await api.getRunItem(projectId, runId, itemId)
-    setActive(exec)
-    setAssignee(exec.item.item.assignee ?? '')
-    setComment(exec.item.item.comment ?? '')
-    setStepStatuses(exec.steps.map(() => 'untested'))
+    try {
+      const exec = await api.getRunItem(projectId, runId, itemId)
+      setActive(exec)
+      setAssignee(exec.item.item.assignee ?? '')
+      setComment(exec.item.item.comment ?? '')
+      setStepStatuses(exec.steps.map(() => 'untested'))
+      setMobileStep(0)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const buildBody = (status: string) => {
+    if (!active) return null
+    return {
+      run_item_id: active.item.item.id,
+      status,
+      message: comment,
+      assignee: assignee || null,
+      steps: active.steps.map((step, idx) => ({
+        step_id: step.id,
+        position: step.position,
+        action: step.action,
+        expected_result: step.expected_result,
+        status: stepStatuses[idx] === 'untested' ? status : stepStatuses[idx],
+      })),
+    }
+  }
+
+  const advanceAfterSave = async (currentItemId: string) => {
+    if (!projectId || !runId) return
+    const data = await api.getRun(projectId, runId)
+    setDetail(data)
+    setFromCache(false)
+    void cacheRun(projectId, runId, data)
+    const next = data.items.find(
+      (i) => i.item.status === 'untested' && i.item.id !== currentItemId,
+    )
+    if (next) {
+      await openItem(next.item.id)
+    } else {
+      setActive(null)
+    }
   }
 
   const submitStatus = async (status: string) => {
     if (!projectId || !runId || !active) return
+    const body = buildBody(status)
+    if (!body) return
     setSaving(true)
+    setNotice(null)
+    const currentId = active.item.item.id
     try {
-      await api.createResult(projectId, runId, {
-        run_item_id: active.item.item.id,
-        status,
-        message: comment,
-        assignee: assignee || null,
-        steps: active.steps.map((step, idx) => ({
-          step_id: step.id,
-          position: step.position,
-          action: step.action,
-          expected_result: step.expected_result,
-          status: stepStatuses[idx] === 'untested' ? status : stepStatuses[idx],
-        })),
-      })
-      if (status === 'failed' || status === 'blocked') {
-        // optional: leave room for attachment UX; keep lightweight
-      }
-      await reload()
-      const next = detail?.items.find(
-        (i) => i.item.status === 'untested' && i.item.id !== active.item.item.id,
-      )
-      if (next) {
-        await openItem(next.item.id)
-      } else {
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine
+      if (offline) {
+        await enqueueStepResult({ projectId, runId, body })
+        await bumpPendingCount()
+        setNotice('Saved offline — will sync when you are back online.')
+        // Optimistically mark local active item
+        setDetail((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            items: prev.items.map((row) =>
+              row.item.id === currentId
+                ? { ...row, item: { ...row.item, status } }
+                : row,
+            ),
+          }
+        })
         setActive(null)
+        setError(null)
+        return
       }
+      await api.createResult(projectId, runId, body)
+      await advanceAfterSave(currentId)
       setError(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      // Network failure mid-flight → queue for later
+      try {
+        await enqueueStepResult({ projectId, runId, body })
+        await bumpPendingCount()
+        setNotice('Network error — result queued for sync.')
+        setActive(null)
+        setError(null)
+      } catch {
+        setError(err instanceof Error ? err.message : String(err))
+      }
     } finally {
       setSaving(false)
     }
@@ -107,6 +189,31 @@ export function RunDetail({ projectId }: Props) {
       content_type: 'text/plain',
       content_base64: text,
     })
+    setNotice('Note attached.')
+  }
+
+  const attachPhoto = async (file: File) => {
+    if (!projectId || !active?.latest_result) {
+      setError('Record a result first, then attach a photo.')
+      return
+    }
+    setSaving(true)
+    try {
+      const content_base64 = await fileToBase64(file)
+      await api.createAttachment(projectId, {
+        entity_type: 'result',
+        entity_id: active.latest_result.result.id,
+        filename: file.name || 'capture.jpg',
+        content_type: file.type || 'image/jpeg',
+        content_base64,
+      })
+      setNotice('Photo attached.')
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!projectId) return <p className="muted">Select a project first.</p>
@@ -115,10 +222,11 @@ export function RunDetail({ projectId }: Props) {
   if (!detail) return <p className="muted">Run not found.</p>
 
   const { run, progress, items } = detail
+  const currentStep = active?.steps[mobileStep]
 
   return (
-    <div className="run-layout">
-      <div className="panel">
+    <div className={`run-layout${active ? ' run-executing' : ''}`}>
+      <div className="panel run-queue-panel">
         <p style={{ marginTop: 0 }}>
           <Link to="/runs">← Runs</Link>
         </p>
@@ -128,6 +236,7 @@ export function RunDetail({ projectId }: Props) {
           <span>
             Progress: {progress.completed}/{progress.total} ({progress.percent.toFixed(0)}%)
           </span>
+          {fromCache && <span className="badge">cached</span>}
         </div>
         <div className="progress-track" aria-label="Run progress">
           <div className="progress-seg passed" style={{ flex: progress.passed || 0.0001 }} />
@@ -145,37 +254,58 @@ export function RunDetail({ projectId }: Props) {
         </div>
 
         {error && <p className="error">{error}</p>}
+        {notice && <p className="notice">{notice}</p>}
 
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Case</th>
-              <th>Priority</th>
-              <th>Assignee</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((row) => (
-              <tr
-                key={row.item.id}
-                className={active?.item.item.id === row.item.id ? 'row-active' : undefined}
+        <ul className="run-item-list" aria-label="Run cases">
+          {items.map((row) => (
+            <li key={row.item.id}>
+              <button
+                type="button"
+                className={`run-item-btn${active?.item.item.id === row.item.id ? ' active' : ''}`}
                 onClick={() => void openItem(row.item.id)}
               >
-                <td>
-                  <span className="badge">{row.case_key}</span> {row.case_title}
-                </td>
-                <td>{row.case_priority}</td>
-                <td>{row.item.assignee || '—'}</td>
-                <td>
-                  <span className={`status-pill status-${row.item.status}`}>
-                    {row.item.status}
-                  </span>
-                </td>
+                <span className="badge">{row.case_key}</span>
+                <span className="run-item-title">{row.case_title}</span>
+                <span className={`status-pill status-${row.item.status}`}>
+                  {row.item.status}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="run-table-desktop">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Case</th>
+                <th>Priority</th>
+                <th>Assignee</th>
+                <th>Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr
+                  key={row.item.id}
+                  className={active?.item.item.id === row.item.id ? 'row-active' : undefined}
+                  onClick={() => void openItem(row.item.id)}
+                >
+                  <td>
+                    <span className="badge">{row.case_key}</span> {row.case_title}
+                  </td>
+                  <td>{row.case_priority}</td>
+                  <td>{row.item.assignee || '—'}</td>
+                  <td>
+                    <span className={`status-pill status-${row.item.status}`}>
+                      {row.item.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div className="panel execution-panel">
@@ -183,24 +313,38 @@ export function RunDetail({ projectId }: Props) {
           <div className="empty">Select a case to execute step by step.</div>
         ) : (
           <>
-            <h3 style={{ marginTop: 0 }}>
-              <span className="badge">{active.item.case_key}</span> {active.item.case_title}
-            </h3>
+            <div className="exec-header">
+              <button
+                type="button"
+                className="btn secondary exec-back"
+                onClick={() => setActive(null)}
+              >
+                ← Queue
+              </button>
+              <h3 style={{ margin: 0 }}>
+                <span className="badge">{active.item.case_key}</span>{' '}
+                {active.item.case_title}
+              </h3>
+            </div>
             <div className="form-row">
               <input
                 className="filter-input"
                 placeholder="Assignee"
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
+                aria-label="Assignee"
               />
               <input
                 className="search-input"
                 placeholder="Comment"
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
+                aria-label="Comment"
               />
             </div>
-            <div className="steps">
+
+            {/* Desktop: all steps */}
+            <div className="steps steps-desktop">
               {active.steps.map((step, idx) => (
                 <div className="step" key={step.id}>
                   <div className="step-num">{idx + 1}</div>
@@ -219,6 +363,7 @@ export function RunDetail({ projectId }: Props) {
                       className="filter-input"
                       style={{ marginTop: '0.35rem' }}
                       value={stepStatuses[idx] ?? 'untested'}
+                      aria-label={`Step ${idx + 1} status`}
                       onChange={(e) => {
                         const next = [...stepStatuses]
                         next[idx] = e.target.value
@@ -235,18 +380,112 @@ export function RunDetail({ projectId }: Props) {
                 </div>
               ))}
             </div>
-            <div className="exec-actions">
-              {(['passed', 'failed', 'blocked', 'skipped'] as const).map((s) => (
+
+            {/* Mobile: one step at a time */}
+            {currentStep && (
+              <div className="mobile-step-card">
+                <div className="mobile-step-meta muted">
+                  Step {mobileStep + 1} of {active.steps.length}
+                </div>
+                <div className="mobile-step-block">
+                  <div className="muted" style={{ fontSize: '0.78rem' }}>
+                    Action
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{currentStep.action}</div>
+                </div>
+                <div className="mobile-step-block">
+                  <div className="muted" style={{ fontSize: '0.78rem' }}>
+                    Expected
+                  </div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {currentStep.expected_result}
+                  </div>
+                </div>
+                <select
+                  className="filter-input"
+                  value={stepStatuses[mobileStep] ?? 'untested'}
+                  aria-label={`Step ${mobileStep + 1} status`}
+                  onChange={(e) => {
+                    const next = [...stepStatuses]
+                    next[mobileStep] = e.target.value
+                    setStepStatuses(next)
+                  }}
+                >
+                  {STATUSES.filter((s) => s !== 'retest').map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <div className="mobile-step-nav">
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={mobileStep === 0}
+                    onClick={() => setMobileStep((s) => Math.max(0, s - 1))}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={mobileStep >= active.steps.length - 1}
+                    onClick={() =>
+                      setMobileStep((s) =>
+                        Math.min(active.steps.length - 1, s + 1),
+                      )
+                    }
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="exec-actions exec-actions-thumb">
+              {(['passed', 'failed', 'blocked'] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
-                  className={`btn status-btn status-${s}`}
+                  className={`btn status-btn status-${s} thumb-btn`}
                   disabled={saving}
                   onClick={() => void submitStatus(s)}
                 >
                   {s}
                 </button>
               ))}
+              <button
+                type="button"
+                className="btn status-btn status-skipped thumb-btn-secondary"
+                disabled={saving}
+                onClick={() => void submitStatus('skipped')}
+              >
+                skipped
+              </button>
+            </div>
+
+            <div className="attach-row">
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="sr-only"
+                aria-label="Attach photo from camera"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void attachPhoto(file)
+                  e.target.value = ''
+                }}
+              />
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={saving || !active.latest_result}
+                onClick={() => cameraInputRef.current?.click()}
+              >
+                Camera / photo
+              </button>
               {active.latest_result && (
                 <button
                   type="button"

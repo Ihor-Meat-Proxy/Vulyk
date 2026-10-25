@@ -1044,6 +1044,208 @@ select.project-select {
   font-size: 0.8rem;
 }
 
+/* —— PWA toasts —— */
+.pwa-toasts {
+  position: fixed;
+  z-index: 40;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.pwa-toast {
+  pointer-events: auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+  font-size: 0.92rem;
+}
+
+.pwa-toast-accent {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 70%, var(--bg-elevated));
+}
+
+.pwa-toast-warn {
+  border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
+  background: #fff6e8;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.menu-toggle,
+.bottom-nav,
+.drawer-backdrop,
+.run-item-list,
+.mobile-step-card,
+.exec-back {
+  display: none;
+}
+
+.topbar-lead {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.topbar-lead h1 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-item-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.run-item-btn {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.55rem;
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  border-radius: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  cursor: pointer;
+  min-height: 3rem;
+  color: inherit;
+}
+
+.run-item-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.run-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exec-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.attach-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.mobile-step-card {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--bg) 55%, var(--bg-elevated));
+  margin: 0.75rem 0;
+}
+
+.mobile-step-meta {
+  margin-bottom: 0.65rem;
+  font-size: 0.85rem;
+}
+
+.mobile-step-block {
+  margin-bottom: 0.75rem;
+}
+
+.mobile-step-nav {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.thumb-btn {
+  min-height: 3.25rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  flex: 1 1 30%;
+}
+
+.thumb-btn-secondary {
+  min-height: 2.75rem;
+  flex: 1 1 100%;
+  text-transform: capitalize;
+}
+
+.exec-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.bottom-nav {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: none;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.15rem;
+  padding: 0.35rem 0.4rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  backdrop-filter: blur(10px);
+}
+
+.bottom-nav a {
+  text-align: center;
+  padding: 0.65rem 0.25rem;
+  border-radius: 0.45rem;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  min-height: 2.75rem;
+  display: grid;
+  place-items: center;
+}
+
+.bottom-nav a.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.admin-tabs button,
+.admin .btn,
+.field input,
+.field select {
+  min-height: 2.5rem;
+}
+
 @media (max-width: 860px) {
   .report-kpis,
   .reports-grid,
@@ -1056,8 +1258,71 @@ select.project-select {
   }
 
   .sidebar {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(18.5rem, 86vw);
+    z-index: 30;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    overflow: auto;
+    padding-bottom: 5rem;
+  }
+
+  .drawer-open .sidebar {
+    transform: translateX(0);
+  }
+
+  .drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 25;
+    border: 0;
+    background: color-mix(in srgb, var(--ink) 35%, transparent);
+    cursor: pointer;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+  }
+
+  .nav-desktop {
+    display: none;
+  }
+
+  .bottom-nav {
+    display: grid;
+  }
+
+  .content {
+    padding: 1rem 1rem 5.5rem;
+  }
+
+  .topbar {
+    padding: 0.75rem 1rem;
+    flex-wrap: wrap;
+  }
+
+  .topbar h1 {
+    font-size: 1.15rem;
+  }
+
+  .topbar-actions {
+    width: 100%;
+  }
+
+  .project-select {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .user-chip {
+    width: 100%;
+    justify-content: space-between;
   }
 
   .step {
@@ -1072,6 +1337,63 @@ select.project-select {
     grid-template-columns: 1fr;
   }
 
+  .run-executing .run-queue-panel {
+    display: none;
+  }
+
+  .run-table-desktop,
+  .steps-desktop {
+    display: none;
+  }
+
+  .run-item-list,
+  .mobile-step-card,
+  .exec-back {
+    display: block;
+  }
+
+  .exec-actions-thumb {
+    position: sticky;
+    bottom: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 4;
+    background: linear-gradient(transparent, var(--bg-elevated) 28%);
+    padding-top: 0.75rem;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-tabs button {
+    width: 100%;
+  }
+
+  .data-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .pwa-toasts {
+    bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
   .table-head,
   .table-row {
     grid-template-columns: 2rem 5.5rem 1fr;
@@ -1080,6 +1402,16 @@ select.project-select {
   .table-head > :nth-child(n + 4),
   .table-row > :nth-child(n + 4) {
     display: none;
+  }
+
+  .case-detail .detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .case-detail .detail-actions .btn {
+    min-height: 2.75rem;
   }
 }
 

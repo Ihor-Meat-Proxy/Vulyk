@@ -253,7 +253,7 @@ jobs:
         working-directory: e2e
         run: |
           npm ci
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
       - name: Start API
         run: |
           ./target/release/vulyk-api > /tmp/vulyk-api-e2e.log 2>&1 &
@@ -300,3 +300,62 @@ jobs:
           if [ -f /tmp/vulyk-api-e2e.pid ]; then kill "$(cat /tmp/vulyk-api-e2e.pid)" || true; fi
           cat /tmp/vulyk-api-e2e.log || true
           cat /tmp/vulyk-web-e2e.log || true
+
+  lighthouse:
+    name: Lighthouse PWA/a11y
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install Chrome for Lighthouse
+        run: |
+          npx --yes @puppeteer/browsers install chrome@stable
+      - name: Start preview
+        working-directory: frontend
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 5173 > /tmp/vulyk-lh.log 2>&1 &
+          echo $! > /tmp/vulyk-lh.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173 >/dev/null; then
+              echo "UI ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "UI failed to start" >&2
+          cat /tmp/vulyk-lh.log >&2
+          exit 1
+      - name: Lighthouse PWA + accessibility
+        working-directory: frontend
+        env:
+          LIGHTHOUSE_URL: http://127.0.0.1:5173
+          LH_MIN_PWA: "0.8"
+          LH_MIN_A11Y: "0.85"
+        run: |
+          # Point lighthouse at the puppeteer-installed Chrome if present
+          CHROME_BIN="$(find "$HOME/.cache/puppeteer" -type f -name chrome -path '*/chrome-linux*/chrome' 2>/dev/null | head -n1 || true)"
+          if [ -n "$CHROME_BIN" ]; then
+            export CHROME_PATH="$CHROME_BIN"
+          fi
+          npm run lighthouse:ci
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: frontend/lighthouse-report.json
+          if-no-files-found: ignore
+      - name: Stop preview
+        if: always()
+        run: |
+          if [ -f /tmp/vulyk-lh.pid ]; then kill "$(cat /tmp/vulyk-lh.pid)" || true; fi
+          cat /tmp/vulyk-lh.log || true

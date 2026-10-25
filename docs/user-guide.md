@@ -22,6 +22,8 @@ When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the 
 
 - **Runs** creates an execution queue from a plan, suite, or all cases.
 - Open a run to execute items, record step results, and attach notes.
+- On phones, use the bottom nav and large Pass / Fail / Blocked controls; you can attach a camera photo to a result.
+- Offline: recently viewed cases/runs stay readable; step results queue locally and sync when you are back online. See [PWA and mobile](guides/pwa-and-mobile.md).
 - **Upload JUnit results** on the Runs page to ingest CI XML into a selected run.
 - **CI** configures GitHub Actions / GitLab triggers and dispatch history.
 
