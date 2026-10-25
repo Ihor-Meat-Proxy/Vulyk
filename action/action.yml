@@ -1,0 +1,65 @@
+name: Upload results to Vulyk
+description: Upload JUnit XML or Vulyk JSON test results to a Vulyk run (CI reporter).
+branding:
+  icon: upload-cloud
+  color: green
+inputs:
+  api-url:
+    description: Vulyk API base URL (e.g. https://vulyk.example.com)
+    required: true
+  api-token:
+    description: Bearer token (optional while Phase 1 auth is open)
+    required: false
+    default: ""
+  file:
+    description: Path to JUnit XML or Vulyk JSON results
+    required: true
+  format:
+    description: auto | junit | vulyk_json
+    required: false
+    default: auto
+  project-key:
+    description: Project key used when creating a run
+    required: false
+  project-id:
+    description: Project id used when creating a run
+    required: false
+  run-id:
+    description: Existing run id (skips create-run)
+    required: false
+  run-name:
+    description: Name for a newly created run
+    required: false
+    default: ${{ github.workflow }} #${{ github.run_number }}
+  create-run:
+    description: Create a run when run-id is unset
+    required: false
+    default: "true"
+  async:
+    description: Force async ingest job
+    required: false
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Upload results to Vulyk
+      shell: bash
+      env:
+        VULYK_API_URL: ${{ inputs.api-url }}
+        VULYK_API_TOKEN: ${{ inputs.api-token }}
+        VULYK_RUN_ID: ${{ inputs.run-id }}
+        VULYK_PROJECT_ID: ${{ inputs.project-id }}
+        VULYK_PROJECT_KEY: ${{ inputs.project-key }}
+        VULYK_RUN_NAME: ${{ inputs.run-name }}
+      run: |
+        set -euo pipefail
+        SCRIPT="${{ github.action_path }}/../scripts/vulyk-upload.sh"
+        chmod +x "$SCRIPT"
+        ARGS=(--file "${{ inputs.file }}" --format "${{ inputs.format }}")
+        if [ "${{ inputs.create-run }}" = "true" ] && [ -z "${VULYK_RUN_ID:-}" ]; then
+          ARGS+=(--create-run)
+        fi
+        if [ "${{ inputs.async }}" = "true" ]; then
+          ARGS+=(--async)
+        fi
+        "$SCRIPT" "${ARGS[@]}"

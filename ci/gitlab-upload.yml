@@ -1,0 +1,48 @@
+# GitLab CI template: upload JUnit / Vulyk JSON results to a Vulyk instance.
+#
+# Usage in your .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/ci/gitlab-upload.yml'
+#       # or: local path after vendoring
+#
+#   variables:
+#     VULYK_API_URL: "https://vulyk.example.com"
+#     VULYK_PROJECT_KEY: "DEMO"
+#     VULYK_RESULTS_FILE: "report.xml"
+#
+#   upload-to-vulyk:
+#     extends: .vulyk_upload
+#     needs: ["test"]
+#
+# Optional variables: VULYK_API_TOKEN, VULYK_RUN_ID, VULYK_RUN_NAME,
+# VULYK_PROJECT_ID, VULYK_FORMAT (auto|junit|vulyk_json), VULYK_ASYNC (true|false)
+
+.vulyk_upload:
+  image: python:3.12-alpine
+  stage: .post
+  script:
+    - apk add --no-cache curl bash
+    - |
+      set -euo pipefail
+      FILE="${VULYK_RESULTS_FILE:-junit.xml}"
+      if [ ! -f "$FILE" ]; then
+        echo "Results file not found: $FILE" >&2
+        exit 1
+      fi
+      # Prefer vendored script when this repo is the pipeline project; otherwise fetch.
+      if [ -f scripts/vulyk-upload.sh ]; then
+        SCRIPT=scripts/vulyk-upload.sh
+      else
+        SCRIPT=/tmp/vulyk-upload.sh
+        curl -fsSL -o "$SCRIPT" \
+          "${VULYK_UPLOAD_SCRIPT_URL:-https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh}"
+      fi
+      chmod +x "$SCRIPT"
+      ARGS=(--file "$FILE" --format "${VULYK_FORMAT:-auto}" --create-run)
+      if [ "${VULYK_ASYNC:-false}" = "true" ]; then
+        ARGS+=(--async)
+      fi
+      "$SCRIPT" "${ARGS[@]}"
+  rules:
+    - when: on_success

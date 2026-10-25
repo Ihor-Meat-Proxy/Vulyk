@@ -1,11 +1,15 @@
-//! Minimal plans/runs/results surface for MCP (W10) and UI stubs.
-//! W3 owns deeper plan workflows; keep these CRUD paths stable.
+//! Plans/runs/results surface for MCP (W10) and UI.
+//! W4 adds source/meta columns and keeps these project-scoped CRUD paths stable.
+//! Format ingest (JUnit / Vulyk JSON) lives in `routes::ingest`.
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{get, post},
     Json, Router,
 };
+use chrono::Utc;
+use serde::Deserialize;
+use serde_json::json;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
@@ -31,25 +35,50 @@ pub fn router() -> Router<AppState> {
             "/api/v1/projects/{project_id}/runs/{run_id}/results",
             get(list_results).post(ingest_results),
         )
+        .route(
+            "/api/v1/runs/{id}",
+            get(get_run_by_id).put(update_run_by_id).delete(delete_run),
+        )
+        .route("/api/v1/runs/{id}/results", get(list_results_by_id))
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ListRunsQuery {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+}
+
+const RUN_COLS: &str = "id, project_id, name, status, source, external_ref, meta, started_at, finished_at, created_at, updated_at";
+const RESULT_COLS: &str = "id, run_id, case_id, status, message, source, external_id, duration_ms, raw, executed_at, created_at";
 
 #[utoipa::path(
     get,
     path = "/api/v1/projects/{project_id}/runs",
     tag = "runs",
-    params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = [TestRun]))
+    params(
+        ("project_id" = Uuid, Path, description = "Project id"),
+        ("limit" = Option<i64>, Query, description = "Max rows"),
+        ("offset" = Option<i64>, Query, description = "Offset"),
+    ),
+    responses((status = 200, description = "List runs", body = [TestRun]))
 )]
 pub async fn list_runs(
     State(state): State<AppState>,
     Path(project_id): Path<Uuid>,
+    Query(q): Query<ListRunsQuery>,
 ) -> AppResult<Json<Vec<TestRun>>> {
     ensure_project(&state.pool, project_id).await?;
-    let rows = sqlx::query_as::<_, TestRun>(
-        r#"SELECT id, project_id, name, status, started_at, finished_at, created_at, updated_at
-           FROM test_runs WHERE project_id = $1 ORDER BY created_at DESC"#,
-    )
+    let limit = q.limit.unwrap_or(50).clamp(1, 500);
+    let offset = q.offset.unwrap_or(0).max(0);
+    let rows = sqlx::query_as::<_, TestRun>(&format!(
+        r#"SELECT {RUN_COLS}
+           FROM test_runs WHERE project_id = $1
+           ORDER BY created_at DESC
+           LIMIT $2 OFFSET $3"#
+    ))
     .bind(project_id)
+    .bind(limit)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
     Ok(Json(rows))
@@ -72,14 +101,28 @@ pub async fn create_run(
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
-    let row = sqlx::query_as::<_, TestRun>(
-        r#"INSERT INTO test_runs (project_id, name, status)
-           VALUES ($1, $2, $3)
-           RETURNING id, project_id, name, status, started_at, finished_at, created_at, updated_at"#,
-    )
+    let meta = if body.meta.is_null() {
+        json!({})
+    } else {
+        body.meta
+    };
+    let started = if body.status == "running" {
+        Some(Utc::now())
+    } else {
+        None
+    };
+    let row = sqlx::query_as::<_, TestRun>(&format!(
+        r#"INSERT INTO test_runs (project_id, name, status, source, external_ref, meta, started_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING {RUN_COLS}"#
+    ))
     .bind(project_id)
     .bind(body.name.trim())
     .bind(&body.status)
+    .bind(&body.source)
+    .bind(&body.external_ref)
+    .bind(meta)
+    .bind(started)
     .fetch_one(&state.pool)
     .await?;
     Ok(Json(row))
@@ -99,8 +142,7 @@ pub async fn get_run(
     State(state): State<AppState>,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestRun>> {
-    let row = load_run(&state.pool, project_id, run_id).await?;
-    Ok(Json(row))
+    Ok(Json(load_run(&state.pool, project_id, run_id).await?))
 }
 
 #[utoipa::path(
@@ -122,13 +164,23 @@ pub async fn update_run(
     let existing = load_run(&state.pool, project_id, run_id).await?;
     let name = body.name.unwrap_or(existing.name);
     let status = body.status.unwrap_or(existing.status);
-    let row = sqlx::query_as::<_, TestRun>(
-        r#"UPDATE test_runs SET name = $1, status = $2, updated_at = NOW()
-           WHERE id = $3 AND project_id = $4
-           RETURNING id, project_id, name, status, started_at, finished_at, created_at, updated_at"#,
-    )
+    let external_ref = body.external_ref.or(existing.external_ref);
+    let meta = body.meta.unwrap_or(existing.meta);
+    let started_at = body.started_at.or(existing.started_at);
+    let finished_at = body.finished_at.or(existing.finished_at);
+    let row = sqlx::query_as::<_, TestRun>(&format!(
+        r#"UPDATE test_runs
+           SET name = $1, status = $2, external_ref = $3, meta = $4,
+               started_at = $5, finished_at = $6, updated_at = NOW()
+           WHERE id = $7 AND project_id = $8
+           RETURNING {RUN_COLS}"#
+    ))
     .bind(&name)
     .bind(&status)
+    .bind(external_ref)
+    .bind(meta)
+    .bind(started_at)
+    .bind(finished_at)
     .bind(run_id)
     .bind(project_id)
     .fetch_one(&state.pool)
@@ -151,12 +203,12 @@ pub async fn trigger_run(
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestRun>> {
     let _ = load_run(&state.pool, project_id, run_id).await?;
-    let row = sqlx::query_as::<_, TestRun>(
+    let row = sqlx::query_as::<_, TestRun>(&format!(
         r#"UPDATE test_runs
            SET status = 'running', started_at = COALESCE(started_at, NOW()), updated_at = NOW()
            WHERE id = $1 AND project_id = $2
-           RETURNING id, project_id, name, status, started_at, finished_at, created_at, updated_at"#,
-    )
+           RETURNING {RUN_COLS}"#
+    ))
     .bind(run_id)
     .bind(project_id)
     .fetch_one(&state.pool)
@@ -179,10 +231,10 @@ pub async fn list_results(
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<TestResult>>> {
     let _ = load_run(&state.pool, project_id, run_id).await?;
-    let rows = sqlx::query_as::<_, TestResult>(
-        r#"SELECT id, run_id, case_id, status, message, source, raw, executed_at, created_at
-           FROM test_results WHERE run_id = $1 ORDER BY executed_at"#,
-    )
+    let rows = sqlx::query_as::<_, TestResult>(&format!(
+        r#"SELECT {RESULT_COLS}
+           FROM test_results WHERE run_id = $1 ORDER BY executed_at, created_at"#
+    ))
     .bind(run_id)
     .fetch_all(&state.pool)
     .await?;
@@ -222,16 +274,19 @@ pub async fn ingest_results(
             None
         };
 
-        let row = sqlx::query_as::<_, TestResult>(
-            r#"INSERT INTO test_results (run_id, case_id, status, message, source, raw)
-               VALUES ($1, $2, $3, $4, $5, $6)
-               RETURNING id, run_id, case_id, status, message, source, raw, executed_at, created_at"#,
-        )
+        let row = sqlx::query_as::<_, TestResult>(&format!(
+            r#"INSERT INTO test_results
+               (run_id, case_id, status, message, source, external_id, duration_ms, raw)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING {RESULT_COLS}"#
+        ))
         .bind(run_id)
         .bind(case_id)
         .bind(&item.status)
         .bind(&item.message)
         .bind(&item.source)
+        .bind(&item.external_id)
+        .bind(item.duration_ms)
         .bind(&item.raw)
         .fetch_one(&state.pool)
         .await?;
@@ -240,12 +295,128 @@ pub async fn ingest_results(
     Ok(Json(out))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/v1/runs/{id}",
+    tag = "runs",
+    params(("id" = Uuid, Path, description = "Run id")),
+    responses((status = 200, body = TestRun))
+)]
+pub async fn get_run_by_id(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<TestRun>> {
+    let row = sqlx::query_as::<_, TestRun>(&format!(
+        r#"SELECT {RUN_COLS} FROM test_runs WHERE id = $1"#
+    ))
+    .bind(id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("run".into()))?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/runs/{id}",
+    tag = "runs",
+    request_body = UpdateRun,
+    params(("id" = Uuid, Path, description = "Run id")),
+    responses((status = 200, body = TestRun))
+)]
+pub async fn update_run_by_id(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateRun>,
+) -> AppResult<Json<TestRun>> {
+    let existing = sqlx::query_as::<_, TestRun>(&format!(
+        r#"SELECT {RUN_COLS} FROM test_runs WHERE id = $1"#
+    ))
+    .bind(id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("run".into()))?;
+
+    let name = body.name.unwrap_or(existing.name);
+    let status = body.status.unwrap_or(existing.status);
+    let external_ref = body.external_ref.or(existing.external_ref);
+    let meta = body.meta.unwrap_or(existing.meta);
+    let started_at = body.started_at.or(existing.started_at);
+    let finished_at = body.finished_at.or(existing.finished_at);
+
+    let row = sqlx::query_as::<_, TestRun>(&format!(
+        r#"UPDATE test_runs
+           SET name = $2, status = $3, external_ref = $4, meta = $5,
+               started_at = $6, finished_at = $7, updated_at = NOW()
+           WHERE id = $1
+           RETURNING {RUN_COLS}"#
+    ))
+    .bind(id)
+    .bind(name)
+    .bind(status)
+    .bind(external_ref)
+    .bind(meta)
+    .bind(started_at)
+    .bind(finished_at)
+    .fetch_one(&state.pool)
+    .await?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/runs/{id}",
+    tag = "runs",
+    params(("id" = Uuid, Path, description = "Run id")),
+    responses((status = 204, description = "Deleted"))
+)]
+pub async fn delete_run(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<axum::http::StatusCode> {
+    let result = sqlx::query("DELETE FROM test_runs WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await?;
+    if result.rows_affected() == 0 {
+        return Err(AppError::NotFound("run".into()));
+    }
+    Ok(axum::http::StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/runs/{id}/results",
+    tag = "runs",
+    params(("id" = Uuid, Path, description = "Run id")),
+    responses((status = 200, body = [TestResult]))
+)]
+pub async fn list_results_by_id(
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<Vec<TestResult>>> {
+    let exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM test_runs WHERE id = $1")
+        .bind(id)
+        .fetch_optional(&state.pool)
+        .await?;
+    if exists.is_none() {
+        return Err(AppError::NotFound("run".into()));
+    }
+    let rows = sqlx::query_as::<_, TestResult>(&format!(
+        r#"SELECT {RESULT_COLS}
+           FROM test_results WHERE run_id = $1 ORDER BY executed_at, created_at"#
+    ))
+    .bind(id)
+    .fetch_all(&state.pool)
+    .await?;
+    Ok(Json(rows))
+}
+
 async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> AppResult<TestRun> {
     ensure_project(pool, project_id).await?;
-    sqlx::query_as::<_, TestRun>(
-        r#"SELECT id, project_id, name, status, started_at, finished_at, created_at, updated_at
-           FROM test_runs WHERE id = $1 AND project_id = $2"#,
-    )
+    sqlx::query_as::<_, TestRun>(&format!(
+        r#"SELECT {RUN_COLS} FROM test_runs WHERE id = $1 AND project_id = $2"#
+    ))
     .bind(run_id)
     .bind(project_id)
     .fetch_optional(pool)

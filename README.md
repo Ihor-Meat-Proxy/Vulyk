@@ -48,7 +48,7 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - LLM providers & chat: **[docs/llm.md](docs/llm.md)**
 - MCP setup (Cursor / Claude Desktop): **[docs/mcp.md](docs/mcp.md)**
 
-## API (Phase 1 + W1 + W9/W10)
+## API (Phase 1 + W1 + W4–W7 + W9/W10)
 
 - `GET /health`, `GET /ready`
 - Auth / RBAC: `/api/v1/auth/*`, `/api/v1/users`, memberships — see [docs/auth-and-rbac.md](docs/auth-and-rbac.md)
@@ -56,6 +56,8 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - `CRUD /api/v1/projects/{id}/suites`
 - `CRUD /api/v1/projects/{id}/cases` (with steps; optional `?suite_id=` / `?q=` search)
 - `CRUD /api/v1/projects/{id}/runs` (+ trigger, results ingest)
+- Ingest (W4): `POST /api/v1/runs/{id}/ingest`, `POST /api/v1/runs/{id}/results:bulk`, `GET /api/v1/jobs/{id}`
+- CI (W5): CI configs + `POST /api/v1/ci-configs/{id}/dispatch`, webhooks under `/api/v1/webhooks/{github|gitlab}`
 - Requirements / ALM (W6): `/requirements`, case links, `/integrations`, `/defects`
 - Importers (W7): `GET /api/v1/importers`, `POST .../imports:preview`, `POST .../imports`
 - `CRUD /api/v1/projects/{id}/llm/configs` + generate-cases / generate-code / ask
@@ -63,6 +65,13 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - Admin integration placeholders: `/api/v1/admin/integrations`
 - Interactive docs: `/api/docs`
 - Integration notes: [docs/integrations/](docs/integrations/)
+
+## Ingest & CI (W4 / W5)
+
+- Guide: **[docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md)**
+- CLI: `cargo run -p vulyk-cli -- report --file report.xml --create-run --project-key DEMO`
+- GitHub Action: [`action/`](action/)
+- GitLab template: [`ci/gitlab-upload.yml`](ci/gitlab-upload.yml)
 
 ## License
 

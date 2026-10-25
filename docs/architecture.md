@@ -301,8 +301,8 @@ Agents can own one stream each; contracts live in this doc + OpenAPI.
 | **W1** | Auth & admin | W0 | Sessions/JWT, API tokens, users, roles, memberships, admin UI |
 | **W2** | Case repository depth | W0 | Steps editor UX, custom fields, case versioning, FTS search API |
 | **W3** | Plans, runs, results | W0 | Plans/runs CRUD, result model UI, status workflow |
-| **W4** | Ingest & CLI reporter | W3 | JUnit + Vulyk JSON ingest, `cli` reporter, job worker |
-| **W5** | CI integrations | W4 | GHA/GitLab webhook + artifact pull; `workflow_dispatch` / pipeline trigger |
+| **W4** | Ingest & CLI reporter | W3 | JUnit + Vulyk JSON ingest, `cli` reporter, job worker — see [guides/ingest-and-ci.md](guides/ingest-and-ci.md) |
+| **W5** | CI integrations | W4 | GHA/GitLab webhook status sync; `workflow_dispatch` / pipeline trigger from UI; reusable Action + GitLab template |
 | **W6** | Requirements & ALM | W0 | Requirements CRUD, OpenProject + Jira Cloud/DC adapters, defect create |
 | **W7** | Importers | W2 | `Importer` trait + Xray, Zephyr, Squash, TestLink, TestRail, qTest, Qase, Kiwi |
 | **W8** | Reports & dashboards | W3 | Run summary, pass-rate trends, requirement coverage |

@@ -158,6 +158,55 @@ export type ApiTokenPublic = {
   revoked_at: string | null
 }
 
+export type TestRun = {
+  id: string
+  project_id: string
+  name: string
+  status: string
+  source: string
+  external_ref: string | null
+  meta: Record<string, unknown>
+  started_at: string | null
+  finished_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type TestResult = {
+  id: string
+  run_id: string
+  case_id: string | null
+  status: string
+  message: string
+  source: string
+  external_id: string | null
+  duration_ms: number | null
+  executed_at: string
+}
+
+export type CiConfig = {
+  id: string
+  project_id: string
+  provider: string
+  name: string
+  config: Record<string, unknown>
+  webhook_secret: string | null
+  enabled: boolean
+}
+
+export type CiDispatch = {
+  id: string
+  project_id: string
+  ci_config_id: string
+  run_id: string | null
+  status: string
+  external_id: string | null
+  external_url: string | null
+  inputs: Record<string, unknown>
+  last_error: string | null
+  created_at: string
+  updated_at: string
+}
 
 export type Requirement = {
   id: string
@@ -452,4 +501,42 @@ export const api = {
     }),
   revokeToken: (id: string) =>
     request<void>(`/api/v1/tokens/${id}`, { method: 'DELETE' }),
+
+  listRuns: (projectId: string) =>
+    request<TestRun[]>(`/api/v1/projects/${projectId}/runs`),
+  createRun: (
+    projectId: string,
+    body: { name: string; status?: string; source?: string },
+  ) =>
+    request<TestRun>(`/api/v1/projects/${projectId}/runs`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listResults: (runId: string) =>
+    request<TestResult[]>(`/api/v1/runs/${runId}/results`),
+  listCiConfigs: (projectId: string) =>
+    request<CiConfig[]>(`/api/v1/projects/${projectId}/ci-configs`),
+  createCiConfig: (
+    projectId: string,
+    body: {
+      provider: string
+      name: string
+      config: Record<string, unknown>
+      webhook_secret?: string
+    },
+  ) =>
+    request<CiConfig>(`/api/v1/projects/${projectId}/ci-configs`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  dispatchCi: (
+    configId: string,
+    body?: { inputs?: Record<string, unknown>; run_name?: string },
+  ) =>
+    request<CiDispatch>(`/api/v1/ci-configs/${configId}/dispatch`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    }),
+  listDispatches: (projectId: string) =>
+    request<CiDispatch[]>(`/api/v1/projects/${projectId}/ci-dispatches`),
 }

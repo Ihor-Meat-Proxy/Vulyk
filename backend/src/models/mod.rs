@@ -1,6 +1,8 @@
 pub mod case;
+pub mod ci;
 pub mod import;
 pub mod integration;
+pub mod job;
 pub mod llm;
 pub mod membership;
 pub mod project;
@@ -12,8 +14,10 @@ pub mod token;
 pub mod user;
 
 pub use case::*;
+pub use ci::*;
 pub use import::*;
 pub use integration::*;
+pub use job::*;
 pub use llm::*;
 pub use membership::*;
 pub use project::*;
