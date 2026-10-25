@@ -1,0 +1,2236 @@
+{
+  "version": 1,
+  "project": {
+    "key": "KYIV-CONCERT-2026",
+    "name": {
+      "en": "Kyiv Open-Air Concert 2026",
+      "uk": "Київський open-air концерт 2026"
+    },
+    "description": {
+      "en": "End-to-end QA coverage for organising an open-air concert in Kyiv: venue permits, ticketing, artists, stage, safety (including air-raid procedures), logistics, vendors, accessibility, and marketing.",
+      "uk": "Наскрізне QA-покриття організації open-air концерту в Києві: дозволи, квитки, артисти, сцена, безпека (зокрема повітряна тривога), логістика, вендори, доступність і маркетинг."
+    }
+  },
+  "suites": [
+    {
+      "name": { "en": "Venue & Permits", "uk": "Майданчик і дозволи" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-001",
+          "title": {
+            "en": "Submit city open-air event permit",
+            "uk": "Подати міський дозвіл на open-air подію"
+          },
+          "description": {
+            "en": "Verify the organiser can file a complete permit package with Kyiv city authorities.",
+            "uk": "Перевірити подання повного пакету документів до міської влади Києва."
+          },
+          "precondition": {
+            "en": "Organiser account active; venue address and event dates confirmed.",
+            "uk": "Акаунт організатора активний; адреса майданчика та дати підтверджені."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": ["permits", "venue", "smoke"],
+          "steps": [
+            {
+              "action": {
+                "en": "Open the permit portal and start a new open-air event application.",
+                "uk": "Відкрити портал дозволів і створити нову заявку на open-air подію."
+              },
+              "expected_result": {
+                "en": "Blank application form loads with required fields marked.",
+                "uk": "Відкривається порожня форма з позначеними обов'язковими полями."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Attach venue map, capacity estimate, and noise plan; submit.",
+                "uk": "Додати карту майданчика, оцінку місткості та план шуму; подати."
+              },
+              "expected_result": {
+                "en": "Application accepted with tracking number and status Pending review.",
+                "uk": "Заявку прийнято з номером відстеження та статусом «На розгляді»."
+              },
+              "data": {
+                "en": "Venue: Hidropark amphitheatre",
+                "uk": "Майданчик: амфітеатр Гідропарку"
+              }
+            },
+            {
+              "action": {
+                "en": "Download the submitted package PDF.",
+                "uk": "Завантажити PDF поданого пакету."
+              },
+              "expected_result": {
+                "en": "PDF includes all attachments and organiser contact details.",
+                "uk": "PDF містить усі додатки та контакти організатора."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-002",
+          "title": {
+            "en": "Validate evening noise ordinance limits",
+            "uk": "Перевірити ліміти нічного шуму"
+          },
+          "description": {
+            "en": "Confirm planned SPL levels stay within municipal evening limits.",
+            "uk": "Підтвердити, що плановані рівні SPL у межах міських вечірніх норм."
+          },
+          "precondition": {
+            "en": "Sound engineer noise model uploaded for the venue.",
+            "uk": "Завантажено шумову модель інженера для майданчика."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["permits", "noise", "venue"],
+          "steps": [
+            {
+              "action": {
+                "en": "Import the noise model and select 22:00–23:00 window.",
+                "uk": "Імпортувати шумову модель і обрати вікно 22:00–23:00."
+              },
+              "expected_result": {
+                "en": "Boundary receptors show predicted dB(A) values.",
+                "uk": "На межових точках відображаються прогнозовані значення дБ(A)."
+              },
+              "data": { "en": "Limit: 55 dB(A) at residential edge", "uk": "Ліміт: 55 дБ(A) біля житлової зони" }
+            },
+            {
+              "action": {
+                "en": "Run compliance check against Kyiv evening ordinance.",
+                "uk": "Запустити перевірку відповідності вечірнім нормам Києва."
+              },
+              "expected_result": {
+                "en": "Report marks pass or lists receptors over limit.",
+                "uk": "Звіт показує проходження або перелік точок понад ліміт."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-003",
+          "title": {
+            "en": "Confirm venue capacity sign-off",
+            "uk": "Підтвердити підписання місткості майданчика"
+          },
+          "description": {
+            "en": "Fire marshal capacity figure is recorded and locked for ticket inventory.",
+            "uk": "Місткість від пожежної інспекції зафіксована й заблокована для квитків."
+          },
+          "precondition": {
+            "en": "Draft floor plan approved by venue manager.",
+            "uk": "Чернетку плану залу затверджено менеджером майданчика."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["venue", "safety", "capacity"],
+          "steps": [
+            {
+              "action": {
+                "en": "Enter fire marshal approved capacity and save.",
+                "uk": "Ввести затверджену місткість і зберегти."
+              },
+              "expected_result": {
+                "en": "Capacity field becomes read-only with auditor name and date.",
+                "uk": "Поле місткості стає лише для читання з ПІБ аудитора та датою."
+              },
+              "data": { "en": "Capacity: 8500", "uk": "Місткість: 8500" }
+            },
+            {
+              "action": {
+                "en": "Attempt to raise ticket pool above signed capacity.",
+                "uk": "Спробувати збільшити пул квитків понад підписану місткість."
+              },
+              "expected_result": {
+                "en": "System rejects the change with a capacity error.",
+                "uk": "Система відхиляє зміну з помилкою місткості."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Export capacity certificate for permit package.",
+                "uk": "Експортувати сертифікат місткості для пакету дозволів."
+              },
+              "expected_result": {
+                "en": "Certificate PDF generates with venue name and seal placeholders.",
+                "uk": "Генерується PDF сертифіката з назвою майданчика та місцем для печатки."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-004",
+          "title": {
+            "en": "Temporary stage structure permit",
+            "uk": "Дозвіл на тимчасову конструкцію сцени"
+          },
+          "description": {
+            "en": "Register temporary roof and PA towers with structural engineer sign-off.",
+            "uk": "Зареєструвати тимчасовий дах і башти PA з підписом інженера."
+          },
+          "precondition": {
+            "en": "Structural drawings and wind-load calc attached.",
+            "uk": "Додано креслення та розрахунок вітрового навантаження."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["permits", "stage", "structure"],
+          "steps": [
+            {
+              "action": {
+                "en": "Create temporary structure permit linked to the main event.",
+                "uk": "Створити дозвіл на тимчасову конструкцію, прив'язаний до події."
+              },
+              "expected_result": {
+                "en": "Permit draft links to parent event ID.",
+                "uk": "Чернетка дозволу пов'язана з ID головної події."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Upload engineer certificate and mark as verified.",
+                "uk": "Завантажити сертифікат інженера й позначити перевіреним."
+              },
+              "expected_result": {
+                "en": "Status moves to Ready for inspection.",
+                "uk": "Статус змінюється на «Готово до інспекції»."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Ticketing", "uk": "Квитки" },
+      "cases": [],
+      "children": [
+        {
+          "name": { "en": "Online sales", "uk": "Онлайн-продажі" },
+          "children": [],
+          "cases": [
+            {
+              "key": "KC-005",
+              "title": {
+                "en": "Purchase general admission ticket",
+                "uk": "Купити квиток загального входу"
+              },
+              "description": {
+                "en": "Happy-path checkout from seat map to confirmation email.",
+                "uk": "Успішний checkout від карти місць до листа підтвердження."
+              },
+              "precondition": {
+                "en": "Sales window open; inventory available; test card enabled.",
+                "uk": "Вікно продажів відкрите; є інвентар; тестова картка увімкнена."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": ["ticketing", "smoke", "checkout"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Select GA ticket and proceed to checkout.",
+                    "uk": "Обрати квиток GA і перейти до оплати."
+                  },
+                  "expected_result": {
+                    "en": "Cart shows price, fee, and currency UAH.",
+                    "uk": "Кошик показує ціну, комісію та валюту UAH."
+                  },
+                  "data": { "en": "Qty: 1", "uk": "К-сть: 1" }
+                },
+                {
+                  "action": {
+                    "en": "Pay with test card and confirm order.",
+                    "uk": "Оплатити тестовою карткою й підтвердити замовлення."
+                  },
+                  "expected_result": {
+                    "en": "Order status Paid; QR ticket issued.",
+                    "uk": "Статус замовлення «Оплачено»; видано QR-квиток."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Open confirmation email and download PDF ticket.",
+                    "uk": "Відкрити лист підтвердження й завантажити PDF квитка."
+                  },
+                  "expected_result": {
+                    "en": "PDF contains event name, date, and unique QR.",
+                    "uk": "PDF містить назву події, дату та унікальний QR."
+                  },
+                  "data": { "en": "", "uk": "" }
+                }
+              ]
+            },
+            {
+              "key": "KC-006",
+              "title": {
+                "en": "Apply promo code at checkout",
+                "uk": "Застосувати промокод на checkout"
+              },
+              "description": {
+                "en": "Valid promo reduces total; invalid promo is rejected.",
+                "uk": "Валідний промокод зменшує суму; невалідний відхиляється."
+              },
+              "precondition": {
+                "en": "Promo KYIV26-15 active for 15% off GA.",
+                "uk": "Промокод KYIV26-15 активний: −15% на GA."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": ["ticketing", "promo"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Enter valid promo KYIV26-15 on cart.",
+                    "uk": "Ввести валідний промокод KYIV26-15 у кошику."
+                  },
+                  "expected_result": {
+                    "en": "Discount line appears; total reduced by 15%.",
+                    "uk": "З'являється рядок знижки; сума менша на 15%."
+                  },
+                  "data": { "en": "Code: KYIV26-15", "uk": "Код: KYIV26-15" }
+                },
+                {
+                  "action": {
+                    "en": "Replace with expired code and revalidate.",
+                    "uk": "Замінити на прострочений код і перевірити знову."
+                  },
+                  "expected_result": {
+                    "en": "Error shown; previous discount removed.",
+                    "uk": "Показано помилку; попередню знижку знято."
+                  },
+                  "data": { "en": "Code: OLD-PROMO", "uk": "Код: OLD-PROMO" }
+                }
+              ]
+            },
+            {
+              "key": "KC-007",
+              "title": {
+                "en": "Request ticket refund within policy window",
+                "uk": "Запросити повернення квитка в межах політики"
+              },
+              "description": {
+                "en": "Buyer can refund before cutoff; inventory returns to pool.",
+                "uk": "Покупець може повернути квиток до дедлайну; місце повертається в пул."
+              },
+              "precondition": {
+                "en": "Paid order exists more than 48h before event.",
+                "uk": "Є оплачене замовлення більш ніж за 48 год до події."
+              },
+              "priority": "medium",
+              "status": "ready",
+              "tags": ["ticketing", "refund"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open order history and start refund for the ticket.",
+                    "uk": "Відкрити історію замовлень і почати повернення квитка."
+                  },
+                  "expected_result": {
+                    "en": "Refund form shows eligible amount and policy text.",
+                    "uk": "Форма показує суму до повернення та текст політики."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Confirm refund and wait for payment provider response.",
+                    "uk": "Підтвердити повернення й дочекатися відповіді платіжного провайдера."
+                  },
+                  "expected_result": {
+                    "en": "Order Refunded; ticket QR invalidated; inventory +1.",
+                    "uk": "Замовлення «Повернено»; QR анульовано; інвентар +1."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Attempt gate scan of the refunded QR.",
+                    "uk": "Спробувати просканувати QR повернутого квитка на вході."
+                  },
+                  "expected_result": {
+                    "en": "Scanner shows Refunded / Invalid.",
+                    "uk": "Сканер показує «Повернено / Недійсний»."
+                  },
+                  "data": { "en": "", "uk": "" }
+                }
+              ]
+            },
+            {
+              "key": "KC-008",
+              "title": {
+                "en": "Join waitlist when sold out",
+                "uk": "Стати в лист очікування при sold out"
+              },
+              "description": {
+                "en": "When GA is sold out, buyers can join waitlist and receive release emails.",
+                "uk": "Коли GA розпродано, покупці можуть стати в лист очікування й отримати лист про звільнення."
+              },
+              "precondition": {
+                "en": "GA inventory set to zero; waitlist feature on.",
+                "uk": "Інвентар GA = 0; лист очікування увімкнено."
+              },
+              "priority": "low",
+              "status": "ready",
+              "tags": ["ticketing", "waitlist"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open GA purchase page while sold out.",
+                    "uk": "Відкрити сторінку покупки GA під час sold out."
+                  },
+                  "expected_result": {
+                    "en": "Buy button replaced with Join waitlist.",
+                    "uk": "Кнопку «Купити» замінено на «До листа очікування»."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Submit email to waitlist.",
+                    "uk": "Надіслати email до листа очікування."
+                  },
+                  "expected_result": {
+                    "en": "Confirmation toast; entry appears in waitlist admin.",
+                    "uk": "Показано підтвердження; запис з'являється в адмінці."
+                  },
+                  "data": { "en": "email: waitlist@example.com", "uk": "email: waitlist@example.com" }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": { "en": "QR check-in", "uk": "QR check-in" },
+          "children": [],
+          "cases": [
+            {
+              "key": "KC-009",
+              "title": {
+                "en": "Scan valid entry QR at gate",
+                "uk": "Сканувати валідний QR на вході"
+              },
+              "description": {
+                "en": "Gate app admits a first-time valid ticket and marks it used.",
+                "uk": "Додаток на вході пропускає валідний квиток уперше й позначає використаним."
+              },
+              "precondition": {
+                "en": "Gate device logged in; online; unused paid ticket QR ready.",
+                "uk": "Пристрій на вході авторизований; онлайн; є невикористаний оплачений QR."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": ["ticketing", "check-in", "smoke"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Scan the ticket QR at Gate A.",
+                    "uk": "Просканувати QR квитка на Gate A."
+                  },
+                  "expected_result": {
+                    "en": "Green admit screen with ticket type and holder name.",
+                    "uk": "Зелений екран пропуску з типом квитка та іменем."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Check ticket status in back office.",
+                    "uk": "Перевірити статус квитка в бекофісі."
+                  },
+                  "expected_result": {
+                    "en": "Status Used with gate and timestamp.",
+                    "uk": "Статус «Використано» з гейтом і часом."
+                  },
+                  "data": { "en": "", "uk": "" }
+                }
+              ]
+            },
+            {
+              "key": "KC-010",
+              "title": {
+                "en": "Reject duplicate QR scan",
+                "uk": "Відхилити повторне сканування QR"
+              },
+              "description": {
+                "en": "Second scan of the same ticket is denied with clear messaging.",
+                "uk": "Друге сканування того ж квитка блокується з чітким повідомленням."
+              },
+              "precondition": {
+                "en": "Ticket already marked Used at Gate A.",
+                "uk": "Квиток уже позначено «Використано» на Gate A."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": ["ticketing", "check-in", "security"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Scan the same QR again at Gate B.",
+                    "uk": "Знову просканувати той самий QR на Gate B."
+                  },
+                  "expected_result": {
+                    "en": "Red reject screen: Already checked in.",
+                    "uk": "Червоний екран відмови: «Вже пройшов check-in»."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Open scan audit log for the ticket.",
+                    "uk": "Відкрити журнал сканувань для квитка."
+                  },
+                  "expected_result": {
+                    "en": "Two entries: admit then reject with both gate IDs.",
+                    "uk": "Два записи: пропуск і відмова з ID обох гейтів."
+                  },
+                  "data": { "en": "", "uk": "" }
+                }
+              ]
+            },
+            {
+              "key": "KC-011",
+              "title": {
+                "en": "Offline scan sync after reconnect",
+                "uk": "Синхронізація офлайн-сканувань після відновлення мережі"
+              },
+              "description": {
+                "en": "Gate can admit from cached allowlist offline and sync later.",
+                "uk": "Гейт може пропускати з кешованого списку офлайн і синхронізувати пізніше."
+              },
+              "precondition": {
+                "en": "Allowlist downloaded; device put in airplane mode.",
+                "uk": "Allowlist завантажено; увімкнено режим польоту."
+              },
+              "priority": "medium",
+              "status": "ready",
+              "tags": ["ticketing", "check-in", "offline"],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Scan a valid unused ticket while offline.",
+                    "uk": "Просканувати валідний невикористаний квиток офлайн."
+                  },
+                  "expected_result": {
+                    "en": "Local admit; queued for sync badge shown.",
+                    "uk": "Локальний пропуск; показано бейдж черги синхронізації."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Restore network and trigger sync.",
+                    "uk": "Відновити мережу й запустити синхронізацію."
+                  },
+                  "expected_result": {
+                    "en": "Server marks ticket Used; queue clears.",
+                    "uk": "Сервер позначає квиток «Використано»; черга очищається."
+                  },
+                  "data": { "en": "", "uk": "" }
+                },
+                {
+                  "action": {
+                    "en": "Attempt the same ticket on another online gate.",
+                    "uk": "Спробувати той самий квиток на іншому онлайн-гейті."
+                  },
+                  "expected_result": {
+                    "en": "Reject as already used.",
+                    "uk": "Відмова як уже використаний."
+                  },
+                  "data": { "en": "", "uk": "" }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Artists & Line-up", "uk": "Артисти та лайнап" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-012",
+          "title": {
+            "en": "Complete artist rider checklist",
+            "uk": "Заповнити чекліст райдеру артиста"
+          },
+          "description": {
+            "en": "Production marks each rider item fulfilled before call time.",
+            "uk": "Продакшн позначає кожен пункт райдеру виконаним до call time."
+          },
+          "precondition": {
+            "en": "Headliner rider imported into production board.",
+            "uk": "Райдер хедлайнера імпортовано в продакшн-борд."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["artists", "rider", "production"],
+          "steps": [
+            {
+              "action": {
+                "en": "Open rider checklist for headliner.",
+                "uk": "Відкрити чекліст райдеру хедлайнера."
+              },
+              "expected_result": {
+                "en": "Items list hospitality, backline, and transport.",
+                "uk": "Список містить hospitality, беклайн і транспорт."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Mark all critical items Done with photo evidence.",
+                "uk": "Позначити всі критичні пункти «Готово» з фото."
+              },
+              "expected_result": {
+                "en": "Progress 100%; readiness badge green.",
+                "uk": "Прогрес 100%; зелений бейдж готовності."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Export rider completion report to artist manager.",
+                "uk": "Експортувати звіт про виконання райдеру менеджеру артиста."
+              },
+              "expected_result": {
+                "en": "PDF/email sent with timestamped checklist.",
+                "uk": "Надіслано PDF/email з чеклістом і часовими мітками."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-013",
+          "title": {
+            "en": "Validate setlist timing against curfew",
+            "uk": "Перевірити таймінг сетліста щодо комендантської години"
+          },
+          "description": {
+            "en": "Sum of set lengths fits before city curfew and changeovers.",
+            "uk": "Сума сетів вміщується до комендантської години з урахуванням змін."
+          },
+          "precondition": {
+            "en": "Draft line-up with durations entered.",
+            "uk": "Введено чернетку лайнапу з тривалістю сетів."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["artists", "schedule", "curfew"],
+          "steps": [
+            {
+              "action": {
+                "en": "Run schedule conflict check with curfew 23:00.",
+                "uk": "Запустити перевірку конфліктів розкладу з комендантською 23:00."
+              },
+              "expected_result": {
+                "en": "Tool flags any set ending after curfew.",
+                "uk": "Інструмент позначає сети, що закінчуються після комендантської."
+              },
+              "data": { "en": "Curfew: 23:00", "uk": "Комендантська: 23:00" }
+            },
+            {
+              "action": {
+                "en": "Shorten changeover buffer and re-check.",
+                "uk": "Скоротити буфер зміни сету й перевірити знову."
+              },
+              "expected_result": {
+                "en": "Updated end time shown; conflicts clear if within limit.",
+                "uk": "Показано новий час завершення; конфлікти зникають у межах ліміту."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-014",
+          "title": {
+            "en": "Issue backstage accreditation badges",
+            "uk": "Видати бекстейдж-бейджі акредитації"
+          },
+          "description": {
+            "en": "Crew and artist badges print with correct zone colours.",
+            "uk": "Бейджі команди й артистів друкуються з правильними кольорами зон."
+          },
+          "precondition": {
+            "en": "Accreditation list approved; badge printer online.",
+            "uk": "Список акредитації затверджено; принтер бейджів онлайн."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["artists", "accreditation", "security"],
+          "steps": [
+            {
+              "action": {
+                "en": "Generate badges for artist + tour manager roles.",
+                "uk": "Згенерувати бейджі для ролей артиста та тур-менеджера."
+              },
+              "expected_result": {
+                "en": "Preview shows photo, name, zone All-access / Stage.",
+                "uk": "Прев'ю показує фото, ім'я, зону All-access / Stage."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Print batch and scan one badge at backstage door.",
+                "uk": "Надрукувати партію й просканувати один бейдж на бекстейдж-дверях."
+              },
+              "expected_result": {
+                "en": "Access granted for Stage zone.",
+                "uk": "Доступ до зони Stage надано."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Stage & Sound", "uk": "Сцена і звук" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-015",
+          "title": {
+            "en": "PA system load-in checklist",
+            "uk": "Чекліст завантаження PA-системи"
+          },
+          "description": {
+            "en": "Verify trucks unload and hangs complete per plot.",
+            "uk": "Перевірити розвантаження фур і підвіс згідно з плотом."
+          },
+          "precondition": {
+            "en": "Stage plot locked; load-in window started.",
+            "uk": "Плот сцени заблоковано; вікно load-in розпочато."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["stage", "sound", "load-in"],
+          "steps": [
+            {
+              "action": {
+                "en": "Mark each PA hang position as rigged on the plot.",
+                "uk": "Позначити кожну позицію підвісу PA як змонтовану на плоті."
+              },
+              "expected_result": {
+                "en": "Plot progress reaches 100% for hangs.",
+                "uk": "Прогрес плоту для підвісів досягає 100%."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Confirm FOH console powered and networked.",
+                "uk": "Підтвердити живлення та мережу FOH-консолі."
+              },
+              "expected_result": {
+                "en": "Health check green for console and stage boxes.",
+                "uk": "Health check зелений для консолі та stage box."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-016",
+          "title": {
+            "en": "Soundcheck SPL and mix recall",
+            "uk": "Саундчек: SPL і recall міксу"
+          },
+          "description": {
+            "en": "Engineer recalls show file and measures front-of-house SPL.",
+            "uk": "Інженер відновлює шоу-файл і вимірює SPL на FOH."
+          },
+          "precondition": {
+            "en": "PA aligned; show file loaded.",
+            "uk": "PA вирівняно; шоу-файл завантажено."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": ["stage", "sound", "soundcheck"],
+          "steps": [
+            {
+              "action": {
+                "en": "Recall headliner show file on FOH console.",
+                "uk": "Відновити шоу-файл хедлайнера на FOH-консолі."
+              },
+              "expected_result": {
+                "en": "Scenes and snapshots load without error.",
+                "uk": "Сцени та снапшоти завантажуються без помилок."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Play pink noise and measure SPL at FOH.",
+                "uk": "Увімкнути рожевий шум і виміряти SPL на FOH."
+              },
+              "expected_result": {
+                "en": "Reading within target band (±2 dB).",
+                "uk": "Показник у цільовій смузі (±2 дБ)."
+              },
+              "data": { "en": "Target: 98 dB(A)", "uk": "Ціль: 98 дБ(A)" }
+            },
+            {
+              "action": {
+                "en": "Save soundcheck notes to production log.",
+                "uk": "Зберегти нотатки саундчеку в продакшн-лог."
+              },
+              "expected_result": {
+                "en": "Log entry visible to stage manager.",
+                "uk": "Запис логу видно stage manager."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-017",
+          "title": {
+            "en": "Backup generator failover drill",
+            "uk": "Тренування перемикання на резервний генератор"
+          },
+          "description": {
+            "en": "Simulate mains loss; stage power transfers without show stop.",
+            "uk": "Симулювати втрату мережі; живлення сцени перемикається без зупинки шоу."
+          },
+          "precondition": {
+            "en": "Generator fueled and ATS tested within 24h.",
+            "uk": "Генератор заправлено; ATS перевірено протягом 24 год."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": ["stage", "power", "failover"],
+          "steps": [
+            {
+              "action": {
+                "en": "Open breaker to simulate mains failure during idle PA.",
+                "uk": "Відкрити автомат для симуляції втрати мережі під час idle PA."
+              },
+              "expected_result": {
+                "en": "ATS switches to generator within SLA (<10 s).",
+                "uk": "ATS перемикається на генератор у межах SLA (<10 с)."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Verify FOH and amps remain online; log transfer time.",
+                "uk": "Перевірити, що FOH і підсилювачі онлайн; записати час перемикання."
+              },
+              "expected_result": {
+                "en": "No console reboot; transfer time recorded.",
+                "uk": "Без перезавантаження консолі; час перемикання зафіксовано."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-018",
+          "title": {
+            "en": "Stage lighting cue stack smoke test",
+            "uk": "Smoke-тест стеку світлових к'ю"
+          },
+          "description": {
+            "en": "Run opening and blackout cues without fixture errors.",
+            "uk": "Прогнати opening і blackout к'ю без помилок приладів."
+          },
+          "precondition": {
+            "en": "Lighting console patched; fixtures addressed.",
+            "uk": "Світлову консоль прошито; прилади адресовано."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["stage", "lighting"],
+          "steps": [
+            {
+              "action": {
+                "en": "Fire opening look cue.",
+                "uk": "Запустити opening look к'ю."
+              },
+              "expected_result": {
+                "en": "All fixtures respond; no DMX errors.",
+                "uk": "Усі прилади реагують; немає помилок DMX."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Fire blackout and restore house lights.",
+                "uk": "Запустити blackout і повернути house lights."
+              },
+              "expected_result": {
+                "en": "Stage dark then house lights up within 2 s.",
+                "uk": "Сцена темна, потім house lights за ≤2 с."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Security & Safety", "uk": "Безпека" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-019",
+          "title": {
+            "en": "Bag check at public entry",
+            "uk": "Огляд сумок на публічному вході"
+          },
+          "description": {
+            "en": "Security follows prohibited items list and logs seizures.",
+            "uk": "Охорона дотримується списку заборонених предметів і фіксує вилучення."
+          },
+          "precondition": {
+            "en": "Gate staff briefed; prohibited list posted.",
+            "uk": "Персонал брифінговано; список заборон вивішено."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["security", "entry", "smoke"],
+          "steps": [
+            {
+              "action": {
+                "en": "Present a bag with a glass bottle at bag check.",
+                "uk": "Пред'явити сумку зі скляною пляшкою на огляді."
+              },
+              "expected_result": {
+                "en": "Item refused or seized per policy; visitor informed.",
+                "uk": "Предмет відмовлено або вилучено за політикою; відвідувача поінформовано."
+              },
+              "data": { "en": "Item: glass bottle", "uk": "Предмет: скляна пляшка" }
+            },
+            {
+              "action": {
+                "en": "Log seizure in security app.",
+                "uk": "Зафіксувати вилучення в застосунку охорони."
+              },
+              "expected_result": {
+                "en": "Incident ID created with gate and time.",
+                "uk": "Створено ID інциденту з гейтом і часом."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-020",
+          "title": {
+            "en": "Air-raid alert announcement workflow",
+            "uk": "Процедура оголошення повітряної тривоги"
+          },
+          "description": {
+            "en": "On official alert, PA/LED announce pause and shelter guidance in UA/EN.",
+            "uk": "За офіційною тривогою PA/LED оголошують паузу та інструкції до укриття UA/EN."
+          },
+          "precondition": {
+            "en": "Alert channel linked; announcement scripts approved.",
+            "uk": "Канал тривог підключено; тексти оголошень затверджено."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": ["security", "air-raid", "safety", "smoke"],
+          "steps": [
+            {
+              "action": {
+                "en": "Simulate incoming air-raid alert from monitoring feed.",
+                "uk": "Симулювати надходження повітряної тривоги з моніторингу."
+              },
+              "expected_result": {
+                "en": "Ops dashboard turns red; stage manager notified.",
+                "uk": "Ops-дашборд стає червоним; stage manager сповіщено."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Trigger approved bilingual announcement on PA and LED.",
+                "uk": "Запустити затверджене двомовне оголошення на PA та LED."
+              },
+              "expected_result": {
+                "en": "Script plays; screens show shelter directions.",
+                "uk": "Скрипт відтворюється; екрани показують напрямки до укриття."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Confirm music/show paused and artists held backstage.",
+                "uk": "Підтвердити паузу шоу й утримання артистів бекстейдж."
+              },
+              "expected_result": {
+                "en": "Show state Paused-alert logged.",
+                "uk": "Стан шоу «Пауза-тривога» залоговано."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-021",
+          "title": {
+            "en": "Shelter evacuation procedure drill",
+            "uk": "Тренування евакуації до укриття"
+          },
+          "description": {
+            "en": "Crowd directed to marked shelters; headcount and all-clear flow.",
+            "uk": "Натовп спрямовується до позначених укриттів; підрахунок і процедура «відбій»."
+          },
+          "precondition": {
+            "en": "Shelter routes signed; stewards assigned; drill mode on.",
+            "uk": "Маршрути до укриттів позначено; стюарди призначені; режим тренування."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": ["security", "air-raid", "evacuation", "shelter"],
+          "steps": [
+            {
+              "action": {
+                "en": "Start evacuation drill from alert-paused state.",
+                "uk": "Почати тренування евакуації зі стану паузи через тривогу."
+              },
+              "expected_result": {
+                "en": "Stewards open routes; arrows and staff guide flow.",
+                "uk": "Стюарди відкривають маршрути; стрілки та персонал спрямовують потік."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Record shelter occupancy against capacity.",
+                "uk": "Зафіксувати заповненість укриттів щодо місткості."
+              },
+              "expected_result": {
+                "en": "Occupancy under capacity; overflow plan unused or triggered.",
+                "uk": "Заповненість нижча за місткість; план overflow не потрібен або активований."
+              },
+              "data": { "en": "Shelter A capacity: 2000", "uk": "Укриття A: місткість 2000" }
+            },
+            {
+              "action": {
+                "en": "Simulate all-clear and controlled return to venue.",
+                "uk": "Симулювати відбій і контрольоване повернення на майданчик."
+              },
+              "expected_result": {
+                "en": "Gates reopen in waves; show resume checklist started.",
+                "uk": "Гейти відкриваються хвилями; стартує чекліст відновлення шоу."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "File drill report with timings and issues.",
+                "uk": "Оформити звіт тренування з таймінгами та зауваженнями."
+              },
+              "expected_result": {
+                "en": "Report stored with total evacuation time.",
+                "uk": "Звіт збережено із загальним часом евакуації."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-022",
+          "title": {
+            "en": "Medical post readiness check",
+            "uk": "Перевірка готовності медпункту"
+          },
+          "description": {
+            "en": "On-site medical post staffed with supplies and radio link.",
+            "uk": "Медпункт укомплектований, має запаси та радіозв'язок."
+          },
+          "precondition": {
+            "en": "Medical contractor on site for shift.",
+            "uk": "Медпідрядник на майданчику на зміну."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["security", "medical", "safety"],
+          "steps": [
+            {
+              "action": {
+                "en": "Inventory first-aid kits and AED against checklist.",
+                "uk": "Звірити аптечки та AED з чеклістом."
+              },
+              "expected_result": {
+                "en": "All critical items present and in date.",
+                "uk": "Усі критичні позиції на місці й у терміні придатності."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Radio-check medical post with central ops.",
+                "uk": "Перевірити радіозв'язок медпункту з центральним ops."
+              },
+              "expected_result": {
+                "en": "Clear two-way radio acknowledged.",
+                "uk": "Підтверджено чіткий двосторонній зв'язок."
+              },
+              "data": { "en": "Channel: MED-1", "uk": "Канал: MED-1" }
+            }
+          ]
+        },
+        {
+          "key": "KC-023",
+          "title": {
+            "en": "Crowd density monitoring thresholds",
+            "uk": "Моніторинг порогів щільності натовпу"
+          },
+          "description": {
+            "en": "Cameras/zone counts trigger steward response above threshold.",
+            "uk": "Камери/лічильники зон ініціюють реакцію стюардів понад поріг."
+          },
+          "precondition": {
+            "en": "Zone sensors calibrated; density thresholds configured.",
+            "uk": "Сенсори зон відкалібровано; пороги щільності налаштовано."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["security", "crowd", "monitoring"],
+          "steps": [
+            {
+              "action": {
+                "en": "Inject simulated density above amber threshold in Zone C.",
+                "uk": "Симулювати щільність понад бурштиновий поріг у зоні C."
+              },
+              "expected_result": {
+                "en": "Amber alert on ops map; stewards notified.",
+                "uk": "Бурштиновий алерт на ops-карті; стюардів сповіщено."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Acknowledge alert and open one-way flow control.",
+                "uk": "Підтвердити алерт і відкрити односторонній контроль потоку."
+              },
+              "expected_result": {
+                "en": "Alert moves to Mitigating; density trend down.",
+                "uk": "Алерт у статусі «Пом'якшення»; тренд щільності вниз."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Logistics & Transport", "uk": "Логістика і транспорт" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-024",
+          "title": {
+            "en": "Artist hotel shuttle schedule",
+            "uk": "Розклад шатлів артистів з готелю"
+          },
+          "description": {
+            "en": "Shuttles align with call times and return after show.",
+            "uk": "Шатоли узгоджені з call time та поверненням після шоу."
+          },
+          "precondition": {
+            "en": "Hotel and venue addresses set; driver roster filled.",
+            "uk": "Адреси готелю й майданчика задані; список водіїв заповнено."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["logistics", "artists", "transport"],
+          "steps": [
+            {
+              "action": {
+                "en": "Generate shuttle runs from hotel to venue for call times.",
+                "uk": "Згенерувати рейси шатлів з готелю на майданчик за call time."
+              },
+              "expected_result": {
+                "en": "Each artist party has a departure ≥45 min before call.",
+                "uk": "Кожна група артистів має виїзд ≥45 хв до call."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Assign vehicles and publish schedule to tour managers.",
+                "uk": "Призначити авто й опублікувати розклад тур-менеджерам."
+              },
+              "expected_result": {
+                "en": "Notifications sent; no unassigned runs.",
+                "uk": "Сповіщення надіслано; немає непризначених рейсів."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-025",
+          "title": {
+            "en": "Equipment truck venue access window",
+            "uk": "Вікно доступу вантажівок з обладнанням"
+          },
+          "description": {
+            "en": "Trucks check in during load-in window with plate match.",
+            "uk": "Вантажівки реєструються у вікні load-in з перевіркою номера."
+          },
+          "precondition": {
+            "en": "Manifest of plates and time slots uploaded.",
+            "uk": "Завантажено маніфест номерів і часових слотів."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["logistics", "load-in", "transport"],
+          "steps": [
+            {
+              "action": {
+                "en": "Check in truck with matching plate during window.",
+                "uk": "Зареєструвати вантажівку з відповідним номером у вікні."
+              },
+              "expected_result": {
+                "en": "Gate opens dock assignment.",
+                "uk": "Гейт відкриває призначення доку."
+              },
+              "data": { "en": "Plate: AA1234BC", "uk": "Номер: AA1234BC" }
+            },
+            {
+              "action": {
+                "en": "Attempt entry for unlisted plate.",
+                "uk": "Спробувати в'їзд незареєстрованого номера."
+              },
+              "expected_result": {
+                "en": "Access denied pending production override.",
+                "uk": "Доступ відхилено до override продакшну."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Log unload complete and free the dock.",
+                "uk": "Зафіксувати завершення розвантаження й звільнити док."
+              },
+              "expected_result": {
+                "en": "Dock status Free; next truck can check in.",
+                "uk": "Статус доку «Вільний»; наступна вантажівка може заїхати."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-026",
+          "title": {
+            "en": "Metro last-train coordination message",
+            "uk": "Повідомлення про останній поїзд метро"
+          },
+          "description": {
+            "en": "Audience messaging includes last metro times after curfew-aware schedule.",
+            "uk": "Повідомлення для глядачів містять час останнього метро з урахуванням розкладу."
+          },
+          "precondition": {
+            "en": "Show end time estimated; metro schedule imported.",
+            "uk": "Орієнтовний час кінця шоу; розклад метро імпортовано."
+          },
+          "priority": "low",
+          "status": "ready",
+          "tags": ["logistics", "audience", "metro"],
+          "steps": [
+            {
+              "action": {
+                "en": "Generate last-train notice for nearest stations.",
+                "uk": "Згенерувати повідомлення про останній поїзд для найближчих станцій."
+              },
+              "expected_result": {
+                "en": "Notice lists station names and departure times.",
+                "uk": "Повідомлення містить назви станцій і час відправлення."
+              },
+              "data": {
+                "en": "Stations: Hidropark, Livoberezhna",
+                "uk": "Станції: Гідропарк, Лівобережна"
+              }
+            },
+            {
+              "action": {
+                "en": "Publish notice to LED and mobile push 45 min before end.",
+                "uk": "Опублікувати на LED і в push за 45 хв до кінця."
+              },
+              "expected_result": {
+                "en": "Scheduled publications confirmed.",
+                "uk": "Заплановані публікації підтверджено."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Vendors & Food", "uk": "Вендори та їжа" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-027",
+          "title": {
+            "en": "Vendor hygiene inspection pass",
+            "uk": "Проходження гігієнічної інспекції вендора"
+          },
+          "description": {
+            "en": "Food stalls pass on-site hygiene check before service.",
+            "uk": "Фуд-точки проходять гігієнічну перевірку перед початком роботи."
+          },
+          "precondition": {
+            "en": "Vendor booth set up; inspector checklist ready.",
+            "uk": "Кіоск вендора зібрано; чекліст інспектора готовий."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["vendors", "food", "hygiene"],
+          "steps": [
+            {
+              "action": {
+                "en": "Inspect handwash, fridge temps, and waste bins.",
+                "uk": "Перевірити рукомийник, температуру холодильників і смітники."
+              },
+              "expected_result": {
+                "en": "All critical hygiene items pass.",
+                "uk": "Усі критичні пункти гігієни пройдено."
+              },
+              "data": { "en": "Fridge max: 5°C", "uk": "Холодильник max: 5°C" }
+            },
+            {
+              "action": {
+                "en": "Issue service-ready badge to the stall.",
+                "uk": "Видати бейдж готовності до обслуговування."
+              },
+              "expected_result": {
+                "en": "Stall status Service allowed in vendor map.",
+                "uk": "Статус кіоску «Обслуговування дозволено» на карті вендорів."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-028",
+          "title": {
+            "en": "Cashless payment terminal smoke",
+            "uk": "Smoke-тест безготівкових терміналів"
+          },
+          "description": {
+            "en": "Each stall terminal can process a test tap payment.",
+            "uk": "Термінал кожного кіоску проводить тестовий безконтактний платіж."
+          },
+          "precondition": {
+            "en": "Merchant IDs provisioned; test PAN available.",
+            "uk": "Merchant ID налаштовано; є тестовий PAN."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["vendors", "payments", "smoke"],
+          "steps": [
+            {
+              "action": {
+                "en": "Run 1 UAH test tap on stall terminal.",
+                "uk": "Провести тестовий tap на 1 грн на терміналі кіоску."
+              },
+              "expected_result": {
+                "en": "Approval code returned; receipt prints or displays.",
+                "uk": "Повернено код approve; чек друкується або показується."
+              },
+              "data": { "en": "Amount: 1 UAH", "uk": "Сума: 1 грн" }
+            },
+            {
+              "action": {
+                "en": "Void/refund the test transaction.",
+                "uk": "Скасувати/повернути тестову транзакцію."
+              },
+              "expected_result": {
+                "en": "Settlement shows net zero for the test.",
+                "uk": "У settlement тест дає нульовий підсумок."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-029",
+          "title": {
+            "en": "Allergen labeling on menu boards",
+            "uk": "Маркування алергенів на меню"
+          },
+          "description": {
+            "en": "Menus display allergen icons matching recipe cards.",
+            "uk": "Меню показує іконки алергенів згідно з картками рецептів."
+          },
+          "precondition": {
+            "en": "Recipe allergen matrix uploaded per stall.",
+            "uk": "Завантажено матрицю алергенів для кожного кіоску."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["vendors", "food", "allergens", "accessibility"],
+          "steps": [
+            {
+              "action": {
+                "en": "Open digital menu for a stall with nuts and gluten.",
+                "uk": "Відкрити цифрове меню кіоску з горіхами та глютеном."
+              },
+              "expected_result": {
+                "en": "Dishes show correct allergen icons.",
+                "uk": "Страви показують правильні іконки алергенів."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Print physical board preview and spot-check icons.",
+                "uk": "Надрукувати прев'ю дошки й вибірково перевірити іконки."
+              },
+              "expected_result": {
+                "en": "Print matches digital menu icons.",
+                "uk": "Друк збігається з іконками цифрового меню."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Accessibility", "uk": "Доступність" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-030",
+          "title": {
+            "en": "Wheelchair viewing platform access",
+            "uk": "Доступ до платформи для глядачів на візках"
+          },
+          "description": {
+            "en": "Ramped path and reserved platform are clear and signed.",
+            "uk": "Пандус і зарезервована платформа вільні та позначені."
+          },
+          "precondition": {
+            "en": "Platform built; companion seats mapped.",
+            "uk": "Платформу збудовано; місця супроводжуючих нанесено на карту."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["accessibility", "venue"],
+          "steps": [
+            {
+              "action": {
+                "en": "Walk the accessible route from Gate D to platform.",
+                "uk": "Пройти доступний маршрут від Gate D до платформи."
+              },
+              "expected_result": {
+                "en": "No steps or blocked slopes; signs bilingual.",
+                "uk": "Немає сходинок чи перекритих ухилів; двомовні вказівники."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Check companion seat allocation in ticketing.",
+                "uk": "Перевірити виділення місць супроводжуючих у квитковій системі."
+              },
+              "expected_result": {
+                "en": "Companion seats reserved next to wheelchair spots.",
+                "uk": "Місця супроводжуючих зарезервовано поруч із місцями для візків."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-031",
+          "title": {
+            "en": "Sign language interpreter placement",
+            "uk": "Розміщення сурдоперекладача"
+          },
+          "description": {
+            "en": "Interpreter zone lit and visible for reserved deaf audience seats.",
+            "uk": "Зона сурдоперекладача освітлена й видима для зарезервованих місць."
+          },
+          "precondition": {
+            "en": "Interpreter booked; reserved seating block created.",
+            "uk": "Перекладача заброньовано; створено блок зарезервованих місць."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["accessibility", "artists"],
+          "steps": [
+            {
+              "action": {
+                "en": "Confirm interpreter platform sightlines from reserved block.",
+                "uk": "Підтвердити видимість платформи перекладача з зарезервованого блоку."
+              },
+              "expected_result": {
+                "en": "Unobstructed view; lighting ≥ specified lux.",
+                "uk": "Огляд без перешкод; освітлення ≥ заданих люксів."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Add interpreter cue to run-of-show for spoken segments.",
+                "uk": "Додати к'ю перекладача в run-of-show для розмовних сегментів."
+              },
+              "expected_result": {
+                "en": "ROS lists interpreter active windows.",
+                "uk": "ROS містить вікна активності перекладача."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-032",
+          "title": {
+            "en": "Accessible restroom availability",
+            "uk": "Наявність доступних вбиралень"
+          },
+          "description": {
+            "en": "Accessible units unlocked, stocked, and on venue map.",
+            "uk": "Доступні кабіни відчинені, укомплектовані й на карті майданчика."
+          },
+          "precondition": {
+            "en": "Units installed near Gate D and food court.",
+            "uk": "Кабіни встановлено біля Gate D і фуд-кору."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["accessibility", "venue", "facilities"],
+          "steps": [
+            {
+              "action": {
+                "en": "Verify grab bars, door width, and emergency call button.",
+                "uk": "Перевірити поручні, ширину дверей і кнопку екстреного виклику."
+              },
+              "expected_result": {
+                "en": "All fixtures meet checklist; call button rings ops.",
+                "uk": "Усі елементи відповідають чеклісту; кнопка дзвонить в ops."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Confirm icons on printed and mobile maps.",
+                "uk": "Підтвердити іконки на друкованій і мобільній картах."
+              },
+              "expected_result": {
+                "en": "Accessible restroom pins visible in both maps.",
+                "uk": "Піни доступних вбиралень видно на обох картах."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": { "en": "Marketing & Social", "uk": "Маркетинг і соцмережі" },
+      "children": [],
+      "cases": [
+        {
+          "key": "KC-033",
+          "title": {
+            "en": "Social countdown posts schedule",
+            "uk": "Розклад countdown-постів у соцмережах"
+          },
+          "description": {
+            "en": "Countdown posts queue for Instagram/Telegram in UA and EN.",
+            "uk": "Countdown-пости стають у чергу для Instagram/Telegram UA та EN."
+          },
+          "precondition": {
+            "en": "Creative assets approved; channels connected.",
+            "uk": "Креативи затверджено; канали підключено."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": ["marketing", "social"],
+          "steps": [
+            {
+              "action": {
+                "en": "Schedule T-7 / T-1 countdown posts for both locales.",
+                "uk": "Запланувати countdown-пости T-7 / T-1 для обох локалей."
+              },
+              "expected_result": {
+                "en": "Calendar shows four posts with correct copy locale.",
+                "uk": "Календар показує чотири пости з правильною локаллю тексту."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Preview Telegram post rendering.",
+                "uk": "Переглянути рендер поста в Telegram."
+              },
+              "expected_result": {
+                "en": "Image and CTA link to ticket page.",
+                "uk": "Зображення та CTA ведуть на сторінку квитків."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-034",
+          "title": {
+            "en": "Press kit distribution to media list",
+            "uk": "Розсилка прескіту медіалісту"
+          },
+          "description": {
+            "en": "Press kit email reaches approved outlets with assets link.",
+            "uk": "Лист із прескітом доходить до затверджених ЗМІ з посиланням на матеріали."
+          },
+          "precondition": {
+            "en": "Media list imported; press kit zip uploaded.",
+            "uk": "Медіаліст імпортовано; zip прескіту завантажено."
+          },
+          "priority": "low",
+          "status": "ready",
+          "tags": ["marketing", "press"],
+          "steps": [
+            {
+              "action": {
+                "en": "Send press kit campaign to media list segment.",
+                "uk": "Надіслати кампанію прескіту сегменту медіалісту."
+              },
+              "expected_result": {
+                "en": "Delivery report shows sent count > 0; bounce rate logged.",
+                "uk": "Звіт доставки показує sent > 0; bounce rate залоговано."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Open assets link as recipient and download kit.",
+                "uk": "Відкрити посилання на матеріали як отримувач і завантажити кіт."
+              },
+              "expected_result": {
+                "en": "Zip downloads; contains bios, photos, fact sheet.",
+                "uk": "Zip завантажується; містить біографії, фото, факт-шит."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        },
+        {
+          "key": "KC-035",
+          "title": {
+            "en": "Livestream teaser clip publish",
+            "uk": "Публікація тізер-кліпу для стріму"
+          },
+          "description": {
+            "en": "Short teaser uploads to YouTube/TikTok with geo-safe metadata.",
+            "uk": "Короткий тізер завантажується на YouTube/TikTok з коректними метаданими."
+          },
+          "precondition": {
+            "en": "Teaser master exported; channel credentials valid.",
+            "uk": "Майстер тізера експортовано; облікові дані каналів валідні."
+          },
+          "priority": "low",
+          "status": "ready",
+          "tags": ["marketing", "livestream", "social"],
+          "steps": [
+            {
+              "action": {
+                "en": "Upload teaser with bilingual title and description.",
+                "uk": "Завантажити тізер з двомовною назвою та описом."
+              },
+              "expected_result": {
+                "en": "Processing completes; public URL available.",
+                "uk": "Обробка завершена; публічний URL доступний."
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Embed teaser on event landing page.",
+                "uk": "Вбудувати тізер на лендінг події."
+              },
+              "expected_result": {
+                "en": "Player loads on desktop and mobile breakpoints.",
+                "uk": "Плеєр завантажується на desktop і mobile breakpoints."
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "requirements": [
+    {
+      "external_key": "REQ-01",
+      "title": {
+        "en": "Municipal open-air event permit obtained",
+        "uk": "Отримано міський дозвіл на open-air подію"
+      },
+      "source": "sample",
+      "case_keys": ["KC-001", "KC-002", "KC-003", "KC-004"]
+    },
+    {
+      "external_key": "REQ-02",
+      "title": {
+        "en": "Ticketing platform ready for sale and gate check-in",
+        "uk": "Квиткова платформа готова до продажів і check-in на вході"
+      },
+      "source": "sample",
+      "case_keys": ["KC-005", "KC-006", "KC-007", "KC-008", "KC-009", "KC-010", "KC-011"]
+    },
+    {
+      "external_key": "REQ-03",
+      "title": {
+        "en": "Air-raid alert and shelter evacuation procedures validated",
+        "uk": "Перевірено процедури повітряної тривоги та евакуації до укриття"
+      },
+      "source": "sample",
+      "case_keys": ["KC-020", "KC-021"]
+    },
+    {
+      "external_key": "REQ-04",
+      "title": {
+        "en": "Stage power and sound systems fail-safe ready",
+        "uk": "Системи живлення й звуку сцени готові до відмов"
+      },
+      "source": "sample",
+      "case_keys": ["KC-015", "KC-016", "KC-017"]
+    },
+    {
+      "external_key": "REQ-05",
+      "title": {
+        "en": "Accessibility routes and facilities meet event standard",
+        "uk": "Маршрути й об'єкти доступності відповідають стандарту події"
+      },
+      "source": "sample",
+      "case_keys": ["KC-030", "KC-031", "KC-032"]
+    },
+    {
+      "external_key": "REQ-06",
+      "title": {
+        "en": "Food vendors licensed and payment-ready",
+        "uk": "Фуд-вендори мають дозволи й готові до оплати"
+      },
+      "source": "sample",
+      "case_keys": ["KC-027", "KC-028", "KC-029"]
+    },
+    {
+      "external_key": "REQ-07",
+      "title": {
+        "en": "Artist rider and accreditation controls in place",
+        "uk": "Контроль райдерів артистів і акредитації налагоджено"
+      },
+      "source": "sample",
+      "case_keys": ["KC-012", "KC-013", "KC-014"]
+    }
+  ],
+  "runs": [
+    {
+      "name": {
+        "en": "Dress rehearsal run",
+        "uk": "Прогін генеральної репетиції"
+      },
+      "description": {
+        "en": "Full dress rehearsal covering venue, stage, safety, logistics, and accessibility before doors.",
+        "uk": "Повний прогін: майданчик, сцена, безпека, логістика та доступність перед відкриттям."
+      },
+      "status": "completed",
+      "results": [
+        {
+          "case_key": "KC-001",
+          "status": "Passed",
+          "comment": {
+            "en": "Permit package accepted; tracking KC-PERM-8841.",
+            "uk": "Пакет дозволу прийнято; трекінг KC-PERM-8841."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "City portal returned Pending review with ID.",
+                "uk": "Міський портал повернув «На розгляді» з ID."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-002",
+          "status": "Passed",
+          "comment": {
+            "en": "Evening SPL model within ordinance at all receptors.",
+            "uk": "Вечірня модель SPL у межах норм на всіх точках."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Max 53.2 dB(A) at residential edge.",
+                "uk": "Макс. 53.2 дБ(A) біля житлової зони."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-003",
+          "status": "Passed",
+          "comment": {
+            "en": "Capacity locked at 8500.",
+            "uk": "Місткість заблоковано на 8500."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Ticket pool cannot exceed signed capacity.",
+                "uk": "Пул квитків не перевищує підписану місткість."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-012",
+          "status": "Passed",
+          "comment": {
+            "en": "Headliner rider 100% with photos.",
+            "uk": "Райдер хедлайнера 100% з фото."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Hospitality and backline signed off.",
+                "uk": "Hospitality і беклайн підписано."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-013",
+          "status": "Failed",
+          "comment": {
+            "en": "Headliner encore overruns curfew by 8 minutes.",
+            "uk": "Енкор хедлайнера виходить за комендантську на 8 хв."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Failed",
+              "message": {
+                "en": "Schedule conflict check failed against 23:00 curfew.",
+                "uk": "Перевірка конфліктів не пройшла щодо комендантської 23:00."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-015",
+          "status": "Passed",
+          "comment": {
+            "en": "All PA hangs complete; FOH networked.",
+            "uk": "Усі підвіси PA готові; FOH у мережі."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Load-in plot at 100%.",
+                "uk": "Плот load-in на 100%."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-016",
+          "status": "Passed",
+          "comment": {
+            "en": "FOH SPL 97.8 dB(A); show file recalled clean.",
+            "uk": "FOH SPL 97.8 дБ(A); шоу-файл відновлено чисто."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Within ±2 dB of target.",
+                "uk": "У межах ±2 дБ від цілі."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-017",
+          "status": "Blocked",
+          "comment": {
+            "en": "Generator fuel delivery delayed; ATS drill postponed.",
+            "uk": "Затримка палива для генератора; тренування ATS відкладено."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Blocked",
+              "message": {
+                "en": "Cannot open mains breaker until generator fueled.",
+                "uk": "Не можна відкривати автомат мережі, доки генератор не заправлено."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-018",
+          "status": "Skipped",
+          "comment": {
+            "en": "Lighting programmer unavailable for this rehearsal slot.",
+            "uk": "Світловий програміст недоступний у цьому слоті репетиції."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Skipped",
+              "message": {
+                "en": "Deferred to next tech day.",
+                "uk": "Перенесено на наступний tech day."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-019",
+          "status": "Passed",
+          "comment": {
+            "en": "Glass bottle seized and logged at Gate A.",
+            "uk": "Скляну пляшку вилучено й залоговано на Gate A."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Incident SEC-102 created.",
+                "uk": "Створено інцидент SEC-102."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-020",
+          "status": "Passed",
+          "comment": {
+            "en": "Bilingual alert announcement and show pause verified.",
+            "uk": "Двомовне оголошення тривоги та паузу шоу підтверджено."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "PA/LED scripts played; state Paused-alert.",
+                "uk": "Скрипти PA/LED відтворено; стан «Пауза-тривога»."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-021",
+          "status": "Passed",
+          "comment": {
+            "en": "Shelter drill: 11m 40s to clear main bowl.",
+            "uk": "Тренування укриття: 11 хв 40 с до очищення основної зони."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Shelter A under capacity; all-clear return controlled.",
+                "uk": "Укриття A нижче місткості; повернення після відбою контрольоване."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-022",
+          "status": "Passed",
+          "comment": {
+            "en": "Medical post stocked; radio MED-1 clear.",
+            "uk": "Медпункт укомплектовано; радіо MED-1 чітке."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "AED and kits in date.",
+                "uk": "AED і аптечки в терміні."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-024",
+          "status": "Failed",
+          "comment": {
+            "en": "One shuttle run missing driver assignment.",
+            "uk": "Один рейс шатлу без призначеного водія."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Failed",
+              "message": {
+                "en": "Publish blocked: unassigned run for support act.",
+                "uk": "Публікацію заблоковано: незакріплений рейс для support."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-025",
+          "status": "Passed",
+          "comment": {
+            "en": "Listed truck admitted; unlisted plate denied.",
+            "uk": "Зареєстровану вантажівку пропущено; незареєстрований номер відхилено."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Dock assignment AA1234BC OK.",
+                "uk": "Призначення доку AA1234BC OK."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-030",
+          "status": "Passed",
+          "comment": {
+            "en": "Accessible route clear; companion seats mapped.",
+            "uk": "Доступний маршрут вільний; місця супроводжуючих нанесено."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Gate D to platform walkthrough OK.",
+                "uk": "Прохід Gate D → платформа OK."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-032",
+          "status": "Blocked",
+          "comment": {
+            "en": "Emergency call button wiring incomplete at food-court unit.",
+            "uk": "Не завершено проводку кнопки виклику в кабіні біля фуд-кору."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Blocked",
+              "message": {
+                "en": "Waiting on electrician; Gate D unit OK.",
+                "uk": "Очікуємо електрика; кабіна Gate D OK."
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": {
+        "en": "Ticketing smoke run",
+        "uk": "Smoke-прогін квиткової системи"
+      },
+      "description": {
+        "en": "In-progress smoke of online sales and QR check-in before public onsale.",
+        "uk": "Поточний smoke онлайн-продажів і QR check-in перед публічним стартом продажів."
+      },
+      "status": "in_progress",
+      "results": [
+        {
+          "case_key": "KC-005",
+          "status": "Passed",
+          "comment": {
+            "en": "GA checkout and PDF ticket OK on staging.",
+            "uk": "Checkout GA і PDF квитка OK на staging."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Order Paid; QR issued.",
+                "uk": "Замовлення оплачено; QR видано."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-006",
+          "status": "Passed",
+          "comment": {
+            "en": "Promo KYIV26-15 applies; expired code rejected.",
+            "uk": "Промокод KYIV26-15 застосовується; прострочений відхилено."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "15% discount line verified.",
+                "uk": "Рядок знижки 15% підтверджено."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-007",
+          "status": "Untested",
+          "comment": { "en": "", "uk": "" },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-008",
+          "status": "Untested",
+          "comment": { "en": "", "uk": "" },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-009",
+          "status": "Passed",
+          "comment": {
+            "en": "Gate A admit and Used status OK.",
+            "uk": "Пропуск на Gate A і статус «Використано» OK."
+          },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            },
+            {
+              "status": "Passed",
+              "message": {
+                "en": "Green admit screen confirmed.",
+                "uk": "Зелений екран пропуску підтверджено."
+              }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-010",
+          "status": "Untested",
+          "comment": { "en": "", "uk": "" },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            }
+          ]
+        },
+        {
+          "case_key": "KC-011",
+          "status": "Untested",
+          "comment": { "en": "", "uk": "" },
+          "history": [
+            {
+              "status": "Untested",
+              "message": { "en": "Queued", "uk": "У черзі" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
