@@ -1,8 +1,9 @@
-# vulyk-cli
+# vulyk CLI
 
-CLI and result reporter for Vulyk. Phase 1 supports `version` and a `report` stub; workstream **W4** adds JUnit / Vulyk JSON upload.
+Reporter for uploading JUnit XML or Vulyk JSON results to a Vulyk API.
 
 ```bash
-cargo run -p vulyk-cli -- version
-cargo run -p vulyk-cli -- report --file results.xml --run-id <uuid>
+cargo run -p vulyk-cli -- report --file report.xml --create-run --project-key DEMO
 ```
+
+See [docs/guides/ingest-and-ci.md](../docs/guides/ingest-and-ci.md) for formats, env vars, the GitHub Action, and GitLab template.

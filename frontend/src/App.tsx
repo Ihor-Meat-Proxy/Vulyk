@@ -11,6 +11,7 @@ import { Generate } from './pages/Generate'
 import { ImportPage } from './pages/ImportPage'
 import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
+import { Runs } from './pages/Runs'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { getStoredToken } from './token'
 
@@ -214,15 +215,7 @@ export default function App() {
             element={<Generate projectId={activeProjectId} />}
           />
           <Route path="chat" element={<Chat projectId={activeProjectId} />} />
-          <Route
-            path="runs"
-            element={
-              <Placeholder
-                title="Runs"
-                blurb="Test plans and runs land in workstream W3."
-              />
-            }
-          />
+          <Route path="runs" element={<Runs projectId={activeProjectId} />} />
           <Route
             path="reports"
             element={

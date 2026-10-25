@@ -1,8 +1,13 @@
-//! ALM / defect-tracker adapters (OpenProject, Jira Cloud, Jira Server/DC).
+//! External system adapters: ALM (W6) + CI providers (W5).
 //!
-//! These clients talk to *external* systems over HTTP. This repository never
-//! opens PRs, issues, or commits against OpenProject or other upstreams.
+//! ALM clients talk to OpenProject / Jira over HTTP. This repository never
+//! opens PRs, issues, or commits against those upstreams.
+//!
+//! CI adapters dispatch GitHub Actions / GitLab pipelines and verify webhooks.
 
+pub mod ci;
+pub mod github;
+pub mod gitlab;
 pub mod jira_cloud;
 pub mod jira_dc;
 pub mod openproject;

@@ -9,6 +9,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilte
 use vulyk_api::auth::AuthConfig;
 use vulyk_api::crypto::SecretsKey;
 use vulyk_api::db;
+use vulyk_api::jobs;
 use vulyk_api::routes::{app_router, AppState};
 
 #[tokio::main]
@@ -29,6 +30,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let pool = db::connect(&database_url).await?;
     db::migrate(&pool).await?;
+
+    jobs::spawn_worker(pool.clone());
 
     let state = AppState {
         pool,

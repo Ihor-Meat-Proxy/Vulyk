@@ -68,3 +68,116 @@ jobs:
         run: docker build -f backend/Dockerfile -t vulyk-api:ci .
       - name: Build web image
         run: docker build -f frontend/Dockerfile -t vulyk-web:ci ./frontend
+
+  dogfood-ingest:
+    name: Dogfood e2e ingest (API + CLI upload)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+      VULYK_API_URL: http://127.0.0.1:8080
+      BIND_ADDR: 127.0.0.1:8080
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build API and CLI
+        run: cargo build -p vulyk-api -p vulyk-cli --release
+      - name: Start Vulyk API
+        run: |
+          ./target/release/vulyk-api > /tmp/vulyk-api.log 2>&1 &
+          echo $! > /tmp/vulyk-api.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "$VULYK_API_URL/health" >/dev/null; then
+              echo "API ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "API failed to start" >&2
+          cat /tmp/vulyk-api.log >&2
+          exit 1
+      - name: Seed project and run e2e smoke + upload
+        run: |
+          set -euo pipefail
+          PROJECT="$(curl -fsS -H 'Content-Type: application/json' \
+            -d '{"key":"CI","name":"Dogfood CI","description":"Self-hosted ingest smoke"}' \
+            "$VULYK_API_URL/api/v1/projects")"
+          PROJECT_ID="$(python3 -c 'import json,sys; print(json.loads(sys.argv[1])["id"])' "$PROJECT")"
+
+          mkdir -p artifacts
+          cat > artifacts/e2e-junit.xml <<'XML'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuites name="vulyk-e2e" tests="2" failures="0">
+            <testsuite name="smoke" tests="2" failures="0" skipped="0" errors="0">
+              <testcase classname="e2e.health" name="api_health_ok" time="0.01"/>
+              <testcase classname="e2e.ingest" name="cli_upload_roundtrip" time="0.02"/>
+            </testsuite>
+          </testsuites>
+          XML
+          # Strip accidental leading indentation from the workflow heredoc
+          python3 -c "from pathlib import Path; p=Path('artifacts/e2e-junit.xml'); p.write_text('\n'.join(l.lstrip() for l in p.read_text().splitlines())+'\n')"
+
+          cat > artifacts/e2e-results.json <<'JSON'
+          {
+            "format": "vulyk/results@v1",
+            "results": [
+              {
+                "external_id": "e2e.health::api_health_ok",
+                "status": "passed",
+                "duration_ms": 10
+              }
+            ]
+          }
+          JSON
+          python3 -c "from pathlib import Path; p=Path('artifacts/e2e-results.json'); p.write_text('\n'.join(l.lstrip() for l in p.read_text().splitlines())+'\n')"
+
+          ./target/release/vulyk report \
+            --file artifacts/e2e-junit.xml \
+            --format junit \
+            --create-run \
+            --project-id "$PROJECT_ID" \
+            --run-name "dogfood junit ${GITHUB_RUN_ID:-local}" \
+            --api-url "$VULYK_API_URL"
+
+          ./scripts/vulyk-upload.sh \
+            --api-url "$VULYK_API_URL" \
+            --file artifacts/e2e-results.json \
+            --format vulyk_json \
+            --create-run \
+            --project-id "$PROJECT_ID" \
+            --run-name "dogfood json ${GITHUB_RUN_ID:-local}"
+
+          curl -fsS "$VULYK_API_URL/api/v1/projects/${PROJECT_ID}/runs" > /tmp/runs.json
+          python3 - <<'PY'
+          import json, os, urllib.request
+          runs = json.load(open("/tmp/runs.json"))
+          assert runs, "expected runs"
+          api = os.environ["VULYK_API_URL"]
+          found = False
+          for run in runs:
+              with urllib.request.urlopen(f"{api}/api/v1/runs/{run['id']}/results") as r:
+                  results = json.load(r)
+              if results:
+                  found = True
+                  print(f"run {run['name']}: {len(results)} results")
+          assert found, "expected ingested results"
+          PY
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f /tmp/vulyk-api.pid ]; then kill "$(cat /tmp/vulyk-api.pid)" || true; fi
+          cat /tmp/vulyk-api.log || true

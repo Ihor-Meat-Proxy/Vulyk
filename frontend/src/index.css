@@ -644,6 +644,51 @@ select.project-select {
   padding-left: 1.1rem;
 }
 
+.stack-lg {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+  align-items: center;
+}
+
+.toolbar input,
+.toolbar select,
+.code-input {
+  border: 1px solid var(--line);
+  background: var(--bg-elevated);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  color: var(--ink);
+}
+
+.code-input {
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.table tr.selected td {
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+}
+
+.panel h3 {
+  font-weight: 600;
+}
+
+.panel code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;
