@@ -48,9 +48,10 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - LLM providers & chat: **[docs/llm.md](docs/llm.md)**
 - MCP setup (Cursor / Claude Desktop): **[docs/mcp.md](docs/mcp.md)**
 
-## API (Phase 1 + W9/W10)
+## API (Phase 1 + W1 + W9/W10)
 
 - `GET /health`, `GET /ready`
+- Auth / RBAC: `/api/v1/auth/*`, `/api/v1/users`, memberships — see [docs/auth-and-rbac.md](docs/auth-and-rbac.md)
 - `CRUD /api/v1/projects`
 - `CRUD /api/v1/projects/{id}/suites`
 - `CRUD /api/v1/projects/{id}/cases` (with steps; optional `?suite_id=` / `?q=` search)
@@ -58,7 +59,8 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - Requirements / ALM (W6): `/requirements`, case links, `/integrations`, `/defects`
 - Importers (W7): `GET /api/v1/importers`, `POST .../imports:preview`, `POST .../imports`
 - `CRUD /api/v1/projects/{id}/llm/configs` + generate-cases / generate-code / ask
-- `POST/GET/DELETE /api/v1/tokens` (MCP API tokens)
+- `POST/GET/DELETE /api/v1/tokens` (MCP / CI API tokens)
+- Admin integration placeholders: `/api/v1/admin/integrations`
 - Interactive docs: `/api/docs`
 - Integration notes: [docs/integrations/](docs/integrations/)
 

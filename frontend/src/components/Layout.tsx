@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import type { Project, Suite } from '../api'
+import { useAuth } from '../auth'
 
 type Props = {
   projects: Project[]
@@ -18,6 +19,8 @@ export function Layout({
   onSelectProject,
   onSelectSuite,
 }: Props) {
+  const { user, logout, status } = useAuth()
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -73,24 +76,40 @@ export function Layout({
       <div className="main">
         <header className="topbar">
           <h1>{project ? project.name : 'Vulyk'}</h1>
-          <label>
-            <span className="muted" style={{ marginRight: '0.5rem' }}>
-              Project
-            </span>
-            <select
-              className="project-select"
-              value={project?.id ?? ''}
-              onChange={(e) => onSelectProject(e.target.value)}
-              disabled={projects.length === 0}
-            >
-              {projects.length === 0 && <option value="">No projects</option>}
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.key} — {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="topbar-actions">
+            <label>
+              <span className="muted" style={{ marginRight: '0.5rem' }}>
+                Project
+              </span>
+              <select
+                className="project-select"
+                value={project?.id ?? ''}
+                onChange={(e) => onSelectProject(e.target.value)}
+                disabled={projects.length === 0}
+              >
+                {projects.length === 0 && <option value="">No projects</option>}
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.key} — {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {user ? (
+              <div className="user-chip">
+                <span>{user.display_name}</span>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void logout()}
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : status && !status.auth_required ? (
+              <span className="muted">Open mode</span>
+            ) : null}
+          </div>
         </header>
         <main className="content">
           <Outlet />
