@@ -2,8 +2,11 @@ import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { api, type Project, type Suite, type TestCase } from './api'
 import { Layout } from './components/Layout'
+import { Admin } from './pages/Admin'
 import { CaseDetail } from './pages/CaseDetail'
 import { CaseList } from './pages/CaseList'
+import { Chat } from './pages/Chat'
+import { Generate } from './pages/Generate'
 import { Placeholder } from './pages/Placeholder'
 
 const PROJECT_KEY = 'vulyk.selectedProjectId'
@@ -166,6 +169,11 @@ export default function App() {
             element={<CaseDetail projectId={activeProjectId} />}
           />
           <Route
+            path="generate"
+            element={<Generate projectId={activeProjectId} />}
+          />
+          <Route path="chat" element={<Chat projectId={activeProjectId} />} />
+          <Route
             path="runs"
             element={
               <Placeholder
@@ -183,15 +191,7 @@ export default function App() {
               />
             }
           />
-          <Route
-            path="admin"
-            element={
-              <Placeholder
-                title="Admin"
-                blurb="Users, roles, integrations, and LLM providers land in W1 / W6 / W9."
-              />
-            }
-          />
+          <Route path="admin" element={<Admin projectId={activeProjectId} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

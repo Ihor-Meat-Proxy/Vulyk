@@ -12,7 +12,10 @@ async fn spawn_app() -> String {
         .expect("connect db");
     vulyk_api::db::migrate(&pool).await.expect("migrate");
 
-    let state = vulyk_api::routes::AppState { pool };
+    let state = vulyk_api::routes::AppState {
+        pool,
+        secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
+    };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await

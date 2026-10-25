@@ -6,6 +6,7 @@ use tower_http::{
     trace::TraceLayer,
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
+use vulyk_api::crypto::SecretsKey;
 use vulyk_api::db;
 use vulyk_api::routes::{app_router, AppState};
 
@@ -28,7 +29,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let pool = db::connect(&database_url).await?;
     db::migrate(&pool).await?;
 
-    let state = AppState { pool };
+    let state = AppState {
+        pool,
+        secrets: SecretsKey::from_env(),
+    };
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods([

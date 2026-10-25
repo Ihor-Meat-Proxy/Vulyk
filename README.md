@@ -2,7 +2,7 @@
 
 Open-source **test management** system. *Vulyk* (вулик) is Ukrainian for *beehive*.
 
-Phase 1 delivers the monorepo foundation: Rust API (Axum + SQLx + OpenAPI), React UI shell, MCP/CLI stubs, Docker Compose, and CI.
+Phase 1 foundation plus LLM providers (W9) and a production MCP server (W10): Rust API (Axum + SQLx + OpenAPI), React UI, MCP/CLI, Docker Compose, and CI.
 
 ## Quick start
 
@@ -34,10 +34,10 @@ cd frontend && npm install && npm run dev
 ```
 backend/    Rust API (Axum, Tokio, SQLx, utoipa)
 frontend/   React + Vite + TypeScript UI
-mcp/        MCP server skeleton (tools in workstream W10)
+mcp/        MCP server (stdio + HTTP) — see docs/mcp.md
 cli/        CLI / reporter skeleton (W4)
 deploy/     Kubernetes manifests + Helm chart skeleton
-docs/       Architecture and design
+docs/       Architecture, LLM, MCP setup
 scripts/    install.sh
 ```
 
@@ -45,12 +45,18 @@ scripts/    install.sh
 
 See **[docs/architecture.md](docs/architecture.md)** for the full product plan, ERD, plugin interfaces (importers, ALM, LLM, CI), MCP design, and parallel workstreams **W0–W11**.
 
-## API (Phase 1)
+- LLM providers & chat: **[docs/llm.md](docs/llm.md)**
+- MCP setup (Cursor / Claude Desktop): **[docs/mcp.md](docs/mcp.md)**
+
+## API (Phase 1 + W9/W10)
 
 - `GET /health`, `GET /ready`
 - `CRUD /api/v1/projects`
 - `CRUD /api/v1/projects/{id}/suites`
 - `CRUD /api/v1/projects/{id}/cases` (with steps; optional `?suite_id=` / `?q=` search)
+- `CRUD /api/v1/projects/{id}/runs` (+ trigger, results ingest)
+- `CRUD /api/v1/projects/{id}/llm/configs` + generate-cases / generate-code / ask
+- `POST/GET/DELETE /api/v1/tokens` (MCP API tokens)
 - Interactive docs: `/api/docs`
 
 ## License
