@@ -194,8 +194,8 @@ pub async fn dispatch_ci(
 
     let run_id = if let Some(run_id) = body.run_id {
         let run = sqlx::query_as::<_, TestRun>(
-            r#"SELECT id, project_id, name, status, source, external_ref, meta,
-                      started_at, finished_at, created_at, updated_at
+            r#"SELECT id, project_id, plan_id, name, description, status, source,
+                      external_ref, meta, started_at, finished_at, created_at, updated_at
                FROM test_runs WHERE id = $1"#,
         )
         .bind(run_id)
@@ -218,20 +218,28 @@ pub async fn dispatch_ci(
         });
         let create = CreateRun {
             name,
-            status: "running".into(),
+            description: String::new(),
+            status: Some("running".into()),
             source: format!("ci:{}", cfg.provider),
             external_ref: None,
             meta: json!({ "ci_config_id": cfg.id }),
+            plan_id: None,
+            suite_ids: Vec::new(),
+            case_ids: Vec::new(),
+            case_statuses: Vec::new(),
+            tag_names: Vec::new(),
+            include_all_cases: false,
+            start: false,
         };
         let run = sqlx::query_as::<_, TestRun>(
             r#"INSERT INTO test_runs (project_id, name, status, source, meta, started_at)
                VALUES ($1, $2, $3, $4, $5, NOW())
-               RETURNING id, project_id, name, status, source, external_ref, meta,
-                         started_at, finished_at, created_at, updated_at"#,
+               RETURNING id, project_id, plan_id, name, description, status, source,
+                         external_ref, meta, started_at, finished_at, created_at, updated_at"#,
         )
         .bind(cfg.project_id)
         .bind(create.name)
-        .bind(create.status)
+        .bind(create.status.as_deref().unwrap_or("running"))
         .bind(create.source)
         .bind(create.meta)
         .fetch_one(&state.pool)
