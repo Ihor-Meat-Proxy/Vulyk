@@ -7,28 +7,30 @@ async function openCaseInRun(page: Page, caseKey: string) {
   if (await back.isVisible().catch(() => false)) {
     await back.click()
   }
-  const row = page.getByRole('button', { name: new RegExp(caseKey) }).first()
-  await expect(row).toBeVisible({ timeout: 15_000 })
-  await row.click()
-
-  // Prefer labelled status group when present; else thumb status buttons.
-  const statusGroup = page.getByRole('group', { name: 'Result status' })
-  if (await statusGroup.isVisible().catch(() => false)) {
-    await expect(
-      statusGroup.getByRole('button', { name: /Passed|passed/i }).first(),
-    ).toBeEnabled({ timeout: 15_000 })
+  // Prefer the accessible run-case list; fall back to the desktop table row.
+  const listBtn = page
+    .getByRole('list', { name: 'Run cases' })
+    .getByRole('button', { name: new RegExp(caseKey) })
+    .first()
+  const tableRow = page.locator('tr', { hasText: caseKey }).first()
+  if (await listBtn.isVisible().catch(() => false)) {
+    await listBtn.click()
   } else {
-    await expect(
-      page.getByRole('button', { name: 'passed', exact: true }),
-    ).toBeEnabled({ timeout: 15_000 })
+    await expect(tableRow).toBeVisible({ timeout: 15_000 })
+    await tableRow.click()
   }
+
+  const statusGroup = page.getByRole('group', { name: 'Result status' })
+  await expect(statusGroup).toBeVisible({ timeout: 20_000 })
+  await expect(
+    statusGroup.getByRole('button', { name: 'Passed', exact: true }),
+  ).toBeEnabled({ timeout: 15_000 })
 }
 
 function statusButton(page: Page, label: string) {
-  const statusGroup = page.getByRole('group', { name: 'Result status' })
-  return statusGroup
+  return page
+    .getByRole('group', { name: 'Result status' })
     .getByRole('button', { name: label, exact: true })
-    .or(page.getByRole('button', { name: label.toLowerCase(), exact: true }))
 }
 
 test.describe.configure({ mode: 'serial' })

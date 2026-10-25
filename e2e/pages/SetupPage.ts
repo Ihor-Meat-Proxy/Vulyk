@@ -4,10 +4,17 @@ export class SetupPage {
   constructor(readonly page: Page) {}
 
   async expectWizard() {
+    // Clear any prior session so setup_required is not masked by auth.
     await this.page.goto('/')
-    await expect(this.page.getByText(/Instance setup|Налаштування інстансу/i)).toBeVisible({
-      timeout: 60_000,
+    await this.page.evaluate(() => {
+      localStorage.clear()
+      sessionStorage.clear()
     })
+    await this.page.goto('/')
+    // Match the token field (title alone also appears on the success panel).
+    await expect(
+      this.page.getByLabel(/Setup token|Setup-токен/i),
+    ).toBeVisible({ timeout: 60_000 })
   }
 
   async fill(opts: {
@@ -20,22 +27,36 @@ export class SetupPage {
     registrationMode?: 'open' | 'invite' | 'disabled'
   }) {
     await this.page.getByLabel(/Setup token|Setup-токен/i).fill(opts.token)
-    await this.page.getByLabel(/Display name/i).fill(opts.displayName ?? 'Setup Admin')
-    await this.page.getByLabel(/Admin email/i).fill(opts.email)
-    await this.page.getByLabel(/Admin password/i).fill(opts.password)
+    await this.page
+      .getByLabel(/Display name|Ім'я/i)
+      .fill(opts.displayName ?? 'Setup Admin')
+    await this.page
+      .getByLabel(/Admin email|Email адміна/i)
+      .fill(opts.email)
+    await this.page
+      .getByLabel(/Admin password|Пароль адміна/i)
+      .fill(opts.password)
     if (opts.locale) {
-      await this.page.getByLabel(/Default locale/i).selectOption(opts.locale)
+      await this.page
+        .getByLabel(/Default locale|Мова за замовчуванням/i)
+        .selectOption(opts.locale)
     }
     if (opts.timezone) {
-      await this.page.getByLabel(/Default timezone/i).fill(opts.timezone)
+      await this.page
+        .getByLabel(/Default timezone|Часовий пояс/i)
+        .fill(opts.timezone)
     }
     if (opts.registrationMode) {
-      await this.page.getByLabel(/Registration mode/i).selectOption(opts.registrationMode)
+      await this.page
+        .getByLabel(/Registration mode|Режим реєстрації/i)
+        .selectOption(opts.registrationMode)
     }
   }
 
   async submit() {
-    await this.page.getByRole('button', { name: /Complete setup/i }).click()
+    await this.page
+      .getByRole('button', { name: /Complete setup|Завершити налаштування/i })
+      .click()
   }
 
   async expectSuccess() {

@@ -80,15 +80,15 @@ export async function loginAs(
     }
   }
 
-  const button = page.getByRole('button', {
-    name: /Create admin|Sign in|Увійти|Create admin/i,
-  })
-  if ((await button.textContent())?.includes('Create admin')) {
-    await page.getByLabel(/Display name/i).fill('E2E Admin')
+  const panel = page.locator('.login-panel')
+  await expect(panel).toBeVisible({ timeout: 30_000 })
+  const submit = panel.locator('button[type="submit"]')
+  if ((await submit.textContent())?.match(/Create admin|Створити/i)) {
+    await page.getByLabel(/Display name|Ім'я|Імʼя/i).fill('E2E Admin')
   }
   await page.getByLabel(/^Email$/i).fill(email)
   await page.getByLabel(/Password|Пароль/i).fill(password)
-  await button.click()
+  await submit.click()
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 }
 
@@ -131,12 +131,12 @@ export async function createUserWithRole(
 /** Store JWT in localStorage so UI boots authenticated without form. */
 export async function injectApiToken(page: Page, token: string): Promise<void> {
   await page.addInitScript((t) => {
-    localStorage.setItem('vulyk.token', t)
+    localStorage.setItem('vulyk.authToken', t)
   }, token)
   // Also set for already-loaded pages
   await page.goto('/')
   await page.evaluate((t) => {
-    localStorage.setItem('vulyk.token', t)
+    localStorage.setItem('vulyk.authToken', t)
   }, token)
 }
 
@@ -157,6 +157,7 @@ export function prepareSetupWizard(rawToken: string): void {
   const hash = sha256Hex(rawToken)
   runSql(`
     UPDATE system_settings SET value = 'false'::jsonb WHERE key = 'setup_completed';
+    UPDATE system_settings SET value = '"en"'::jsonb WHERE key = 'default_locale';
     DELETE FROM setup_tokens;
     INSERT INTO setup_tokens (token_hash) VALUES ('${hash}');
   `)

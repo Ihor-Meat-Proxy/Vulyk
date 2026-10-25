@@ -34,7 +34,9 @@ export class AdminPage {
     await this.page.locator('form.stack-form').getByLabel(/^Key$/i).fill(key)
     await this.page.locator('form.stack-form').getByLabel(/^Name$/i).fill(name)
     await this.page.getByRole('button', { name: 'Create project' }).click()
-    await expect(this.page.getByText(name)).toBeVisible({ timeout: 20_000 })
+    await expect(
+      this.page.locator('.admin').getByText(name, { exact: true }).first(),
+    ).toBeVisible({ timeout: 20_000 })
   }
 
   async openLlmTab() {

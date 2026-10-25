@@ -170,7 +170,7 @@ export function Layout({
                 {t('nav.locale')}
               </span>
               <select
-                className="project-select"
+                className="locale-select"
                 value={locale}
                 aria-label={t('nav.locale')}
                 onChange={(e) => void setLocale(e.target.value as Locale)}
@@ -185,6 +185,7 @@ export function Layout({
               </span>
               <select
                 className="project-select"
+                aria-label={t('nav.project')}
                 value={project?.id ?? ''}
                 onChange={(e) => onSelectProject(e.target.value)}
                 disabled={projects.length === 0}

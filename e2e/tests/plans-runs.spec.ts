@@ -72,7 +72,10 @@ test('create plan and run, execute pass/fail/blocked, attach, close', async ({
   await expect(list.locator('button').first()).toBeVisible({ timeout: 30_000 })
   await list.locator('button').first().click()
 
-  await page.getByRole('button', { name: 'passed', exact: true }).click()
+  await page
+    .getByRole('group', { name: 'Result status' })
+    .getByRole('button', { name: 'Passed', exact: true })
+    .click()
   await expect(page.locator('.status-pill.status-passed').first()).toBeVisible({
     timeout: 20_000,
   })

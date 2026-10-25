@@ -269,7 +269,8 @@ select {
   margin: 0.5rem 0;
 }
 
-select.project-select {
+select.project-select,
+select.locale-select {
   border: 1px solid var(--line);
   background: var(--bg-elevated);
   border-radius: 0.4rem;

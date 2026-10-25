@@ -42,12 +42,15 @@ export class RunsPage {
     await expect(this.page.getByRole('heading', { name })).toBeVisible()
   }
 
-  async executeStatus(status: 'passed' | 'failed' | 'blocked') {
+  async executeStatus(status: 'Passed' | 'Failed' | 'Blocked' | 'Skipped') {
     const list = this.page.getByRole('list', { name: 'Run cases' })
     await list.locator('button').first().click()
-    await this.page.getByRole('button', { name: status, exact: true }).click()
+    await this.page
+      .getByRole('group', { name: 'Result status' })
+      .getByRole('button', { name: status, exact: true })
+      .click()
     await expect(
-      this.page.locator(`.status-pill.status-${status}`).first(),
+      this.page.locator(`.status-pill.status-${status.toLowerCase()}`).first(),
     ).toBeVisible({ timeout: 20_000 })
   }
 }

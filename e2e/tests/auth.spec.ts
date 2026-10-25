@@ -42,6 +42,6 @@ test('logout returns to login panel', async ({ page }) => {
   // Can sign back in
   await page.getByLabel(/^Email$/i).fill(ADMIN_EMAIL)
   await page.getByLabel(/Password|Пароль/i).fill(ADMIN_PASSWORD)
-  await page.getByRole('button', { name: /Sign in|Увійти/i }).click()
+  await page.locator('.login-panel button[type="submit"]').click()
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 })

@@ -13,9 +13,7 @@ export class LoginPage {
     this.panel = page.locator('.login-panel')
     this.email = page.getByLabel(/^Email$/i)
     this.password = page.getByLabel(/Password|Пароль/i)
-    this.submit = page.getByRole('button', {
-      name: /Sign in|Увійти|Create admin|Register/i,
-    })
+    this.submit = page.locator('.login-panel button[type="submit"]')
     this.error = page.locator('.login-panel .error')
   }
 
