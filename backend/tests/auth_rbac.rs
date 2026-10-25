@@ -213,14 +213,14 @@ async fn bootstrap_login_token_and_rbac() {
     assert_eq!(arr.len(), 1);
     assert_eq!(arr[0]["role"], "admin");
 
-    let tester_email = unique_email("tester");
-    let tester: Value = client
+    let engineer_email = unique_email("engineer");
+    let engineer: Value = client
         .post(format!("{base}/api/v1/users"))
         .header("Authorization", format!("Bearer {token}"))
         .json(&serde_json::json!({
-            "email": tester_email,
+            "email": engineer_email,
             "password": password,
-            "display_name": "Tester",
+            "display_name": "Test Automation Engineer",
             "is_system_admin": false
         }))
         .send()
@@ -231,14 +231,14 @@ async fn bootstrap_login_token_and_rbac() {
         .json()
         .await
         .expect("user json");
-    let tester_id = tester["id"].as_str().expect("tester id");
+    let engineer_id = engineer["id"].as_str().expect("engineer id");
 
     let membership: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/memberships"))
         .header("Authorization", format!("Bearer {token}"))
         .json(&serde_json::json!({
-            "user_id": tester_id,
-            "role": "tester"
+            "user_id": engineer_id,
+            "role": "test_automation_engineer"
         }))
         .send()
         .await
@@ -248,7 +248,7 @@ async fn bootstrap_login_token_and_rbac() {
         .json()
         .await
         .expect("member json");
-    assert_eq!(membership["role"], "tester");
+    assert_eq!(membership["role"], "test_automation_engineer");
 
     let integration: Value = client
         .post(format!("{base}/api/v1/admin/integrations"))
@@ -269,13 +269,13 @@ async fn bootstrap_login_token_and_rbac() {
         .expect("integration json");
     assert_eq!(integration["kind"], "openproject");
 
-    let tester_token = login(&client, &base, &tester_email, password).await;
+    let engineer_token = login(&client, &base, &engineer_email, password).await;
     let forbidden = client
         .get(format!("{base}/api/v1/users"))
-        .header("Authorization", format!("Bearer {tester_token}"))
+        .header("Authorization", format!("Bearer {engineer_token}"))
         .send()
         .await
-        .expect("tester users");
+        .expect("engineer users");
     assert_eq!(forbidden.status().as_u16(), 403);
 }
 

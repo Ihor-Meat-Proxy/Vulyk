@@ -1,4 +1,18 @@
 # Dev overlay: Postgres only. Run API and Vite on the host.
+# First-run settings live in .env (./scripts/install.sh dev). Then:
+#   set -a && source .env && set +a
+#   export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
+#   cargo run -p vulyk-api
+#   # or: cargo run -p vulyk-api -- setup --yes
+#   # or: ./scripts/install.sh setup
+#
+# Suggested .env defaults for DX (also written by install.sh):
+#   VULYK_ADMIN_EMAIL=admin@vulyk.local
+#   VULYK_ADMIN_PASSWORD=admin
+#   VULYK_SEED_DEMO=1
+#   VULYK_REGISTRATION_MODE=open
+#   VULYK_DEFAULT_LOCALE=en
+#   VULYK_DEFAULT_TIMEZONE=UTC
 services:
   db:
     image: postgres:16-alpine

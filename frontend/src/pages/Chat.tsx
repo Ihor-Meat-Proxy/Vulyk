@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { api } from '../api'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
@@ -8,6 +9,9 @@ type Props = {
 type Turn = { role: 'user' | 'assistant'; text: string; meta?: string }
 
 export function Chat({ projectId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canLlm = can('llm_assist')
+
   const [question, setQuestion] = useState('')
   const [turns, setTurns] = useState<Turn[]>([])
   const [busy, setBusy] = useState(false)
@@ -40,6 +44,14 @@ export function Chat({ projectId }: Props) {
 
   if (!projectId) {
     return <p className="muted">Select a project to chat with its tests.</p>
+  }
+
+  if (!canLlm) {
+    return (
+      <div className="panel">
+        <p className="muted">You do not have permission to use LLM assist.</p>
+      </div>
+    )
   }
 
   return (

@@ -6,6 +6,7 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     BulkCasesRequest, BulkCasesResponse, CaseResultsPage, CaseVersion, CaseVersionSummary,
@@ -92,13 +93,23 @@ impl ListCasesQuery {
         ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
         ("offset" = Option<i64>, Query, description = "Offset (default 0)")
     ),
-    responses((status = 200, description = "Paginated cases", body = Page<TestCase>))
+    responses((status = 200, description = "Paginated cases", body = Page<TestCase>)),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_cases(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListCasesQuery>,
 ) -> AppResult<Json<Page<TestCase>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let page = query.page();
     let limit = page.limit();
@@ -179,14 +190,30 @@ pub async fn list_cases(
         ("limit" = Option<i64>, Query),
         ("offset" = Option<i64>, Query)
     ),
-    responses((status = 200, description = "FTS search results", body = Page<TestCase>))
+    responses((status = 200, description = "FTS search results", body = Page<TestCase>)),
+    security(("bearer_auth" = []))
 )]
 pub async fn search_cases(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListCasesQuery>,
 ) -> AppResult<Json<Page<TestCase>>> {
-    list_cases(State(state), Path(project_id), Query(query)).await
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
+    list_cases(
+        State(state),
+        OptionalAuthUser(auth),
+        Path(project_id),
+        Query(query),
+    )
+    .await
 }
 
 #[utoipa::path(
@@ -195,13 +222,23 @@ pub async fn search_cases(
     tag = "cases",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateCase,
-    responses((status = 200, description = "Created case", body = TestCaseDetail))
+    responses((status = 200, description = "Created case", body = TestCaseDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateCase>,
 ) -> AppResult<Json<TestCaseDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.key.trim().is_empty() || body.title.trim().is_empty() {
         return Err(AppError::BadRequest("key and title are required".into()));
@@ -244,12 +281,22 @@ pub async fn create_case(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("case_id" = Uuid, Path, description = "Case id")
     ),
-    responses((status = 200, description = "Case detail", body = TestCaseDetail))
+    responses((status = 200, description = "Case detail", body = TestCaseDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestCaseDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let case = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
                   priority, status, version, created_at, updated_at
@@ -273,13 +320,23 @@ pub async fn get_case(
         ("case_id" = Uuid, Path, description = "Case id")
     ),
     request_body = UpdateCase,
-    responses((status = 200, description = "Updated case", body = TestCaseDetail))
+    responses((status = 200, description = "Updated case", body = TestCaseDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateCase>,
 ) -> AppResult<Json<TestCaseDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let mut tx = state.pool.begin().await?;
 
     let existing = sqlx::query_as::<_, TestCase>(
@@ -356,12 +413,22 @@ pub async fn update_case(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("case_id" = Uuid, Path, description = "Case id")
     ),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::DeleteCases,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM test_cases WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(case_id)
@@ -379,13 +446,28 @@ pub async fn delete_case(
     tag = "cases",
     params(("project_id" = Uuid, Path)),
     request_body = BulkCasesRequest,
-    responses((status = 200, description = "Bulk result", body = BulkCasesResponse))
+    responses((status = 200, description = "Bulk result", body = BulkCasesResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn bulk_cases(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<BulkCasesRequest>,
 ) -> AppResult<Json<BulkCasesResponse>> {
+    let permission = if body.action.as_str() == "delete" {
+        Permission::DeleteCases
+    } else {
+        Permission::CreateEditCases
+    };
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        permission,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.case_ids.is_empty() {
         return Err(AppError::BadRequest("case_ids required".into()));
@@ -486,12 +568,22 @@ pub async fn bulk_cases(
         ("project_id" = Uuid, Path),
         ("case_id" = Uuid, Path)
     ),
-    responses((status = 200, description = "Version history", body = [CaseVersionSummary]))
+    responses((status = 200, description = "Version history", body = [CaseVersionSummary])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_versions(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<CaseVersionSummary>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
     )
@@ -533,12 +625,22 @@ pub async fn list_versions(
         ("case_id" = Uuid, Path),
         ("version" = i32, Path)
     ),
-    responses((status = 200, description = "Version snapshot", body = CaseVersion))
+    responses((status = 200, description = "Version snapshot", body = CaseVersion)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_version(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id, version)): Path<(Uuid, Uuid, i32)>,
 ) -> AppResult<Json<CaseVersion>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
     )
@@ -572,13 +674,23 @@ pub async fn get_version(
         ("case_id" = Uuid, Path)
     ),
     request_body = Vec<SetCustomFieldValue>,
-    responses((status = 200, description = "Updated case", body = TestCaseDetail))
+    responses((status = 200, description = "Updated case", body = TestCaseDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn set_custom_fields(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<Vec<SetCustomFieldValue>>,
 ) -> AppResult<Json<TestCaseDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let case = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
                   priority, status, version, created_at, updated_at

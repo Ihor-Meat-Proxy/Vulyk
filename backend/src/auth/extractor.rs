@@ -12,6 +12,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::jwt::decode_jwt;
+use super::rbac::Permission;
 use super::tokens::hash_secret;
 use crate::error::{AppError, AppResult};
 use crate::models::User;
@@ -94,6 +95,10 @@ impl AuthUser {
 
     pub fn is_system_admin(&self) -> bool {
         self.user.is_system_admin
+    }
+
+    pub fn must_change_password(&self) -> bool {
+        self.user.must_change_password
     }
 }
 
@@ -335,6 +340,9 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
             display_name: "API token".into(),
             password_hash: None,
             is_system_admin: true,
+            must_change_password: false,
+            locale: None,
+            timezone: None,
             disabled_at: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
@@ -346,6 +354,7 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
 async fn load_active_user(pool: &PgPool, user_id: Uuid) -> AppResult<User> {
     let user = sqlx::query_as::<_, User>(
         r#"SELECT id, email, display_name, password_hash, is_system_admin,
+                  must_change_password, locale, timezone,
                   disabled_at, created_at, updated_at
            FROM users WHERE id = $1"#,
     )
@@ -361,6 +370,7 @@ async fn load_active_user(pool: &PgPool, user_id: Uuid) -> AppResult<User> {
 }
 
 /// Helper used by routes to enforce project role when auth is active.
+/// Prefer [`require_permission`] for the new matrix.
 pub async fn require_project_role(
     pool: &PgPool,
     auth: &Option<AuthUser>,
@@ -368,6 +378,37 @@ pub async fn require_project_role(
     project_id: Uuid,
     min_role: super::ProjectRole,
 ) -> AppResult<()> {
+    // Map legacy "at least role" to a representative permission for compatibility.
+    let permission = match min_role {
+        super::ProjectRole::Viewer => Permission::ViewProject,
+        super::ProjectRole::Developer => Permission::ExecuteRuns,
+        super::ProjectRole::TestAutomationEngineer => Permission::CreateEditCases,
+        super::ProjectRole::TestArchitect => Permission::ManagePlans,
+        super::ProjectRole::Admin => Permission::DeleteProject,
+    };
+    require_permission(pool, auth, auth_required, project_id, permission).await
+}
+
+/// Enforce a fine-grained project permission.
+pub async fn require_permission(
+    pool: &PgPool,
+    auth: &Option<AuthUser>,
+    auth_required: bool,
+    project_id: Uuid,
+    permission: Permission,
+) -> AppResult<()> {
+    if permission.is_system_only() {
+        return match auth {
+            Some(user) if user.is_system_admin() => Ok(()),
+            Some(_) => Err(AppError::Forbidden(format!(
+                "requires system admin ({})",
+                permission.as_str()
+            ))),
+            None if auth_required => Err(AppError::Unauthorized("authentication required".into())),
+            None => Ok(()),
+        };
+    }
+
     match auth {
         Some(user) if user.is_system_admin() => Ok(()),
         Some(user) => {
@@ -381,9 +422,10 @@ pub async fn require_project_role(
             .await?;
 
             match role {
-                Some(r) if r.at_least(min_role) => Ok(()),
+                Some(r) if r.allows(permission) => Ok(()),
                 Some(_) => Err(AppError::Forbidden(format!(
-                    "requires project role {min_role} or higher"
+                    "missing permission: {}",
+                    permission.as_str()
                 ))),
                 None => Err(AppError::Forbidden("not a member of this project".into())),
             }
@@ -391,6 +433,23 @@ pub async fn require_project_role(
         None if auth_required => Err(AppError::Unauthorized("authentication required".into())),
         None => Ok(()),
     }
+}
+
+/// Load the caller's project role (if any).
+pub async fn project_role_for(
+    pool: &PgPool,
+    user_id: Uuid,
+    project_id: Uuid,
+) -> AppResult<Option<super::ProjectRole>> {
+    let role = sqlx::query_scalar::<_, super::ProjectRole>(
+        r#"SELECT role FROM memberships
+           WHERE project_id = $1 AND user_id = $2"#,
+    )
+    .bind(project_id)
+    .bind(user_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(role)
 }
 
 pub fn session_cookie_name() -> &'static str {

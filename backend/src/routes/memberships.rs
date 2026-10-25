@@ -5,7 +5,9 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{require_project_role, OptionalAuthUser, ProjectRole};
+use crate::auth::{
+    require_permission, require_project_role, OptionalAuthUser, Permission, ProjectRole,
+};
 use crate::error::{AppError, AppResult};
 use crate::models::{Membership, MembershipView, UpdateMembership, UpsertMembership};
 use crate::routes::AppState;
@@ -163,13 +165,12 @@ async fn ensure_can_manage_members(
     auth: &Option<crate::auth::AuthUser>,
     project_id: Uuid,
 ) -> AppResult<()> {
-    // System admins or project admins / leads can manage memberships.
-    require_project_role(
+    require_permission(
         &state.pool,
         auth,
         state.auth.required,
         project_id,
-        ProjectRole::ProjectLead,
+        Permission::ManageMemberships,
     )
     .await
 }

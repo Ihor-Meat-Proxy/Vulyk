@@ -5,8 +5,10 @@
 #
 # Required secrets (set in .env.prod or the environment):
 #   POSTGRES_PASSWORD, VULYK_JWT_SECRET, VULYK_SECRETS_KEY
-# Optional:
-#   VULYK_BOOTSTRAP_HINT — printed by install script only
+# First-run (optional env seed or CLI):
+#   VULYK_ADMIN_EMAIL, VULYK_ADMIN_PASSWORD, VULYK_REGISTRATION_MODE (default disabled)
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm api vulyk-api setup --yes
+#   # or: ./scripts/install.sh setup
 
 services:
   db:
@@ -45,6 +47,17 @@ services:
       VULYK_LLM_MOCK: ${VULYK_LLM_MOCK:-0}
       VULYK_JWT_TTL_HOURS: ${VULYK_JWT_TTL_HOURS:-12}
       VULYK_SESSION_TTL_HOURS: ${VULYK_SESSION_TTL_HOURS:-168}
+      VULYK_ADMIN_EMAIL: ${VULYK_ADMIN_EMAIL:-}
+      VULYK_ADMIN_PASSWORD: ${VULYK_ADMIN_PASSWORD:-}
+      VULYK_ADMIN_DISPLAY_NAME: ${VULYK_ADMIN_DISPLAY_NAME:-Administrator}
+      VULYK_INSTANCE_NAME: ${VULYK_INSTANCE_NAME:-Vulyk}
+      VULYK_DEFAULT_LOCALE: ${VULYK_DEFAULT_LOCALE:-en}
+      VULYK_DEFAULT_TIMEZONE: ${VULYK_DEFAULT_TIMEZONE:-UTC}
+      VULYK_REGISTRATION_MODE: ${VULYK_REGISTRATION_MODE:-disabled}
+      VULYK_SEED_DEMO: ${VULYK_SEED_DEMO:-0}
+      VULYK_SEED_SAMPLE: ${VULYK_SEED_SAMPLE:-1}
+      VULYK_BASE_URL: ${VULYK_BASE_URL:-}
+      VULYK_SETUP_TOKEN: ${VULYK_SETUP_TOKEN:-}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

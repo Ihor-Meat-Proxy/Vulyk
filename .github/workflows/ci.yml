@@ -230,6 +230,16 @@ jobs:
       VULYK_JWT_SECRET: e2e-ci-jwt-secret
       VULYK_SECRETS_KEY: e2e-ci-secrets-key
       VULYK_LLM_MOCK: "1"
+      VULYK_ADMIN_EMAIL: admin@vulyk.local
+      VULYK_ADMIN_PASSWORD: admin12345
+      VULYK_SEED_DEMO: "1"
+      VULYK_SEED_SAMPLE: "1"
+      VULYK_DEMO_EMAIL: user@vulyk.local
+      VULYK_DEMO_PASSWORD: user12345
+      VULYK_REGISTRATION_MODE: open
+      VULYK_DEFAULT_LOCALE: en
+      VULYK_DEFAULT_TIMEZONE: UTC
+      VULYK_BASE_URL: http://127.0.0.1:5173
       E2E_BASE_URL: http://127.0.0.1:5173
     steps:
       - uses: actions/checkout@v4
@@ -244,6 +254,8 @@ jobs:
             e2e/package-lock.json
       - name: Build API
         run: cargo build -p vulyk-api --release
+      - name: Setup CLI help
+        run: cargo run -p vulyk-api -- setup --help
       - name: Build frontend
         working-directory: frontend
         run: |
@@ -253,7 +265,10 @@ jobs:
         working-directory: e2e
         run: |
           npm ci
-          npx playwright install --with-deps chromium webkit
+          npx playwright install --with-deps chromium
+      - name: Typecheck e2e
+        working-directory: e2e
+        run: npm run typecheck
       - name: Start API
         run: |
           ./target/release/vulyk-api > /tmp/vulyk-api-e2e.log 2>&1 &

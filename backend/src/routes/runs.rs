@@ -11,7 +11,7 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::auth::OptionalAuthUser;
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     normalize_result_status, BulkIngestResults, CreateResult, CreateRun, Page, PageQuery,
@@ -91,13 +91,23 @@ pub struct ListRunsQuery {
         ("limit" = Option<i64>, Query),
         ("offset" = Option<i64>, Query)
     ),
-    responses((status = 200, description = "Runs", body = Page<TestRun>))
+    responses((status = 200, description = "Runs", body = Page<TestRun>)),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_runs(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListRunsQuery>,
 ) -> AppResult<Json<Page<TestRun>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let page = PageQuery {
         limit: query.limit,
@@ -138,13 +148,23 @@ pub async fn list_runs(
     tag = "runs",
     params(("project_id" = Uuid, Path)),
     request_body = CreateRun,
-    responses((status = 200, description = "Created run", body = TestRunDetail))
+    responses((status = 200, description = "Created run", body = TestRunDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_run(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateRun>,
 ) -> AppResult<Json<TestRunDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
@@ -253,12 +273,22 @@ pub async fn create_run(
     path = "/api/v1/projects/{project_id}/runs/{run_id}",
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Run detail", body = TestRunDetail))
+    responses((status = 200, description = "Run detail", body = TestRunDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_run(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestRunDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let run = load_run(&state.pool, project_id, run_id).await?;
     let progress = run_progress(&state.pool, run.id).await?;
     let items = load_run_items(&state.pool, run.id).await?;
@@ -275,13 +305,23 @@ pub async fn get_run(
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
     request_body = UpdateRun,
-    responses((status = 200, description = "Updated", body = TestRunDetail))
+    responses((status = 200, description = "Updated", body = TestRunDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_run(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateRun>,
 ) -> AppResult<Json<TestRunDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     let existing = load_run(&state.pool, project_id, run_id).await?;
     let status = body.status.unwrap_or(existing.status);
     let finished_at = body.finished_at.or_else(|| {
@@ -335,12 +375,22 @@ pub async fn update_run(
     path = "/api/v1/projects/{project_id}/runs/{run_id}/trigger",
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Triggered", body = TestRun))
+    responses((status = 200, description = "Triggered", body = TestRun)),
+    security(("bearer_auth" = []))
 )]
 pub async fn trigger_run(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestRun>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::TriggerCi,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let row = sqlx::query_as::<_, TestRun>(&format!(
         r#"UPDATE test_runs
@@ -362,12 +412,22 @@ pub async fn trigger_run(
     path = "/api/v1/projects/{project_id}/runs/{run_id}",
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_run(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     let res = sqlx::query("DELETE FROM test_runs WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(run_id)
@@ -384,12 +444,22 @@ pub async fn delete_run(
     path = "/api/v1/projects/{project_id}/runs/{run_id}/items",
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Run items", body = [RunItemView]))
+    responses((status = 200, description = "Run items", body = [RunItemView])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_run_items(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<RunItemView>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     Ok(Json(load_run_items(&state.pool, run_id).await?))
 }
@@ -416,12 +486,22 @@ async fn load_item(pool: &sqlx::PgPool, run_id: Uuid, item_id: Uuid) -> AppResul
         ("run_id" = Uuid, Path),
         ("item_id" = Uuid, Path)
     ),
-    responses((status = 200, description = "Execution view", body = RunItemExecution))
+    responses((status = 200, description = "Execution view", body = RunItemExecution)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_run_item(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id, item_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<Json<RunItemExecution>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let item = load_item(&state.pool, run_id, item_id).await?;
     let case_row = sqlx::query_as::<_, (String, String, String)>(
@@ -506,13 +586,23 @@ pub async fn list_run_results_history_endpoint(
         ("item_id" = Uuid, Path)
     ),
     request_body = UpdateRunItem,
-    responses((status = 200, description = "Updated item", body = RunItemView))
+    responses((status = 200, description = "Updated item", body = RunItemView)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_run_item(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id, item_id)): Path<(Uuid, Uuid, Uuid)>,
     Json(body): Json<UpdateRunItem>,
 ) -> AppResult<Json<RunItemView>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let existing = load_item(&state.pool, run_id, item_id).await?;
     let status = normalize_result_status(&body.status.unwrap_or(existing.status));
@@ -580,12 +670,22 @@ pub async fn update_run_item(
     path = "/api/v1/projects/{project_id}/runs/{run_id}/results",
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Results", body = [TestResult]))
+    responses((status = 200, description = "Results", body = [TestResult])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_results(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<TestResult>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let results = sqlx::query_as::<_, TestResult>(&format!(
         r#"SELECT {RESULT_COLS}
@@ -603,13 +703,23 @@ pub async fn list_results(
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
     request_body = BulkIngestResults,
-    responses((status = 200, description = "Ingested results", body = [TestResult]))
+    responses((status = 200, description = "Ingested results", body = [TestResult])),
+    security(("bearer_auth" = []))
 )]
 pub async fn ingest_results(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<BulkIngestResults>,
 ) -> AppResult<Json<Vec<TestResult>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UploadResults,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let mut out = Vec::with_capacity(body.results.len());
     for item in body.results {
@@ -672,7 +782,8 @@ pub async fn ingest_results(
     tag = "runs",
     params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
     request_body = CreateResult,
-    responses((status = 200, description = "Manual execution result", body = TestResultDetail))
+    responses((status = 200, description = "Manual execution result", body = TestResultDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_result(
     State(state): State<AppState>,
@@ -680,6 +791,14 @@ pub async fn create_result(
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<CreateResult>,
 ) -> AppResult<Json<TestResultDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
 
     let status = normalize_result_status(&body.status);
@@ -814,10 +933,12 @@ pub async fn create_result(
     path = "/api/v1/runs/{id}",
     tag = "runs",
     params(("id" = Uuid, Path, description = "Run id")),
-    responses((status = 200, body = TestRun))
+    responses((status = 200, body = TestRun)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_run_by_id(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<TestRun>> {
     let row = sqlx::query_as::<_, TestRun>(&format!(
@@ -827,6 +948,14 @@ pub async fn get_run_by_id(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("run".into()))?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        row.project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     Ok(Json(row))
 }
 
@@ -836,10 +965,12 @@ pub async fn get_run_by_id(
     tag = "runs",
     request_body = UpdateRun,
     params(("id" = Uuid, Path, description = "Run id")),
-    responses((status = 200, body = TestRun))
+    responses((status = 200, body = TestRun)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_run_by_id(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateRun>,
 ) -> AppResult<Json<TestRun>> {
@@ -850,6 +981,14 @@ pub async fn update_run_by_id(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("run".into()))?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        existing.project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
 
     let name = body.name.unwrap_or(existing.name);
     let description = body.description.unwrap_or(existing.description);
@@ -884,12 +1023,28 @@ pub async fn update_run_by_id(
     path = "/api/v1/runs/{id}",
     tag = "runs",
     params(("id" = Uuid, Path, description = "Run id")),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_run_by_id(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<axum::http::StatusCode> {
+    let project_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT project_id FROM test_runs WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&state.pool)
+            .await?;
+    let project_id = project_id.ok_or_else(|| AppError::NotFound("run".into()))?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExecuteRuns,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM test_runs WHERE id = $1")
         .bind(id)
         .execute(&state.pool)
@@ -905,19 +1060,28 @@ pub async fn delete_run_by_id(
     path = "/api/v1/runs/{id}/results",
     tag = "runs",
     params(("id" = Uuid, Path, description = "Run id")),
-    responses((status = 200, body = [TestResult]))
+    responses((status = 200, body = [TestResult])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_results_by_id(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Vec<TestResult>>> {
-    let exists: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM test_runs WHERE id = $1")
-        .bind(id)
-        .fetch_optional(&state.pool)
-        .await?;
-    if exists.is_none() {
-        return Err(AppError::NotFound("run".into()));
-    }
+    let project_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT project_id FROM test_runs WHERE id = $1")
+            .bind(id)
+            .fetch_optional(&state.pool)
+            .await?;
+    let project_id = project_id.ok_or_else(|| AppError::NotFound("run".into()))?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let rows = sqlx::query_as::<_, TestResult>(&format!(
         r#"SELECT {RESULT_COLS}
            FROM test_results WHERE run_id = $1 ORDER BY executed_at, created_at"#

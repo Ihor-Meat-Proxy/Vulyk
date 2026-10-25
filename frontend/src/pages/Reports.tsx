@@ -7,6 +7,7 @@ import {
   type RequirementCoverageReport,
   type RunSummaryReport,
 } from '../api'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
@@ -36,6 +37,8 @@ function CountsBar({
 }
 
 export function Reports({ projectId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canExport = can('export_reports')
   const [dash, setDash] = useState<ProjectDashboard | null>(null)
   const [trends, setTrends] = useState<PassFailTrends | null>(null)
   const [coverage, setCoverage] = useState<RequirementCoverageReport | null>(null)
@@ -106,12 +109,16 @@ export function Reports({ projectId }: Props) {
           <button type="button" className="btn secondary" onClick={() => void refresh()} disabled={busy}>
             Refresh
           </button>
-          <button type="button" className="btn secondary" onClick={() => void onExport('csv')}>
-            Export CSV
-          </button>
-          <button type="button" className="btn" onClick={() => void onExport('pdf')}>
-            Export PDF
-          </button>
+          {canExport && (
+            <button type="button" className="btn secondary" onClick={() => void onExport('csv')}>
+              Export CSV
+            </button>
+          )}
+          {canExport && (
+            <button type="button" className="btn" onClick={() => void onExport('pdf')}>
+              Export PDF
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,10 +1,23 @@
 Vulyk {{ .Chart.AppVersion }} installed as release {{ .Release.Name }}.
 
 1. Auth is {{ if .Values.auth.required }}REQUIRED{{ else }}optional{{ end }} by default for this chart.
-2. Create the first admin via the UI login screen (bootstrap) or:
-     POST /api/v1/auth/bootstrap
-3. Secrets are expected in Secret/{{ include "vulyk.secretName" . }}
-   (DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY[, POSTGRES_PASSWORD]).
+2. Registration mode: {{ .Values.setup.registrationMode }} (seedDemo={{ .Values.setup.seedDemo }}).
+3. First-run setup:
+   {{- if .Values.setup.enabled }}
+   - A post-install Job runs `vulyk-api setup --yes` using setup.adminEmail
+     and the admin password from Secret/{{ include "vulyk.secretName" . }}
+     (or setup.adminPasswordSecretRef).
+   {{- else }}
+   - setup.enabled=false — complete setup manually (see below).
+   {{- end }}
+   Interactive option (if the Job did not run or setup is incomplete):
+     kubectl exec -it deploy/{{ include "vulyk.fullname" . }}-api -- vulyk-api setup
+   Or with flags:
+     kubectl exec -it deploy/{{ include "vulyk.fullname" . }}-api -- \
+       vulyk-api setup --yes --admin-email={{ .Values.setup.adminEmail }}
+4. Secrets are expected in Secret/{{ include "vulyk.secretName" . }}
+   (DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY[, POSTGRES_PASSWORD, VULYK_ADMIN_PASSWORD]).
+5. Docs: docs/guides/first-run-setup.md · docs/auth-and-rbac.md · docs/guides/sso.md
 
 {{- if .Values.ingress.enabled }}
 Ingress host: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}

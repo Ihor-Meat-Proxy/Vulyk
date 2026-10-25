@@ -6,6 +6,7 @@ import {
   type ImportReport,
   type ImporterInfo,
 } from '../api'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
@@ -23,6 +24,8 @@ const EMPTY_MAPPING: FieldMapping = {
 }
 
 export function ImportPage({ projectId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canImport = can('import_cases')
   const [importers, setImporters] = useState<ImporterInfo[]>([])
   const [importerId, setImporterId] = useState('csv')
   const [format, setFormat] = useState('csv')
@@ -103,6 +106,14 @@ export function ImportPage({ projectId }: Props) {
 
   const setMap = (key: keyof FieldMapping, value: string) => {
     setMapping((m) => ({ ...m, [key]: value }))
+  }
+
+  if (!canImport) {
+    return (
+      <div className="panel">
+        <p className="muted">You do not have permission to import cases.</p>
+      </div>
+    )
   }
 
   return (

@@ -7,6 +7,7 @@ use chrono::Utc;
 use serde_json::json;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::integrations::{github, gitlab};
 use crate::models::{
@@ -42,12 +43,22 @@ pub fn router() -> Router<AppState> {
     path = "/api/v1/projects/{project_id}/ci-configs",
     tag = "ci",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "CI configs", body = [CiConfig]))
+    responses((status = 200, description = "CI configs", body = [CiConfig])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_ci_configs(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<CiConfig>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let rows = sqlx::query_as::<_, CiConfig>(
         r#"SELECT id, project_id, provider, name, config, webhook_secret, enabled,
@@ -66,13 +77,23 @@ pub async fn list_ci_configs(
     tag = "ci",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateCiConfig,
-    responses((status = 200, description = "Created", body = CiConfig))
+    responses((status = 200, description = "Created", body = CiConfig)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_ci_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateCiConfig>,
 ) -> AppResult<Json<CiConfig>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageCiConfig,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let provider = body.provider.trim().to_lowercase();
     if provider != "github" && provider != "gitlab" {
@@ -107,13 +128,24 @@ pub async fn create_ci_config(
     path = "/api/v1/ci-configs/{id}",
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
-    responses((status = 200, description = "CI config", body = CiConfig))
+    responses((status = 200, description = "CI config", body = CiConfig)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_ci_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<CiConfig>> {
-    Ok(Json(load_config(&state, id).await?))
+    let cfg = load_config(&state, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        cfg.project_id,
+        Permission::ViewProject,
+    )
+    .await?;
+    Ok(Json(cfg))
 }
 
 #[utoipa::path(
@@ -122,14 +154,24 @@ pub async fn get_ci_config(
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
     request_body = UpdateCiConfig,
-    responses((status = 200, description = "Updated", body = CiConfig))
+    responses((status = 200, description = "Updated", body = CiConfig)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_ci_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateCiConfig>,
 ) -> AppResult<Json<CiConfig>> {
     let existing = load_config(&state, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        existing.project_id,
+        Permission::ManageCiConfig,
+    )
+    .await?;
     let name = body.name.unwrap_or(existing.name);
     let config = body.config.unwrap_or(existing.config);
     validate_config(&existing.provider, &config)?;
@@ -158,12 +200,23 @@ pub async fn update_ci_config(
     path = "/api/v1/ci-configs/{id}",
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_ci_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<axum::http::StatusCode> {
+    let existing = load_config(&state, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        existing.project_id,
+        Permission::ManageCiConfig,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM ci_configs WHERE id = $1")
         .bind(id)
         .execute(&state.pool)
@@ -180,14 +233,24 @@ pub async fn delete_ci_config(
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
     request_body = DispatchCiRequest,
-    responses((status = 200, description = "Dispatch record", body = CiDispatch))
+    responses((status = 200, description = "Dispatch record", body = CiDispatch)),
+    security(("bearer_auth" = []))
 )]
 pub async fn dispatch_ci(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<DispatchCiRequest>,
 ) -> AppResult<Json<CiDispatch>> {
     let cfg = load_config(&state, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        cfg.project_id,
+        Permission::TriggerCi,
+    )
+    .await?;
     if !cfg.enabled {
         return Err(AppError::BadRequest("CI config is disabled".into()));
     }
@@ -313,12 +376,22 @@ pub async fn dispatch_ci(
     path = "/api/v1/projects/{project_id}/ci-dispatches",
     tag = "ci",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "Dispatches", body = [CiDispatch]))
+    responses((status = 200, description = "Dispatches", body = [CiDispatch])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_dispatches(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<CiDispatch>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let rows = sqlx::query_as::<_, CiDispatch>(
         r#"SELECT id, project_id, ci_config_id, run_id, status, external_id, external_url,
@@ -339,10 +412,12 @@ pub async fn list_dispatches(
     path = "/api/v1/ci-dispatches/{id}",
     tag = "ci",
     params(("id" = Uuid, Path, description = "Dispatch id")),
-    responses((status = 200, description = "Dispatch", body = CiDispatch))
+    responses((status = 200, description = "Dispatch", body = CiDispatch)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_dispatch(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<CiDispatch>> {
     let row = sqlx::query_as::<_, CiDispatch>(
@@ -354,6 +429,14 @@ pub async fn get_dispatch(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("ci_dispatch".into()))?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        row.project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     Ok(Json(row))
 }
 

@@ -9,6 +9,7 @@ use base64::{engine::general_purpose::STANDARD, Engine as _};
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{AttachmentMeta, CreateAttachment};
 use crate::routes::AppState;
@@ -41,13 +42,23 @@ pub struct ListAttachmentsQuery {
         ("entity_type" = Option<String>, Query),
         ("entity_id" = Option<Uuid>, Query)
     ),
-    responses((status = 200, description = "Attachments", body = [AttachmentMeta]))
+    responses((status = 200, description = "Attachments", body = [AttachmentMeta])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_attachments(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListAttachmentsQuery>,
 ) -> AppResult<Json<Vec<AttachmentMeta>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let rows = sqlx::query_as::<_, AttachmentMeta>(
         r#"SELECT id, project_id, entity_type, entity_id, filename, content_type,
@@ -72,13 +83,23 @@ pub async fn list_attachments(
     tag = "attachments",
     params(("project_id" = Uuid, Path)),
     request_body = CreateAttachment,
-    responses((status = 200, description = "Created", body = AttachmentMeta))
+    responses((status = 200, description = "Created", body = AttachmentMeta)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_attachment(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateAttachment>,
 ) -> AppResult<Json<AttachmentMeta>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageAttachments,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let allowed = ["case", "result", "run"];
     if !allowed.contains(&body.entity_type.as_str()) {
@@ -126,12 +147,22 @@ pub async fn create_attachment(
     path = "/api/v1/projects/{project_id}/attachments/{attachment_id}",
     tag = "attachments",
     params(("project_id" = Uuid, Path), ("attachment_id" = Uuid, Path)),
-    responses((status = 200, description = "Raw file bytes"))
+    responses((status = 200, description = "Raw file bytes")),
+    security(("bearer_auth" = []))
 )]
 pub async fn download_attachment(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, attachment_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Response> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let row = sqlx::query_as::<_, (String, String, Option<Vec<u8>>)>(
         r#"SELECT filename, content_type, content
            FROM attachments WHERE project_id = $1 AND id = $2"#,
@@ -161,12 +192,22 @@ pub async fn download_attachment(
     path = "/api/v1/projects/{project_id}/attachments/{attachment_id}",
     tag = "attachments",
     params(("project_id" = Uuid, Path), ("attachment_id" = Uuid, Path)),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_attachment(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, attachment_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageAttachments,
+    )
+    .await?;
     let res = sqlx::query("DELETE FROM attachments WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(attachment_id)

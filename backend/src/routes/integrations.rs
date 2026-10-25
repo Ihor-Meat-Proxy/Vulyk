@@ -7,6 +7,7 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::integrations::{self, DefectDraft, IntegrationConfig, RequirementLink};
 use crate::models::{
@@ -52,12 +53,22 @@ pub struct SearchQuery {
     path = "/api/v1/projects/{project_id}/integrations",
     tag = "integrations",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = [IntegrationPublic]))
+    responses((status = 200, body = [IntegrationPublic])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_integrations(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<IntegrationPublic>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let rows = sqlx::query_as::<_, Integration>(
         r#"SELECT id, project_id, kind, name, base_url, config, secrets, enabled, created_at, updated_at
@@ -77,13 +88,23 @@ pub async fn list_integrations(
     tag = "integrations",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateIntegration,
-    responses((status = 200, body = IntegrationPublic))
+    responses((status = 200, body = IntegrationPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_integration(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateIntegration>,
 ) -> AppResult<Json<IntegrationPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UpdateProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     if !integrations::known_kinds().contains(&body.kind.as_str()) {
         return Err(AppError::BadRequest(format!(
@@ -119,12 +140,22 @@ pub async fn create_integration(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("id" = Uuid, Path, description = "Integration id")
     ),
-    responses((status = 200, body = IntegrationPublic))
+    responses((status = 200, body = IntegrationPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_integration(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<IntegrationPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     Ok(Json(load_integration(&state, project_id, id).await?.into()))
 }
 
@@ -137,13 +168,23 @@ pub async fn get_integration(
         ("id" = Uuid, Path, description = "Integration id")
     ),
     request_body = UpdateIntegration,
-    responses((status = 200, body = IntegrationPublic))
+    responses((status = 200, body = IntegrationPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_integration(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateIntegration>,
 ) -> AppResult<Json<IntegrationPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UpdateProject,
+    )
+    .await?;
     let existing = load_integration(&state, project_id, id).await?;
     let row = sqlx::query_as::<_, Integration>(
         r#"UPDATE integrations SET
@@ -171,12 +212,22 @@ pub async fn update_integration(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("id" = Uuid, Path, description = "Integration id")
     ),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_integration(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UpdateProject,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM integrations WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(id)
@@ -197,13 +248,23 @@ pub async fn delete_integration(
         ("id" = Uuid, Path, description = "Integration id"),
         ("q" = Option<String>, Query, description = "Search query")
     ),
-    responses((status = 200, description = "Remote requirements"))
+    responses((status = 200, description = "Remote requirements")),
+    security(("bearer_auth" = []))
 )]
 pub async fn search_remote_requirements(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
     Query(query): Query<SearchQuery>,
 ) -> AppResult<Json<Vec<crate::integrations::RemoteRequirement>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let integration = load_integration(&state, project_id, id).await?;
     let adapter = integrations::adapter_for(&integration.kind)?;
     let cfg = config_from(&integration);
@@ -219,13 +280,23 @@ pub async fn search_remote_requirements(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("id" = Uuid, Path, description = "Integration id")
     ),
-    responses((status = 200, body = [Requirement]))
+    responses((status = 200, body = [Requirement])),
+    security(("bearer_auth" = []))
 )]
 pub async fn import_remote_requirements(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
     Query(query): Query<SearchQuery>,
 ) -> AppResult<Json<Vec<Requirement>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UpdateProject,
+    )
+    .await?;
     let integration = load_integration(&state, project_id, id).await?;
     let adapter = integrations::adapter_for(&integration.kind)?;
     let cfg = config_from(&integration);
@@ -264,12 +335,22 @@ pub async fn import_remote_requirements(
     path = "/api/v1/projects/{project_id}/defects",
     tag = "integrations",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = [Defect]))
+    responses((status = 200, body = [Defect])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_defects(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<Defect>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let rows = sqlx::query_as::<_, Defect>(
         r#"SELECT id, project_id, integration_id, result_id, case_id, external_key, external_url,
@@ -288,13 +369,23 @@ pub async fn list_defects(
     tag = "integrations",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateDefectRequest,
-    responses((status = 200, body = Defect))
+    responses((status = 200, body = Defect)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_defect(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateDefectRequest>,
 ) -> AppResult<Json<Defect>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UpdateProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("title is required".into()));

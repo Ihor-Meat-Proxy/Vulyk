@@ -1,20 +1,32 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   api,
   type ApiTokenPublic,
+  type InstanceSettings,
   type IntegrationSetting,
   type LlmConfig,
   type MembershipView,
   type Project,
   type ProjectRole,
   type ProviderKindInfo,
+  type RegistrationMode,
+  type SsoProviderAdmin,
   type UserPublic,
 } from '../api'
 import { useAuth } from '../auth'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { useI18n } from '../i18n'
+import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 
-type Tab = 'users' | 'roles' | 'projects' | 'integrations' | 'llm' | 'tokens'
-
-const ROLES: ProjectRole[] = ['admin', 'project_lead', 'tester', 'viewer']
+type Tab =
+  | 'users'
+  | 'roles'
+  | 'projects'
+  | 'integrations'
+  | 'llm'
+  | 'tokens'
+  | 'settings'
+  | 'sso'
 
 type Props = {
   projects: Project[]
@@ -24,7 +36,9 @@ type Props = {
 
 export function Admin({ projects, project, onProjectsChanged }: Props) {
   const { user } = useAuth()
-  const [tab, setTab] = useState<Tab>('users')
+  const { t } = useI18n()
+  const { can } = useProjectPermissions(project?.id ?? null)
+  const [tab, setTab] = useState<Tab>('roles')
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<UserPublic[]>([])
   const [memberships, setMemberships] = useState<MembershipView[]>([])
@@ -33,30 +47,64 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
   const [configs, setConfigs] = useState<LlmConfig[]>([])
   const [tokens, setTokens] = useState<ApiTokenPublic[]>([])
   const [secretOnce, setSecretOnce] = useState<string | null>(null)
+  const [settings, setSettings] = useState<InstanceSettings | null>(null)
+  const [ssoProviders, setSsoProviders] = useState<SsoProviderAdmin[]>([])
 
-  const isAdmin = Boolean(user?.is_system_admin)
+  const isSystemAdmin = Boolean(user?.is_system_admin)
+  const canTokens = can('manage_api_tokens') || isSystemAdmin
+  const canLlm = can('manage_llm_config') || isSystemAdmin
+  const canRoles = can('manage_memberships') || isSystemAdmin
   const projectId = project?.id ?? null
+
+  const tabs = useMemo(() => {
+    const list: { id: Tab; label: string }[] = []
+    if (isSystemAdmin) {
+      list.push({ id: 'users', label: t('admin.users') })
+      list.push({ id: 'settings', label: t('admin.settings') })
+      list.push({ id: 'sso', label: t('admin.sso') })
+      list.push({ id: 'integrations', label: t('admin.integrations') })
+    }
+    if (canRoles || isSystemAdmin) {
+      list.push({ id: 'roles', label: t('admin.roles') })
+    }
+    list.push({ id: 'projects', label: t('admin.projects') })
+    if (canLlm) list.push({ id: 'llm', label: t('admin.llm') })
+    if (canTokens) list.push({ id: 'tokens', label: t('admin.tokens') })
+    return list
+  }, [isSystemAdmin, canRoles, canLlm, canTokens, t])
+
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.some((x) => x.id === tab)) {
+      setTab(tabs[0].id)
+    }
+  }, [tabs, tab])
 
   const load = useCallback(async () => {
     setError(null)
     try {
-      if (isAdmin) {
+      if (isSystemAdmin) {
         setUsers(await api.listUsers())
         setIntegrations(await api.listAdminIntegrations())
+        setSettings(await api.getAdminSettings())
+        setSsoProviders(await api.listSsoProvidersAdmin())
       }
       if (projectId) {
         setMemberships(await api.listMemberships(projectId))
-        setProviders(await api.listLlmProviders())
-        setConfigs(await api.listLlmConfigs(projectId))
+        if (canLlm) {
+          setProviders(await api.listLlmProviders())
+          setConfigs(await api.listLlmConfigs(projectId))
+        }
       } else {
         setMemberships([])
         setConfigs([])
       }
-      setTokens(await api.listTokens())
+      if (canTokens) {
+        setTokens(await api.listTokens())
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
-  }, [isAdmin, projectId])
+  }, [isSystemAdmin, projectId, canLlm, canTokens])
 
   useEffect(() => {
     void load()
@@ -65,22 +113,10 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
   return (
     <div className="admin">
       <div className="panel">
-        <h2>Admin</h2>
-        <p className="muted">
-          Users, project roles, integrations, LLM providers, and API tokens for
-          CI/MCP.
-        </p>
+        <h2>{t('admin.title')}</h2>
+        <p className="muted">{t('admin.subtitle')}</p>
         <div className="admin-tabs" role="tablist">
-          {(
-            [
-              ['users', 'Users'],
-              ['roles', 'Roles'],
-              ['projects', 'Projects'],
-              ['integrations', 'Integrations'],
-              ['llm', 'LLM providers'],
-              ['tokens', 'API tokens'],
-            ] as const
-          ).map(([id, label]) => (
+          {tabs.map(({ id, label }) => (
             <button
               key={id}
               type="button"
@@ -97,14 +133,20 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       </div>
 
       {tab === 'users' && (
-        <UsersPanel users={users} isAdmin={isAdmin} onCreated={load} onError={setError} />
+        <UsersPanel
+          users={users}
+          isAdmin={isSystemAdmin}
+          onCreated={load}
+          onError={setError}
+        />
       )}
       {tab === 'roles' && (
         <RolesPanel
           project={project}
           users={users}
           memberships={memberships}
-          isAdmin={isAdmin}
+          isAdmin={isSystemAdmin}
+          canManage={canRoles}
           onChanged={load}
           onError={setError}
         />
@@ -119,12 +161,12 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       {tab === 'integrations' && (
         <IntegrationsPanel
           items={integrations}
-          isAdmin={isAdmin}
+          isAdmin={isSystemAdmin}
           onChanged={load}
           onError={setError}
         />
       )}
-      {tab === 'llm' && (
+      {tab === 'llm' && canLlm && (
         <LlmPanel
           projectId={projectId}
           providers={providers}
@@ -133,11 +175,25 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
           onError={setError}
         />
       )}
-      {tab === 'tokens' && (
+      {tab === 'tokens' && canTokens && (
         <TokensPanel
           tokens={tokens}
           secretOnce={secretOnce}
           onSecret={setSecretOnce}
+          onChanged={load}
+          onError={setError}
+        />
+      )}
+      {tab === 'settings' && isSystemAdmin && (
+        <SettingsPanel
+          settings={settings}
+          onChanged={load}
+          onError={setError}
+        />
+      )}
+      {tab === 'sso' && isSystemAdmin && (
+        <SsoPanel
+          providers={ssoProviders}
           onChanged={load}
           onError={setError}
         />
@@ -165,7 +221,9 @@ function UsersPanel({
   if (!isAdmin) {
     return (
       <div className="panel">
-        <p className="muted">System administrator access is required to manage users.</p>
+        <p className="muted">
+          System administrator access is required to manage users.
+        </p>
       </div>
     )
   }
@@ -212,15 +270,24 @@ function UsersPanel({
           </tbody>
         </table>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>Add user</h3>
         <label className="field">
           <span>Email</span>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </label>
         <label className="field">
           <span>Display name</span>
-          <input value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            required
+          />
         </label>
         <label className="field">
           <span>Password</span>
@@ -253,6 +320,7 @@ function RolesPanel({
   users,
   memberships,
   isAdmin,
+  canManage,
   onChanged,
   onError,
 }: {
@@ -260,11 +328,12 @@ function RolesPanel({
   users: UserPublic[]
   memberships: MembershipView[]
   isAdmin: boolean
+  canManage: boolean
   onChanged: () => void
   onError: (msg: string) => void
 }) {
   const [userId, setUserId] = useState('')
-  const [role, setRole] = useState<ProjectRole>('tester')
+  const [role, setRole] = useState<ProjectRole>('viewer')
 
   if (!project) {
     return (
@@ -276,7 +345,7 @@ function RolesPanel({
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!userId) return
+    if (!userId || !canManage) return
     try {
       await api.upsertMembership(project.id, { user_id: userId, role })
       onChanged()
@@ -289,7 +358,10 @@ function RolesPanel({
     <div className="panel admin-grid">
       <div>
         <h3>Roles — {project.key}</h3>
-        <p className="muted">Per-project: admin, project lead, tester, viewer.</p>
+        <p className="muted">
+          Per-project: Admin, Test Architect, Test Automation Engineer,
+          Developer, Viewer.
+        </p>
         <table className="table">
           <thead>
             <tr>
@@ -304,50 +376,63 @@ function RolesPanel({
                   {m.display_name} <span className="muted">({m.email})</span>
                 </td>
                 <td>
-                  <span className="badge">{m.role}</span>
+                  <span className="badge">{roleDisplayName(m.role)}</span>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
-        <h3>Assign role</h3>
-        {!isAdmin && users.length === 0 && (
-          <p className="muted">User directory requires system admin.</p>
-        )}
-        {users.length > 0 ? (
+      {canManage && (
+        <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
+          <h3>Assign role</h3>
+          {!isAdmin && users.length === 0 && (
+            <p className="muted">User directory requires system admin.</p>
+          )}
+          {users.length > 0 ? (
+            <label className="field">
+              <span>User</span>
+              <select
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                required
+              >
+                <option value="">Select…</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label className="field">
+              <span>User id</span>
+              <input
+                value={userId}
+                onChange={(e) => setUserId(e.target.value)}
+                required
+              />
+            </label>
+          )}
           <label className="field">
-            <span>User</span>
-            <select value={userId} onChange={(e) => setUserId(e.target.value)} required>
-              <option value="">Select…</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.email}
+            <span>Role</span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as ProjectRole)}
+            >
+              {PROJECT_ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {roleDisplayName(r)}
                 </option>
               ))}
             </select>
           </label>
-        ) : (
-          <label className="field">
-            <span>User id</span>
-            <input value={userId} onChange={(e) => setUserId(e.target.value)} required />
-          </label>
-        )}
-        <label className="field">
-          <span>Role</span>
-          <select value={role} onChange={(e) => setRole(e.target.value as ProjectRole)}>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="btn" type="submit">
-          Save membership
-        </button>
-      </form>
+          <button className="btn" type="submit">
+            Save membership
+          </button>
+        </form>
+      )}
     </div>
   )
 }
@@ -401,7 +486,7 @@ function ProjectsPanel({
           </tbody>
         </table>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>New project</h3>
         <label className="field">
           <span>Key</span>
@@ -414,11 +499,18 @@ function ProjectsPanel({
         </label>
         <label className="field">
           <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </label>
         <label className="field">
           <span>Description</span>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </label>
         <button className="btn" type="submit">
           Create project
@@ -446,7 +538,7 @@ function IntegrationsPanel({
     return (
       <div className="panel">
         <p className="muted">
-          Integration settings are managed by system administrators. Adapters land in W6.
+          Integration settings are managed by system administrators.
         </p>
       </div>
     )
@@ -455,7 +547,12 @@ function IntegrationsPanel({
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
-      await api.createAdminIntegration({ kind, name, config: {}, enabled: false })
+      await api.createAdminIntegration({
+        kind,
+        name,
+        config: {},
+        enabled: false,
+      })
       setName('')
       onChanged()
     } catch (err) {
@@ -493,7 +590,7 @@ function IntegrationsPanel({
           </tbody>
         </table>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>Add placeholder</h3>
         <label className="field">
           <span>Kind</span>
@@ -505,7 +602,11 @@ function IntegrationsPanel({
         </label>
         <label className="field">
           <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </label>
         <button className="btn" type="submit">
           Save
@@ -572,7 +673,6 @@ function LlmPanel({
     <div className="panel admin-grid">
       <div>
         <h3>LLM providers</h3>
-        <p className="muted">Keys encrypted at rest (W9).</p>
         <ul className="plain-list">
           {configs.map((c) => (
             <li key={c.id}>
@@ -583,22 +683,29 @@ function LlmPanel({
               <button
                 type="button"
                 className="linkish"
-                onClick={() => void api.deleteLlmConfig(projectId, c.id).then(onChanged)}
+                onClick={() =>
+                  void api.deleteLlmConfig(projectId, c.id).then(onChanged)
+                }
               >
                 Delete
               </button>
             </li>
           ))}
           {configs.length === 0 && (
-            <li className="muted">No providers yet — mock is used until you add one.</li>
+            <li className="muted">
+              No providers yet — mock is used until you add one.
+            </li>
           )}
         </ul>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>Save provider</h3>
         <label className="field">
           <span>Provider</span>
-          <select value={provider} onChange={(e) => setProvider(e.target.value)}>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          >
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -608,7 +715,11 @@ function LlmPanel({
         </label>
         <label className="field">
           <span>Name</span>
-          <input value={name} onChange={(e) => setName(e.target.value)} required />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </label>
         <label className="field">
           <span>Model</span>
@@ -699,16 +810,206 @@ function TokensPanel({
           ))}
         </ul>
       </div>
-      <form className="stack-form" onSubmit={onSubmit}>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>Create token</h3>
         <label className="field">
           <span>Name</span>
-          <input value={tokenName} onChange={(e) => setTokenName(e.target.value)} required />
+          <input
+            value={tokenName}
+            onChange={(e) => setTokenName(e.target.value)}
+            required
+          />
         </label>
         <button className="btn" type="submit">
           Generate
         </button>
       </form>
+    </div>
+  )
+}
+
+function SettingsPanel({
+  settings,
+  onChanged,
+  onError,
+}: {
+  settings: InstanceSettings | null
+  onChanged: () => void
+  onError: (msg: string) => void
+}) {
+  const { t } = useI18n()
+  const [instanceName, setInstanceName] = useState('')
+  const [baseUrl, setBaseUrl] = useState('')
+  const [locale, setLocale] = useState('en')
+  const [timezone, setTimezone] = useState('UTC')
+  const [registrationMode, setRegistrationMode] =
+    useState<RegistrationMode>('disabled')
+  const [defaultRole, setDefaultRole] = useState<ProjectRole>('viewer')
+
+  useEffect(() => {
+    if (!settings) return
+    setInstanceName(settings.instance_name)
+    setBaseUrl(settings.base_url)
+    setLocale(settings.default_locale)
+    setTimezone(settings.default_timezone)
+    setRegistrationMode(settings.registration_mode)
+    setDefaultRole(settings.default_role)
+  }, [settings])
+
+  if (!settings) {
+    return (
+      <div className="panel">
+        <p className="muted">Loading settings…</p>
+      </div>
+    )
+  }
+
+  const onSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    try {
+      await api.updateAdminSettings({
+        instance_name: instanceName,
+        base_url: baseUrl,
+        default_locale: locale,
+        default_timezone: timezone,
+        registration_mode: registrationMode,
+        default_role: defaultRole,
+      })
+      onChanged()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h3>{t('admin.settings')}</h3>
+      <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
+        <label className="field">
+          <span>{t('setup.instanceName')}</span>
+          <input
+            value={instanceName}
+            onChange={(e) => setInstanceName(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{t('setup.baseUrl')}</span>
+          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+        </label>
+        <label className="field">
+          <span>{t('setup.locale')}</span>
+          <select value={locale} onChange={(e) => setLocale(e.target.value)}>
+            <option value="en">English</option>
+            <option value="uk">Українська</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>{t('setup.timezone')}</span>
+          <input
+            value={timezone}
+            onChange={(e) => setTimezone(e.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>{t('setup.registrationMode')}</span>
+          <select
+            value={registrationMode}
+            onChange={(e) =>
+              setRegistrationMode(e.target.value as RegistrationMode)
+            }
+          >
+            <option value="open">{t('setup.modeOpen')}</option>
+            <option value="invite">{t('setup.modeInvite')}</option>
+            <option value="disabled">{t('setup.modeDisabled')}</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>Default project role</span>
+          <select
+            value={defaultRole}
+            onChange={(e) => setDefaultRole(e.target.value as ProjectRole)}
+          >
+            {PROJECT_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {roleDisplayName(r)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button className="btn" type="submit">
+          {t('common.save')}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+function SsoPanel({
+  providers,
+  onChanged,
+  onError,
+}: {
+  providers: SsoProviderAdmin[]
+  onChanged: () => void
+  onError: (msg: string) => void
+}) {
+  const { t } = useI18n()
+
+  const toggleEnabled = async (p: SsoProviderAdmin) => {
+    try {
+      await api.updateSsoProvider(p.id, { enabled: !p.enabled })
+      onChanged()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h3>{t('admin.sso')}</h3>
+      <p className="muted">
+        Enable or disable configured OIDC providers. Client secrets are managed
+        server-side.
+      </p>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>Name</th>
+            <th>Client id</th>
+            <th>Enabled</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {providers.map((p) => (
+            <tr key={p.id}>
+              <td>
+                <code>{p.provider_key}</code>
+              </td>
+              <td>{p.display_name}</td>
+              <td className="muted">{p.client_id || '—'}</td>
+              <td>{p.enabled ? 'yes' : 'no'}</td>
+              <td>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void toggleEnabled(p)}
+                >
+                  {p.enabled ? 'Disable' : 'Enable'}
+                </button>
+              </td>
+            </tr>
+          ))}
+          {providers.length === 0 && (
+            <tr>
+              <td colSpan={5} className="muted">
+                No SSO providers configured yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }

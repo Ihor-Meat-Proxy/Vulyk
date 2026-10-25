@@ -17,16 +17,39 @@ type AuthContextValue = {
   loading: boolean
   refreshStatus: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
+  register: (
+    email: string,
+    password: string,
+    displayName: string,
+    inviteToken?: string,
+  ) => Promise<void>
   bootstrap: (
     email: string,
     password: string,
     displayName: string,
+  ) => Promise<void>
+  changePassword: (
+    newPassword: string,
+    currentPassword?: string,
   ) => Promise<void>
   logout: () => Promise<void>
   setToken: (token: string | null) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
+
+const emptyStatus = (): AuthStatus => ({
+  auth_required: false,
+  bootstrap_available: false,
+  setup_required: false,
+  registration_mode: 'disabled',
+  default_locale: 'en',
+  default_timezone: 'UTC',
+  instance_name: 'Vulyk',
+  authenticated: false,
+  user: null,
+  sso_providers: [],
+})
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus | null>(null)
@@ -50,12 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await refreshStatus()
       } catch {
         if (!cancelled) {
-          setStatus({
-            auth_required: false,
-            bootstrap_available: false,
-            authenticated: false,
-            user: null,
-          })
+          setStatus(emptyStatus())
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -75,6 +93,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [refreshStatus, setToken],
   )
 
+  const register = useCallback(
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      inviteToken?: string,
+    ) => {
+      const res = await api.register({
+        email,
+        password,
+        display_name: displayName,
+        invite_token: inviteToken,
+      })
+      setToken(res.token)
+      await refreshStatus()
+    },
+    [refreshStatus, setToken],
+  )
+
   const bootstrap = useCallback(
     async (email: string, password: string, displayName: string) => {
       const res = await api.bootstrap({
@@ -86,6 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await refreshStatus()
     },
     [refreshStatus, setToken],
+  )
+
+  const changePassword = useCallback(
+    async (newPassword: string, currentPassword?: string) => {
+      await api.changePassword({
+        new_password: newPassword,
+        current_password: currentPassword,
+      })
+      await refreshStatus()
+    },
+    [refreshStatus],
   )
 
   const logout = useCallback(async () => {
@@ -105,7 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       refreshStatus,
       login,
+      register,
       bootstrap,
+      changePassword,
       logout,
       setToken,
     }),
@@ -115,7 +165,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       refreshStatus,
       login,
+      register,
       bootstrap,
+      changePassword,
       logout,
       setToken,
     ],

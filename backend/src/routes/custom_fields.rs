@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateCustomField, CustomField, UpdateCustomField};
 use crate::routes::AppState;
@@ -36,12 +37,22 @@ pub fn router() -> Router<AppState> {
     path = "/api/v1/projects/{project_id}/custom-fields",
     tag = "custom_fields",
     params(("project_id" = Uuid, Path)),
-    responses((status = 200, description = "Custom fields", body = [CustomField]))
+    responses((status = 200, description = "Custom fields", body = [CustomField])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_fields(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<CustomField>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let fields = sqlx::query_as::<_, CustomField>(
         r#"SELECT id, project_id, name, field_type, options, required, sort_order, created_at
@@ -60,13 +71,23 @@ pub async fn list_fields(
     tag = "custom_fields",
     params(("project_id" = Uuid, Path)),
     request_body = CreateCustomField,
-    responses((status = 200, description = "Created", body = CustomField))
+    responses((status = 200, description = "Created", body = CustomField)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_field(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateCustomField>,
 ) -> AppResult<Json<CustomField>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let name = body.name.trim();
     if name.is_empty() {
@@ -97,12 +118,22 @@ pub async fn create_field(
     path = "/api/v1/projects/{project_id}/custom-fields/{field_id}",
     tag = "custom_fields",
     params(("project_id" = Uuid, Path), ("field_id" = Uuid, Path)),
-    responses((status = 200, description = "Field", body = CustomField))
+    responses((status = 200, description = "Field", body = CustomField)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_field(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, field_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<CustomField>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let field = sqlx::query_as::<_, CustomField>(
         r#"SELECT id, project_id, name, field_type, options, required, sort_order, created_at
            FROM custom_fields WHERE project_id = $1 AND id = $2"#,
@@ -121,13 +152,23 @@ pub async fn get_field(
     tag = "custom_fields",
     params(("project_id" = Uuid, Path), ("field_id" = Uuid, Path)),
     request_body = UpdateCustomField,
-    responses((status = 200, description = "Updated", body = CustomField))
+    responses((status = 200, description = "Updated", body = CustomField)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_field(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, field_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateCustomField>,
 ) -> AppResult<Json<CustomField>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let existing = sqlx::query_as::<_, CustomField>(
         r#"SELECT id, project_id, name, field_type, options, required, sort_order, created_at
            FROM custom_fields WHERE project_id = $1 AND id = $2"#,
@@ -170,12 +211,22 @@ pub async fn update_field(
     path = "/api/v1/projects/{project_id}/custom-fields/{field_id}",
     tag = "custom_fields",
     params(("project_id" = Uuid, Path), ("field_id" = Uuid, Path)),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_field(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, field_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let res = sqlx::query("DELETE FROM custom_fields WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(field_id)

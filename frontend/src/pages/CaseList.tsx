@@ -2,6 +2,7 @@ import { useDeferredValue, useEffect, useState, useTransition } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type TestCase } from '../api'
 import { VirtualList } from '../components/VirtualList'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
@@ -11,6 +12,10 @@ type Props = {
 const PAGE_SIZE = 200
 
 export function CaseList({ projectId, suiteId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canCreate = can('create_edit_cases')
+  const canBulkEdit = can('create_edit_cases')
+
   const [cases, setCases] = useState<TestCase[]>([])
   const [total, setTotal] = useState(0)
   const [offset, setOffset] = useState(0)
@@ -147,6 +152,7 @@ export function CaseList({ projectId, suiteId }: Props) {
 
   return (
     <div className="case-browser">
+      {canCreate && (
       <div className="toolbar create-case-bar">
         <input
           className="filter-input"
@@ -171,6 +177,7 @@ export function CaseList({ projectId, suiteId }: Props) {
           {creating ? 'Creating…' : 'Create case'}
         </button>
       </div>
+      )}
       <div className="toolbar">
         <input
           className="search-input"
@@ -201,7 +208,7 @@ export function CaseList({ projectId, suiteId }: Props) {
         </span>
       </div>
 
-      {selected.size > 0 && (
+      {canBulkEdit && selected.size > 0 && (
         <div className="bulk-bar">
           <span>{selected.size} selected</span>
           <button type="button" className="btn secondary" onClick={() => bulkStatus('ready')}>
@@ -240,12 +247,16 @@ export function CaseList({ projectId, suiteId }: Props) {
             className="case-virtual"
             renderRow={(c) => (
               <div className="table-row">
-                <input
-                  type="checkbox"
-                  checked={selected.has(c.id)}
-                  onChange={() => toggle(c.id)}
-                  aria-label={`Select ${c.key}`}
-                />
+                {canBulkEdit ? (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(c.id)}
+                    onChange={() => toggle(c.id)}
+                    aria-label={`Select ${c.key}`}
+                  />
+                ) : (
+                  <span />
+                )}
                 <Link to={`/cases/${c.id}`}>
                   <span className="badge">{c.key}</span>
                 </Link>

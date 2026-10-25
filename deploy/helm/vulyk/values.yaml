@@ -20,6 +20,26 @@ env:
   VULYK_JWT_TTL_HOURS: "12"
   VULYK_SESSION_TTL_HOURS: "168"
 
+# First-run setup (Job + env seeding on API). Prefer secretRef for passwords.
+setup:
+  enabled: true
+  adminEmail: admin@vulyk.local
+  # Prefer secretRef in real clusters. Inline password is for demos only.
+  # adminPasswordSecretRef:
+  #   name: vulyk-secrets
+  #   key: VULYK_ADMIN_PASSWORD
+  adminPasswordSecretRef: {}
+  # Used only when adminPasswordSecretRef is empty and secrets.create=true (demos).
+  adminPassword: ""
+  locale: en
+  timezone: UTC
+  registrationMode: disabled
+  seedDemo: false
+  # Seed Kyiv Open-Air Concert 2026 sample project (suites/cases/runs)
+  seedSample: true
+  instanceName: Vulyk
+  baseUrl: ""
+
 # Existing secret must provide: DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY
 # Optionally create via --set secrets.create=true for demos only.
 secrets:
@@ -29,6 +49,8 @@ secrets:
   databaseUrl: postgres://vulyk:change-me@vulyk-postgresql:5432/vulyk
   jwtSecret: change-me-jwt
   secretsKey: change-me-secrets-key
+  # Demo admin password when secrets.create=true and setup.adminPassword unset
+  adminPassword: change-me-admin1
 
 postgresql:
   enabled: true

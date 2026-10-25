@@ -7,6 +7,7 @@ pub mod custom_fields;
 pub mod health;
 pub mod imports;
 pub mod ingest;
+pub mod instance_settings;
 pub mod integrations;
 pub mod jobs;
 pub mod llm;
@@ -16,6 +17,8 @@ pub mod projects;
 pub mod reports;
 pub mod requirements;
 pub mod runs;
+pub mod setup;
+pub mod sso_admin;
 pub mod suites;
 pub mod tags;
 pub mod tokens;
@@ -39,7 +42,8 @@ pub struct AppState {
 }
 
 pub fn app_router(state: AppState) -> Router {
-    // Auth bootstrap/login, health, and CI webhooks stay open for probes / providers.
+    // Auth bootstrap/login/register/setup/SSO start+callback, health, and CI webhooks
+    // stay open for probes / providers / first-run wizard.
     let protected = Router::new()
         .merge(projects::router())
         .merge(suites::router())
@@ -61,6 +65,8 @@ pub fn app_router(state: AppState) -> Router {
         .merge(users::router())
         .merge(memberships::router())
         .merge(admin::router())
+        .merge(sso_admin::router())
+        .merge(instance_settings::router())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             bearer_middleware,
@@ -69,6 +75,8 @@ pub fn app_router(state: AppState) -> Router {
     Router::new()
         .merge(health::router())
         .merge(auth::router())
+        .merge(setup::router())
+        .merge(instance_settings::public_router())
         .merge(webhooks::router())
         .merge(protected)
         .merge(Scalar::with_url("/api/docs", ApiDoc::openapi()))

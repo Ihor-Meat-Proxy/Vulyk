@@ -45,6 +45,19 @@ spec:
                 secretKeyRef:
                   name: {{ include "vulyk.secretName" . }}
                   key: VULYK_SECRETS_KEY
+            {{- if or .Values.setup.adminPasswordSecretRef.name .Values.secrets.create .Values.setup.adminPassword }}
+            - name: VULYK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if and .Values.setup.adminPasswordSecretRef .Values.setup.adminPasswordSecretRef.name }}
+                  name: {{ .Values.setup.adminPasswordSecretRef.name }}
+                  key: {{ .Values.setup.adminPasswordSecretRef.key | default "VULYK_ADMIN_PASSWORD" }}
+                  {{- else }}
+                  name: {{ include "vulyk.secretName" . }}
+                  key: VULYK_ADMIN_PASSWORD
+                  {{- end }}
+            {{- end }}
+
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.api.readiness.path }}
