@@ -32,3 +32,6 @@ e2e/playwright/.cache/
 
 # Generated prod env
 .env.prod
+
+# Lighthouse
+frontend/lighthouse-report.json

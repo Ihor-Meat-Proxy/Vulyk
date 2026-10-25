@@ -7,6 +7,7 @@ import {
   type Requirement,
   type TestCaseDetail,
 } from '../api'
+import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 
 type Props = {
   projectId: string | null
@@ -27,6 +28,7 @@ export function CaseDetail({ projectId }: Props) {
   const [allReqs, setAllReqs] = useState<Requirement[]>([])
   const [linkId, setLinkId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [offlineNotice, setOfflineNotice] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -39,20 +41,8 @@ export function CaseDetail({ projectId }: Props) {
   const [steps, setSteps] = useState<DraftStep[]>([])
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
 
-  const reload = async () => {
-    if (!projectId || !caseId) return
-    const [data, vers, defs, reqs, all] = await Promise.all([
-      api.getCase(projectId, caseId),
-      api.listVersions(projectId, caseId),
-      api.listCustomFields(projectId),
-      api.listCaseRequirements(projectId, caseId),
-      api.listRequirements(projectId),
-    ])
+  const applyDetail = (data: TestCaseDetail) => {
     setDetail(data)
-    setVersions(vers)
-    setFields(defs)
-    setLinked(reqs)
-    setAllReqs(all)
     setTitle(data.case.title)
     setDescription(data.case.description)
     setPrecondition(data.case.precondition)
@@ -72,6 +62,37 @@ export function CaseDetail({ projectId }: Props) {
         cf.value === null || cf.value === undefined ? '' : String(cf.value)
     }
     setFieldValues(vals)
+  }
+
+  const reload = async () => {
+    if (!projectId || !caseId) return
+    try {
+      const [data, vers, defs, reqs, all] = await Promise.all([
+        api.getCase(projectId, caseId),
+        api.listVersions(projectId, caseId),
+        api.listCustomFields(projectId),
+        api.listCaseRequirements(projectId, caseId),
+        api.listRequirements(projectId),
+      ])
+      applyDetail(data)
+      setVersions(vers)
+      setFields(defs)
+      setLinked(reqs)
+      setAllReqs(all)
+      setOfflineNotice(false)
+      void cacheCase(projectId, caseId, data)
+    } catch (err) {
+      const cached = (await getCachedCase(
+        projectId,
+        caseId,
+      )) as TestCaseDetail | null
+      if (cached) {
+        applyDetail(cached)
+        setOfflineNotice(true)
+        return
+      }
+      throw err
+    }
   }
 
   useEffect(() => {
@@ -154,6 +175,10 @@ export function CaseDetail({ projectId }: Props) {
       <p style={{ marginTop: 0 }}>
         <Link to="/">← Back to cases</Link>
       </p>
+      {offlineNotice && (
+        <p className="notice">Showing cached case (offline / network error).</p>
+      )}
+      {error && <p className="error">{error}</p>}
       <div className="detail-header">
         <h2>
           <span className="badge">{c.key}</span>{' '}
