@@ -92,8 +92,18 @@ export async function loginAs(
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 }
 
+/** Dismiss PWA offline toasts that intercept pointer events over the main UI. */
+export async function dismissPwaToasts(page: Page): Promise<void> {
+  const dismiss = page.getByRole('button', { name: 'Dismiss' })
+  for (let i = 0; i < 3; i++) {
+    if (!(await dismiss.first().isVisible().catch(() => false))) break
+    await dismiss.first().click({ timeout: 2_000 }).catch(() => undefined)
+  }
+}
+
 export async function loginAsAdmin(page: Page): Promise<void> {
   await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD)
+  await dismissPwaToasts(page)
 }
 
 export async function loginAsDemo(page: Page): Promise<void> {

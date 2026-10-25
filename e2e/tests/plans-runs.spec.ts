@@ -6,7 +6,11 @@ import {
   createRun,
   createSuite,
 } from '../fixtures/api'
-import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
+import {
+  dismissPwaToasts,
+  ensureAdminSession,
+  loginAsAdmin,
+} from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
 import { RunsPage } from '../pages/RunsPage'
 
