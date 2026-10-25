@@ -80,16 +80,19 @@ test('create plan and run, execute pass/fail/blocked, attach, close', async ({
     timeout: 20_000,
   })
 
-  // Attach note after a result exists
-  const attachNote = page.getByRole('button', { name: 'Attach note' })
-  if (await attachNote.isEnabled()) {
-    await attachNote.click()
-    await expect(page.getByText(/attached|note/i).first()).toBeVisible({
-      timeout: 15_000,
-    }).catch(() => undefined)
-  }
+  // Status save auto-closes the exec panel when no untested cases remain — reopen.
+  await list.locator('button').first().click()
+  await expect(
+    page.getByRole('group', { name: 'Result status' }),
+  ).toBeVisible({ timeout: 15_000 })
 
-  // Photo attach via file input
+  const attachNote = page.getByRole('button', { name: 'Attach note' })
+  await expect(attachNote).toBeEnabled({ timeout: 15_000 })
+  await attachNote.click()
+  await expect(page.getByText(/Note attached|attached/i).first()).toBeVisible({
+    timeout: 15_000,
+  })
+
   await page.getByLabel('Attach photo from camera').setInputFiles({
     name: 'shot.png',
     mimeType: 'image/png',
@@ -97,6 +100,9 @@ test('create plan and run, execute pass/fail/blocked, attach, close', async ({
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
       'base64',
     ),
+  })
+  await expect(page.getByText(/Photo attached|attached/i).first()).toBeVisible({
+    timeout: 15_000,
   })
 
   // Close run via API
