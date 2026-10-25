@@ -90,10 +90,13 @@ test('create plan and run, execute pass/fail/blocked, attach, close', async ({
     page.getByRole('group', { name: 'Result status' }),
   ).toBeVisible({ timeout: 15_000 })
 
+  // PWA "App shell cached" toast overlays the attach row and blocks clicks.
+  await dismissPwaToasts(page)
+
   const attachNote = page.getByRole('button', { name: 'Attach note' })
   await expect(attachNote).toBeEnabled({ timeout: 15_000 })
   await attachNote.click()
-  await expect(page.getByText(/Note attached|attached/i).first()).toBeVisible({
+  await expect(page.getByText('Note attached.').first()).toBeVisible({
     timeout: 15_000,
   })
 
@@ -105,7 +108,7 @@ test('create plan and run, execute pass/fail/blocked, attach, close', async ({
       'base64',
     ),
   })
-  await expect(page.getByText(/Photo attached|attached/i).first()).toBeVisible({
+  await expect(page.getByText('Photo attached.').first()).toBeVisible({
     timeout: 15_000,
   })
 
