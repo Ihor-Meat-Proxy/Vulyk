@@ -111,17 +111,35 @@ test('setup token protection + wizard locale/timezone', async ({
 
 test('setup CLI --help is available', async () => {
   const { execFileSync } = await import('node:child_process')
+  const fs = await import('node:fs')
   const path = await import('node:path')
   const { fileURLToPath } = await import('node:url')
-  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-  const out = execFileSync(
-    'cargo',
-    ['run', '-p', 'vulyk-api', '--', 'setup', '--help'],
-    {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      env: process.env,
-    },
+  const repoRoot = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    '../..',
   )
+  const releaseBin = path.join(repoRoot, 'target/release/vulyk-api')
+  const debugBin = path.join(repoRoot, 'target/debug/vulyk-api')
+  const out = fs.existsSync(releaseBin)
+    ? execFileSync(releaseBin, ['setup', '--help'], {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        env: process.env,
+      })
+    : fs.existsSync(debugBin)
+      ? execFileSync(debugBin, ['setup', '--help'], {
+          cwd: repoRoot,
+          encoding: 'utf8',
+          env: process.env,
+        })
+      : execFileSync(
+          'cargo',
+          ['run', '-p', 'vulyk-api', '--quiet', '--', 'setup', '--help'],
+          {
+            cwd: repoRoot,
+            encoding: 'utf8',
+            env: process.env,
+          },
+        )
   expect(out).toMatch(/Complete first-run instance setup|admin-email|--yes/i)
 })

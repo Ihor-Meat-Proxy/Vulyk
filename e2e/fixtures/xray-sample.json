@@ -1,0 +1,22 @@
+{
+  "tests": [
+    {
+      "key": "XRAY-E2E-1",
+      "summary": "Xray imported login check",
+      "fields": {
+        "summary": "Xray imported login check",
+        "description": "Minimal Xray JSON fixture for Playwright"
+      },
+      "priority": "high",
+      "testScript": {
+        "steps": [
+          {
+            "action": "Open login",
+            "data": "",
+            "result": "Form is visible"
+          }
+        ]
+      }
+    }
+  ]
+}
