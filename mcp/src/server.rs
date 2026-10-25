@@ -112,6 +112,25 @@ pub struct AskTestsArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ListCaseResultsArgs {
+    pub case_id: String,
+    /// Optional project scope (uses project-scoped URL when set).
+    #[serde(default)]
+    pub project_id: Option<String>,
+    #[serde(default)]
+    pub run_id: Option<String>,
+    /// Filter: Untested | Passed | Failed | Blocked | Skipped | Retest
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub user_id: Option<String>,
+    #[serde(default)]
+    pub limit: Option<i64>,
+    #[serde(default)]
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct UpdateRunArgs {
     pub project_id: String,
     pub run_id: String,
@@ -302,6 +321,45 @@ impl VulykMcp {
             "/api/v1/projects/{}/runs/{}/results",
             args.project_id, args.run_id
         );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "List append-only result history for a test case across runs (filter by run, status, user; paginated). Statuses: Untested, Passed, Failed, Blocked, Skipped, Retest."
+    )]
+    async fn list_case_results(
+        &self,
+        Parameters(args): Parameters<ListCaseResultsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut path = if let Some(project_id) = args.project_id {
+            format!(
+                "/api/v1/projects/{}/cases/{}/results",
+                project_id, args.case_id
+            )
+        } else {
+            format!("/api/v1/cases/{}/results", args.case_id)
+        };
+        let mut qs = vec![];
+        if let Some(v) = args.run_id {
+            qs.push(format!("run_id={v}"));
+        }
+        if let Some(v) = args.status {
+            qs.push(format!("status={}", urlencoding_lite(&v)));
+        }
+        if let Some(v) = args.user_id {
+            qs.push(format!("user_id={v}"));
+        }
+        if let Some(v) = args.limit {
+            qs.push(format!("limit={v}"));
+        }
+        if let Some(v) = args.offset {
+            qs.push(format!("offset={v}"));
+        }
+        if !qs.is_empty() {
+            path.push('?');
+            path.push_str(&qs.join("&"));
+        }
         let value = self.client.get(&path).await.map_err(Self::map_err)?;
         Self::ok_json(value)
     }

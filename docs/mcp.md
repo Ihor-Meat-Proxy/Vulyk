@@ -36,6 +36,7 @@ cargo run -p vulyk-mcp -- http
 | `list_runs` / `create_run` / `update_run` | Runs |
 | `trigger_run` | Mark run `running` |
 | `list_results` / `ingest_results` | Results |
+| `list_case_results` | Append-only case result history (filter/paginate) |
 | `ask_tests` | LLM Q&A over project tests |
 
 ## Client setup

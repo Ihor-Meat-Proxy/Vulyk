@@ -360,7 +360,7 @@ async fn case_depth_and_run_execution() {
         .json()
         .await
         .unwrap();
-    assert_eq!(result["result"]["status"], "passed");
+    assert_eq!(result["result"]["status"], "Passed");
     assert_eq!(result["steps"].as_array().unwrap().len(), 2);
 
     let attachment: Value = client
@@ -392,5 +392,5 @@ async fn case_depth_and_run_execution() {
         .await
         .unwrap();
     assert_eq!(run_after["progress"]["passed"], 1);
-    assert_eq!(run_after["items"][0]["item"]["status"], "passed");
+    assert_eq!(run_after["items"][0]["item"]["status"], "Passed");
 }

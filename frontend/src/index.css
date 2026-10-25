@@ -668,7 +668,6 @@ select.project-select {
   border-radius: 0.3rem;
   font-size: 0.8rem;
   background: color-mix(in srgb, var(--line) 55%, white);
-  text-transform: lowercase;
 }
 
 .status-passed,
@@ -690,9 +689,56 @@ select.project-select {
 }
 
 .status-skipped,
-.status-untested {
+.status-btn.status-skipped {
+  background: #e4e8f0;
+  color: #3d4a63;
+}
+
+.status-untested,
+.status-retest {
   background: #ebe7de;
   color: var(--ink-muted);
+}
+
+.case-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.75rem 0 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.case-tabs button {
+  border: none;
+  background: transparent;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  color: var(--ink-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.case-tabs button.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+.timeline-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.result-timeline {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.results-summary {
+  margin-bottom: 0.75rem;
 }
 
 .status-ready,
@@ -768,7 +814,6 @@ select.project-select {
 
 .status-btn {
   border-color: transparent;
-  text-transform: capitalize;
 }
 
 

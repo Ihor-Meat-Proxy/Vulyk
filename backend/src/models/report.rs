@@ -18,6 +18,7 @@ pub struct StatusCounts {
 
 impl StatusCounts {
     pub fn pass_rate(&self) -> f64 {
+        // `error` is retained for API compat but new ingest maps JUnit error → Failed.
         let decided = self.passed + self.failed + self.error;
         if decided == 0 {
             0.0

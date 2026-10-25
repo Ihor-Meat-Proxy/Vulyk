@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
+  RESULT_STATUSES,
+  statusClass,
   type RunItemExecution,
   type TestRunDetail,
 } from '../api'
@@ -12,7 +14,7 @@ type Props = {
   projectId: string | null
 }
 
-const STATUSES = ['untested', 'passed', 'failed', 'blocked', 'skipped', 'retest'] as const
+const STEP_STATUSES = RESULT_STATUSES.filter((s) => s !== 'Retest')
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -90,7 +92,7 @@ export function RunDetail({ projectId }: Props) {
       setActive(exec)
       setAssignee(exec.item.item.assignee ?? '')
       setComment(exec.item.item.comment ?? '')
-      setStepStatuses(exec.steps.map(() => 'untested'))
+      setStepStatuses(exec.steps.map(() => 'Untested'))
       setMobileStep(0)
       setError(null)
     } catch (err) {
@@ -110,7 +112,7 @@ export function RunDetail({ projectId }: Props) {
         position: step.position,
         action: step.action,
         expected_result: step.expected_result,
-        status: stepStatuses[idx] === 'untested' ? status : stepStatuses[idx],
+        status: stepStatuses[idx]?.toLowerCase() === 'untested' ? status : stepStatuses[idx],
       })),
     }
   }
@@ -122,7 +124,8 @@ export function RunDetail({ projectId }: Props) {
     setFromCache(false)
     void cacheRun(projectId, runId, data)
     const next = data.items.find(
-      (i) => i.item.status === 'untested' && i.item.id !== currentItemId,
+      (i) =>
+        i.item.status.toLowerCase() === 'untested' && i.item.id !== currentItemId,
     )
     if (next) {
       await openItem(next.item.id)
@@ -232,7 +235,7 @@ export function RunDetail({ projectId }: Props) {
         </p>
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
-          <span className={`status-pill status-${run.status}`}>{run.status}</span>
+          <span className={`status-pill ${statusClass(run.status)}`}>{run.status}</span>
           <span>
             Progress: {progress.completed}/{progress.total} ({progress.percent.toFixed(0)}%)
           </span>
@@ -246,11 +249,11 @@ export function RunDetail({ projectId }: Props) {
           <div className="progress-seg untested" style={{ flex: progress.untested || 0.0001 }} />
         </div>
         <div className="progress-legend muted">
-          <span>passed {progress.passed}</span>
-          <span>failed {progress.failed}</span>
-          <span>blocked {progress.blocked}</span>
-          <span>skipped {progress.skipped}</span>
-          <span>untested {progress.untested}</span>
+          <span>Passed {progress.passed}</span>
+          <span>Failed {progress.failed}</span>
+          <span>Blocked {progress.blocked}</span>
+          <span>Skipped {progress.skipped}</span>
+          <span>Untested {progress.untested}</span>
         </div>
 
         {error && <p className="error">{error}</p>}
@@ -266,7 +269,7 @@ export function RunDetail({ projectId }: Props) {
               >
                 <span className="badge">{row.case_key}</span>
                 <span className="run-item-title">{row.case_title}</span>
-                <span className={`status-pill status-${row.item.status}`}>
+                <span className={`status-pill ${statusClass(row.item.status)}`}>
                   {row.item.status}
                 </span>
               </button>
@@ -297,7 +300,7 @@ export function RunDetail({ projectId }: Props) {
                   <td>{row.case_priority}</td>
                   <td>{row.item.assignee || '—'}</td>
                   <td>
-                    <span className={`status-pill status-${row.item.status}`}>
+                    <span className={`status-pill ${statusClass(row.item.status)}`}>
                       {row.item.status}
                     </span>
                   </td>
@@ -362,7 +365,7 @@ export function RunDetail({ projectId }: Props) {
                     <select
                       className="filter-input"
                       style={{ marginTop: '0.35rem' }}
-                      value={stepStatuses[idx] ?? 'untested'}
+                      value={stepStatuses[idx] ?? 'Untested'}
                       aria-label={`Step ${idx + 1} status`}
                       onChange={(e) => {
                         const next = [...stepStatuses]
@@ -370,7 +373,7 @@ export function RunDetail({ projectId }: Props) {
                         setStepStatuses(next)
                       }}
                     >
-                      {STATUSES.filter((s) => s !== 'retest').map((s) => (
+                      {STEP_STATUSES.map((s) => (
                         <option key={s} value={s}>
                           {s}
                         </option>
@@ -403,7 +406,7 @@ export function RunDetail({ projectId }: Props) {
                 </div>
                 <select
                   className="filter-input"
-                  value={stepStatuses[mobileStep] ?? 'untested'}
+                  value={stepStatuses[mobileStep] ?? 'Untested'}
                   aria-label={`Step ${mobileStep + 1} status`}
                   onChange={(e) => {
                     const next = [...stepStatuses]
@@ -411,7 +414,7 @@ export function RunDetail({ projectId }: Props) {
                     setStepStatuses(next)
                   }}
                 >
-                  {STATUSES.filter((s) => s !== 'retest').map((s) => (
+                  {STEP_STATUSES.map((s) => (
                     <option key={s} value={s}>
                       {s}
                     </option>
@@ -442,27 +445,42 @@ export function RunDetail({ projectId }: Props) {
               </div>
             )}
 
-            <div className="exec-actions exec-actions-thumb">
-              {(['passed', 'failed', 'blocked'] as const).map((s) => (
+            <div className="exec-actions exec-actions-thumb" role="group" aria-label="Result status">
+              {(['Passed', 'Failed', 'Blocked', 'Skipped'] as const).map((s) => (
                 <button
                   key={s}
                   type="button"
-                  className={`btn status-btn status-${s} thumb-btn`}
+                  className={`btn status-btn ${statusClass(s)} thumb-btn`}
                   disabled={saving}
                   onClick={() => void submitStatus(s)}
                 >
                   {s}
                 </button>
               ))}
-              <button
-                type="button"
-                className="btn status-btn status-skipped thumb-btn-secondary"
-                disabled={saving}
-                onClick={() => void submitStatus('skipped')}
-              >
-                skipped
-              </button>
             </div>
+
+            {active.history && active.history.length > 0 && (
+              <section className="result-timeline" aria-label="Result history">
+                <h4 style={{ marginBottom: '0.35rem' }}>Result history</h4>
+                <ol className="timeline-list">
+                  {active.history.map((h) => (
+                    <li key={h.result.id}>
+                      <span className={`status-pill ${statusClass(h.result.status)}`}>
+                        {h.result.status}
+                      </span>{' '}
+                      <span className="muted">
+                        {new Date(h.result.executed_at).toLocaleString()}
+                        {h.executed_by_name ? ` · ${h.executed_by_name}` : ''}
+                        {h.result.case_version != null
+                          ? ` · v${h.result.case_version}`
+                          : ''}
+                        {h.result.message ? ` — ${h.result.message}` : ''}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             <div className="attach-row">
               <input

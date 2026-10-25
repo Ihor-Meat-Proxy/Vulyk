@@ -1,5 +1,6 @@
 //! Plans/runs/results surface for UI (W3), MCP (W10), and CI ingest (W4).
 //! Format ingest (JUnit / Vulyk JSON) lives in `routes::ingest`.
+//! Result rows are append-only history; see `services::results`.
 
 use axum::{
     extract::{Path, Query, State},
@@ -10,14 +11,16 @@ use serde::Deserialize;
 use serde_json::json;
 use uuid::Uuid;
 
+use crate::auth::OptionalAuthUser;
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    BulkIngestResults, CreateResult, CreateRun, Page, PageQuery, ResultStep, RunItem,
-    RunItemExecution, RunItemView, TestResult, TestResultDetail, TestRun, TestRunDetail, TestStep,
-    UpdateRun, UpdateRunItem,
+    normalize_result_status, BulkIngestResults, CreateResult, CreateRun, Page, PageQuery,
+    ResultStep, RunItem, RunItemExecution, RunItemView, TestResult, TestResultDetail,
+    TestResultHistoryItem, TestRun, TestRunDetail, TestStep, UpdateRun, UpdateRunItem, UNTESTED,
 };
 use crate::routes::AppState;
 use crate::services::cases::{ensure_project, load_steps};
+use crate::services::results::{list_run_item_history, list_run_results_history, RESULT_COLS};
 use crate::services::runs::{
     all_project_case_ids, collect_case_ids_for_run, load_run, load_run_items, run_progress,
 };
@@ -45,8 +48,16 @@ pub fn router() -> Router<AppState> {
             get(get_run_item).put(update_run_item),
         )
         .route(
+            "/api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}/results",
+            get(list_run_item_results),
+        )
+        .route(
             "/api/v1/projects/{project_id}/runs/{run_id}/results",
             get(list_results).post(ingest_results),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/runs/{run_id}/results/history",
+            get(list_run_results_history_endpoint),
         )
         .route(
             "/api/v1/projects/{project_id}/runs/{run_id}/results/execute",
@@ -62,7 +73,6 @@ pub fn router() -> Router<AppState> {
 }
 
 const RUN_COLS: &str = "id, project_id, plan_id, name, description, status, source, external_ref, meta, started_at, finished_at, created_at, updated_at";
-const RESULT_COLS: &str = "id, run_id, case_id, run_item_id, status, message, source, external_id, duration_ms, raw, assignee, elapsed_ms, executed_at, created_at";
 
 #[derive(Debug, Deserialize)]
 pub struct ListRunsQuery {
@@ -397,34 +407,6 @@ async fn load_item(pool: &sqlx::PgPool, run_id: Uuid, item_id: Uuid) -> AppResul
     .ok_or_else(|| AppError::NotFound("run item".into()))
 }
 
-async fn latest_result_for_item(
-    pool: &sqlx::PgPool,
-    run_item_id: Uuid,
-) -> AppResult<Option<TestResultDetail>> {
-    let result = sqlx::query_as::<_, TestResult>(&format!(
-        r#"SELECT {RESULT_COLS}
-           FROM test_results WHERE run_item_id = $1
-           ORDER BY executed_at DESC LIMIT 1"#
-    ))
-    .bind(run_item_id)
-    .fetch_optional(pool)
-    .await?;
-
-    if let Some(result) = result {
-        let steps = sqlx::query_as::<_, ResultStep>(
-            r#"SELECT id, result_id, step_id, position, action, expected_result,
-                      status, actual_result, comment
-               FROM result_steps WHERE result_id = $1 ORDER BY position"#,
-        )
-        .bind(result.id)
-        .fetch_all(pool)
-        .await?;
-        Ok(Some(TestResultDetail { result, steps }))
-    } else {
-        Ok(None)
-    }
-}
-
 #[utoipa::path(
     get,
     path = "/api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}",
@@ -449,7 +431,11 @@ pub async fn get_run_item(
     .fetch_one(&state.pool)
     .await?;
     let steps = load_steps(&state.pool, item.case_id).await?;
-    let latest_result = latest_result_for_item(&state.pool, item.id).await?;
+    let history = list_run_item_history(&state.pool, item.id, true).await?;
+    let latest_result = history.last().map(|h| TestResultDetail {
+        result: h.result.clone(),
+        steps: h.steps.clone(),
+    });
     Ok(Json(RunItemExecution {
         item: RunItemView {
             item,
@@ -459,7 +445,55 @@ pub async fn get_run_item(
         },
         steps,
         latest_result,
+        history,
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}/results",
+    tag = "runs",
+    params(
+        ("project_id" = Uuid, Path),
+        ("run_id" = Uuid, Path),
+        ("item_id" = Uuid, Path)
+    ),
+    responses((status = 200, description = "Per-case result history timeline", body = [TestResultHistoryItem]))
+)]
+pub async fn list_run_item_results(
+    State(state): State<AppState>,
+    Path((project_id, run_id, item_id)): Path<(Uuid, Uuid, Uuid)>,
+) -> AppResult<Json<Vec<TestResultHistoryItem>>> {
+    let _ = load_run(&state.pool, project_id, run_id).await?;
+    let _ = load_item(&state.pool, run_id, item_id).await?;
+    let history = list_run_item_history(&state.pool, item_id, true).await?;
+    Ok(Json(history))
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RunHistoryQuery {
+    pub case_id: Option<Uuid>,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/runs/{run_id}/results/history",
+    tag = "runs",
+    params(
+        ("project_id" = Uuid, Path),
+        ("run_id" = Uuid, Path),
+        ("case_id" = Option<Uuid>, Query)
+    ),
+    responses((status = 200, description = "Run-level result history", body = [TestResultHistoryItem]))
+)]
+pub async fn list_run_results_history_endpoint(
+    State(state): State<AppState>,
+    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Query(query): Query<RunHistoryQuery>,
+) -> AppResult<Json<Vec<TestResultHistoryItem>>> {
+    let _ = load_run(&state.pool, project_id, run_id).await?;
+    let history = list_run_results_history(&state.pool, run_id, query.case_id).await?;
+    Ok(Json(history))
 }
 
 #[utoipa::path(
@@ -481,14 +515,11 @@ pub async fn update_run_item(
 ) -> AppResult<Json<RunItemView>> {
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let existing = load_item(&state.pool, run_id, item_id).await?;
-    let status = body.status.unwrap_or(existing.status);
-    let allowed = [
-        "untested", "passed", "failed", "blocked", "skipped", "retest",
-    ];
-    if !allowed.contains(&status.as_str()) {
+    let status = normalize_result_status(&body.status.unwrap_or(existing.status));
+    if !crate::models::is_valid_run_item_status(&status) {
         return Err(AppError::BadRequest("invalid status".into()));
     }
-    let executed_at = if status == "untested" {
+    let executed_at = if status == UNTESTED {
         None
     } else {
         Some(chrono::Utc::now())
@@ -513,7 +544,7 @@ pub async fn update_run_item(
 
     let remaining: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*)::bigint FROM run_items
-           WHERE run_id = $1 AND status = 'untested'"#,
+           WHERE run_id = $1 AND status = 'Untested'"#,
     )
     .bind(run_id)
     .fetch_one(&state.pool)
@@ -596,20 +627,38 @@ pub async fn ingest_results(
             None
         };
 
+        let status = normalize_result_status(&item.status);
+        if !crate::models::is_valid_result_status(&status) {
+            return Err(AppError::BadRequest(format!(
+                "invalid status: {}",
+                item.status
+            )));
+        }
+
+        let case_version: Option<i32> = if let Some(cid) = case_id {
+            sqlx::query_scalar("SELECT version FROM test_cases WHERE id = $1")
+                .bind(cid)
+                .fetch_optional(&state.pool)
+                .await?
+        } else {
+            None
+        };
+
         let row = sqlx::query_as::<_, TestResult>(&format!(
             r#"INSERT INTO test_results
-                 (run_id, case_id, status, message, source, external_id, duration_ms, raw)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 (run_id, case_id, status, message, source, external_id, duration_ms, raw, case_version)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                RETURNING {RESULT_COLS}"#
         ))
         .bind(run_id)
         .bind(case_id)
-        .bind(&item.status)
+        .bind(&status)
         .bind(&item.message)
         .bind(&item.source)
         .bind(&item.external_id)
         .bind(item.duration_ms)
         .bind(&item.raw)
+        .bind(case_version)
         .fetch_one(&state.pool)
         .await?;
         out.push(row);
@@ -627,10 +676,19 @@ pub async fn ingest_results(
 )]
 pub async fn create_result(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<CreateResult>,
 ) -> AppResult<Json<TestResultDetail>> {
     let _ = load_run(&state.pool, project_id, run_id).await?;
+
+    let status = normalize_result_status(&body.status);
+    if !crate::models::is_valid_result_status(&status) {
+        return Err(AppError::BadRequest(format!(
+            "invalid status: {}",
+            body.status
+        )));
+    }
 
     let mut case_id = body.case_id;
     if let Some(run_item_id) = body.run_item_id {
@@ -638,22 +696,35 @@ pub async fn create_result(
         case_id = Some(item.case_id);
     }
 
+    let case_version: Option<i32> = if let Some(cid) = case_id {
+        sqlx::query_scalar("SELECT version FROM test_cases WHERE id = $1")
+            .bind(cid)
+            .fetch_optional(&state.pool)
+            .await?
+    } else {
+        None
+    };
+    let executed_by = auth.as_ref().map(|u| u.id());
+
     let mut tx = state.pool.begin().await?;
     let result = sqlx::query_as::<_, TestResult>(&format!(
         r#"INSERT INTO test_results
-             (run_id, case_id, run_item_id, status, message, source, raw, assignee, elapsed_ms)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+             (run_id, case_id, run_item_id, status, message, source, raw, assignee, elapsed_ms,
+              executed_by, case_version)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING {RESULT_COLS}"#
     ))
     .bind(run_id)
     .bind(case_id)
     .bind(body.run_item_id)
-    .bind(&body.status)
+    .bind(&status)
     .bind(&body.message)
     .bind(&body.source)
     .bind(&body.raw)
     .bind(body.assignee.as_deref())
     .bind(body.elapsed_ms)
+    .bind(executed_by)
+    .bind(case_version)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -671,7 +742,7 @@ pub async fn create_result(
                 let row = sqlx::query_as::<_, ResultStep>(
                     r#"INSERT INTO result_steps
                          (result_id, step_id, position, action, expected_result, status)
-                       VALUES ($1, $2, $3, $4, $5, 'untested')
+                       VALUES ($1, $2, $3, $4, $5, 'Untested')
                        RETURNING id, result_id, step_id, position, action, expected_result,
                                  status, actual_result, comment"#,
                 )
@@ -687,6 +758,13 @@ pub async fn create_result(
         }
     } else {
         for step in &body.steps {
+            let step_status = normalize_result_status(&step.status);
+            if !crate::models::is_valid_step_status(&step_status) {
+                return Err(AppError::BadRequest(format!(
+                    "invalid step status: {}",
+                    step.status
+                )));
+            }
             let row = sqlx::query_as::<_, ResultStep>(
                 r#"INSERT INTO result_steps
                      (result_id, step_id, position, action, expected_result, status,
@@ -700,7 +778,7 @@ pub async fn create_result(
             .bind(step.position)
             .bind(&step.action)
             .bind(&step.expected_result)
-            .bind(&step.status)
+            .bind(&step_status)
             .bind(&step.actual_result)
             .bind(&step.comment)
             .fetch_one(&mut *tx)
@@ -719,7 +797,7 @@ pub async fn create_result(
                    WHERE id = $1"#,
             )
             .bind(run_item_id)
-            .bind(&body.status)
+            .bind(&status)
             .bind(body.assignee.as_deref())
             .bind(&body.message)
             .execute(&mut *tx)

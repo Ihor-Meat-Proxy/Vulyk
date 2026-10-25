@@ -113,7 +113,7 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
 
 fn case_from_attrs(e: &quick_xml::events::BytesStart<'_>) -> Result<CaseBuilder, String> {
     let mut builder = CaseBuilder {
-        status: "passed".into(),
+        status: crate::models::PASSED.into(),
         ..Default::default()
     };
     for attr in e.attributes().flatten() {
@@ -122,9 +122,9 @@ fn case_from_attrs(e: &quick_xml::events::BytesStart<'_>) -> Result<CaseBuilder,
             b"classname" => builder.classname = attr_string(&attr.value),
             b"time" => builder.time_secs = attr_string(&attr.value).parse().ok(),
             b"status" => {
-                let s = attr_string(&attr.value).to_lowercase();
+                let s = attr_string(&attr.value);
                 if !s.is_empty() {
-                    builder.status = normalize_status(&s);
+                    builder.status = crate::models::normalize_result_status(&s);
                 }
             }
             _ => {}
@@ -141,10 +141,11 @@ fn apply_outcome(
     let Some(c) = current.as_mut() else {
         return;
     };
+    // JUnit: skipped → Skipped, error → Failed (no separate Error status).
     c.status = match tag {
-        b"error" => "error".into(),
-        b"skipped" => "skipped".into(),
-        _ => "failed".into(),
+        b"error" => crate::models::FAILED.into(),
+        b"skipped" => crate::models::SKIPPED.into(),
+        _ => crate::models::FAILED.into(),
     };
     for attr in e.attributes().flatten() {
         if attr.key.as_ref() == b"message" {
@@ -184,20 +185,10 @@ fn attr_string(value: &[u8]) -> String {
     String::from_utf8_lossy(value).into_owned()
 }
 
-fn normalize_status(s: &str) -> String {
-    match s {
-        "pass" | "passed" | "success" | "successful" | "ok" => "passed".into(),
-        "fail" | "failed" | "failure" => "failed".into(),
-        "skip" | "skipped" | "ignored" => "skipped".into(),
-        "error" | "errored" => "error".into(),
-        "blocked" => "blocked".into(),
-        other => other.to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{FAILED, PASSED, SKIPPED};
 
     #[test]
     fn parses_pytest_style_suite() {
@@ -215,14 +206,26 @@ mod tests {
 </testsuites>"#;
         let items = parse_junit(xml).expect("parse");
         assert_eq!(items.len(), 3);
-        assert_eq!(items[0].status, "passed");
+        assert_eq!(items[0].status, PASSED);
         assert_eq!(
             items[0].external_id.as_deref(),
             Some("tests.test_api::test_health")
         );
-        assert_eq!(items[1].status, "failed");
+        assert_eq!(items[1].status, FAILED);
         assert!(items[1].message.contains("401") || items[1].message.contains("boom"));
-        assert_eq!(items[2].status, "skipped");
+        assert_eq!(items[2].status, SKIPPED);
+    }
+
+    #[test]
+    fn maps_junit_error_to_failed() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1" errors="1">
+  <testcase name="boom" classname="t">
+    <error message="panic"/>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert_eq!(items[0].status, FAILED);
     }
 
     #[test]
@@ -235,7 +238,7 @@ mod tests {
 </testsuites>"#;
         let items = parse_junit(xml).expect("parse");
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].status, "passed");
+        assert_eq!(items[0].status, PASSED);
         assert_eq!(items[0].duration_ms, Some(1050));
     }
 }

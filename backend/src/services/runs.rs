@@ -23,12 +23,12 @@ pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunPro
     let row = sqlx::query(
         r#"SELECT
              COUNT(*)::bigint AS total,
-             COUNT(*) FILTER (WHERE status = 'untested')::bigint AS untested,
-             COUNT(*) FILTER (WHERE status = 'passed')::bigint AS passed,
-             COUNT(*) FILTER (WHERE status = 'failed')::bigint AS failed,
-             COUNT(*) FILTER (WHERE status = 'blocked')::bigint AS blocked,
-             COUNT(*) FILTER (WHERE status = 'skipped')::bigint AS skipped,
-             COUNT(*) FILTER (WHERE status = 'retest')::bigint AS retest
+             COUNT(*) FILTER (WHERE status = 'Untested')::bigint AS untested,
+             COUNT(*) FILTER (WHERE status = 'Passed')::bigint AS passed,
+             COUNT(*) FILTER (WHERE status = 'Failed')::bigint AS failed,
+             COUNT(*) FILTER (WHERE status = 'Blocked')::bigint AS blocked,
+             COUNT(*) FILTER (WHERE status = 'Skipped')::bigint AS skipped,
+             COUNT(*) FILTER (WHERE status = 'Retest')::bigint AS retest
            FROM run_items WHERE run_id = $1"#,
     )
     .bind(run_id)

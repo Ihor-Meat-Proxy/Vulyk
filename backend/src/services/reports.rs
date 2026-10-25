@@ -29,11 +29,12 @@ fn empty_counts() -> StatusCounts {
 
 fn accumulate(counts: &mut StatusCounts, status: &str, n: i64) {
     counts.total += n;
-    match status {
+    match status.to_ascii_lowercase().as_str() {
         "passed" => counts.passed += n,
         "failed" => counts.failed += n,
         "skipped" => counts.skipped += n,
         "blocked" => counts.blocked += n,
+        // Legacy; new ingest maps JUnit error → Failed.
         "error" => counts.error += n,
         "untested" => counts.untested += n,
         "retest" => counts.retest += n,
@@ -233,9 +234,9 @@ pub async fn requirement_coverage(
                linked.source,
                COUNT(DISTINCT linked.case_id) FILTER (WHERE linked.case_id IS NOT NULL)::bigint AS linked_cases,
                COUNT(DISTINCT linked.case_id) FILTER (WHERE latest.status IS NOT NULL)::bigint AS cases_with_results,
-               COUNT(DISTINCT linked.case_id) FILTER (WHERE latest.status = 'passed')::bigint AS cases_passed,
+               COUNT(DISTINCT linked.case_id) FILTER (WHERE latest.status = 'Passed')::bigint AS cases_passed,
                COUNT(DISTINCT linked.case_id) FILTER (
-                   WHERE latest.status IN ('failed', 'error')
+                   WHERE latest.status IN ('Failed', 'failed', 'error')
                )::bigint AS cases_failed
         FROM linked
         LEFT JOIN latest ON latest.case_id = linked.case_id
@@ -327,7 +328,7 @@ pub async fn flaky_cases(
             FROM test_results tr
             JOIN recent_runs rr ON rr.id = tr.run_id
             WHERE tr.case_id IS NOT NULL
-              AND tr.status IN ('passed', 'failed', 'error')
+              AND tr.status IN ('Passed', 'Failed', 'passed', 'failed', 'error')
             ORDER BY tr.case_id, tr.run_id, tr.executed_at DESC, tr.created_at DESC
         ),
         agg AS (
@@ -335,14 +336,14 @@ pub async fn flaky_cases(
                    c.key AS case_key,
                    c.title,
                    COUNT(*)::bigint AS runs_seen,
-                   COUNT(*) FILTER (WHERE per_run.status = 'passed')::bigint AS passes,
-                   COUNT(*) FILTER (WHERE per_run.status IN ('failed', 'error'))::bigint AS failures,
+                   COUNT(*) FILTER (WHERE lower(per_run.status) = 'passed')::bigint AS passes,
+                   COUNT(*) FILTER (WHERE lower(per_run.status) IN ('failed', 'error'))::bigint AS failures,
                    ARRAY_AGG(per_run.status ORDER BY per_run.executed_at DESC) AS last_statuses
             FROM per_run
             JOIN test_cases c ON c.id = per_run.case_id
             GROUP BY c.id, c.key, c.title
-            HAVING COUNT(*) FILTER (WHERE per_run.status = 'passed') > 0
-               AND COUNT(*) FILTER (WHERE per_run.status IN ('failed', 'error')) > 0
+            HAVING COUNT(*) FILTER (WHERE lower(per_run.status) = 'passed') > 0
+               AND COUNT(*) FILTER (WHERE lower(per_run.status) IN ('failed', 'error')) > 0
         )
         SELECT case_id, case_key, title, runs_seen, passes, failures, last_statuses
         FROM agg
