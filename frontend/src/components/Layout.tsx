@@ -111,6 +111,7 @@ export function Layout({
             <NavLink to="/reports">{t('nav.reports')}</NavLink>
           ) : null}
           {showAdmin ? <NavLink to="/admin">{t('nav.admin')}</NavLink> : null}
+          <NavLink to="/appearance">{t('nav.appearance')}</NavLink>
         </nav>
 
         <div className="suite-block">
@@ -198,11 +199,11 @@ export function Layout({
                 ))}
               </select>
             </label>
-            <Link className="btn secondary" to="/appearance">
-              {t('nav.appearance')}
-            </Link>
             {user ? (
               <div className="user-chip">
+                <Link className="appearance-link" to="/appearance">
+                  {t('nav.appearance')}
+                </Link>
                 <span>{user.display_name}</span>
                 <button
                   type="button"
@@ -212,9 +213,16 @@ export function Layout({
                   {t('nav.signOut')}
                 </button>
               </div>
-            ) : status && !status.auth_required ? (
-              <span className="muted">{t('nav.openMode')}</span>
-            ) : null}
+            ) : (
+              <>
+                <Link className="appearance-link desktop-only" to="/appearance">
+                  {t('nav.appearance')}
+                </Link>
+                {status && !status.auth_required ? (
+                  <span className="muted">{t('nav.openMode')}</span>
+                ) : null}
+              </>
+            )}
           </div>
         </header>
         <main className="content">

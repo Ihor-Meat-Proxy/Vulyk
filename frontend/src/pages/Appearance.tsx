@@ -30,13 +30,11 @@ export function Appearance() {
         <p className="muted">{t('appearance.subtitle')}</p>
       </header>
 
-      <section className="panel" aria-labelledby="appearance-theme">
-        <h3 id="appearance-theme">{t('appearance.theme')}</h3>
+      <section className="panel">
         <label className="field">
-          <span className="sr-only">{t('appearance.theme')}</span>
+          <span>{t('appearance.theme')}</span>
           <select
             value={prefs.theme}
-            aria-label={t('appearance.theme')}
             onChange={(e) => void setTheme(e.target.value as ThemeChoice)}
           >
             {THEMES.map((theme) => (
@@ -48,9 +46,13 @@ export function Appearance() {
         </label>
       </section>
 
-      <section className="panel" aria-labelledby="appearance-font">
-        <h3 id="appearance-font">{t('appearance.fontSize')}</h3>
-        <div className="font-size-steps" role="group" aria-label={t('appearance.fontSize')}>
+      <section className="panel">
+        <h3>{t('appearance.fontSize')}</h3>
+        <div
+          className="font-size-steps"
+          role="group"
+          aria-label={t('appearance.fontSize')}
+        >
           {FONT_SIZE_STEPS.map((step) => (
             <button
               key={step}
@@ -65,13 +67,11 @@ export function Appearance() {
         </div>
       </section>
 
-      <section className="panel" aria-labelledby="appearance-density">
-        <h3 id="appearance-density">{t('appearance.density')}</h3>
+      <section className="panel">
         <label className="field">
-          <span className="sr-only">{t('appearance.density')}</span>
+          <span>{t('appearance.density')}</span>
           <select
             value={prefs.density}
-            aria-label={t('appearance.density')}
             onChange={(e) => void setDensity(e.target.value as Density)}
           >
             {DENSITIES.map((d) => (
@@ -83,10 +83,9 @@ export function Appearance() {
         </label>
       </section>
 
-      <section className="panel" aria-labelledby="appearance-motion">
-        <h3 id="appearance-motion">{t('appearance.reducedMotion')}</h3>
+      <section className="panel">
         <label className="field">
-          <span className="sr-only">{t('appearance.reducedMotion')}</span>
+          <span>{t('appearance.reducedMotion')}</span>
           <select
             value={
               prefs.reducedMotion === null
@@ -95,7 +94,6 @@ export function Appearance() {
                   ? 'on'
                   : 'off'
             }
-            aria-label={t('appearance.reducedMotion')}
             onChange={(e) => {
               const v = e.target.value
               void setReducedMotion(
@@ -113,8 +111,8 @@ export function Appearance() {
         </p>
       </section>
 
-      <section className="panel" aria-labelledby="appearance-preview">
-        <h3 id="appearance-preview">{t('appearance.statusPreview')}</h3>
+      <section className="panel">
+        <h3>{t('appearance.statusPreview')}</h3>
         <div className="appearance-preview">
           {(
             [

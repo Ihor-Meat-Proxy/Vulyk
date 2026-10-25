@@ -30,7 +30,14 @@ test.describe('PWA + mobile Chromium viewport', () => {
       timeout: 30_000,
     })
 
-    await page.getByText(`Mobile ${caseKey}`).click()
+    // Avoid sticky topbar / bottom-nav intercepting the case link on short viewports.
+    const caseLink = page.locator('.content').getByRole('link', {
+      name: `Mobile ${caseKey}`,
+    })
+    await caseLink.evaluate((el) =>
+      el.scrollIntoView({ block: 'center', inline: 'nearest' }),
+    )
+    await caseLink.click({ force: true })
     await expect(page.getByText(caseKey).first()).toBeVisible()
     await expect(page.getByRole('link', { name: /Back to cases/i })).toBeVisible()
 

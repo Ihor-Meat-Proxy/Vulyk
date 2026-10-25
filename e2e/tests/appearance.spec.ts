@@ -17,8 +17,16 @@ async function openAppearance(page: Page) {
   })
 }
 
+function themeSelect(page: Page) {
+  return page.locator('.appearance-page select').nth(0)
+}
+
+function densitySelect(page: Page) {
+  return page.locator('.appearance-page select').nth(1)
+}
+
 async function selectTheme(page: Page, theme: string) {
-  await page.getByLabel(/Theme|Тема/i).selectOption(theme)
+  await themeSelect(page).selectOption(theme)
   await expect(page.locator('html')).toHaveAttribute(
     'data-theme-choice',
     theme,
@@ -48,7 +56,7 @@ test.describe('Appearance & theming', () => {
         theme,
       )
       await openAppearance(page)
-      await expect(page.getByLabel(/Theme|Тема/i)).toHaveValue(theme)
+      await expect(themeSelect(page)).toHaveValue(theme)
     }
   })
 
@@ -65,7 +73,7 @@ test.describe('Appearance & theming', () => {
     await loginAsAdmin(page)
     await expect(page.locator('html')).toHaveAttribute('data-theme-choice', 'dark')
     await openAppearance(page)
-    await expect(page.getByLabel(/Theme|Тема/i)).toHaveValue('dark')
+    await expect(themeSelect(page)).toHaveValue('dark')
   })
 
   test('status badges show icon and label', async ({ page }) => {
@@ -118,7 +126,7 @@ test.describe('Appearance & theming', () => {
     )
     expect(scale).toBe('1.25')
 
-    await page.getByLabel(/Density|Щільність/i).selectOption('compact')
+    await densitySelect(page).selectOption('compact')
     await expect(page.locator('html')).toHaveAttribute('data-density', 'compact')
 
     await page.reload()

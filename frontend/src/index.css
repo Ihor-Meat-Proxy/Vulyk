@@ -397,6 +397,20 @@ select.locale-select {
   font-size: 0.92rem;
 }
 
+.appearance-link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+@media (max-width: 860px) {
+  .appearance-link,
+  .desktop-only {
+    display: none;
+  }
+}
+
 .login-shell {
   min-height: 100vh;
   display: grid;
