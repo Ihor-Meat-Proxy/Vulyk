@@ -10,7 +10,7 @@ export class RunsPage {
       .getByRole('link', { name: /Runs|Прогони/i, exact: true })
       .click()
     await expect(
-      this.page.getByRole('heading', { name: /Start a run|Recent runs/i }),
+      this.page.getByRole('heading', { name: 'Start a run', exact: true }),
     ).toBeVisible({ timeout: 30_000 })
   }
 

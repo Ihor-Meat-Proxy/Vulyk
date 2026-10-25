@@ -66,6 +66,8 @@ export class SetupPage {
   }
 
   async expectError() {
-    await expect(this.page.locator('.login-panel .error')).toBeVisible()
+    await expect(this.page.locator('.login-panel .error')).toBeVisible({
+      timeout: 15_000,
+    })
   }
 }

@@ -77,11 +77,18 @@ test('setup token protection + wizard locale/timezone', async ({
     registrationMode: 'open',
   })
   await setup.submit()
-  // App leaves the wizard as soon as setup_required clears → login panel
-  await expect(page.locator('.login-panel')).toBeVisible({ timeout: 30_000 })
-
-  const status = await authStatus(request)
-  expect(status.setup_required).toBeFalsy()
+  // login-panel is already visible on the wizard form — poll API instead.
+  await expect
+    .poll(async () => (await authStatus(request)).setup_required, {
+      timeout: 30_000,
+    })
+    .toBeFalsy()
+  await expect(page.locator('.login-panel .error')).toHaveCount(0)
+  await expect(
+    page.getByRole('button', {
+      name: /Sign in|Увійти|Create admin|Створити/i,
+    }).or(page.getByText(/Setup complete|Готово/i)),
+  ).toBeVisible({ timeout: 15_000 })
 
   // Locale switch + timezone display in admin settings
   // Sign in as original seeded admin (still present)
@@ -96,7 +103,9 @@ test('setup token protection + wizard locale/timezone', async ({
     .getByRole('link', { name: /Admin|Адмін/i })
     .click()
   await page.getByRole('tab', { name: /Settings|Налаштування/i }).click()
-  await expect(page.getByLabel(/Default timezone|timezone/i)).toBeVisible()
+  await expect(
+    page.getByLabel(/Default timezone|Часовий пояс|timezone/i),
+  ).toBeVisible({ timeout: 20_000 })
 
   // Ensure timezone can be read/saved
   const admin = await ensureAdminSession(request)

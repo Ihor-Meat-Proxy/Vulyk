@@ -28,7 +28,9 @@ test('integrations + LLM settings pages (mock LLM)', async ({
   await adminUi.open()
 
   await adminUi.openIntegrationsTab()
-  await expect(page.getByRole('heading', { name: /Integrations/i }).or(page.getByText(/integration/i).first())).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Integrations', exact: true }),
+  ).toBeVisible()
 
   await adminUi.openLlmTab()
   await expect(page.getByRole('heading', { name: /LLM providers/i })).toBeVisible()

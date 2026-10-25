@@ -77,17 +77,13 @@ test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', 
     await expect(btn.first()).toBeEnabled()
     await btn.first().click()
 
-    const timeline = page.getByLabel('Result history')
-    if (await timeline.isVisible().catch(() => false)) {
-      await expect(timeline.locator('.status-pill').filter({ hasText: status })).toBeVisible({
-        timeout: 20_000,
-      })
-    } else {
-      // Current UI uses lowercase status pills on the queue when no timeline yet.
-      await expect(
-        page.locator(`.status-pill.status-${status.toLowerCase()}`).first(),
-      ).toBeVisible({ timeout: 20_000 })
-    }
+    // After save the UI advances/closes the exec panel; assert on the queue pill.
+    await expect(
+      page
+        .locator(`.status-pill.status-${status.toLowerCase()}`)
+        .filter({ hasText: status })
+        .first(),
+    ).toBeVisible({ timeout: 20_000 })
   }
 
   // Optional richer history UI (when present)
