@@ -27,6 +27,18 @@ spec:
                   key: DATABASE_URL
             - name: BIND_ADDR
               value: 0.0.0.0:8080
+            - name: VULYK_AUTH_REQUIRED
+              value: "true"
+            - name: VULYK_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: VULYK_JWT_SECRET
+            - name: VULYK_SECRETS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: VULYK_SECRETS_KEY
           readinessProbe:
             httpGet:
               path: /ready
@@ -39,6 +51,12 @@ spec:
               port: 8080
             initialDelaySeconds: 5
             periodSeconds: 20
+          volumeMounts:
+            - name: attachments
+              mountPath: /var/lib/vulyk/attachments
+      volumes:
+        - name: attachments
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

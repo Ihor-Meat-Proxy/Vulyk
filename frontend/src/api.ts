@@ -19,6 +19,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     const text = await res.text()
+    try {
+      const parsed = JSON.parse(text) as {
+        error?: { message?: string; code?: string }
+      }
+      if (parsed?.error?.message) {
+        throw new Error(parsed.error.message)
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== text) throw err
+    }
     throw new Error(text || res.statusText)
   }
   if (res.status === 204) {
@@ -424,6 +434,94 @@ export type Defect = {
   status: string
 }
 
+export type StatusCounts = {
+  total: number
+  passed: number
+  failed: number
+  skipped: number
+  blocked: number
+  error: number
+  untested: number
+  retest: number
+  other: number
+}
+
+export type RunSummaryReport = {
+  run_id: string
+  project_id: string
+  name: string
+  status: string
+  started_at: string | null
+  finished_at: string | null
+  counts: StatusCounts
+  pass_rate: number
+}
+
+export type TrendPoint = {
+  bucket: string
+  run_id: string | null
+  run_name: string | null
+  counts: StatusCounts
+  pass_rate: number
+}
+
+export type PassFailTrends = {
+  project_id: string
+  granularity: string
+  points: TrendPoint[]
+}
+
+export type RequirementCoverageRow = {
+  requirement_id: string
+  external_key: string | null
+  title: string
+  source: string
+  linked_cases: number
+  cases_with_results: number
+  cases_passed: number
+  cases_failed: number
+  coverage_percent: number
+  pass_percent: number
+}
+
+export type RequirementCoverageReport = {
+  project_id: string
+  total_requirements: number
+  covered_requirements: number
+  coverage_percent: number
+  rows: RequirementCoverageRow[]
+}
+
+export type FlakyCase = {
+  case_id: string
+  case_key: string
+  title: string
+  runs_seen: number
+  passes: number
+  failures: number
+  flake_score: number
+  last_statuses: string[]
+}
+
+export type FlakyReport = {
+  project_id: string
+  lookback_runs: number
+  cases: FlakyCase[]
+}
+
+export type ProjectDashboard = {
+  project_id: string
+  project_key: string
+  project_name: string
+  total_cases: number
+  total_runs: number
+  total_requirements: number
+  recent_run_summaries: RunSummaryReport[]
+  trends: PassFailTrends
+  coverage: RequirementCoverageReport
+  flaky: FlakyReport
+}
+
 const defaultMapping = (): FieldMapping => ({
   title: 'title',
   key: 'key',
@@ -751,6 +849,25 @@ export const api = {
 
   listResults: (runId: string) =>
     request<TestResult[]>(`/api/v1/runs/${runId}/results`),
+  ingestRun: (
+    runId: string,
+    body: {
+      format: string
+      content: string
+      async_mode?: boolean
+      source?: string
+    },
+  ) =>
+    request<{
+      inserted: number
+      updated: number
+      unmatched_case_keys: string[]
+      job_id: string | null
+      parsed: number
+    }>(`/api/v1/runs/${runId}/ingest`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   listCiConfigs: (projectId: string) =>
     request<CiConfig[]>(`/api/v1/projects/${projectId}/ci-configs`),
   createCiConfig: (
@@ -776,4 +893,57 @@ export const api = {
     }),
   listDispatches: (projectId: string) =>
     request<CiDispatch[]>(`/api/v1/projects/${projectId}/ci-dispatches`),
+
+  getDashboard: (projectId: string) =>
+    request<ProjectDashboard>(
+      `/api/v1/projects/${projectId}/reports/dashboard`,
+    ),
+  getRunSummary: (projectId: string, runId: string) =>
+    request<RunSummaryReport>(
+      `/api/v1/projects/${projectId}/reports/runs/${runId}/summary`,
+    ),
+  getTrends: (projectId: string, granularity: 'run' | 'day' = 'run', limit = 20) =>
+    request<PassFailTrends>(
+      `/api/v1/projects/${projectId}/reports/trends?granularity=${granularity}&limit=${limit}`,
+    ),
+  getCoverage: (projectId: string) =>
+    request<RequirementCoverageReport>(
+      `/api/v1/projects/${projectId}/reports/coverage`,
+    ),
+  getFlaky: (projectId: string, lookbackRuns = 20, limit = 50) =>
+    request<FlakyReport>(
+      `/api/v1/projects/${projectId}/reports/flaky?lookback_runs=${lookbackRuns}&limit=${limit}`,
+    ),
+  downloadReportExport: async (
+    projectId: string,
+    opts: { format: 'csv' | 'pdf'; report?: string; runId?: string },
+  ) => {
+    const qs = new URLSearchParams({
+      format: opts.format,
+      report: opts.report ?? 'dashboard',
+    })
+    if (opts.runId) qs.set('run_id', opts.runId)
+    const token = getStoredToken()
+    const headers: Record<string, string> = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+    const res = await fetch(
+      `${API_BASE}/api/v1/projects/${projectId}/reports/export?${qs}`,
+      { headers, credentials: 'include' },
+    )
+    if (!res.ok) {
+      throw new Error((await res.text()) || res.statusText)
+    }
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') ?? ''
+    const match = /filename="?([^"]+)"?/.exec(disposition)
+    const filename =
+      match?.[1] ??
+      `vulyk-report.${opts.format === 'pdf' ? 'pdf' : 'csv'}`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
 }

@@ -18,6 +18,9 @@ export function RunsPage({ projectId, suites }: Props) {
   const [suiteId, setSuiteId] = useState('')
   const [creating, setCreating] = useState(false)
   const [planName, setPlanName] = useState('')
+  const [uploadRunId, setUploadRunId] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
   useEffect(() => {
     if (!projectId) {
@@ -65,6 +68,30 @@ export function RunsPage({ projectId, suites }: Props) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setCreating(false)
+    }
+  }
+
+  const uploadJunit = async (file: File) => {
+    if (!projectId || !uploadRunId) return
+    setUploading(true)
+    setUploadMessage(null)
+    try {
+      const content = await file.text()
+      const result = await api.ingestRun(uploadRunId, {
+        format: 'junit',
+        content,
+        source: 'ui',
+      })
+      setUploadMessage(
+        `Ingested ${result.parsed} results (${result.inserted} inserted).`,
+      )
+      const runPage = await api.listRuns(projectId)
+      setRuns(runPage.items)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -130,6 +157,40 @@ export function RunsPage({ projectId, suites }: Props) {
             {creating ? 'Creating…' : 'Create run'}
           </button>
         </div>
+      </section>
+
+      <section className="panel" style={{ marginBottom: '1rem' }}>
+        <h3 style={{ marginTop: 0 }}>Upload JUnit results</h3>
+        <p className="muted" style={{ marginTop: 0 }}>
+          Select a run, then choose a JUnit XML file to ingest.
+        </p>
+        <div className="form-row">
+          <select
+            className="filter-input"
+            value={uploadRunId}
+            onChange={(e) => setUploadRunId(e.target.value)}
+            aria-label="Upload target run"
+          >
+            <option value="">Select run…</option>
+            {runs.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+          <input
+            type="file"
+            accept=".xml,text/xml,application/xml"
+            aria-label="JUnit XML file"
+            disabled={!uploadRunId || uploading}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) void uploadJunit(file)
+              e.target.value = ''
+            }}
+          />
+        </div>
+        {uploadMessage && <p className="muted">{uploadMessage}</p>}
       </section>
 
       <section className="panel" style={{ marginBottom: '1rem' }}>

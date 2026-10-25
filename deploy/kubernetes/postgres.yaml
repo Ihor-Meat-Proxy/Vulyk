@@ -8,6 +8,19 @@ stringData:
   POSTGRES_PASSWORD: change-me
   POSTGRES_DB: vulyk
   DATABASE_URL: postgres://vulyk:change-me@vulyk-db:5432/vulyk
+  VULYK_JWT_SECRET: change-me-jwt
+  VULYK_SECRETS_KEY: change-me-secrets-key
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vulyk-db-data
+  namespace: vulyk
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -16,6 +29,8 @@ metadata:
   namespace: vulyk
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: vulyk-db
@@ -29,15 +44,40 @@ spec:
           image: postgres:16-alpine
           ports:
             - containerPort: 5432
-          envFrom:
-            - secretRef:
-                name: vulyk-db
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: POSTGRES_DB
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "vulyk"]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "vulyk"]
+            initialDelaySeconds: 15
+            periodSeconds: 10
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+              subPath: pgdata
       volumes:
         - name: data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: vulyk-db-data
 ---
 apiVersion: v1
 kind: Service

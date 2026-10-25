@@ -305,10 +305,10 @@ Agents can own one stream each; contracts live in this doc + OpenAPI.
 | **W5** | CI integrations | W4 | GHA/GitLab webhook status sync; `workflow_dispatch` / pipeline trigger from UI; reusable Action + GitLab template |
 | **W6** | Requirements & ALM | W0 | Requirements CRUD, OpenProject + Jira Cloud/DC adapters, defect create |
 | **W7** | Importers | W2 | `Importer` trait + Xray, Zephyr, Squash, TestLink, TestRail, qTest, Qase, Kiwi |
-| **W8** | Reports & dashboards | W3 | Run summary, pass-rate trends, requirement coverage |
+| **W8** | Reports & dashboards | W3 | Run summary, pass-rate trends, requirement coverage, flaky detection, CSV/PDF export — `/api/v1/projects/{id}/reports/*` + Reports UI |
 | **W9** | LLM abstraction | W1* | Provider trait, encrypted keys, Admin UI, generate case / code / Q&A — see [llm.md](llm.md). *Minimal API tokens ship with W10 so MCP works before full W1 RBAC.* |
 | **W10** | MCP server | W0 + W1* | Full tool set on `mcp/` (stdio + HTTP), docs for Cursor/Claude — see [mcp.md](mcp.md) |
-| **W11** | Deploy hardening | W0 | Prod compose, Helm values, backups, install script polish |
+| **W11** | Deploy hardening | W0 | Prod compose (`docker-compose.prod.yml`, auth on), Helm chart, backups docs, install.sh (Linux/macOS/WSL2), perf smoke |
 
 Suggested merge order for conflicting areas: **W1 → W2/W3 → W4 → others**. Importers (W7) and ALM (W6) are independent after W0/W2.
 

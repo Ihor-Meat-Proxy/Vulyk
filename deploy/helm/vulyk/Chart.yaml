@@ -1,6 +1,13 @@
 apiVersion: v2
 name: vulyk
-description: Vulyk test management system (Helm skeleton)
+description: Vulyk open-source test management system
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.2.0
+appVersion: "0.2.0"
+keywords:
+  - testing
+  - tms
+  - qa
+home: https://github.com/Ihor-Meat-Proxy/Vulyk
+maintainers:
+  - name: Vulyk contributors

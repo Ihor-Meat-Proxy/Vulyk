@@ -182,3 +182,121 @@ jobs:
         run: |
           if [ -f /tmp/vulyk-api.pid ]; then kill "$(cat /tmp/vulyk-api.pid)" || true; fi
           cat /tmp/vulyk-api.log || true
+
+  install-script:
+    name: Install script check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax + toolchain check
+        run: |
+          bash -n scripts/install.sh
+          bash -n scripts/perf-smoke.sh
+          ./scripts/install.sh check
+
+  helm:
+    name: Helm chart template
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.16.2
+      - name: Render chart
+        run: ./scripts/install.sh helm-template
+
+  playwright-e2e:
+    name: Playwright e2e (login → report)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+      VULYK_API_URL: http://127.0.0.1:8080
+      BIND_ADDR: 127.0.0.1:8080
+      VULYK_AUTH_REQUIRED: "true"
+      VULYK_JWT_SECRET: e2e-ci-jwt-secret
+      VULYK_SECRETS_KEY: e2e-ci-secrets-key
+      VULYK_LLM_MOCK: "1"
+      E2E_BASE_URL: http://127.0.0.1:5173
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Build API
+        run: cargo build -p vulyk-api --release
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install Playwright
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start API
+        run: |
+          ./target/release/vulyk-api > /tmp/vulyk-api-e2e.log 2>&1 &
+          echo $! > /tmp/vulyk-api-e2e.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "$VULYK_API_URL/health" >/dev/null; then
+              echo "API ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "API failed to start" >&2
+          cat /tmp/vulyk-api-e2e.log >&2
+          exit 1
+      - name: Start frontend preview
+        working-directory: frontend
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 5173 > /tmp/vulyk-web-e2e.log 2>&1 &
+          echo $! > /tmp/vulyk-web-e2e.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "$E2E_BASE_URL" >/dev/null; then
+              echo "UI ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "UI failed to start" >&2
+          cat /tmp/vulyk-web-e2e.log >&2
+          exit 1
+      - name: Run Playwright
+        working-directory: e2e
+        run: npx playwright test
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          if-no-files-found: ignore
+      - name: Stop services
+        if: always()
+        run: |
+          if [ -f /tmp/vulyk-web-e2e.pid ]; then kill "$(cat /tmp/vulyk-web-e2e.pid)" || true; fi
+          if [ -f /tmp/vulyk-api-e2e.pid ]; then kill "$(cat /tmp/vulyk-api-e2e.pid)" || true; fi
+          cat /tmp/vulyk-api-e2e.log || true
+          cat /tmp/vulyk-web-e2e.log || true

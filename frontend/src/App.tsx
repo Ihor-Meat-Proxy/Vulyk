@@ -10,8 +10,8 @@ import { Chat } from './pages/Chat'
 import { Generate } from './pages/Generate'
 import { ImportPage } from './pages/ImportPage'
 import { Login } from './pages/Login'
-import { Placeholder } from './pages/Placeholder'
 import { Runs } from './pages/Runs'
+import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { RunDetail } from './pages/RunDetail'
 import { RunsPage } from './pages/RunsPage'
@@ -203,12 +203,7 @@ export default function App() {
           <Route path="ci" element={<Runs projectId={activeProjectId} />} />
           <Route
             path="reports"
-            element={
-              <Placeholder
-                title="Reports"
-                blurb="Dashboards and coverage reports land in workstream W8."
-              />
-            }
+            element={<Reports projectId={activeProjectId} />}
           />
           <Route
             path="admin"

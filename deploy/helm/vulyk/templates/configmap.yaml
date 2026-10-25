@@ -1,9 +1,13 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ .Release.Name }}-config
+  name: {{ include "vulyk.fullname" . }}-config
   labels:
-    app.kubernetes.io/name: vulyk
+    {{- include "vulyk.labels" . | nindent 4 }}
 data:
   BIND_ADDR: "0.0.0.0:8080"
-  RUST_LOG: "vulyk_api=info"
+  RUST_LOG: {{ .Values.env.RUST_LOG | quote }}
+  VULYK_AUTH_REQUIRED: {{ .Values.auth.required | ternary "true" "false" | quote }}
+  VULYK_LLM_MOCK: {{ .Values.env.VULYK_LLM_MOCK | quote }}
+  VULYK_JWT_TTL_HOURS: {{ .Values.env.VULYK_JWT_TTL_HOURS | quote }}
+  VULYK_SESSION_TTL_HOURS: {{ .Values.env.VULYK_SESSION_TTL_HOURS | quote }}
