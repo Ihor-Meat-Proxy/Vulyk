@@ -1,0 +1,25 @@
+# Rust
+/target/
+**/target/
+**/*.rs.bk
+
+# Node
+node_modules/
+**/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# Env / local
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Docker / local data
+*.log
+pgdata/

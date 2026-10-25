@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vulyk
+      POSTGRES_PASSWORD: vulyk
+      POSTGRES_DB: vulyk
+    ports:
+      - "5432:5432"
+    volumes:
+      - vulyk_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vulyk -d vulyk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgres://vulyk:vulyk@db:5432/vulyk
+      BIND_ADDR: 0.0.0.0:8080
+      RUST_LOG: vulyk_api=info,tower_http=info
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  vulyk_pg:

@@ -1,0 +1,23 @@
+image:
+  api: vulyk-api:latest
+  web: vulyk-web:latest
+  pullPolicy: IfNotPresent
+
+replicaCount:
+  api: 1
+  web: 1
+
+postgresql:
+  enabled: true
+  auth:
+    username: vulyk
+    password: change-me
+    database: vulyk
+
+service:
+  apiPort: 8080
+  webPort: 80
+
+ingress:
+  enabled: false
+  host: vulyk.local

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulyk-api
+  namespace: vulyk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vulyk-api
+  template:
+    metadata:
+      labels:
+        app: vulyk-api
+    spec:
+      containers:
+        - name: api
+          image: vulyk-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vulyk-db
+                  key: DATABASE_URL
+            - name: BIND_ADDR
+              value: 0.0.0.0:8080
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vulyk-api
+  namespace: vulyk
+spec:
+  selector:
+    app: vulyk-api
+  ports:
+    - port: 8080
+      targetPort: 8080

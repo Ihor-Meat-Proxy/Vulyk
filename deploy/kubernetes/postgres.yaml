@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vulyk-db
+  namespace: vulyk
+stringData:
+  POSTGRES_USER: vulyk
+  POSTGRES_PASSWORD: change-me
+  POSTGRES_DB: vulyk
+  DATABASE_URL: postgres://vulyk:change-me@vulyk-db:5432/vulyk
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulyk-db
+  namespace: vulyk
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vulyk-db
+  template:
+    metadata:
+      labels:
+        app: vulyk-db
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - secretRef:
+                name: vulyk-db
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vulyk-db
+  namespace: vulyk
+spec:
+  selector:
+    app: vulyk-db
+  ports:
+    - port: 5432
+      targetPort: 5432
