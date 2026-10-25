@@ -15,6 +15,12 @@ async fn spawn_app() -> String {
     let state = vulyk_api::routes::AppState {
         pool,
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
+        auth: vulyk_api::auth::AuthConfig {
+            required: false,
+            jwt_secret: "test-secret".into(),
+            jwt_ttl_hours: 12,
+            session_ttl_hours: 168,
+        },
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

@@ -294,9 +294,9 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  listIntegrations: () =>
+  listAdminIntegrations: () =>
     request<IntegrationSetting[]>('/api/v1/admin/integrations'),
-  createIntegration: (body: {
+  createAdminIntegration: (body: {
     kind: string
     name: string
     config?: Record<string, unknown>

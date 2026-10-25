@@ -42,7 +42,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
     try {
       if (isAdmin) {
         setUsers(await api.listUsers())
-        setIntegrations(await api.listIntegrations())
+        setIntegrations(await api.listAdminIntegrations())
       }
       if (projectId) {
         setMemberships(await api.listMemberships(projectId))
@@ -455,7 +455,7 @@ function IntegrationsPanel({
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
-      await api.createIntegration({ kind, name, config: {}, enabled: false })
+      await api.createAdminIntegration({ kind, name, config: {}, enabled: false })
       setName('')
       onChanged()
     } catch (err) {
