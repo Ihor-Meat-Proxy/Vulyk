@@ -85,9 +85,9 @@ test('setup token protection + wizard locale/timezone', async ({
     .toBeFalsy()
   await expect(page.locator('.login-panel .error')).toHaveCount(0)
   await expect(
-    page.getByRole('button', {
-      name: /Sign in|Увійти|Create admin|Створити/i,
-    }).or(page.getByText(/Setup complete|Готово/i)),
+    page
+      .locator('.login-panel button[type="submit"]')
+      .or(page.getByText(/Setup complete|Готово/i)),
   ).toBeVisible({ timeout: 15_000 })
 
   // Locale switch + timezone display in admin settings
