@@ -5,6 +5,7 @@ import { useAuth } from './auth'
 import { Layout } from './components/Layout'
 import { useI18n } from './i18n'
 import { Admin } from './pages/Admin'
+import { Appearance } from './pages/Appearance'
 import { CaseDetail } from './pages/CaseDetail'
 import { CaseList } from './pages/CaseList'
 import { ChangePassword } from './pages/ChangePassword'
@@ -243,6 +244,7 @@ export default function App() {
               />
             }
           />
+          <Route path="appearance" element={<Appearance />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

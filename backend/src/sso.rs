@@ -18,7 +18,7 @@ use crate::models::{SsoProviderPublic, User};
 use crate::settings::{self, RegistrationMode};
 
 const USER_COLUMNS: &str = r#"id, email, display_name, password_hash, is_system_admin,
-                  must_change_password, locale, timezone,
+                  must_change_password, locale, timezone, preferences,
                   disabled_at, created_at, updated_at"#;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]

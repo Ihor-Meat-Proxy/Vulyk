@@ -11,7 +11,7 @@ use crate::models::{CreateUserRequest, UpdateUserRequest, User, UserPublic};
 use crate::routes::AppState;
 
 const USER_COLUMNS: &str = r#"id, email, display_name, password_hash, is_system_admin,
-                  must_change_password, locale, timezone,
+                  must_change_password, locale, timezone, preferences,
                   disabled_at, created_at, updated_at"#;
 
 pub fn router() -> Router<AppState> {
@@ -116,6 +116,14 @@ pub async fn update_user(
     Json(body): Json<UpdateUserRequest>,
 ) -> AppResult<Json<UserPublic>> {
     let existing = load_user(&state, id).await?;
+    let mut preferences = existing.preferences_typed();
+    if let Some(patch) = body.preferences.as_ref() {
+        preferences
+            .merge_update(patch)
+            .map_err(AppError::BadRequest)?;
+    }
+    let preferences_value = preferences.to_value();
+
     let display_name = body
         .display_name
         .map(|s| s.trim().to_string())
@@ -144,6 +152,7 @@ pub async fn update_user(
                disabled_at = $5,
                locale = $6,
                timezone = $7,
+               preferences = $8,
                updated_at = NOW()
            WHERE id = $1
            RETURNING {USER_COLUMNS}"#
@@ -155,6 +164,7 @@ pub async fn update_user(
     .bind(disabled_at)
     .bind(locale)
     .bind(timezone)
+    .bind(preferences_value)
     .fetch_one(&state.pool)
     .await?;
 

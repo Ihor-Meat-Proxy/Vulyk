@@ -26,9 +26,9 @@ use crate::models::{
     Tag, TestCase, TestCaseDetail, TestPlan, TestPlanDetail, TestResult, TestResultDetail,
     TestResultHistoryItem, TestRun, TestRunDetail, TestStep, TrendPoint, TrendsQuery, UpdateCase,
     UpdateCiConfig, UpdateCustomField, UpdateIntegration, UpdateLlmConfig, UpdateMeRequest,
-    UpdateMembership, UpdatePlan, UpdateProject, UpdateRequirement, UpdateRun, UpdateRunItem,
-    UpdateSuite, UpdateTag, UpdateUserRequest, UpsertIntegrationSetting, UpsertMembership,
-    UserPublic, WebhookAck,
+    UpdateMembership, UpdatePlan, UpdatePreferences, UpdateProject, UpdateRequirement, UpdateRun,
+    UpdateRunItem, UpdateSuite, UpdateTag, UpdateUserRequest, UpsertIntegrationSetting,
+    UpsertMembership, UserPreferences, UserPublic, WebhookAck,
 };
 use crate::routes::health::{HealthResponse, ReadyResponse};
 use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSettings};
@@ -286,6 +286,8 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         CreateApiToken,
         CreateApiTokenResponse,
         UserPublic,
+        UserPreferences,
+        UpdatePreferences,
         BootstrapRequest,
         LoginRequest,
         RegisterRequest,

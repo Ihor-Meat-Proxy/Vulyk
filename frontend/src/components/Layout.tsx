@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from 'react'
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { Project, Suite } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -198,6 +198,9 @@ export function Layout({
                 ))}
               </select>
             </label>
+            <Link className="btn secondary" to="/appearance">
+              {t('nav.appearance')}
+            </Link>
             {user ? (
               <div className="user-chip">
                 <span>{user.display_name}</span>

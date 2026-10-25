@@ -842,6 +842,7 @@ function SettingsPanel({
   const [baseUrl, setBaseUrl] = useState('')
   const [locale, setLocale] = useState('en')
   const [timezone, setTimezone] = useState('UTC')
+  const [defaultTheme, setDefaultTheme] = useState('system')
   const [registrationMode, setRegistrationMode] =
     useState<RegistrationMode>('disabled')
   const [defaultRole, setDefaultRole] = useState<ProjectRole>('viewer')
@@ -852,6 +853,7 @@ function SettingsPanel({
     setBaseUrl(settings.base_url)
     setLocale(settings.default_locale)
     setTimezone(settings.default_timezone)
+    setDefaultTheme(settings.default_theme || 'system')
     setRegistrationMode(settings.registration_mode)
     setDefaultRole(settings.default_role)
   }, [settings])
@@ -872,6 +874,7 @@ function SettingsPanel({
         base_url: baseUrl,
         default_locale: locale,
         default_timezone: timezone,
+        default_theme: defaultTheme,
         registration_mode: registrationMode,
         default_role: defaultRole,
       })
@@ -909,6 +912,21 @@ function SettingsPanel({
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
           />
+        </label>
+        <label className="field">
+          <span>{t('admin.defaultTheme')}</span>
+          <select
+            value={defaultTheme}
+            onChange={(e) => setDefaultTheme(e.target.value)}
+          >
+            <option value="system">{t('appearance.theme.system')}</option>
+            <option value="light">{t('appearance.theme.light')}</option>
+            <option value="dark">{t('appearance.theme.dark')}</option>
+            <option value="high_contrast">
+              {t('appearance.theme.high_contrast')}
+            </option>
+            <option value="sepia">{t('appearance.theme.sepia')}</option>
+          </select>
         </label>
         <label className="field">
           <span>{t('setup.registrationMode')}</span>

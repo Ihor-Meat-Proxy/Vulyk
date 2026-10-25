@@ -293,6 +293,20 @@ export type ListCasesParams = {
   offset?: number
 }
 
+export type UserPreferences = {
+  theme: string
+  font_size: number
+  density: string
+  reduced_motion: boolean | null
+}
+
+export type UpdatePreferences = {
+  theme?: string
+  font_size?: number
+  density?: string
+  reduced_motion?: boolean | null
+}
+
 export type UserPublic = {
   id: string
   email: string
@@ -301,6 +315,7 @@ export type UserPublic = {
   must_change_password: boolean
   locale: string | null
   timezone: string | null
+  preferences: UserPreferences
   disabled_at: string | null
   created_at: string
   updated_at: string
@@ -322,6 +337,7 @@ export type AuthStatus = {
   registration_mode: RegistrationMode
   default_locale: string
   default_timezone: string
+  default_theme: string
   instance_name: string
   authenticated: boolean
   user: UserPublic | null
@@ -342,6 +358,7 @@ export type CompleteSetupRequest = {
   base_url?: string
   default_locale?: string
   default_timezone?: string
+  default_theme?: string
   registration_mode?: RegistrationMode
   /** Seed Kyiv concert sample project (default true). */
   seed_sample?: boolean
@@ -367,6 +384,7 @@ export type InstanceSettings = {
   base_url: string
   default_locale: string
   default_timezone: string
+  default_theme: string
   registration_mode: RegistrationMode
   default_role: ProjectRole
   allowed_email_domains: string[]
@@ -377,6 +395,7 @@ export type UpdateInstanceSettings = {
   base_url?: string
   default_locale?: string
   default_timezone?: string
+  default_theme?: string
   registration_mode?: RegistrationMode
   default_role?: ProjectRole
   allowed_email_domains?: string[]
@@ -738,6 +757,7 @@ export const api = {
     display_name?: string
     locale?: string
     timezone?: string
+    preferences?: UpdatePreferences
   }) =>
     request<UserPublic>('/api/v1/auth/me', {
       method: 'PATCH',

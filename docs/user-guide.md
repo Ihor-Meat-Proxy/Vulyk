@@ -34,6 +34,19 @@ When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the 
 - **Requirements** tracks manual or ALM-synced requirements and links them to cases.
 - **Reports** shows run summaries, pass/fail trends, requirement coverage, flaky detection, and CSV/PDF export.
 
+## Appearance
+
+Open **Appearance** from the top bar (or go to `/appearance`).
+
+- **Theme:** System (follows `prefers-color-scheme`, and high contrast when `prefers-contrast: more`), Light, Dark, High contrast (WCAG AAA), or Sepia / night warm (low blue).
+- **Font size:** step buttons from 87% to 138%.
+- **Density:** Comfortable or Compact spacing.
+- **Reduced motion:** Follow system, always reduce, or allow motion (also honours `prefers-reduced-motion`).
+
+Preferences are saved to your account when signed in and mirrored in the browser so the chosen theme applies before the app paints (no flash of the wrong theme). An admin can set the **instance default theme** under **Admin → Settings**.
+
+Result statuses (**Passed**, **Failed**, **Blocked**, **Skipped**, **Retest**, **Untested**) use a colour-blind-safe Okabe–Ito palette with an **icon and label** everywhere (badges, run execution, charts). Charts also use hatch patterns plus a text legend.
+
 ## LLM assists
 
 - **Generate** drafts cases or automation code (provider configured by an admin).
