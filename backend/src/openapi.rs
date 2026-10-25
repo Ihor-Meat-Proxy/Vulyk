@@ -1,16 +1,23 @@
-use utoipa::OpenApi;
+use utoipa::{
+    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    Modify, OpenApi,
+};
 
+use crate::auth::ProjectRole;
 use crate::integrations::{DefectDraft, RemoteIssue, RemoteRequirement, RequirementLink};
 use crate::models::{
-    ApiTokenPublic, AskTestsRequest, AskTestsResponse, BulkIngestResults, CaseRequirementLink,
-    CreateApiToken, CreateApiTokenResponse, CreateCase, CreateDefectRequest, CreateIntegration,
-    CreateLlmConfig, CreateProject, CreateRequirement, CreateRun, CreateStep, CreateSuite, Defect,
-    FieldMapping, GenerateCasesRequest, GenerateCasesResponse, GenerateCodeRequest,
-    GenerateCodeResponse, GeneratedCaseDraft, ImportCaseDraft, ImportPreview, ImportPreviewRequest,
-    ImportReport, ImportRunRequest, ImportStepDraft, ImporterInfo, IntegrationPublic,
-    LinkCaseRequirement, LlmConfigPublic, Project, Requirement, Suite, TestCase, TestCaseDetail,
-    TestResult, TestRun, TestStep, UpdateCase, UpdateIntegration, UpdateLlmConfig, UpdateProject,
-    UpdateRequirement, UpdateRun, UpdateSuite,
+    ApiTokenPublic, AskTestsRequest, AskTestsResponse, AuthResponse, AuthStatus, BootstrapRequest,
+    BulkIngestResults, CaseRequirementLink, CreateApiToken, CreateApiTokenResponse, CreateCase,
+    CreateDefectRequest, CreateIntegration, CreateLlmConfig, CreateProject, CreateRequirement,
+    CreateRun, CreateStep, CreateSuite, CreateUserRequest, Defect, FieldMapping,
+    GenerateCasesRequest, GenerateCasesResponse, GenerateCodeRequest, GenerateCodeResponse,
+    GeneratedCaseDraft, ImportCaseDraft, ImportPreview, ImportPreviewRequest, ImportReport,
+    ImportRunRequest, ImportStepDraft, ImporterInfo, IntegrationPublic, IntegrationSetting,
+    LinkCaseRequirement, LlmConfigPublic, LoginRequest, Membership, MembershipView, Project,
+    Requirement, Suite, TestCase, TestCaseDetail, TestResult, TestRun, TestStep, UpdateCase,
+    UpdateIntegration, UpdateLlmConfig, UpdateMembership, UpdateProject, UpdateRequirement,
+    UpdateRun, UpdateSuite, UpdateUserRequest, UpsertIntegrationSetting, UpsertMembership,
+    UserPublic,
 };
 use crate::routes::health::{HealthResponse, ReadyResponse};
 use crate::routes::llm::ProviderKindInfo;
@@ -20,12 +27,29 @@ use crate::routes::llm::ProviderKindInfo;
     info(
         title = "Vulyk API",
         version = "0.1.0",
-        description = "Open-source test management system (beehive). W6 ALM/requirements, W7 importers, W9 LLM, W10 tokens/MCP.",
+        description = "Open-source test management system (beehive). W1 auth/RBAC, W6 ALM, W7 importers, W9 LLM, W10 MCP.",
         license(name = "AGPL-3.0")
     ),
     paths(
         crate::routes::health::health,
         crate::routes::health::ready,
+        crate::routes::auth::auth_status,
+        crate::routes::auth::bootstrap,
+        crate::routes::auth::login,
+        crate::routes::auth::logout,
+        crate::routes::auth::me,
+        crate::routes::users::list_users,
+        crate::routes::users::create_user,
+        crate::routes::users::get_user,
+        crate::routes::users::update_user,
+        crate::routes::users::delete_user,
+        crate::routes::memberships::list_memberships,
+        crate::routes::memberships::upsert_membership,
+        crate::routes::memberships::update_membership,
+        crate::routes::memberships::delete_membership,
+        crate::routes::admin::list_integrations,
+        crate::routes::admin::create_integration,
+        crate::routes::admin::delete_integration,
         crate::routes::projects::list_projects,
         crate::routes::projects::create_project,
         crate::routes::projects::get_project,
@@ -138,9 +162,28 @@ use crate::routes::llm::ProviderKindInfo;
         ApiTokenPublic,
         CreateApiToken,
         CreateApiTokenResponse,
+        UserPublic,
+        BootstrapRequest,
+        LoginRequest,
+        AuthResponse,
+        AuthStatus,
+        CreateUserRequest,
+        UpdateUserRequest,
+        ProjectRole,
+        Membership,
+        MembershipView,
+        UpsertMembership,
+        UpdateMembership,
+        IntegrationSetting,
+        UpsertIntegrationSetting,
     )),
+    modifiers(&SecurityAddon),
     tags(
         (name = "system", description = "Health and readiness"),
+        (name = "auth", description = "Local login, sessions, JWT"),
+        (name = "users", description = "User administration"),
+        (name = "memberships", description = "Per-project RBAC"),
+        (name = "admin", description = "Admin settings placeholders"),
         (name = "projects", description = "Projects"),
         (name = "suites", description = "Suites / sections"),
         (name = "cases", description = "Test cases and steps"),
@@ -153,3 +196,24 @@ use crate::routes::llm::ProviderKindInfo;
     )
 )]
 pub struct ApiDoc;
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "bearer_auth",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT or API token")
+                        .description(Some(
+                            "Session JWT from /auth/login or personal API token for CI/MCP",
+                        ))
+                        .build(),
+                ),
+            );
+        }
+    }
+}

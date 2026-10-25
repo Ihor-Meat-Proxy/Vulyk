@@ -190,7 +190,7 @@ Phase 1 migrations create: `users`, `projects`, `suites`, `test_cases`, `test_st
 - Resources: plural nouns (`/projects`, `/projects/{id}/suites`, `/projects/{id}/cases`)
 - IDs: UUID in path; project also addressable by `key` where noted
 - Errors: `{ "error": { "code": "...", "message": "..." } }` with appropriate HTTP status
-- Auth: session cookie or `Authorization: Bearer <jwt|api_token>` (Phase 1: open for local/dev; auth middleware wired later)
+- Auth: session cookie or `Authorization: Bearer <jwt|api_token>` (W1; see [auth-and-rbac.md](./auth-and-rbac.md). Default local/dev keeps auth optional via `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH`.)
 - Pagination: `?limit=&offset=` (later: cursor)
 - Bulk: `POST /api/v1/runs/{id}/results:bulk` for ingest
 - OpenAPI: generated with **utoipa**, served at `/api/docs` (Scalar UI)
@@ -288,7 +288,7 @@ Postgres-backed queue (`jobs` table + `SKIP LOCKED` worker). Kinds: `ingest_juni
 ## Security (planned)
 
 - Argon2 password hashes, HttpOnly session cookies, short-lived JWT, scoped API tokens
-- RBAC: org/project roles (`owner`, `admin`, `writer`, `runner`, `reader`)
+- RBAC: system admin + per-project roles (`admin`, `project_lead`, `tester`, `viewer`)
 - Secrets for integrations encrypted at rest (envelope key from env)
 
 ## Roadmap — parallelisable workstreams

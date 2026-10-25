@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { api, type Project, type Suite, type TestCase } from './api'
+import { useAuth } from './auth'
 import { Layout } from './components/Layout'
 import { Admin } from './pages/Admin'
 import { CaseDetail } from './pages/CaseDetail'
@@ -8,13 +9,16 @@ import { CaseList } from './pages/CaseList'
 import { Chat } from './pages/Chat'
 import { Generate } from './pages/Generate'
 import { ImportPage } from './pages/ImportPage'
+import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
 import { RequirementsPage } from './pages/RequirementsPage'
+import { getStoredToken } from './token'
 
 const PROJECT_KEY = 'vulyk.selectedProjectId'
 
 export default function App() {
   const navigate = useNavigate()
+  const { status, loading: authLoading, user } = useAuth()
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState<string | null>(
     () => localStorage.getItem(PROJECT_KEY),
@@ -29,49 +33,64 @@ export default function App() {
   const project = projects.find((p) => p.id === projectId) ?? projects[0] ?? null
   const activeProjectId = project?.id ?? null
 
+  const needsLogin =
+    Boolean(status?.bootstrap_available) ||
+    (Boolean(status?.auth_required) && !status?.authenticated)
+
+  const authHeaders = (): Record<string, string> => {
+    const token = getStoredToken()
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
+
+  const refreshProjects = useCallback(async () => {
+    let list = await api.listProjects()
+    if (list.length === 0 && (!status?.auth_required || status.authenticated)) {
+      const demo = await api.createProject({
+        key: 'DEMO',
+        name: 'Demo project',
+        description: 'Seeded by the Vulyk UI for local exploration.',
+      })
+      const suite = await fetch(`/api/v1/projects/${demo.id}/suites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({ name: 'Smoke', sort_order: 0 }),
+      }).then((r) => r.json())
+      await fetch(`/api/v1/projects/${demo.id}/cases`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        credentials: 'include',
+        body: JSON.stringify({
+          key: 'DEMO-1',
+          title: 'Health endpoint responds',
+          suite_id: suite.id,
+          description: 'Verify API liveness.',
+          priority: 'high',
+          status: 'ready',
+          steps: [
+            {
+              action: 'GET /health',
+              expected_result: 'HTTP 200 with status ok',
+            },
+          ],
+        }),
+      })
+      list = await api.listProjects()
+    }
+    setProjects(list)
+    const stored = localStorage.getItem(PROJECT_KEY)
+    const initial =
+      list.find((p) => p.id === stored)?.id ?? list[0]?.id ?? null
+    setProjectId(initial)
+  }, [status?.auth_required, status?.authenticated])
+
   useEffect(() => {
+    if (authLoading || needsLogin) return
     let cancelled = false
     ;(async () => {
       try {
-        let list = await api.listProjects()
-        if (list.length === 0) {
-          const demo = await api.createProject({
-            key: 'DEMO',
-            name: 'Demo project',
-            description: 'Seeded by the Vulyk UI for local exploration.',
-          })
-          const suite = await fetch(`/api/v1/projects/${demo.id}/suites`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: 'Smoke', sort_order: 0 }),
-          }).then((r) => r.json())
-          await fetch(`/api/v1/projects/${demo.id}/cases`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              key: 'DEMO-1',
-              title: 'Health endpoint responds',
-              suite_id: suite.id,
-              description: 'Verify API liveness.',
-              priority: 'high',
-              status: 'ready',
-              steps: [
-                {
-                  action: 'GET /health',
-                  expected_result: 'HTTP 200 with status ok',
-                },
-              ],
-            }),
-          })
-          list = await api.listProjects()
-        }
-        if (cancelled) return
-        setProjects(list)
-        setBootError(null)
-        const stored = localStorage.getItem(PROJECT_KEY)
-        const initial =
-          list.find((p) => p.id === stored)?.id ?? list[0]?.id ?? null
-        setProjectId(initial)
+        await refreshProjects()
+        if (!cancelled) setBootError(null)
       } catch (err) {
         if (!cancelled) {
           setBootError(err instanceof Error ? err.message : String(err))
@@ -81,7 +100,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authLoading, needsLogin, refreshProjects, user?.id])
 
   useEffect(() => {
     if (activeProjectId) {
@@ -133,6 +152,18 @@ export default function App() {
     setProjectId(id)
     setSelectedSuiteId(null)
     navigate('/')
+  }
+
+  if (authLoading) {
+    return (
+      <p className="muted" style={{ margin: '2rem' }}>
+        Loading…
+      </p>
+    )
+  }
+
+  if (needsLogin) {
+    return <Login />
   }
 
   return (
@@ -201,7 +232,18 @@ export default function App() {
               />
             }
           />
-          <Route path="admin" element={<Admin projectId={activeProjectId} />} />
+          <Route
+            path="admin"
+            element={
+              <Admin
+                projects={projects}
+                project={project}
+                onProjectsChanged={() => {
+                  void refreshProjects()
+                }}
+              />
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

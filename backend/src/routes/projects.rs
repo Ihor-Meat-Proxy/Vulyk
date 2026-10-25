@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_project_role, OptionalAuthUser, ProjectRole};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
@@ -24,13 +25,45 @@ pub fn router() -> Router<AppState> {
     tag = "projects",
     responses((status = 200, description = "List projects", body = [Project]))
 )]
-pub async fn list_projects(State(state): State<AppState>) -> AppResult<Json<Vec<Project>>> {
-    let projects = sqlx::query_as::<_, Project>(
-        r#"SELECT id, key, name, description, created_at, updated_at
-           FROM projects ORDER BY key"#,
-    )
-    .fetch_all(&state.pool)
-    .await?;
+pub async fn list_projects(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+) -> AppResult<Json<Vec<Project>>> {
+    // When auth is required and the caller is not a system admin, only show memberships.
+    let projects = if state.auth.required {
+        match &auth {
+            Some(user) if user.is_system_admin() => {
+                sqlx::query_as::<_, Project>(
+                    r#"SELECT id, key, name, description, created_at, updated_at
+                       FROM projects ORDER BY key"#,
+                )
+                .fetch_all(&state.pool)
+                .await?
+            }
+            Some(user) => {
+                sqlx::query_as::<_, Project>(
+                    r#"SELECT p.id, p.key, p.name, p.description, p.created_at, p.updated_at
+                       FROM projects p
+                       INNER JOIN memberships m ON m.project_id = p.id
+                       WHERE m.user_id = $1
+                       ORDER BY p.key"#,
+                )
+                .bind(user.id())
+                .fetch_all(&state.pool)
+                .await?
+            }
+            None => {
+                return Err(AppError::Unauthorized("authentication required".into()));
+            }
+        }
+    } else {
+        sqlx::query_as::<_, Project>(
+            r#"SELECT id, key, name, description, created_at, updated_at
+               FROM projects ORDER BY key"#,
+        )
+        .fetch_all(&state.pool)
+        .await?
+    };
     Ok(Json(projects))
 }
 
@@ -47,8 +80,13 @@ pub async fn list_projects(State(state): State<AppState>) -> AppResult<Json<Vec<
 )]
 pub async fn create_project(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Json(body): Json<CreateProject>,
 ) -> AppResult<Json<Project>> {
+    if state.auth.required && auth.is_none() {
+        return Err(AppError::Unauthorized("authentication required".into()));
+    }
+
     let key = body.key.trim().to_uppercase();
     if key.len() < 2 {
         return Err(AppError::BadRequest(
@@ -70,6 +108,19 @@ pub async fn create_project(
     .fetch_one(&state.pool)
     .await?;
 
+    // Headless MCP API tokens may authenticate as a synthetic principal (nil id).
+    if let Some(user) = auth.filter(|u| u.id() != uuid::Uuid::nil()) {
+        sqlx::query(
+            r#"INSERT INTO memberships (project_id, user_id, role)
+               VALUES ($1, $2, 'admin')
+               ON CONFLICT (project_id, user_id) DO NOTHING"#,
+        )
+        .bind(project.id)
+        .bind(user.id())
+        .execute(&state.pool)
+        .await?;
+    }
+
     Ok(Json(project))
 }
 
@@ -85,8 +136,18 @@ pub async fn create_project(
 )]
 pub async fn get_project(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<Json<Project>> {
+    require_project_role(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        id,
+        ProjectRole::Viewer,
+    )
+    .await?;
+
     let project = sqlx::query_as::<_, Project>(
         r#"SELECT id, key, name, description, created_at, updated_at
            FROM projects WHERE id = $1"#,
@@ -111,9 +172,19 @@ pub async fn get_project(
 )]
 pub async fn update_project(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateProject>,
 ) -> AppResult<Json<Project>> {
+    require_project_role(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        id,
+        ProjectRole::ProjectLead,
+    )
+    .await?;
+
     let existing = sqlx::query_as::<_, Project>(
         r#"SELECT id, key, name, description, created_at, updated_at
            FROM projects WHERE id = $1"#,
@@ -153,8 +224,18 @@ pub async fn update_project(
 )]
 pub async fn delete_project(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_project_role(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        id,
+        ProjectRole::Admin,
+    )
+    .await?;
+
     let result = sqlx::query("DELETE FROM projects WHERE id = $1")
         .bind(id)
         .execute(&state.pool)

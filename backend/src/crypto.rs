@@ -4,6 +4,8 @@
 //! When unset, a deterministic development key is used so local compose works;
 //! production deployments must set a real key.
 
+#![allow(deprecated)]
+
 use aes_gcm::aead::{Aead, KeyInit};
 use aes_gcm::{Aes256Gcm, Nonce};
 use base64::engine::general_purpose::STANDARD as B64;

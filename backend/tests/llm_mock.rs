@@ -16,6 +16,12 @@ async fn spawn_app() -> String {
     let state = vulyk_api::routes::AppState {
         pool,
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
+        auth: vulyk_api::auth::AuthConfig {
+            required: false,
+            jwt_secret: "test-secret".into(),
+            jwt_ttl_hours: 12,
+            session_ttl_hours: 168,
+        },
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -162,7 +168,10 @@ async fn api_token_auth_and_runs_for_mcp() {
         .await
         .unwrap();
     let secret = minted["secret"].as_str().unwrap().to_string();
-    assert!(secret.starts_with("vulk_"));
+    assert!(
+        secret.starts_with("vulyk_at_") || secret.starts_with("vulk_"),
+        "unexpected token prefix: {secret}"
+    );
 
     let bad = client
         .get(format!("{base}/api/v1/projects"))

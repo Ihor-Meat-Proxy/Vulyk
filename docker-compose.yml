@@ -23,6 +23,9 @@ services:
       DATABASE_URL: postgres://vulyk:vulyk@db:5432/vulyk
       BIND_ADDR: 0.0.0.0:8080
       RUST_LOG: vulyk_api=info,tower_http=info
+      VULYK_AUTH_REQUIRED: "false"
+      VULYK_JWT_SECRET: vulyk-compose-dev-secret
+      VULYK_LLM_MOCK: "1"
     ports:
       - "8080:8080"
     depends_on:

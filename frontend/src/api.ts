@@ -1,12 +1,21 @@
+import { getStoredToken } from './token'
+
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = getStoredToken()
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(init?.headers as Record<string, string> | undefined),
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
     ...init,
+    headers,
+    credentials: 'include',
   })
   if (!res.ok) {
     const text = await res.text()
@@ -62,6 +71,54 @@ export type TestStep = {
 export type TestCaseDetail = {
   case: TestCase
   steps: TestStep[]
+}
+
+export type UserPublic = {
+  id: string
+  email: string
+  display_name: string
+  is_system_admin: boolean
+  disabled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AuthStatus = {
+  auth_required: boolean
+  bootstrap_available: boolean
+  authenticated: boolean
+  user: UserPublic | null
+}
+
+export type AuthResponse = {
+  token: string
+  token_type: string
+  expires_in_hours: number
+  user: UserPublic
+}
+
+export type ProjectRole = 'admin' | 'project_lead' | 'tester' | 'viewer'
+
+export type MembershipView = {
+  id: string
+  project_id: string
+  user_id: string
+  role: ProjectRole
+  email: string
+  display_name: string
+  created_at: string
+  updated_at: string
+}
+
+export type IntegrationSetting = {
+  id: string
+  project_id: string | null
+  kind: string
+  name: string
+  config: Record<string, unknown>
+  enabled: boolean
+  created_at: string
+  updated_at: string
 }
 
 export type ProviderKindInfo = {
@@ -197,6 +254,60 @@ const defaultMapping = (): FieldMapping => ({
 })
 
 export const api = {
+  authStatus: () => request<AuthStatus>('/api/v1/auth/status'),
+  login: (body: { email: string; password: string }) =>
+    request<AuthResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  bootstrap: (body: {
+    email: string
+    password: string
+    display_name: string
+  }) =>
+    request<AuthResponse>('/api/v1/auth/bootstrap', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
+
+  listUsers: () => request<UserPublic[]>('/api/v1/users'),
+  createUser: (body: {
+    email: string
+    password: string
+    display_name: string
+    is_system_admin?: boolean
+  }) =>
+    request<UserPublic>('/api/v1/users', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  listMemberships: (projectId: string) =>
+    request<MembershipView[]>(`/api/v1/projects/${projectId}/memberships`),
+  upsertMembership: (
+    projectId: string,
+    body: { user_id: string; role: ProjectRole },
+  ) =>
+    request(`/api/v1/projects/${projectId}/memberships`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  listAdminIntegrations: () =>
+    request<IntegrationSetting[]>('/api/v1/admin/integrations'),
+  createAdminIntegration: (body: {
+    kind: string
+    name: string
+    config?: Record<string, unknown>
+    enabled?: boolean
+    project_id?: string | null
+  }) =>
+    request<IntegrationSetting>('/api/v1/admin/integrations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
   listProjects: () => request<Project[]>('/api/v1/projects'),
   createProject: (body: { key: string; name: string; description?: string }) =>
     request<Project>('/api/v1/projects', {
