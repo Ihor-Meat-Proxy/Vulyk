@@ -317,32 +317,6 @@ export type ApiTokenPublic = {
   revoked_at: string | null
 }
 
-export type TestRun = {
-  id: string
-  project_id: string
-  name: string
-  status: string
-  source: string
-  external_ref: string | null
-  meta: Record<string, unknown>
-  started_at: string | null
-  finished_at: string | null
-  created_at: string
-  updated_at: string
-}
-
-export type TestResult = {
-  id: string
-  run_id: string
-  case_id: string | null
-  status: string
-  message: string
-  source: string
-  external_id: string | null
-  duration_ms: number | null
-  executed_at: string
-}
-
 export type CiConfig = {
   id: string
   project_id: string

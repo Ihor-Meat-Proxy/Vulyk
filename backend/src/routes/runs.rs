@@ -54,7 +54,9 @@ pub fn router() -> Router<AppState> {
         )
         .route(
             "/api/v1/runs/{id}",
-            get(get_run_by_id).put(update_run_by_id).delete(delete_run_by_id),
+            get(get_run_by_id)
+                .put(update_run_by_id)
+                .delete(delete_run_by_id),
         )
         .route("/api/v1/runs/{id}/results", get(list_results_by_id))
 }
