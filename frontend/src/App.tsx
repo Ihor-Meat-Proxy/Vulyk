@@ -3,9 +3,11 @@ import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { api, type Project, type Suite } from './api'
 import { useAuth } from './auth'
 import { Layout } from './components/Layout'
+import { useI18n } from './i18n'
 import { Admin } from './pages/Admin'
 import { CaseDetail } from './pages/CaseDetail'
 import { CaseList } from './pages/CaseList'
+import { ChangePassword } from './pages/ChangePassword'
 import { Chat } from './pages/Chat'
 import { Generate } from './pages/Generate'
 import { ImportPage } from './pages/ImportPage'
@@ -15,6 +17,7 @@ import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { RunDetail } from './pages/RunDetail'
 import { RunsPage } from './pages/RunsPage'
+import { SetupWizard } from './pages/SetupWizard'
 import { getStoredToken } from './token'
 
 const PROJECT_KEY = 'vulyk.selectedProjectId'
@@ -22,6 +25,7 @@ const PROJECT_KEY = 'vulyk.selectedProjectId'
 export default function App() {
   const navigate = useNavigate()
   const { status, loading: authLoading, user } = useAuth()
+  const { t } = useI18n()
   const [projects, setProjects] = useState<Project[]>([])
   const [projectId, setProjectId] = useState<string | null>(
     () => localStorage.getItem(PROJECT_KEY),
@@ -33,9 +37,16 @@ export default function App() {
   const project = projects.find((p) => p.id === projectId) ?? projects[0] ?? null
   const activeProjectId = project?.id ?? null
 
+  const needsSetup =
+    Boolean(status?.setup_required) && !status?.authenticated
+
   const needsLogin =
-    Boolean(status?.bootstrap_available) ||
-    (Boolean(status?.auth_required) && !status?.authenticated)
+    !needsSetup &&
+    (Boolean(status?.bootstrap_available) ||
+      (Boolean(status?.auth_required) && !status?.authenticated))
+
+  const needsPasswordChange =
+    Boolean(status?.authenticated && user?.must_change_password)
 
   const authHeaders = (): Record<string, string> => {
     const token = getStoredToken()
@@ -86,7 +97,7 @@ export default function App() {
   }, [status?.auth_required, status?.authenticated])
 
   useEffect(() => {
-    if (authLoading || needsLogin) return
+    if (authLoading || needsSetup || needsLogin || needsPasswordChange) return
     let cancelled = false
     ;(async () => {
       try {
@@ -101,7 +112,14 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [authLoading, needsLogin, refreshProjects, user?.id])
+  }, [
+    authLoading,
+    needsSetup,
+    needsLogin,
+    needsPasswordChange,
+    refreshProjects,
+    user?.id,
+  ])
 
   useEffect(() => {
     if (activeProjectId) {
@@ -137,13 +155,21 @@ export default function App() {
   if (authLoading) {
     return (
       <p className="muted" style={{ margin: '2rem' }}>
-        Loading…
+        {t('common.loading')}
       </p>
     )
   }
 
+  if (needsSetup) {
+    return <SetupWizard />
+  }
+
   if (needsLogin) {
     return <Login />
+  }
+
+  if (needsPasswordChange) {
+    return <ChangePassword />
   }
 
   return (

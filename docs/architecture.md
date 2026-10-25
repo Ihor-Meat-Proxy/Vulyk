@@ -285,11 +285,13 @@ Postgres-backed queue (`jobs` table + `SKIP LOCKED` worker). Kinds: `ingest_juni
 - Partition `test_results` by time when volume demands (post Phase 1)
 - Read replicas optional; search stays on primary until separate search service is justified
 
-## Security (planned)
+## Security
 
 - Argon2 password hashes, HttpOnly session cookies, short-lived JWT, scoped API tokens
-- RBAC: system admin + per-project roles (`admin`, `project_lead`, `tester`, `viewer`)
-- Secrets for integrations encrypted at rest (envelope key from env)
+- RBAC: system admin + five per-project roles — `admin`, `test_architect`, `test_automation_engineer`, `developer`, `viewer` (legacy aliases: `project_lead`→architect, `tester`→automation engineer). See [auth-and-rbac.md](auth-and-rbac.md).
+- Registration modes: `open` | `invite` | `disabled`; first-run via env seed, `vulyk-api setup`, or web wizard ([guides/first-run-setup.md](guides/first-run-setup.md))
+- OAuth2/OIDC SSO (Google, Entra, GitHub, GitLab, Nextcloud) — [guides/sso.md](guides/sso.md)
+- Secrets for integrations/SSO encrypted at rest (envelope key from env)
 
 ## Roadmap — parallelisable workstreams
 

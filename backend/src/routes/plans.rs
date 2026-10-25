@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreatePlan, TestPlan, TestPlanDetail, UpdatePlan};
 use crate::routes::AppState;
@@ -66,12 +67,22 @@ async fn replace_plan_cases(
     path = "/api/v1/projects/{project_id}/plans",
     tag = "plans",
     params(("project_id" = Uuid, Path)),
-    responses((status = 200, description = "Plans", body = [TestPlan]))
+    responses((status = 200, description = "Plans", body = [TestPlan])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_plans(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<TestPlan>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let plans = sqlx::query_as::<_, TestPlan>(
         r#"SELECT id, project_id, name, description, created_at, updated_at
@@ -89,13 +100,23 @@ pub async fn list_plans(
     tag = "plans",
     params(("project_id" = Uuid, Path)),
     request_body = CreatePlan,
-    responses((status = 200, description = "Created", body = TestPlanDetail))
+    responses((status = 200, description = "Created", body = TestPlanDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_plan(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreatePlan>,
 ) -> AppResult<Json<TestPlanDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManagePlans,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
@@ -121,12 +142,22 @@ pub async fn create_plan(
     path = "/api/v1/projects/{project_id}/plans/{plan_id}",
     tag = "plans",
     params(("project_id" = Uuid, Path), ("plan_id" = Uuid, Path)),
-    responses((status = 200, description = "Plan", body = TestPlanDetail))
+    responses((status = 200, description = "Plan", body = TestPlanDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_plan(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, plan_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<TestPlanDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let plan = sqlx::query_as::<_, TestPlan>(
         r#"SELECT id, project_id, name, description, created_at, updated_at
            FROM test_plans WHERE project_id = $1 AND id = $2"#,
@@ -145,13 +176,23 @@ pub async fn get_plan(
     tag = "plans",
     params(("project_id" = Uuid, Path), ("plan_id" = Uuid, Path)),
     request_body = UpdatePlan,
-    responses((status = 200, description = "Updated", body = TestPlanDetail))
+    responses((status = 200, description = "Updated", body = TestPlanDetail)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_plan(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, plan_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdatePlan>,
 ) -> AppResult<Json<TestPlanDetail>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManagePlans,
+    )
+    .await?;
     let existing = sqlx::query_as::<_, TestPlan>(
         r#"SELECT id, project_id, name, description, created_at, updated_at
            FROM test_plans WHERE project_id = $1 AND id = $2"#,
@@ -188,12 +229,22 @@ pub async fn update_plan(
     path = "/api/v1/projects/{project_id}/plans/{plan_id}",
     tag = "plans",
     params(("project_id" = Uuid, Path), ("plan_id" = Uuid, Path)),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_plan(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, plan_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManagePlans,
+    )
+    .await?;
     let res = sqlx::query("DELETE FROM test_plans WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(plan_id)

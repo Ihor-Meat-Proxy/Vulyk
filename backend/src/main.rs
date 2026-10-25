@@ -1,6 +1,7 @@
 use std::net::SocketAddr;
 
 use axum::http::Method;
+use clap::{Parser, Subcommand};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace::TraceLayer,
@@ -11,6 +12,24 @@ use vulyk_api::crypto::SecretsKey;
 use vulyk_api::db;
 use vulyk_api::jobs;
 use vulyk_api::routes::{app_router, AppState};
+use vulyk_api::seed;
+use vulyk_api::setup_cli::{self, SetupArgs};
+use vulyk_api::sso;
+
+#[derive(Parser, Debug)]
+#[command(name = "vulyk-api", about = "Vulyk test management API", version)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Run the HTTP API server (default)
+    Serve,
+    /// Complete first-run instance setup
+    Setup(SetupArgs),
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -24,18 +43,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let cli = Cli::parse();
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://vulyk:vulyk@localhost:5432/vulyk".to_string());
+
+    match cli.command.unwrap_or(Commands::Serve) {
+        Commands::Serve => run_serve(&database_url).await?,
+        Commands::Setup(args) => {
+            let pool = db::connect(&database_url).await?;
+            db::migrate(&pool).await?;
+            setup_cli::run_setup(&pool, args).await?;
+        }
+    }
+    Ok(())
+}
+
+async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>> {
     let bind = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
 
-    let pool = db::connect(&database_url).await?;
+    let pool = db::connect(database_url).await?;
     db::migrate(&pool).await?;
+
+    let secrets = SecretsKey::from_env();
+    seed::run(&pool).await?;
+    sso::sync_from_env(&pool, &secrets).await?;
 
     jobs::spawn_worker(pool.clone());
 
     let state = AppState {
         pool,
-        secrets: SecretsKey::from_env(),
+        secrets,
         auth: AuthConfig::from_env(),
     };
     let cors = CorsLayer::new()

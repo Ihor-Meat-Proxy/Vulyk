@@ -9,6 +9,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::AppResult;
 use crate::models::{
     ExportQuery, FlakyQuery, FlakyReport, PassFailTrends, ProjectDashboard,
@@ -45,12 +46,22 @@ pub fn router() -> Router<AppState> {
     path = "/api/v1/projects/{project_id}/reports/dashboard",
     tag = "reports",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "Per-project dashboard", body = ProjectDashboard))
+    responses((status = 200, description = "Per-project dashboard", body = ProjectDashboard)),
+    security(("bearer_auth" = []))
 )]
 pub async fn project_dashboard(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<ProjectDashboard>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     Ok(Json(
         reports::project_dashboard(&state.pool, project_id).await?,
@@ -65,12 +76,22 @@ pub async fn project_dashboard(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("run_id" = Uuid, Path, description = "Run id"),
     ),
-    responses((status = 200, description = "Run summary", body = RunSummaryReport))
+    responses((status = 200, description = "Run summary", body = RunSummaryReport)),
+    security(("bearer_auth" = []))
 )]
 pub async fn run_summary(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<RunSummaryReport>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     Ok(Json(
         reports::run_summary(&state.pool, project_id, run_id).await?,
@@ -86,13 +107,23 @@ pub async fn run_summary(
         ("granularity" = Option<String>, Query, description = "run or day"),
         ("limit" = Option<i64>, Query, description = "Max points"),
     ),
-    responses((status = 200, description = "Pass/fail trends", body = PassFailTrends))
+    responses((status = 200, description = "Pass/fail trends", body = PassFailTrends)),
+    security(("bearer_auth" = []))
 )]
 pub async fn trends(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(q): Query<TrendsQuery>,
 ) -> AppResult<Json<PassFailTrends>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let granularity = q.granularity.as_deref().unwrap_or("run");
     let limit = q.limit.unwrap_or(20);
@@ -106,12 +137,22 @@ pub async fn trends(
     path = "/api/v1/projects/{project_id}/reports/coverage",
     tag = "reports",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "Requirement coverage", body = RequirementCoverageReport))
+    responses((status = 200, description = "Requirement coverage", body = RequirementCoverageReport)),
+    security(("bearer_auth" = []))
 )]
 pub async fn coverage(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<RequirementCoverageReport>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     Ok(Json(
         reports::requirement_coverage(&state.pool, project_id).await?,
@@ -127,13 +168,23 @@ pub async fn coverage(
         ("lookback_runs" = Option<i64>, Query, description = "Recent runs to inspect"),
         ("limit" = Option<i64>, Query, description = "Max flaky cases"),
     ),
-    responses((status = 200, description = "Flaky cases", body = FlakyReport))
+    responses((status = 200, description = "Flaky cases", body = FlakyReport)),
+    security(("bearer_auth" = []))
 )]
 pub async fn flaky(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(q): Query<FlakyQuery>,
 ) -> AppResult<Json<FlakyReport>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     Ok(Json(
         reports::flaky_cases(
@@ -159,13 +210,23 @@ pub async fn flaky(
     responses(
         (status = 200, description = "Exported report file"),
         (status = 400, description = "Bad request")
-    )
+    ),
+    security(("bearer_auth" = []))
 )]
 pub async fn export_report(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(q): Query<ExportQuery>,
 ) -> AppResult<impl IntoResponse> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExportReports,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let format = q.format.as_deref().unwrap_or("csv").to_ascii_lowercase();
     let report = q

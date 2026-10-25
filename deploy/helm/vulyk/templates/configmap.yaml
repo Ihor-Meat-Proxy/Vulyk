@@ -11,3 +11,12 @@ data:
   VULYK_LLM_MOCK: {{ .Values.env.VULYK_LLM_MOCK | quote }}
   VULYK_JWT_TTL_HOURS: {{ .Values.env.VULYK_JWT_TTL_HOURS | quote }}
   VULYK_SESSION_TTL_HOURS: {{ .Values.env.VULYK_SESSION_TTL_HOURS | quote }}
+  VULYK_ADMIN_EMAIL: {{ .Values.setup.adminEmail | quote }}
+  VULYK_DEFAULT_LOCALE: {{ .Values.setup.locale | quote }}
+  VULYK_DEFAULT_TIMEZONE: {{ .Values.setup.timezone | quote }}
+  VULYK_REGISTRATION_MODE: {{ .Values.setup.registrationMode | quote }}
+  VULYK_INSTANCE_NAME: {{ .Values.setup.instanceName | quote }}
+  VULYK_SEED_DEMO: {{ .Values.setup.seedDemo | ternary "1" "0" | quote }}
+  {{- if .Values.setup.baseUrl }}
+  VULYK_BASE_URL: {{ .Values.setup.baseUrl | quote }}
+  {{- end }}

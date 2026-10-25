@@ -5,7 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{require_project_role, OptionalAuthUser, ProjectRole};
+use crate::auth::{require_permission, require_project_role, OptionalAuthUser, Permission, ProjectRole};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
@@ -176,12 +176,12 @@ pub async fn update_project(
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateProject>,
 ) -> AppResult<Json<Project>> {
-    require_project_role(
+    require_permission(
         &state.pool,
         &auth,
         state.auth.required,
         id,
-        ProjectRole::ProjectLead,
+        Permission::UpdateProject,
     )
     .await?;
 
@@ -227,12 +227,12 @@ pub async fn delete_project(
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
 ) -> AppResult<axum::http::StatusCode> {
-    require_project_role(
+    require_permission(
         &state.pool,
         &auth,
         state.auth.required,
         id,
-        ProjectRole::Admin,
+        Permission::DeleteProject,
     )
     .await?;
 

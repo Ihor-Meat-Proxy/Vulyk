@@ -6,12 +6,27 @@ import {
   type TestResult,
   type TestRun,
 } from '../api'
+import { useAuth } from '../auth'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
 }
 
 export function Runs({ projectId }: Props) {
+  const { user, status } = useAuth()
+  const { can } = useProjectPermissions(projectId)
+  const canExecute = can('execute_runs')
+  const canTrigger = can('trigger_ci')
+  const canManageCi = can('manage_ci_config')
+  const fmt = (value: string | null | undefined) =>
+    formatTimestamp(value, {
+      timeZone: user?.timezone,
+      instanceTimeZone: status?.default_timezone,
+      locale: user?.locale ?? status?.default_locale,
+    })
+
   const [runs, setRuns] = useState<TestRun[]>([])
   const [configs, setConfigs] = useState<CiConfig[]>([])
   const [dispatches, setDispatches] = useState<CiDispatch[]>([])
@@ -136,6 +151,7 @@ export function Runs({ projectId }: Props) {
           Ingest automated results via CLI, GitHub Action, or GitLab template.
           Create a run here as an upload target, or trigger CI below.
         </p>
+        {canExecute && (
         <div className="toolbar">
           <input
             value={runName}
@@ -147,6 +163,7 @@ export function Runs({ projectId }: Props) {
             New run
           </button>
         </div>
+        )}
         {runs.length === 0 ? (
           <p className="empty">No runs yet.</p>
         ) : (
@@ -171,7 +188,7 @@ export function Runs({ projectId }: Props) {
                     <span className="badge">{run.status}</span>
                   </td>
                   <td>{run.source}</td>
-                  <td className="muted">{new Date(run.created_at).toLocaleString()}</td>
+                  <td className="muted">{fmt(run.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -214,6 +231,7 @@ export function Runs({ projectId }: Props) {
         )}
       </section>
 
+      {(canManageCi || canTrigger) && (
       <section className="panel">
         <h2>CI triggers</h2>
         <p className="muted" style={{ marginTop: 0 }}>
@@ -222,6 +240,8 @@ export function Runs({ projectId }: Props) {
           <code>/api/v1/webhooks/github</code>, <code>/api/v1/webhooks/gitlab</code>
           ).
         </p>
+        {canManageCi && (
+        <>
         <div className="toolbar">
           <select
             value={provider}
@@ -257,6 +277,8 @@ export function Runs({ projectId }: Props) {
           rows={8}
           aria-label="CI config JSON"
         />
+        </>
+        )}
 
         {configs.length > 0 && (
           <table className="table" style={{ marginTop: '1rem' }}>
@@ -273,6 +295,7 @@ export function Runs({ projectId }: Props) {
                   <td>{cfg.name}</td>
                   <td>{cfg.provider}</td>
                   <td>
+                    {canTrigger && (
                     <button
                       type="button"
                       className="btn secondary"
@@ -281,6 +304,7 @@ export function Runs({ projectId }: Props) {
                     >
                       Dispatch
                     </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -318,7 +342,7 @@ export function Runs({ projectId }: Props) {
                       )}
                     </td>
                     <td className="muted">{d.last_error ?? '—'}</td>
-                    <td className="muted">{new Date(d.created_at).toLocaleString()}</td>
+                    <td className="muted">{fmt(d.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -326,6 +350,7 @@ export function Runs({ projectId }: Props) {
           </>
         )}
       </section>
+      )}
     </div>
   )
 }

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Suite, type TestPlan, type TestRun } from '../api'
+import { useAuth } from '../auth'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
@@ -9,6 +12,18 @@ type Props = {
 
 export function RunsPage({ projectId, suites }: Props) {
   const navigate = useNavigate()
+  const { user, status } = useAuth()
+  const { can } = useProjectPermissions(projectId)
+  const canExecute = can('execute_runs')
+  const canUpload = can('upload_results')
+  const canPlans = can('manage_plans')
+  const fmt = (value: string | null | undefined) =>
+    formatTimestamp(value, {
+      timeZone: user?.timezone,
+      instanceTimeZone: status?.default_timezone,
+      locale: user?.locale ?? status?.default_locale,
+    })
+
   const [runs, setRuns] = useState<TestRun[]>([])
   const [plans, setPlans] = useState<TestPlan[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -112,6 +127,7 @@ export function RunsPage({ projectId, suites }: Props) {
 
   return (
     <div className="runs-page">
+      {canExecute && (
       <section className="panel" style={{ marginBottom: '1rem' }}>
         <h2 style={{ marginTop: 0 }}>Start a run</h2>
         <p className="muted" style={{ marginTop: 0 }}>
@@ -158,7 +174,9 @@ export function RunsPage({ projectId, suites }: Props) {
           </button>
         </div>
       </section>
+      )}
 
+      {canUpload && (
       <section className="panel" style={{ marginBottom: '1rem' }}>
         <h3 style={{ marginTop: 0 }}>Upload JUnit results</h3>
         <p className="muted" style={{ marginTop: 0 }}>
@@ -192,9 +210,11 @@ export function RunsPage({ projectId, suites }: Props) {
         </div>
         {uploadMessage && <p className="muted">{uploadMessage}</p>}
       </section>
+      )}
 
       <section className="panel" style={{ marginBottom: '1rem' }}>
         <h3 style={{ marginTop: 0 }}>Plans</h3>
+        {canPlans && (
         <div className="form-row">
           <input
             className="search-input"
@@ -206,6 +226,7 @@ export function RunsPage({ projectId, suites }: Props) {
             Add plan
           </button>
         </div>
+        )}
         {plans.length === 0 ? (
           <p className="muted">No plans yet.</p>
         ) : (
@@ -213,7 +234,7 @@ export function RunsPage({ projectId, suites }: Props) {
             {plans.map((p) => (
               <li key={p.id}>
                 <strong>{p.name}</strong>{' '}
-                <span className="muted">· {new Date(p.updated_at).toLocaleString()}</span>
+                <span className="muted">· {fmt(p.updated_at)}</span>
               </li>
             ))}
           </ul>
@@ -243,9 +264,7 @@ export function RunsPage({ projectId, suites }: Props) {
                   <td>
                     <span className={`status-pill status-${r.status}`}>{r.status}</span>
                   </td>
-                  <td className="muted">
-                    {r.started_at ? new Date(r.started_at).toLocaleString() : '—'}
-                  </td>
+                  <td className="muted">{fmt(r.started_at)}</td>
                 </tr>
               ))}
             </tbody>

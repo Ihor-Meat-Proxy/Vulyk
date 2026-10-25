@@ -5,10 +5,14 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{hash_password, RequireSystemAdmin};
+use crate::auth::{hash_password, validate_password_strength, RequireSystemAdmin};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateUserRequest, UpdateUserRequest, User, UserPublic};
 use crate::routes::AppState;
+
+const USER_COLUMNS: &str = r#"id, email, display_name, password_hash, is_system_admin,
+                  must_change_password, locale, timezone,
+                  disabled_at, created_at, updated_at"#;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -30,11 +34,9 @@ pub async fn list_users(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
 ) -> AppResult<Json<Vec<UserPublic>>> {
-    let users = sqlx::query_as::<_, User>(
-        r#"SELECT id, email, display_name, password_hash, is_system_admin,
-                  disabled_at, created_at, updated_at
-           FROM users ORDER BY email"#,
-    )
+    let users = sqlx::query_as::<_, User>(&format!(
+        "SELECT {USER_COLUMNS} FROM users ORDER BY email"
+    ))
     .fetch_all(&state.pool)
     .await?;
     Ok(Json(users.into_iter().map(UserPublic::from).collect()))
@@ -60,23 +62,18 @@ pub async fn create_user(
     if !email.contains('@') {
         return Err(AppError::BadRequest("valid email is required".into()));
     }
-    if body.password.len() < 8 {
-        return Err(AppError::BadRequest(
-            "password must be at least 8 characters".into(),
-        ));
-    }
+    validate_password_strength(&body.password)?;
     let display_name = body.display_name.trim();
     if display_name.is_empty() {
         return Err(AppError::BadRequest("display_name is required".into()));
     }
 
     let password_hash = hash_password(&body.password)?;
-    let user = sqlx::query_as::<_, User>(
+    let user = sqlx::query_as::<_, User>(&format!(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
            VALUES ($1, $2, $3, $4)
-           RETURNING id, email, display_name, password_hash, is_system_admin,
-                     disabled_at, created_at, updated_at"#,
-    )
+           RETURNING {USER_COLUMNS}"#
+    ))
     .bind(&email)
     .bind(display_name)
     .bind(&password_hash)
@@ -131,33 +128,34 @@ pub async fn update_user(
         Some(false) => None,
         None => existing.disabled_at,
     };
+    let locale = body.locale.or(existing.locale);
+    let timezone = body.timezone.or(existing.timezone);
     let password_hash = if let Some(password) = body.password {
-        if password.len() < 8 {
-            return Err(AppError::BadRequest(
-                "password must be at least 8 characters".into(),
-            ));
-        }
+        validate_password_strength(&password)?;
         Some(hash_password(&password)?)
     } else {
         existing.password_hash
     };
 
-    let user = sqlx::query_as::<_, User>(
+    let user = sqlx::query_as::<_, User>(&format!(
         r#"UPDATE users
            SET display_name = $2,
                password_hash = $3,
                is_system_admin = $4,
                disabled_at = $5,
+               locale = $6,
+               timezone = $7,
                updated_at = NOW()
            WHERE id = $1
-           RETURNING id, email, display_name, password_hash, is_system_admin,
-                     disabled_at, created_at, updated_at"#,
-    )
+           RETURNING {USER_COLUMNS}"#
+    ))
     .bind(id)
     .bind(display_name)
     .bind(password_hash)
     .bind(is_system_admin)
     .bind(disabled_at)
+    .bind(locale)
+    .bind(timezone)
     .fetch_one(&state.pool)
     .await?;
 
@@ -193,11 +191,9 @@ pub async fn delete_user(
 }
 
 async fn load_user(state: &AppState, id: Uuid) -> AppResult<User> {
-    sqlx::query_as::<_, User>(
-        r#"SELECT id, email, display_name, password_hash, is_system_admin,
-                  disabled_at, created_at, updated_at
-           FROM users WHERE id = $1"#,
-    )
+    sqlx::query_as::<_, User>(&format!(
+        "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
+    ))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?

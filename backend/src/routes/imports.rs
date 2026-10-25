@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::importers::{self, ImportContext, ImportInput};
 use crate::models::{
@@ -49,13 +50,23 @@ pub async fn list_importers() -> AppResult<Json<Vec<ImporterInfo>>> {
     tag = "imports",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = ImportPreviewRequest,
-    responses((status = 200, body = ImportPreview))
+    responses((status = 200, body = ImportPreview)),
+    security(("bearer_auth" = []))
 )]
 pub async fn preview_import(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<ImportPreviewRequest>,
 ) -> AppResult<Json<ImportPreview>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ImportCases,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let importer = importers::get(&body.importer_id)?;
     if !importer.supported_formats().contains(&body.format.as_str()) {
@@ -88,13 +99,23 @@ pub async fn preview_import(
     request_body = ImportRunRequest,
     responses(
         (status = 200, description = "Import report or dry-run preview"),
-    )
+    ),
+    security(("bearer_auth" = []))
 )]
 pub async fn run_import(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<ImportRunRequest>,
 ) -> AppResult<Json<serde_json::Value>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ImportCases,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let importer = importers::get(&body.importer_id)?;
     if !importer.supported_formats().contains(&body.format.as_str()) {

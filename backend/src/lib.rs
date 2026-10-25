@@ -10,4 +10,8 @@ pub mod llm;
 pub mod models;
 pub mod openapi;
 pub mod routes;
+pub mod seed;
 pub mod services;
+pub mod settings;
+pub mod setup_cli;
+pub mod sso;

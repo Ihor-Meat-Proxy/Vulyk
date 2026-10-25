@@ -6,6 +6,7 @@ use axum::{
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     CaseRequirementLink, CreateRequirement, LinkCaseRequirement, Requirement, UpdateRequirement,
@@ -51,13 +52,23 @@ pub struct ListQuery {
         ("project_id" = Uuid, Path, description = "Project id"),
         ("q" = Option<String>, Query, description = "Title search")
     ),
-    responses((status = 200, description = "List requirements", body = [Requirement]))
+    responses((status = 200, description = "List requirements", body = [Requirement])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_requirements(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListQuery>,
 ) -> AppResult<Json<Vec<Requirement>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let rows = if let Some(q) = query.q.filter(|s| !s.trim().is_empty()) {
         let pattern = format!("%{}%", q.trim());
@@ -91,13 +102,23 @@ pub async fn list_requirements(
     tag = "requirements",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateRequirement,
-    responses((status = 200, description = "Created", body = Requirement))
+    responses((status = 200, description = "Created", body = Requirement)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_requirement(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateRequirement>,
 ) -> AppResult<Json<Requirement>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("title is required".into()));
@@ -135,12 +156,22 @@ pub async fn create_requirement(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("id" = Uuid, Path, description = "Requirement id")
     ),
-    responses((status = 200, body = Requirement), (status = 404, description = "Not found"))
+    responses((status = 200, body = Requirement), (status = 404, description = "Not found")),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_requirement(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Requirement>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let row = sqlx::query_as::<_, Requirement>(
         r#"SELECT id, project_id, external_key, external_id, title, description, source, url,
                   metadata, created_at, updated_at
@@ -163,13 +194,23 @@ pub async fn get_requirement(
         ("id" = Uuid, Path, description = "Requirement id")
     ),
     request_body = UpdateRequirement,
-    responses((status = 200, body = Requirement))
+    responses((status = 200, body = Requirement)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_requirement(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateRequirement>,
 ) -> AppResult<Json<Requirement>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
     let existing = sqlx::query_as::<_, Requirement>(
         r#"SELECT id, project_id, external_key, external_id, title, description, source, url,
                   metadata, created_at, updated_at
@@ -215,12 +256,22 @@ pub async fn update_requirement(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("id" = Uuid, Path, description = "Requirement id")
     ),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_requirement(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM requirements WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(id)
@@ -238,13 +289,23 @@ pub async fn delete_requirement(
     tag = "requirements",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = LinkCaseRequirement,
-    responses((status = 200, body = CaseRequirementLink))
+    responses((status = 200, body = CaseRequirementLink)),
+    security(("bearer_auth" = []))
 )]
 pub async fn link_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<LinkCaseRequirement>,
 ) -> AppResult<Json<CaseRequirementLink>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     let case_ok: Option<(Uuid,)> =
         sqlx::query_as("SELECT id FROM test_cases WHERE id = $1 AND project_id = $2")
@@ -284,13 +345,23 @@ pub async fn link_case(
     tag = "requirements",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = LinkCaseRequirement,
-    responses((status = 204, description = "Unlinked"))
+    responses((status = 204, description = "Unlinked")),
+    security(("bearer_auth" = []))
 )]
 pub async fn unlink_case(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<LinkCaseRequirement>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
     ensure_project(&state, project_id).await?;
     sqlx::query(
         r#"DELETE FROM case_requirements cr
@@ -314,12 +385,22 @@ pub async fn unlink_case(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("case_id" = Uuid, Path, description = "Case id")
     ),
-    responses((status = 200, body = [Requirement]))
+    responses((status = 200, body = [Requirement])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_case_requirements(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<Requirement>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let rows = sqlx::query_as::<_, Requirement>(
         r#"SELECT r.id, r.project_id, r.external_key, r.external_id, r.title, r.description,
                   r.source, r.url, r.metadata, r.created_at, r.updated_at

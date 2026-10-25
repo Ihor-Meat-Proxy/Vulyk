@@ -8,6 +8,7 @@ use axum::{
 use serde_json::Value;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::llm::{build_provider, LlmRequest, ProviderConfig, ProviderKind};
 use crate::models::{
@@ -55,10 +56,17 @@ pub struct ProviderKindInfo {
     get,
     path = "/api/v1/llm/providers",
     tag = "llm",
-    responses((status = 200, body = [ProviderKindInfo]))
+    responses((status = 200, body = [ProviderKindInfo])),
+    security(("bearer_auth" = []))
 )]
-pub async fn list_provider_kinds() -> Json<Vec<ProviderKindInfo>> {
-    Json(vec![
+pub async fn list_provider_kinds(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+) -> AppResult<Json<Vec<ProviderKindInfo>>> {
+    if state.auth.required && auth.is_none() {
+        return Err(AppError::Unauthorized("authentication required".into()));
+    }
+    Ok(Json(vec![
         info(ProviderKind::Ollama, "Ollama (local)", false),
         info(
             ProviderKind::OpenaiCompatible,
@@ -71,7 +79,7 @@ pub async fn list_provider_kinds() -> Json<Vec<ProviderKindInfo>> {
         info(ProviderKind::Openai, "OpenAI", true),
         info(ProviderKind::Xai, "xAI Grok", true),
         info(ProviderKind::Mock, "Mock (tests / offline)", false),
-    ])
+    ]))
 }
 
 fn info(kind: ProviderKind, name: &str, requires_api_key: bool) -> ProviderKindInfo {
@@ -88,12 +96,22 @@ fn info(kind: ProviderKind, name: &str, requires_api_key: bool) -> ProviderKindI
     path = "/api/v1/projects/{project_id}/llm/configs",
     tag = "llm",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = [LlmConfigPublic]))
+    responses((status = 200, body = [LlmConfigPublic])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_configs(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<LlmConfigPublic>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let rows = sqlx::query_as::<_, LlmConfigRow>(
         r#"SELECT id, project_id, provider, name, base_url, model,
@@ -114,13 +132,23 @@ pub async fn list_configs(
     tag = "llm",
     request_body = CreateLlmConfig,
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = LlmConfigPublic))
+    responses((status = 200, body = LlmConfigPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateLlmConfig>,
 ) -> AppResult<Json<LlmConfigPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageLlmConfig,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let kind = ProviderKind::parse(&body.provider)?;
     if body.name.trim().is_empty() {
@@ -174,12 +202,22 @@ pub async fn create_config(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("config_id" = Uuid, Path, description = "Config id")
     ),
-    responses((status = 200, body = LlmConfigPublic))
+    responses((status = 200, body = LlmConfigPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, config_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<LlmConfigPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let row = load_config_row(&state.pool, project_id, config_id).await?;
     Ok(Json(row.to_public()))
 }
@@ -193,13 +231,23 @@ pub async fn get_config(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("config_id" = Uuid, Path, description = "Config id")
     ),
-    responses((status = 200, body = LlmConfigPublic))
+    responses((status = 200, body = LlmConfigPublic)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, config_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateLlmConfig>,
 ) -> AppResult<Json<LlmConfigPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageLlmConfig,
+    )
+    .await?;
     let existing = load_config_row(&state.pool, project_id, config_id).await?;
     let name = body.name.unwrap_or(existing.name);
     let base_url = body.base_url.or(existing.base_url);
@@ -253,12 +301,22 @@ pub async fn update_config(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("config_id" = Uuid, Path, description = "Config id")
     ),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_config(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, config_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<crate::routes::tokens::StatusNoContent> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageLlmConfig,
+    )
+    .await?;
     let _ = load_config_row(&state.pool, project_id, config_id).await?;
     sqlx::query("DELETE FROM llm_configs WHERE id = $1")
         .bind(config_id)
@@ -273,13 +331,23 @@ pub async fn delete_config(
     tag = "llm",
     request_body = GenerateCasesRequest,
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = GenerateCasesResponse))
+    responses((status = 200, body = GenerateCasesResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn generate_cases(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<GenerateCasesRequest>,
 ) -> AppResult<Json<GenerateCasesResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::LlmAssist,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let provider = resolve_provider(&state, project_id, body.config_id).await?;
 
@@ -351,13 +419,23 @@ pub async fn generate_cases(
     tag = "llm",
     request_body = GenerateCodeRequest,
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = GenerateCodeResponse))
+    responses((status = 200, body = GenerateCodeResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn generate_code(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<GenerateCodeRequest>,
 ) -> AppResult<Json<GenerateCodeResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::LlmAssist,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.case_ids.is_empty() {
         return Err(AppError::BadRequest("case_ids required".into()));
@@ -424,13 +502,23 @@ pub async fn generate_code(
     tag = "llm",
     request_body = AskTestsRequest,
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = AskTestsResponse))
+    responses((status = 200, body = AskTestsResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn ask_tests(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<AskTestsRequest>,
 ) -> AppResult<Json<AskTestsResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::LlmAssist,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.question.trim().is_empty() {
         return Err(AppError::BadRequest("question required".into()));

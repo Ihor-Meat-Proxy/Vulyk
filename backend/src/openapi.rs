@@ -3,13 +3,14 @@ use utoipa::{
     Modify, OpenApi,
 };
 
-use crate::auth::ProjectRole;
+use crate::auth::{ProjectRole, RoleMatrixRow};
 use crate::integrations::{DefectDraft, RemoteIssue, RemoteRequirement, RequirementLink};
 use crate::models::{
     ApiTokenPublic, AskTestsRequest, AskTestsResponse, AttachmentMeta, AuthResponse, AuthStatus,
     BootstrapRequest, BulkCasesRequest, BulkCasesResponse, BulkIngestResults, BulkResultItem,
     BulkResultsRequest, BulkResultsResponse, CaseRequirementLink, CaseResultsPage,
-    CaseResultsSummary, CaseVersion, CaseVersionSummary, CiConfig, CiDispatch, CreateApiToken,
+    CaseResultsSummary, CaseVersion, CaseVersionSummary, ChangePasswordRequest, CiConfig,
+    CiDispatch, CompleteSetupRequest, CreateApiToken,
     CreateApiTokenResponse, CreateAttachment, CreateCase, CreateCiConfig, CreateCustomField,
     CreateDefectRequest, CreateIntegration, CreateLlmConfig, CreatePlan, CreateProject,
     CreateRequirement, CreateResult, CreateRun, CreateStep, CreateSuite, CreateTag,
@@ -19,17 +20,21 @@ use crate::models::{
     ImportPreviewRequest, ImportReport, ImportRunRequest, ImportStepDraft, ImporterInfo,
     IngestRequest, IngestResponse, IngestResultItem, IntegrationPublic, IntegrationSetting, Job,
     LinkCaseRequirement, LlmConfigPublic, LoginRequest, Membership, MembershipView, Page,
-    PassFailTrends, Project, ProjectDashboard, Requirement, RequirementCoverageReport,
-    RequirementCoverageRow, ResultStep, RunItem, RunItemExecution, RunItemView, RunProgress,
-    RunSummaryReport, SetCustomFieldValue, StatusCounts, Suite, Tag, TestCase, TestCaseDetail,
-    TestPlan, TestPlanDetail, TestResult, TestResultDetail, TestResultHistoryItem, TestRun,
-    TestRunDetail, TestStep, TrendPoint, TrendsQuery, UpdateCase, UpdateCiConfig,
-    UpdateCustomField, UpdateIntegration, UpdateLlmConfig, UpdateMembership, UpdatePlan,
-    UpdateProject, UpdateRequirement, UpdateRun, UpdateRunItem, UpdateSuite, UpdateTag,
-    UpdateUserRequest, UpsertIntegrationSetting, UpsertMembership, UserPublic, WebhookAck,
+    PassFailTrends, Project, ProjectDashboard, RegisterRequest, Requirement,
+    RequirementCoverageReport, RequirementCoverageRow, ResultStep, RunItem, RunItemExecution,
+    RunItemView, RunProgress, RunSummaryReport, SetCustomFieldValue, SetupStatus, SsoProviderPublic,
+    StatusCounts, Suite, Tag, TestCase, TestCaseDetail, TestPlan, TestPlanDetail, TestResult,
+    TestResultDetail, TestResultHistoryItem, TestRun, TestRunDetail, TestStep, TrendPoint,
+    TrendsQuery, UpdateCase, UpdateCiConfig, UpdateCustomField, UpdateIntegration, UpdateLlmConfig,
+    UpdateMeRequest, UpdateMembership, UpdatePlan, UpdateProject, UpdateRequirement, UpdateRun,
+    UpdateRunItem, UpdateSuite, UpdateTag, UpdateUserRequest, UpsertIntegrationSetting,
+    UpsertMembership, UserPublic, WebhookAck,
 };
 use crate::routes::health::{HealthResponse, ReadyResponse};
+use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSettings};
 use crate::routes::llm::ProviderKindInfo;
+use crate::settings::{InstanceSettings, RegistrationMode};
+use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
 
 #[derive(OpenApi)]
 #[openapi(
@@ -44,9 +49,20 @@ use crate::routes::llm::ProviderKindInfo;
         crate::routes::health::ready,
         crate::routes::auth::auth_status,
         crate::routes::auth::bootstrap,
+        crate::routes::auth::register,
         crate::routes::auth::login,
         crate::routes::auth::logout,
         crate::routes::auth::me,
+        crate::routes::auth::update_me,
+        crate::routes::auth::change_password,
+        crate::routes::auth::sso_providers,
+        crate::routes::setup::setup_status,
+        crate::routes::setup::setup_complete,
+        crate::routes::sso_admin::list_providers,
+        crate::routes::sso_admin::update_provider,
+        crate::routes::instance_settings::get_settings,
+        crate::routes::instance_settings::put_settings,
+        crate::routes::instance_settings::get_role_matrix,
         crate::routes::users::list_users,
         crate::routes::users::create_user,
         crate::routes::users::get_user,
@@ -272,6 +288,19 @@ use crate::routes::llm::ProviderKindInfo;
         UserPublic,
         BootstrapRequest,
         LoginRequest,
+        RegisterRequest,
+        ChangePasswordRequest,
+        UpdateMeRequest,
+        CompleteSetupRequest,
+        SetupStatus,
+        SsoProviderPublic,
+        SsoProviderAdmin,
+        UpdateSsoProviderRequest,
+        InstanceSettings,
+        UpdateInstanceSettings,
+        RegistrationMode,
+        RoleMatrixRow,
+        RoleMatrixResponse,
         AuthResponse,
         AuthStatus,
         CreateUserRequest,

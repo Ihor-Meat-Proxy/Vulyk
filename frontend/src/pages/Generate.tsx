@@ -1,11 +1,15 @@
 import { FormEvent, useState } from 'react'
 import { api, type GeneratedCaseDraft } from '../api'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
 }
 
 export function Generate({ projectId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canLlm = can('llm_assist')
+
   const [requirements, setRequirements] = useState('')
   const [drafts, setDrafts] = useState<GeneratedCaseDraft[]>([])
   const [code, setCode] = useState('')
@@ -67,6 +71,14 @@ export function Generate({ projectId }: Props) {
 
   if (!projectId) {
     return <p className="muted">Select a project to generate cases or code.</p>
+  }
+
+  if (!canLlm) {
+    return (
+      <div className="panel">
+        <p className="muted">You do not have permission to use LLM assist.</p>
+      </div>
+    )
   }
 
   return (

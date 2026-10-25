@@ -6,6 +6,7 @@ use axum::{
 use serde_json::json;
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::ingest::parse_payload;
 use crate::models::{BulkResultsRequest, BulkResultsResponse, IngestRequest, IngestResponse};
@@ -24,10 +25,12 @@ pub fn router() -> Router<AppState> {
     tag = "ingest",
     params(("id" = Uuid, Path, description = "Run id")),
     request_body = BulkResultsRequest,
-    responses((status = 200, description = "Bulk insert summary", body = BulkResultsResponse))
+    responses((status = 200, description = "Bulk insert summary", body = BulkResultsResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn bulk_results(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<BulkResultsRequest>,
 ) -> AppResult<Json<BulkResultsResponse>> {
@@ -35,6 +38,14 @@ pub async fn bulk_results(
         return Err(AppError::BadRequest("results must not be empty".into()));
     }
     let project_id = ingest_svc::ensure_run_exists(&state.pool, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UploadResults,
+    )
+    .await?;
 
     if body.results.len() >= ingest_svc::ASYNC_THRESHOLD {
         let job = jobs_svc::enqueue(
@@ -80,14 +91,24 @@ pub async fn bulk_results(
     tag = "ingest",
     params(("id" = Uuid, Path, description = "Run id")),
     request_body = IngestRequest,
-    responses((status = 200, description = "Ingest summary", body = IngestResponse))
+    responses((status = 200, description = "Ingest summary", body = IngestResponse)),
+    security(("bearer_auth" = []))
 )]
 pub async fn ingest(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<IngestRequest>,
 ) -> AppResult<Json<IngestResponse>> {
     let project_id = ingest_svc::ensure_run_exists(&state.pool, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::UploadResults,
+    )
+    .await?;
     let format = body.format.trim().to_lowercase();
     if format.is_empty() {
         return Err(AppError::BadRequest("format is required".into()));

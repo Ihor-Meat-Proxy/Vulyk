@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api, type Requirement } from '../api'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 
 type Props = {
   projectId: string | null
 }
 
 export function RequirementsPage({ projectId }: Props) {
+  const { can } = useProjectPermissions(projectId)
+  const canManage = can('manage_requirements')
   const [items, setItems] = useState<Requirement[]>([])
   const [title, setTitle] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -56,6 +59,7 @@ export function RequirementsPage({ projectId }: Props) {
         integrations. Link cases from the case detail view.
       </p>
 
+      {canManage && (
       <form className="req-form" onSubmit={(e) => void onCreate(e)}>
         <input
           value={title}
@@ -67,6 +71,7 @@ export function RequirementsPage({ projectId }: Props) {
           Add
         </button>
       </form>
+      )}
 
       {error && <p className="error">{error}</p>}
       {loading ? (

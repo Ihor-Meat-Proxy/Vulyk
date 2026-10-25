@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateTag, Tag, UpdateTag};
 use crate::routes::AppState;
@@ -27,12 +28,22 @@ pub fn router() -> Router<AppState> {
     path = "/api/v1/projects/{project_id}/tags",
     tag = "tags",
     params(("project_id" = Uuid, Path)),
-    responses((status = 200, description = "Tags", body = [Tag]))
+    responses((status = 200, description = "Tags", body = [Tag])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_tags(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<Tag>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let tags = sqlx::query_as::<_, Tag>(
         r#"SELECT id, project_id, name, color, created_at
@@ -50,13 +61,23 @@ pub async fn list_tags(
     tag = "tags",
     params(("project_id" = Uuid, Path)),
     request_body = CreateTag,
-    responses((status = 200, description = "Created", body = Tag))
+    responses((status = 200, description = "Created", body = Tag)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_tag(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateTag>,
 ) -> AppResult<Json<Tag>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let name = body.name.trim();
     if name.is_empty() {
@@ -80,12 +101,22 @@ pub async fn create_tag(
     path = "/api/v1/projects/{project_id}/tags/{tag_id}",
     tag = "tags",
     params(("project_id" = Uuid, Path), ("tag_id" = Uuid, Path)),
-    responses((status = 200, description = "Tag", body = Tag))
+    responses((status = 200, description = "Tag", body = Tag)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_tag(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, tag_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Tag>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let tag = sqlx::query_as::<_, Tag>(
         r#"SELECT id, project_id, name, color, created_at
            FROM tags WHERE project_id = $1 AND id = $2"#,
@@ -104,13 +135,23 @@ pub async fn get_tag(
     tag = "tags",
     params(("project_id" = Uuid, Path), ("tag_id" = Uuid, Path)),
     request_body = UpdateTag,
-    responses((status = 200, description = "Updated", body = Tag))
+    responses((status = 200, description = "Updated", body = Tag)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_tag(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, tag_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateTag>,
 ) -> AppResult<Json<Tag>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let existing = sqlx::query_as::<_, Tag>(
         r#"SELECT id, project_id, name, color, created_at
            FROM tags WHERE project_id = $1 AND id = $2"#,
@@ -142,12 +183,22 @@ pub async fn update_tag(
     path = "/api/v1/projects/{project_id}/tags/{tag_id}",
     tag = "tags",
     params(("project_id" = Uuid, Path), ("tag_id" = Uuid, Path)),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_tag(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, tag_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::CreateEditCases,
+    )
+    .await?;
     let res = sqlx::query("DELETE FROM tags WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(tag_id)

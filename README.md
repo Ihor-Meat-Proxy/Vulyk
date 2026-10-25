@@ -9,8 +9,9 @@ Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Hel
 ### Docker Compose (local / demos)
 
 ```bash
-./scripts/install.sh compose
+./scripts/install.sh compose --yes
 # or: docker compose up --build
+# first-run setup pass: ./scripts/install.sh setup --yes
 ```
 
 | Service | URL |
@@ -20,21 +21,34 @@ Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Hel
 | OpenAPI (Scalar) | http://localhost:8080/api/docs |
 | Health | http://localhost:8080/health |
 
+**Seeded local credentials** (when `VULYK_SEED_DEMO=1`, the Compose default):
+
+| Account | Email | Password |
+|---------|-------|----------|
+| Admin | `admin@vulyk.local` | `admin` (must change on first login) |
+| Demo | `user@vulyk.local` | `user` |
+
+Env vars: see [`.env.example`](.env.example) and [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md).
+
 ### Production Compose (auth required)
 
 ```bash
-./scripts/install.sh prod
+./scripts/install.sh prod --yes \
+  --admin-email=admin@company.example \
+  --admin-password='Str0ngPass'
 ```
 
-Generates `.env.prod` with random secrets, enables healthchecks/volumes, and sets `VULYK_AUTH_REQUIRED=true`. See [docs/admin-guide.md](docs/admin-guide.md).
+Generates `.env.prod` with random secrets, enables healthchecks/volumes, sets `VULYK_AUTH_REQUIRED=true` and `VULYK_REGISTRATION_MODE=disabled`. See [docs/admin-guide.md](docs/admin-guide.md).
 
 ### Local development
 
 ```bash
 ./scripts/install.sh check   # toolchain (Linux / macOS / WSL2)
-./scripts/install.sh dev     # Postgres only
+./scripts/install.sh dev --yes   # Postgres + .env first-run settings
+set -a && source .env && set +a
 export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
 cargo run -p vulyk-api
+# or: cargo run -p vulyk-api -- setup --yes
 cd frontend && npm install && npm run dev
 ```
 
@@ -43,8 +57,11 @@ cd frontend && npm install && npm run dev
 ```bash
 ./scripts/install.sh helm-template
 helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namespace \
-  --set secrets.create=true
+  --set secrets.create=true \
+  --set setup.adminPassword=change-me-admin1
 ```
+
+Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it deploy/…-api -- vulyk-api setup`.
 
 ## Documentation
 
@@ -54,7 +71,9 @@ helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namesp
 | [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
 | [docs/admin-guide.md](docs/admin-guide.md) | Deploy, backups, perf smoke, Helm |
 | [docs/api.md](docs/api.md) | API overview + OpenAPI link |
-| [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth & roles |
+| [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth, roles, registration, seeding |
+| [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md) | Compose / Helm / CLI / wizard |
+| [docs/guides/sso.md](docs/guides/sso.md) | Google, Entra, GitHub, GitLab, Nextcloud |
 | [docs/integrations/](docs/integrations/) | OpenProject, Jira, importers |
 | [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
 | [docs/llm.md](docs/llm.md) | LLM providers |

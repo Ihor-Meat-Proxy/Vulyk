@@ -5,6 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
+use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateSuite, Suite, UpdateSuite};
 use crate::routes::AppState;
@@ -37,12 +38,22 @@ pub async fn ensure_project(pool: &sqlx::PgPool, project_id: Uuid) -> AppResult<
     path = "/api/v1/projects/{project_id}/suites",
     tag = "suites",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "List suites", body = [Suite]))
+    responses((status = 200, description = "List suites", body = [Suite])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_suites(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
 ) -> AppResult<Json<Vec<Suite>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     let suites = sqlx::query_as::<_, Suite>(
         r#"SELECT id, project_id, parent_id, name, sort_order, created_at, updated_at
@@ -61,13 +72,23 @@ pub async fn list_suites(
     tag = "suites",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateSuite,
-    responses((status = 200, description = "Created suite", body = Suite))
+    responses((status = 200, description = "Created suite", body = Suite)),
+    security(("bearer_auth" = []))
 )]
 pub async fn create_suite(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateSuite>,
 ) -> AppResult<Json<Suite>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageSuites,
+    )
+    .await?;
     ensure_project(&state.pool, project_id).await?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name is required".into()));
@@ -96,12 +117,22 @@ pub async fn create_suite(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("suite_id" = Uuid, Path, description = "Suite id")
     ),
-    responses((status = 200, description = "Suite", body = Suite))
+    responses((status = 200, description = "Suite", body = Suite)),
+    security(("bearer_auth" = []))
 )]
 pub async fn get_suite(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, suite_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<Suite>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let suite = sqlx::query_as::<_, Suite>(
         r#"SELECT id, project_id, parent_id, name, sort_order, created_at, updated_at
            FROM suites WHERE project_id = $1 AND id = $2"#,
@@ -123,13 +154,23 @@ pub async fn get_suite(
         ("suite_id" = Uuid, Path, description = "Suite id")
     ),
     request_body = UpdateSuite,
-    responses((status = 200, description = "Updated suite", body = Suite))
+    responses((status = 200, description = "Updated suite", body = Suite)),
+    security(("bearer_auth" = []))
 )]
 pub async fn update_suite(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, suite_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<UpdateSuite>,
 ) -> AppResult<Json<Suite>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageSuites,
+    )
+    .await?;
     let existing = sqlx::query_as::<_, Suite>(
         r#"SELECT id, project_id, parent_id, name, sort_order, created_at, updated_at
            FROM suites WHERE project_id = $1 AND id = $2"#,
@@ -169,12 +210,22 @@ pub async fn update_suite(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("suite_id" = Uuid, Path, description = "Suite id")
     ),
-    responses((status = 204, description = "Deleted"))
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
 )]
 pub async fn delete_suite(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, suite_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<axum::http::StatusCode> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageSuites,
+    )
+    .await?;
     let result = sqlx::query("DELETE FROM suites WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(suite_id)

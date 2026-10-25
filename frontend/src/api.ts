@@ -298,16 +298,51 @@ export type UserPublic = {
   email: string
   display_name: string
   is_system_admin: boolean
+  must_change_password: boolean
+  locale: string | null
+  timezone: string | null
   disabled_at: string | null
   created_at: string
   updated_at: string
 }
 
+export type RegistrationMode = 'open' | 'invite' | 'disabled'
+
+export type SsoProviderPublic = {
+  id: string
+  provider_key: string
+  display_name: string
+  enabled: boolean
+}
+
 export type AuthStatus = {
   auth_required: boolean
   bootstrap_available: boolean
+  setup_required: boolean
+  registration_mode: RegistrationMode
+  default_locale: string
+  default_timezone: string
+  instance_name: string
   authenticated: boolean
   user: UserPublic | null
+  sso_providers: SsoProviderPublic[]
+}
+
+export type SetupStatus = {
+  setup_completed: boolean
+  setup_required: boolean
+}
+
+export type CompleteSetupRequest = {
+  setup_token: string
+  email: string
+  password: string
+  display_name: string
+  instance_name?: string
+  base_url?: string
+  default_locale?: string
+  default_timezone?: string
+  registration_mode?: RegistrationMode
 }
 
 export type AuthResponse = {
@@ -317,7 +352,81 @@ export type AuthResponse = {
   user: UserPublic
 }
 
-export type ProjectRole = 'admin' | 'project_lead' | 'tester' | 'viewer'
+export type ProjectRole =
+  | 'admin'
+  | 'test_architect'
+  | 'test_automation_engineer'
+  | 'developer'
+  | 'viewer'
+
+export type InstanceSettings = {
+  setup_completed: boolean
+  instance_name: string
+  base_url: string
+  default_locale: string
+  default_timezone: string
+  registration_mode: RegistrationMode
+  default_role: ProjectRole
+  allowed_email_domains: string[]
+}
+
+export type UpdateInstanceSettings = {
+  instance_name?: string
+  base_url?: string
+  default_locale?: string
+  default_timezone?: string
+  registration_mode?: RegistrationMode
+  default_role?: ProjectRole
+  allowed_email_domains?: string[]
+}
+
+export type SsoProviderAdmin = {
+  id: string
+  provider_key: string
+  display_name: string
+  enabled: boolean
+  issuer_url: string | null
+  authorization_endpoint: string | null
+  token_endpoint: string | null
+  userinfo_endpoint: string | null
+  jwks_uri: string | null
+  client_id: string
+  has_client_secret: boolean
+  scopes: string
+  extra_config: unknown
+  default_role: ProjectRole
+  group_role_mapping: unknown
+  allowed_email_domains: string[]
+  created_at: string
+  updated_at: string
+}
+
+export type UpdateSsoProviderRequest = {
+  display_name?: string
+  enabled?: boolean
+  issuer_url?: string | null
+  authorization_endpoint?: string | null
+  token_endpoint?: string | null
+  userinfo_endpoint?: string | null
+  jwks_uri?: string | null
+  client_id?: string
+  client_secret?: string | null
+  scopes?: string
+  extra_config?: unknown
+  default_role?: ProjectRole
+  group_role_mapping?: unknown
+  allowed_email_domains?: string[]
+}
+
+export type RoleMatrixRow = {
+  role: ProjectRole
+  display_name: string
+  permissions: string[]
+}
+
+export type RoleMatrixResponse = {
+  roles: RoleMatrixRow[]
+}
 
 export type MembershipView = {
   id: string
@@ -584,10 +693,24 @@ const defaultMapping = (): FieldMapping => ({
   steps: 'steps',
 })
 
+export function ssoStartUrl(providerKey: string): string {
+  return `${API_BASE}/api/v1/auth/sso/${encodeURIComponent(providerKey)}/start`
+}
+
 export const api = {
   authStatus: () => request<AuthStatus>('/api/v1/auth/status'),
   login: (body: { email: string; password: string }) =>
     request<AuthResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  register: (body: {
+    email: string
+    password: string
+    display_name: string
+    invite_token?: string
+  }) =>
+    request<AuthResponse>('/api/v1/auth/register', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
@@ -601,6 +724,47 @@ export const api = {
       body: JSON.stringify(body),
     }),
   logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
+  changePassword: (body: {
+    current_password?: string
+    new_password: string
+  }) =>
+    request<void>('/api/v1/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateMe: (body: {
+    display_name?: string
+    locale?: string
+    timezone?: string
+  }) =>
+    request<UserPublic>('/api/v1/auth/me', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  getMe: () => request<UserPublic>('/api/v1/auth/me'),
+
+  setupStatus: () => request<SetupStatus>('/api/v1/setup/status'),
+  completeSetup: (body: CompleteSetupRequest) =>
+    request<{ ok: boolean; setup_completed: boolean }>(
+      '/api/v1/setup/complete',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+
+  getRoleMatrix: () => request<RoleMatrixResponse>('/api/v1/roles/matrix'),
+  getAdminSettings: () =>
+    request<InstanceSettings>('/api/v1/admin/settings'),
+  updateAdminSettings: (body: UpdateInstanceSettings) =>
+    request<InstanceSettings>('/api/v1/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  listSsoProvidersAdmin: () =>
+    request<SsoProviderAdmin[]>('/api/v1/admin/sso/providers'),
+  updateSsoProvider: (id: string, body: UpdateSsoProviderRequest) =>
+    request<SsoProviderAdmin>(`/api/v1/admin/sso/providers/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
 
   listUsers: () => request<UserPublic[]>('/api/v1/users'),
   createUser: (body: {

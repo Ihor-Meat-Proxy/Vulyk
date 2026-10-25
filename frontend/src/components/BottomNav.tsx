@@ -1,13 +1,26 @@
 import { NavLink } from 'react-router-dom'
+import { useI18n } from '../i18n'
 
-const items = [
-  { to: '/', end: true, label: 'Cases' },
-  { to: '/runs', end: false, label: 'Runs' },
-  { to: '/reports', end: false, label: 'Reports' },
-  { to: '/admin', end: false, label: 'Admin' },
-] as const
+type Props = {
+  showAdmin?: boolean
+  showReports?: boolean
+}
 
-export function BottomNav() {
+type NavItem = { to: string; end: boolean; label: string }
+
+export function BottomNav({ showAdmin = true, showReports = true }: Props) {
+  const { t } = useI18n()
+  const items: NavItem[] = [
+    { to: '/', end: true, label: t('nav.cases') },
+    { to: '/runs', end: false, label: t('nav.runs') },
+  ]
+  if (showReports) {
+    items.push({ to: '/reports', end: false, label: t('nav.reports') })
+  }
+  if (showAdmin) {
+    items.push({ to: '/admin', end: false, label: t('nav.admin') })
+  }
+
   return (
     <nav className="bottom-nav" aria-label="Mobile primary">
       {items.map((item) => (

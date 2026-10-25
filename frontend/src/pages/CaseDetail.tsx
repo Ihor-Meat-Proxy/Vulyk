@@ -9,7 +9,10 @@ import {
   type Requirement,
   type TestCaseDetail,
 } from '../api'
+import { useAuth } from '../auth'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
+import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
@@ -24,6 +27,10 @@ type DraftStep = {
 type Tab = 'details' | 'history'
 
 export function CaseDetail({ projectId }: Props) {
+  const { user, status: authStatus } = useAuth()
+  const { can } = useProjectPermissions(projectId)
+  const canEdit = can('create_edit_cases')
+  const canManageReqs = can('manage_requirements')
   const { caseId } = useParams()
   const [detail, setDetail] = useState<TestCaseDetail | null>(null)
   const [versions, setVersions] = useState<CaseVersionSummary[]>([])
@@ -231,11 +238,12 @@ export function CaseDetail({ projectId }: Props) {
           )}
         </h2>
         <div className="detail-actions">
-          {!editing ? (
+          {canEdit && !editing ? (
             <button type="button" className="btn" onClick={() => setEditing(true)}>
               Edit
             </button>
-          ) : (
+          ) : null}
+          {canEdit && editing ? (
             <>
               <button
                 type="button"
@@ -249,7 +257,7 @@ export function CaseDetail({ projectId }: Props) {
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
