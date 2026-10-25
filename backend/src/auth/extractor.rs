@@ -343,6 +343,7 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
             must_change_password: false,
             locale: None,
             timezone: None,
+            preferences: serde_json::json!({}),
             disabled_at: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
@@ -354,7 +355,7 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
 async fn load_active_user(pool: &PgPool, user_id: Uuid) -> AppResult<User> {
     let user = sqlx::query_as::<_, User>(
         r#"SELECT id, email, display_name, password_hash, is_system_admin,
-                  must_change_password, locale, timezone,
+                  must_change_password, locale, timezone, preferences,
                   disabled_at, created_at, updated_at
            FROM users WHERE id = $1"#,
     )

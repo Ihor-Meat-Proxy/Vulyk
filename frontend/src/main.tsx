@@ -6,6 +6,7 @@ import { AuthProvider } from './auth'
 import { I18nProvider } from './i18n'
 import { setupPwa } from './pwa/registerPwa'
 import { startOfflineSyncWatch } from './pwa/offlineSync'
+import { AppearanceProvider } from './theme/appearance'
 import './index.css'
 
 setupPwa()
@@ -16,7 +17,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <I18nProvider>
-          <App />
+          <AppearanceProvider>
+            <App />
+          </AppearanceProvider>
         </I18nProvider>
       </AuthProvider>
     </BrowserRouter>

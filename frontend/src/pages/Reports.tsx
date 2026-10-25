@@ -28,10 +28,30 @@ function CountsBar({
 }) {
   const total = Math.max(passed + failed + other, 1)
   return (
-    <div className="trend-bar" aria-hidden>
-      <span className="trend-seg passed" style={{ width: `${(passed / total) * 100}%` }} />
-      <span className="trend-seg failed" style={{ width: `${(failed / total) * 100}%` }} />
-      <span className="trend-seg other" style={{ width: `${(other / total) * 100}%` }} />
+    <div>
+      <div
+        className="trend-bar"
+        role="img"
+        aria-label={`Passed ${passed}, Failed ${failed}, Other ${other}`}
+      >
+        <span className="trend-seg passed" style={{ width: `${(passed / total) * 100}%` }} />
+        <span className="trend-seg failed" style={{ width: `${(failed / total) * 100}%` }} />
+        <span className="trend-seg other" style={{ width: `${(other / total) * 100}%` }} />
+      </div>
+      <div className="progress-legend">
+        <span className="progress-legend-item">
+          <span className="progress-legend-swatch passed" aria-hidden />
+          Passed {passed}
+        </span>
+        <span className="progress-legend-item">
+          <span className="progress-legend-swatch failed" aria-hidden />
+          Failed {failed}
+        </span>
+        <span className="progress-legend-item">
+          <span className="progress-legend-swatch skipped" aria-hidden />
+          Other {other}
+        </span>
+      </div>
     </div>
   )
 }

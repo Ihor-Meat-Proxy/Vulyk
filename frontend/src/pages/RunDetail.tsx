@@ -7,8 +7,10 @@ import {
   type RunItemExecution,
   type TestRunDetail,
 } from '../api'
+import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
+import { useI18n } from '../i18n'
 
 type Props = {
   projectId: string | null
@@ -31,6 +33,7 @@ function fileToBase64(file: File): Promise<string> {
 
 export function RunDetail({ projectId }: Props) {
   const { runId } = useParams()
+  const { t } = useI18n()
   const [detail, setDetail] = useState<TestRunDetail | null>(null)
   const [active, setActive] = useState<RunItemExecution | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -248,12 +251,21 @@ export function RunDetail({ projectId }: Props) {
           <div className="progress-seg skipped" style={{ flex: progress.skipped || 0.0001 }} />
           <div className="progress-seg untested" style={{ flex: progress.untested || 0.0001 }} />
         </div>
-        <div className="progress-legend muted">
-          <span>Passed {progress.passed}</span>
-          <span>Failed {progress.failed}</span>
-          <span>Blocked {progress.blocked}</span>
-          <span>Skipped {progress.skipped}</span>
-          <span>Untested {progress.untested}</span>
+        <div className="progress-legend" aria-label="Progress legend">
+          {(
+            [
+              ['passed', progress.passed],
+              ['failed', progress.failed],
+              ['blocked', progress.blocked],
+              ['skipped', progress.skipped],
+              ['untested', progress.untested],
+            ] as const
+          ).map(([key, count]) => (
+            <span key={key} className="progress-legend-item">
+              <span className={`progress-legend-swatch ${key}`} aria-hidden />
+              {t(`status.${key}`)} {count}
+            </span>
+          ))}
         </div>
 
         {error && <p className="error">{error}</p>}
@@ -269,9 +281,7 @@ export function RunDetail({ projectId }: Props) {
               >
                 <span className="badge">{row.case_key}</span>
                 <span className="run-item-title">{row.case_title}</span>
-                <span className={`status-pill ${statusClass(row.item.status)}`}>
-                  {row.item.status}
-                </span>
+                <StatusBadge status={row.item.status} />
               </button>
             </li>
           ))}
@@ -300,9 +310,7 @@ export function RunDetail({ projectId }: Props) {
                   <td>{row.case_priority}</td>
                   <td>{row.item.assignee || '—'}</td>
                   <td>
-                    <span className={`status-pill ${statusClass(row.item.status)}`}>
-                      {row.item.status}
-                    </span>
+                    <StatusBadge status={row.item.status} />
                   </td>
                 </tr>
               ))}
@@ -447,15 +455,13 @@ export function RunDetail({ projectId }: Props) {
 
             <div className="exec-actions exec-actions-thumb" role="group" aria-label="Result status">
               {(['Passed', 'Failed', 'Blocked', 'Skipped'] as const).map((s) => (
-                <button
+                <StatusActionButton
                   key={s}
-                  type="button"
-                  className={`btn status-btn ${statusClass(s)} thumb-btn`}
+                  status={s}
+                  className="thumb-btn"
                   disabled={saving}
                   onClick={() => void submitStatus(s)}
-                >
-                  {s}
-                </button>
+                />
               ))}
             </div>
 
@@ -465,9 +471,7 @@ export function RunDetail({ projectId }: Props) {
                 <ol className="timeline-list">
                   {active.history.map((h) => (
                     <li key={h.result.id}>
-                      <span className={`status-pill ${statusClass(h.result.status)}`}>
-                        {h.result.status}
-                      </span>{' '}
+                      <StatusBadge status={h.result.status} />{' '}
                       <span className="muted">
                         {new Date(h.result.executed_at).toLocaleString()}
                         {h.executed_by_name ? ` · ${h.executed_by_name}` : ''}

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
-  statusClass,
   type CaseResultsPage,
   type CaseVersionSummary,
   type CustomField,
@@ -10,6 +9,7 @@ import {
   type TestCaseDetail,
 } from '../api'
 import { useAuth } from '../auth'
+import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 import { formatTimestamp } from '../timezone'
@@ -561,9 +561,7 @@ export function CaseDetail({ projectId }: Props) {
               <span>
                 Latest:{' '}
                 {summary.latest_status ? (
-                  <span className={`status-pill ${statusClass(summary.latest_status)}`}>
-                    {summary.latest_status}
-                  </span>
+                  <StatusBadge status={summary.latest_status} />
                 ) : (
                   '—'
                 )}
@@ -618,9 +616,7 @@ export function CaseDetail({ projectId }: Props) {
               <ol className="timeline-list" aria-label="Case results across runs">
                 {resultsPage.items.map((h) => (
                   <li key={h.result.id}>
-                    <span className={`status-pill ${statusClass(h.result.status)}`}>
-                      {h.result.status}
-                    </span>{' '}
+                    <StatusBadge status={h.result.status} />{' '}
                     <strong>{h.run_name || 'Run'}</strong>{' '}
                     <span className="muted">
                       {new Date(h.result.executed_at).toLocaleString()}

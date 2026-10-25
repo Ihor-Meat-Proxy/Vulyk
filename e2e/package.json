@@ -12,6 +12,7 @@
     "oidc": "node mock-oidc/server.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.55.0",
     "@types/node": "^24.9.1",
     "typescript": "^5.9.3"

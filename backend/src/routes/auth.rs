@@ -23,7 +23,7 @@ use crate::settings::{self, RegistrationMode};
 use crate::sso;
 
 const USER_COLUMNS: &str = r#"id, email, display_name, password_hash, is_system_admin,
-                  must_change_password, locale, timezone,
+                  must_change_password, locale, timezone, preferences,
                   disabled_at, created_at, updated_at"#;
 
 pub fn router() -> Router<AppState> {
@@ -63,6 +63,7 @@ pub async fn auth_status(
         registration_mode: instance.registration_mode,
         default_locale: instance.default_locale,
         default_timezone: instance.default_timezone,
+        default_theme: instance.default_theme,
         instance_name: instance.instance_name,
         authenticated: auth.is_some(),
         user: auth.map(|a| UserPublic::from(a.user)),
@@ -327,9 +328,17 @@ pub async fn update_me(
     let locale = body.locale.or_else(|| auth.user.locale.clone());
     let timezone = body.timezone.or_else(|| auth.user.timezone.clone());
 
+    let mut preferences = auth.user.preferences_typed();
+    if let Some(patch) = body.preferences.as_ref() {
+        preferences
+            .merge_update(patch)
+            .map_err(AppError::BadRequest)?;
+    }
+    let preferences_value = preferences.to_value();
+
     let user = sqlx::query_as::<_, User>(&format!(
         r#"UPDATE users
-           SET display_name = $2, locale = $3, timezone = $4, updated_at = NOW()
+           SET display_name = $2, locale = $3, timezone = $4, preferences = $5, updated_at = NOW()
            WHERE id = $1
            RETURNING {USER_COLUMNS}"#
     ))
@@ -337,6 +346,7 @@ pub async fn update_me(
     .bind(display_name)
     .bind(locale)
     .bind(timezone)
+    .bind(preferences_value)
     .fetch_one(&state.pool)
     .await?;
 

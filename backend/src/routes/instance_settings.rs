@@ -25,6 +25,7 @@ pub struct UpdateInstanceSettings {
     pub base_url: Option<String>,
     pub default_locale: Option<String>,
     pub default_timezone: Option<String>,
+    pub default_theme: Option<String>,
     pub registration_mode: Option<crate::settings::RegistrationMode>,
     pub default_role: Option<crate::auth::ProjectRole>,
     pub allowed_email_domains: Option<Vec<String>>,
@@ -74,6 +75,10 @@ pub async fn put_settings(
     }
     if let Some(v) = body.default_timezone.filter(|s| !s.is_empty()) {
         current.default_timezone = v;
+    }
+    if let Some(v) = body.default_theme.filter(|s| !s.is_empty()) {
+        current.default_theme = crate::models::preferences::validate_theme(&v)
+            .map_err(crate::error::AppError::BadRequest)?;
     }
     if let Some(v) = body.registration_mode {
         current.registration_mode = v;

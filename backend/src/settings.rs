@@ -52,6 +52,8 @@ pub struct InstanceSettings {
     pub base_url: String,
     pub default_locale: String,
     pub default_timezone: String,
+    /// Default appearance theme for users who have not chosen one.
+    pub default_theme: String,
     pub registration_mode: RegistrationMode,
     pub default_role: ProjectRole,
     pub allowed_email_domains: Vec<String>,
@@ -65,6 +67,7 @@ impl Default for InstanceSettings {
             base_url: String::new(),
             default_locale: "en".into(),
             default_timezone: "UTC".into(),
+            default_theme: "system".into(),
             registration_mode: RegistrationMode::Disabled,
             default_role: ProjectRole::Viewer,
             allowed_email_domains: vec![],
@@ -126,6 +129,7 @@ pub async fn load_settings(pool: &PgPool) -> AppResult<InstanceSettings> {
         base_url: get_string(pool, "base_url", "").await?,
         default_locale: get_string(pool, "default_locale", "en").await?,
         default_timezone: get_string(pool, "default_timezone", "UTC").await?,
+        default_theme: get_string(pool, "default_theme", "system").await?,
         registration_mode: mode.parse().unwrap_or(RegistrationMode::Disabled),
         default_role: role.parse().unwrap_or(ProjectRole::Viewer),
         allowed_email_domains,
@@ -165,6 +169,12 @@ pub async fn save_settings(pool: &PgPool, settings: &InstanceSettings) -> AppRes
         pool,
         "default_timezone",
         Value::String(settings.default_timezone.clone()),
+    )
+    .await?;
+    set_value(
+        pool,
+        "default_theme",
+        Value::String(settings.default_theme.clone()),
     )
     .await?;
     set_value(

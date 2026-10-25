@@ -72,6 +72,10 @@ pub async fn setup_complete(
     if let Some(tz) = body.default_timezone.filter(|s| !s.is_empty()) {
         instance.default_timezone = tz;
     }
+    if let Some(theme) = body.default_theme.filter(|s| !s.is_empty()) {
+        instance.default_theme =
+            crate::models::preferences::validate_theme(&theme).map_err(AppError::BadRequest)?;
+    }
     if let Some(mode) = body.registration_mode {
         instance.registration_mode = mode;
     } else if instance.registration_mode == RegistrationMode::Disabled {

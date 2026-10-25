@@ -3,18 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f6b4c" />
+    <meta name="theme-color" content="#0B6E4F" />
     <title>Offline — Vulyk</title>
     <link rel="icon" href="/icons/bee.svg" type="image/svg+xml" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('vulyk.appearance')
+          var prefs = raw ? JSON.parse(raw) : {}
+          var theme = prefs.theme || 'system'
+          var dark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          var contrast = window.matchMedia('(prefers-contrast: more)').matches
+          var resolved = theme === 'system'
+            ? (contrast ? 'high_contrast' : dark ? 'dark' : 'light')
+            : theme
+          var map = {
+            light: { bg: '#F7F8FA', ink: '#1F2328', muted: '#57606A', accent: '#0B6E4F', elev: '#EEF0F3', line: '#D0D7DE', on: '#F7F8FA', scheme: 'light', themeColor: '#0B6E4F' },
+            dark: { bg: '#121417', ink: '#E6E6E6', muted: '#A8ADB4', accent: '#4DB896', elev: '#1A1D21', line: '#2E333A', on: '#0C1210', scheme: 'dark', themeColor: '#121417' },
+            high_contrast: { bg: '#000000', ink: '#FFFFFF', muted: '#E0E0E0', accent: '#00FFC8', elev: '#0A0A0A', line: '#FFFFFF', on: '#000000', scheme: 'dark', themeColor: '#000000' },
+            sepia: { bg: '#1A1612', ink: '#E8DCC8', muted: '#B8A890', accent: '#C4893A', elev: '#241E18', line: '#3D342A', on: '#1A1612', scheme: 'dark', themeColor: '#1A1612' }
+          }
+          var t = map[resolved] || map.light
+          var r = document.documentElement
+          r.style.colorScheme = t.scheme
+          r.style.setProperty('--bg', t.bg)
+          r.style.setProperty('--ink', t.ink)
+          r.style.setProperty('--muted', t.muted)
+          r.style.setProperty('--accent', t.accent)
+          r.style.setProperty('--elev', t.elev)
+          r.style.setProperty('--line', t.line)
+          r.style.setProperty('--accent-on', t.on)
+          var meta = document.querySelector('meta[name="theme-color"]')
+          if (meta) meta.setAttribute('content', t.themeColor)
+        } catch (e) {}
+      })()
+    </script>
     <style>
       :root {
         color-scheme: light;
-        --bg: #f3f0e8;
-        --ink: #1c1914;
-        --muted: #5c564c;
-        --accent: #0f6b4c;
-        --elev: #fffdf8;
-        --line: #d9d2c4;
+        --bg: #f7f8fa;
+        --ink: #1f2328;
+        --muted: #57606a;
+        --accent: #0b6e4f;
+        --accent-on: #f7f8fa;
+        --elev: #eef0f3;
+        --line: #d0d7de;
         font-family: "Source Sans 3", "Segoe UI", sans-serif;
       }
       * { box-sizing: border-box; }
@@ -26,8 +59,7 @@
         padding: 1.5rem;
         color: var(--ink);
         background:
-          radial-gradient(circle at 12% 8%, #e7f3ec 0%, transparent 42%),
-          radial-gradient(circle at 88% 0%, #f7e9d4 0%, transparent 36%),
+          radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 42%),
           var(--bg);
       }
       .card {
@@ -50,7 +82,7 @@
         display: inline-block;
         border: 1px solid var(--accent);
         background: var(--accent);
-        color: #fff;
+        color: var(--accent-on);
         border-radius: 0.45rem;
         padding: 0.55rem 1rem;
         text-decoration: none;

@@ -45,6 +45,7 @@ const emptyStatus = (): AuthStatus => ({
   registration_mode: 'disabled',
   default_locale: 'en',
   default_timezone: 'UTC',
+  default_theme: 'system',
   instance_name: 'Vulyk',
   authenticated: false,
   user: null,
