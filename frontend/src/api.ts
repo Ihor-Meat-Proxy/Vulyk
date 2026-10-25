@@ -277,7 +277,7 @@ export const api = {
       `/api/v1/projects/${projectId}/integrations`,
     ),
   listDefects: (projectId: string) =>
-    request<Defect[]>(`/api/v1/projects/${projectId}/defects`),,
+    request<Defect[]>(`/api/v1/projects/${projectId}/defects`),
 
   listLlmProviders: () => request<ProviderKindInfo[]>('/api/v1/llm/providers'),
   listLlmConfigs: (projectId: string) =>
