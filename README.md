@@ -2,7 +2,7 @@
 
 Open-source **test management** system. *Vulyk* (вулик) is Ukrainian for *beehive*.
 
-Phase 1 foundation plus LLM providers (W9) and a production MCP server (W10): Rust API (Axum + SQLx + OpenAPI), React UI, MCP/CLI, Docker Compose, and CI.
+Phase 1 foundation plus case/run depth (W2/W3), ALM/importers (W6/W7), LLM providers (W9), and a production MCP server (W10): Rust API (Axum + SQLx + OpenAPI), React UI, MCP/CLI, Docker Compose, and CI.
 
 ## Quick start
 
@@ -45,17 +45,20 @@ scripts/    install.sh
 
 See **[docs/architecture.md](docs/architecture.md)** for the full product plan, ERD, plugin interfaces (importers, ALM, LLM, CI), MCP design, and parallel workstreams **W0–W11**.
 
+- Case repository & execution: **[docs/w2-w3-cases-runs.md](docs/w2-w3-cases-runs.md)**
 - LLM providers & chat: **[docs/llm.md](docs/llm.md)**
 - MCP setup (Cursor / Claude Desktop): **[docs/mcp.md](docs/mcp.md)**
 
-## API (Phase 1 + W1 + W4–W7 + W9/W10)
+## API (Phase 1 + W1–W7 + W9/W10)
 
 - `GET /health`, `GET /ready`
 - Auth / RBAC: `/api/v1/auth/*`, `/api/v1/users`, memberships — see [docs/auth-and-rbac.md](docs/auth-and-rbac.md)
 - `CRUD /api/v1/projects`
 - `CRUD /api/v1/projects/{id}/suites`
-- `CRUD /api/v1/projects/{id}/cases` (with steps; optional `?suite_id=` / `?q=` search)
-- `CRUD /api/v1/projects/{id}/runs` (+ trigger, results ingest)
+- `CRUD /api/v1/projects/{id}/cases` (paginated; steps, tags, custom fields, versions, bulk, FTS `?q=`)
+- `CRUD /api/v1/projects/{id}/tags`, `.../custom-fields`, `.../plans`
+- `CRUD /api/v1/projects/{id}/runs` (+ items, execute, trigger, results ingest, progress)
+- `CRUD /api/v1/projects/{id}/attachments`
 - Ingest (W4): `POST /api/v1/runs/{id}/ingest`, `POST /api/v1/runs/{id}/results:bulk`, `GET /api/v1/jobs/{id}`
 - CI (W5): CI configs + `POST /api/v1/ci-configs/{id}/dispatch`, webhooks under `/api/v1/webhooks/{github|gitlab}`
 - Requirements / ALM (W6): `/requirements`, case links, `/integrations`, `/defects`

@@ -89,7 +89,11 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .json()
         .await
         .unwrap();
-    let run_id = run["id"].as_str().unwrap();
+    let run_id = run
+        .get("id")
+        .or_else(|| run.get("run").and_then(|r| r.get("id")))
+        .and_then(|v| v.as_str())
+        .unwrap();
 
     let junit = r#"<?xml version="1.0"?>
 <testsuite name="pytest" tests="2">
@@ -253,7 +257,11 @@ async fn vulyk_json_async_job() {
         .json()
         .await
         .unwrap();
-    let run_id = run["id"].as_str().unwrap();
+    let run_id = run
+        .get("id")
+        .or_else(|| run.get("run").and_then(|r| r.get("id")))
+        .and_then(|v| v.as_str())
+        .unwrap();
 
     let doc = json!({
         "format": "vulyk/results@v1",

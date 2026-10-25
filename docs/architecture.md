@@ -182,7 +182,7 @@ erDiagram
   }
 ```
 
-Phase 1 migrations create: `users`, `projects`, `suites`, `test_cases`, `test_steps`, `test_runs`, `test_results`, `requirements`, plus supporting indexes (`pg_trgm`, FTS). Plans, custom fields, memberships, tokens, integrations, jobs land in follow-up migrations on their workstreams.
+Phase 1 migrations create: `users`, `projects`, `suites`, `test_cases`, `test_steps`, `test_runs`, `test_results`, `requirements`, plus supporting indexes (`pg_trgm`, FTS). W2/W3 migrations add `tags`, `case_tags`, `custom_fields`, `custom_field_values`, `case_versions`, `attachments`, `test_plans`, `test_plan_cases`, `run_items`, `result_steps`, and enrich `test_runs` / `test_results`. Memberships, tokens, integrations, jobs land in follow-up migrations on their workstreams.
 
 ## API conventions
 
@@ -299,8 +299,8 @@ Agents can own one stream each; contracts live in this doc + OpenAPI.
 |----|------------|------------|--------------|
 | **W0** | Foundation (this PR) | — | Monorepo, migrations core, CRUD projects/suites/cases, OpenAPI docs, UI shell, compose, CI |
 | **W1** | Auth & admin | W0 | Sessions/JWT, API tokens, users, roles, memberships, admin UI |
-| **W2** | Case repository depth | W0 | Steps editor UX, custom fields, case versioning, FTS search API |
-| **W3** | Plans, runs, results | W0 | Plans/runs CRUD, result model UI, status workflow |
+| **W2** | Case repository depth | W0 | Steps editor UX, custom fields, case versioning, FTS search API, tags, bulk, pagination (**see [w2-w3-cases-runs.md](w2-w3-cases-runs.md)**) |
+| **W3** | Plans, runs, results | W0 | Plans/runs CRUD, result model UI, status workflow, step execution, attachments (**see [w2-w3-cases-runs.md](w2-w3-cases-runs.md)**) |
 | **W4** | Ingest & CLI reporter | W3 | JUnit + Vulyk JSON ingest, `cli` reporter, job worker — see [guides/ingest-and-ci.md](guides/ingest-and-ci.md) |
 | **W5** | CI integrations | W4 | GHA/GitLab webhook status sync; `workflow_dispatch` / pipeline trigger from UI; reusable Action + GitLab template |
 | **W6** | Requirements & ALM | W0 | Requirements CRUD, OpenProject + Jira Cloud/DC adapters, defect create |

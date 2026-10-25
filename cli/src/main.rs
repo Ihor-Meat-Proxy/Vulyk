@@ -146,6 +146,11 @@ fn report(args: ReportArgs) -> Result<()> {
         )?;
         run.get("id")
             .and_then(|v| v.as_str())
+            .or_else(|| {
+                run.get("run")
+                    .and_then(|r| r.get("id"))
+                    .and_then(|v| v.as_str())
+            })
             .map(|s| s.to_string())
             .context("create run response missing id")?
     };

@@ -164,7 +164,8 @@ jobs:
           curl -fsS "$VULYK_API_URL/api/v1/projects/${PROJECT_ID}/runs" > /tmp/runs.json
           python3 - <<'PY'
           import json, os, urllib.request
-          runs = json.load(open("/tmp/runs.json"))
+          payload = json.load(open("/tmp/runs.json"))
+          runs = payload["items"] if isinstance(payload, dict) else payload
           assert runs, "expected runs"
           api = os.environ["VULYK_API_URL"]
           found = False

@@ -39,7 +39,7 @@ export function Runs({ projectId }: Props) {
         api.listCiConfigs(projectId),
         api.listDispatches(projectId),
       ])
-      setRuns(r)
+      setRuns(r.items)
       setConfigs(c)
       setDispatches(d)
       setError(null)
@@ -75,12 +75,12 @@ export function Runs({ projectId }: Props) {
     if (!projectId) return
     setBusy(true)
     try {
-      const run = await api.createRun(projectId, {
+      const detail = await api.createRun(projectId, {
         name: runName.trim() || 'Untitled run',
         source: 'ui',
         status: 'running',
       })
-      setSelectedRunId(run.id)
+      setSelectedRunId(detail.run.id)
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))

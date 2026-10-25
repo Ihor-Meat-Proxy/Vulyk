@@ -330,6 +330,8 @@ pub async fn generate_cases(
                 priority: draft.priority.clone(),
                 status: "draft".into(),
                 steps: draft.steps.clone(),
+                tag_ids: vec![],
+                tag_names: vec![],
             };
             persisted.push(insert_case(&state.pool, project_id, create).await?);
         }
@@ -685,5 +687,10 @@ async fn insert_case(
     .await?;
     let steps = replace_steps(&mut tx, case.id, &body.steps).await?;
     tx.commit().await?;
-    Ok(TestCaseDetail { case, steps })
+    Ok(TestCaseDetail {
+        case,
+        steps,
+        tags: vec![],
+        custom_fields: vec![],
+    })
 }

@@ -1,7 +1,9 @@
 pub mod admin;
+pub mod attachments;
 pub mod auth;
 pub mod cases;
 pub mod ci;
+pub mod custom_fields;
 pub mod health;
 pub mod imports;
 pub mod ingest;
@@ -9,10 +11,12 @@ pub mod integrations;
 pub mod jobs;
 pub mod llm;
 pub mod memberships;
+pub mod plans;
 pub mod projects;
 pub mod requirements;
 pub mod runs;
 pub mod suites;
+pub mod tags;
 pub mod tokens;
 pub mod users;
 pub mod webhooks;
@@ -39,7 +43,11 @@ pub fn app_router(state: AppState) -> Router {
         .merge(projects::router())
         .merge(suites::router())
         .merge(cases::router())
+        .merge(tags::router())
+        .merge(custom_fields::router())
+        .merge(plans::router())
         .merge(runs::router())
+        .merge(attachments::router())
         .merge(requirements::router())
         .merge(integrations::router())
         .merge(imports::router())

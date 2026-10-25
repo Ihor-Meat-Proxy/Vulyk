@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
-import { api, type Project, type Suite, type TestCase } from './api'
+import { api, type Project, type Suite } from './api'
 import { useAuth } from './auth'
 import { Layout } from './components/Layout'
 import { Admin } from './pages/Admin'
@@ -13,6 +13,8 @@ import { Login } from './pages/Login'
 import { Placeholder } from './pages/Placeholder'
 import { Runs } from './pages/Runs'
 import { RequirementsPage } from './pages/RequirementsPage'
+import { RunDetail } from './pages/RunDetail'
+import { RunsPage } from './pages/RunsPage'
 import { getStoredToken } from './token'
 
 const PROJECT_KEY = 'vulyk.selectedProjectId'
@@ -25,10 +27,7 @@ export default function App() {
     () => localStorage.getItem(PROJECT_KEY),
   )
   const [suites, setSuites] = useState<Suite[]>([])
-  const [cases, setCases] = useState<TestCase[]>([])
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null)
-  const [loadingCases, setLoadingCases] = useState(false)
-  const [casesError, setCasesError] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
 
   const project = projects.find((p) => p.id === projectId) ?? projects[0] ?? null
@@ -68,6 +67,7 @@ export default function App() {
           description: 'Verify API liveness.',
           priority: 'high',
           status: 'ready',
+          tag_names: ['smoke'],
           steps: [
             {
               action: 'GET /health',
@@ -128,27 +128,6 @@ export default function App() {
     }
   }, [activeProjectId])
 
-  const refreshCases = useCallback(async () => {
-    if (!activeProjectId) {
-      setCases([])
-      return
-    }
-    setLoadingCases(true)
-    try {
-      const data = await api.listCases(activeProjectId, selectedSuiteId)
-      setCases(data)
-      setCasesError(null)
-    } catch (err) {
-      setCasesError(err instanceof Error ? err.message : String(err))
-    } finally {
-      setLoadingCases(false)
-    }
-  }, [activeProjectId, selectedSuiteId])
-
-  useEffect(() => {
-    void refreshCases()
-  }, [refreshCases])
-
   const onSelectProject = (id: string) => {
     setProjectId(id)
     setSelectedSuiteId(null)
@@ -191,10 +170,8 @@ export default function App() {
             index
             element={
               <CaseList
-                cases={cases}
-                loading={loadingCases}
-                error={casesError}
                 projectId={activeProjectId}
+                suiteId={selectedSuiteId}
               />
             }
           />
@@ -215,7 +192,15 @@ export default function App() {
             element={<Generate projectId={activeProjectId} />}
           />
           <Route path="chat" element={<Chat projectId={activeProjectId} />} />
-          <Route path="runs" element={<Runs projectId={activeProjectId} />} />
+          <Route
+            path="runs"
+            element={<RunsPage projectId={activeProjectId} suites={suites} />}
+          />
+          <Route
+            path="runs/:runId"
+            element={<RunDetail projectId={activeProjectId} />}
+          />
+          <Route path="ci" element={<Runs projectId={activeProjectId} />} />
           <Route
             path="reports"
             element={

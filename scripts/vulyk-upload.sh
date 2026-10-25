@@ -122,7 +122,9 @@ PY
   RUN_JSON="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
     -d "$RUN_PAYLOAD" \
     "${API_URL}/api/v1/projects/${PROJECT_ID}/runs")"
-  RUN_ID="$(printf '%s' "$RUN_JSON" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')"
+  RUN_ID="$(printf '%s' "$RUN_JSON" | python3 -c 'import json,sys
+d=json.load(sys.stdin)
+print(d.get("id") or d["run"]["id"])')"
   echo "created run ${RUN_ID}"
 fi
 
