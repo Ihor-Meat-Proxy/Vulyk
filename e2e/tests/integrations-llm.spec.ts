@@ -80,6 +80,22 @@ test('CI trigger config page', async ({ page, request }) => {
   await expect(page.getByLabel('CI config JSON')).toBeVisible()
 
   await page.getByLabel('CI config name').fill(`GH ${key}`)
+  // Backend rejects empty token/owner/repo/workflow_id — use placeholders.
+  await page.getByLabel('CI config JSON').fill(
+    JSON.stringify(
+      {
+        token: 'ghp_e2e_placeholder',
+        owner: 'acme',
+        repo: 'demo',
+        workflow_id: 'ci.yml',
+        ref: 'main',
+      },
+      null,
+      2,
+    ),
+  )
   await page.getByRole('button', { name: 'Save config' }).click()
-  await expect(page.getByText(`GH ${key}`)).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByRole('cell', { name: `GH ${key}` })).toBeVisible({
+    timeout: 20_000,
+  })
 })

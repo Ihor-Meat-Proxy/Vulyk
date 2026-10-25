@@ -17,7 +17,10 @@ export class RunsPage {
   async createPlan(name: string) {
     await this.page.getByPlaceholder('New plan name').fill(name)
     await this.page.getByRole('button', { name: 'Add plan' }).click()
-    await expect(this.page.getByText(name)).toBeVisible({ timeout: 20_000 })
+    // Name appears both in the plan <select> and the plans list.
+    await expect(this.page.getByRole('strong', { name })).toBeVisible({
+      timeout: 20_000,
+    })
   }
 
   async createRun(name: string) {
