@@ -38,6 +38,7 @@ export function Layout({
           <NavLink to="/generate">Generate</NavLink>
           <NavLink to="/chat">Chat</NavLink>
           <NavLink to="/runs">Runs</NavLink>
+          <NavLink to="/ci">CI</NavLink>
           <NavLink to="/reports">Reports</NavLink>
           <NavLink to="/admin">Admin</NavLink>
         </nav>

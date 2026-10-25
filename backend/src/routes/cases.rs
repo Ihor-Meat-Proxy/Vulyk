@@ -1,14 +1,24 @@
 use axum::{
     extract::{Path, Query, State},
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::models::{CreateCase, CreateStep, TestCase, TestCaseDetail, TestStep, UpdateCase};
+use crate::models::{
+    BulkCasesRequest, BulkCasesResponse, CaseVersion, CaseVersionSummary, CreateCase, Page,
+    PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
+};
 use crate::routes::AppState;
+use crate::services::cases::{
+    add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
+    snapshot_case,
+};
+
+// Re-exports for LLM/MCP routes that historically imported these helpers from here.
+pub use crate::services::cases::{ensure_project, load_steps, replace_steps};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -16,9 +26,26 @@ pub fn router() -> Router<AppState> {
             "/api/v1/projects/{project_id}/cases",
             get(list_cases).post(create_case),
         )
+        .route("/api/v1/projects/{project_id}/cases/bulk", post(bulk_cases))
+        .route(
+            "/api/v1/projects/{project_id}/cases/search",
+            get(search_cases),
+        )
         .route(
             "/api/v1/projects/{project_id}/cases/{case_id}",
             get(get_case).put(update_case).delete(delete_case),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/cases/{case_id}/versions",
+            get(list_versions),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/cases/{case_id}/versions/{version}",
+            get(get_version),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/cases/{case_id}/custom-fields",
+            post(set_custom_fields),
         )
 }
 
@@ -26,57 +53,20 @@ pub fn router() -> Router<AppState> {
 pub struct ListCasesQuery {
     pub suite_id: Option<Uuid>,
     pub q: Option<String>,
+    pub tag: Option<String>,
+    pub status: Option<String>,
+    pub priority: Option<String>,
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
 }
 
-pub async fn ensure_project(pool: &sqlx::PgPool, project_id: Uuid) -> AppResult<()> {
-    let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1)")
-        .bind(project_id)
-        .fetch_one(pool)
-        .await?;
-    if !exists {
-        return Err(AppError::NotFound("project".into()));
+impl ListCasesQuery {
+    fn page(&self) -> PageQuery {
+        PageQuery {
+            limit: self.limit,
+            offset: self.offset,
+        }
     }
-    Ok(())
-}
-
-pub async fn load_steps(pool: &sqlx::PgPool, case_id: Uuid) -> AppResult<Vec<TestStep>> {
-    let steps = sqlx::query_as::<_, TestStep>(
-        r#"SELECT id, case_id, position, action, expected_result, data
-           FROM test_steps WHERE case_id = $1 ORDER BY position"#,
-    )
-    .bind(case_id)
-    .fetch_all(pool)
-    .await?;
-    Ok(steps)
-}
-
-pub async fn replace_steps(
-    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
-    case_id: Uuid,
-    steps: &[CreateStep],
-) -> AppResult<Vec<TestStep>> {
-    sqlx::query("DELETE FROM test_steps WHERE case_id = $1")
-        .bind(case_id)
-        .execute(&mut **tx)
-        .await?;
-
-    let mut out = Vec::with_capacity(steps.len());
-    for (idx, step) in steps.iter().enumerate() {
-        let row = sqlx::query_as::<_, TestStep>(
-            r#"INSERT INTO test_steps (case_id, position, action, expected_result, data)
-               VALUES ($1, $2, $3, $4, $5)
-               RETURNING id, case_id, position, action, expected_result, data"#,
-        )
-        .bind(case_id)
-        .bind(idx as i32)
-        .bind(&step.action)
-        .bind(&step.expected_result)
-        .bind(&step.data)
-        .fetch_one(&mut **tx)
-        .await?;
-        out.push(row);
-    }
-    Ok(out)
 }
 
 #[utoipa::path(
@@ -86,51 +76,108 @@ pub async fn replace_steps(
     params(
         ("project_id" = Uuid, Path, description = "Project id"),
         ("suite_id" = Option<Uuid>, Query, description = "Filter by suite"),
-        ("q" = Option<String>, Query, description = "Full-text / title search")
+        ("q" = Option<String>, Query, description = "Full-text / title search"),
+        ("tag" = Option<String>, Query, description = "Filter by tag name"),
+        ("status" = Option<String>, Query, description = "Filter by status"),
+        ("priority" = Option<String>, Query, description = "Filter by priority"),
+        ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
+        ("offset" = Option<i64>, Query, description = "Offset (default 0)")
     ),
-    responses((status = 200, description = "List cases", body = [TestCase]))
+    responses((status = 200, description = "Paginated cases", body = Page<TestCase>))
 )]
 pub async fn list_cases(
     State(state): State<AppState>,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListCasesQuery>,
-) -> AppResult<Json<Vec<TestCase>>> {
+) -> AppResult<Json<Page<TestCase>>> {
     ensure_project(&state.pool, project_id).await?;
+    let page = query.page();
+    let limit = page.limit();
+    let offset = page.offset();
 
-    let cases = if let Some(ref q) = query.q {
-        sqlx::query_as::<_, TestCase>(
-            r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                      priority, status, version, created_at, updated_at
-               FROM test_cases
-               WHERE project_id = $1
-                 AND ($2::uuid IS NULL OR suite_id = $2)
-                 AND (
-                   search_vector @@ plainto_tsquery('english', $3)
-                   OR title ILIKE '%' || $3 || '%'
-                 )
-               ORDER BY key"#,
-        )
-        .bind(project_id)
-        .bind(query.suite_id)
-        .bind(q)
-        .fetch_all(&state.pool)
-        .await?
-    } else {
-        sqlx::query_as::<_, TestCase>(
-            r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                      priority, status, version, created_at, updated_at
-               FROM test_cases
-               WHERE project_id = $1
-                 AND ($2::uuid IS NULL OR suite_id = $2)
-               ORDER BY key"#,
-        )
-        .bind(project_id)
-        .bind(query.suite_id)
-        .fetch_all(&state.pool)
-        .await?
-    };
+    let total: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(DISTINCT tc.id)::bigint
+           FROM test_cases tc
+           LEFT JOIN case_tags ct ON ct.case_id = tc.id
+           LEFT JOIN tags tg ON tg.id = ct.tag_id
+           WHERE tc.project_id = $1
+             AND ($2::uuid IS NULL OR tc.suite_id = $2)
+             AND ($3::text IS NULL OR tc.status = $3)
+             AND ($4::text IS NULL OR tc.priority = $4)
+             AND ($5::text IS NULL OR tg.name = $5)
+             AND (
+               $6::text IS NULL OR
+               tc.search_vector @@ plainto_tsquery('english', $6) OR
+               tc.title ILIKE '%' || $6 || '%' OR
+               tc.key ILIKE '%' || $6 || '%'
+             )"#,
+    )
+    .bind(project_id)
+    .bind(query.suite_id)
+    .bind(query.status.as_deref())
+    .bind(query.priority.as_deref())
+    .bind(query.tag.as_deref())
+    .bind(query.q.as_deref())
+    .fetch_one(&state.pool)
+    .await?;
 
-    Ok(Json(cases))
+    let cases = sqlx::query_as::<_, TestCase>(
+        r#"SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
+                  tc.precondition, tc.priority, tc.status, tc.version, tc.created_at, tc.updated_at
+           FROM test_cases tc
+           LEFT JOIN case_tags ct ON ct.case_id = tc.id
+           LEFT JOIN tags tg ON tg.id = ct.tag_id
+           WHERE tc.project_id = $1
+             AND ($2::uuid IS NULL OR tc.suite_id = $2)
+             AND ($3::text IS NULL OR tc.status = $3)
+             AND ($4::text IS NULL OR tc.priority = $4)
+             AND ($5::text IS NULL OR tg.name = $5)
+             AND (
+               $6::text IS NULL OR
+               tc.search_vector @@ plainto_tsquery('english', $6) OR
+               tc.title ILIKE '%' || $6 || '%' OR
+               tc.key ILIKE '%' || $6 || '%'
+             )
+           GROUP BY tc.id
+           ORDER BY
+             CASE WHEN $6::text IS NOT NULL
+               THEN ts_rank(tc.search_vector, plainto_tsquery('english', $6))
+               ELSE 0 END DESC,
+             tc.key
+           LIMIT $7 OFFSET $8"#,
+    )
+    .bind(project_id)
+    .bind(query.suite_id)
+    .bind(query.status.as_deref())
+    .bind(query.priority.as_deref())
+    .bind(query.tag.as_deref())
+    .bind(query.q.as_deref())
+    .bind(limit)
+    .bind(offset)
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(Page::new(cases, total, limit, offset)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/cases/search",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path, description = "Project id"),
+        ("q" = Option<String>, Query, description = "Search query"),
+        ("limit" = Option<i64>, Query),
+        ("offset" = Option<i64>, Query)
+    ),
+    responses((status = 200, description = "FTS search results", body = Page<TestCase>))
+)]
+pub async fn search_cases(
+    State(state): State<AppState>,
+    Path(project_id): Path<Uuid>,
+    Query(query): Query<ListCasesQuery>,
+) -> AppResult<Json<Page<TestCase>>> {
+    list_cases(State(state), Path(project_id), Query(query)).await
 }
 
 #[utoipa::path(
@@ -171,10 +218,13 @@ pub async fn create_case(
     .fetch_one(&mut *tx)
     .await?;
 
-    let steps = replace_steps(&mut tx, case.id, &body.steps).await?;
+    let _steps = replace_steps(&mut tx, case.id, &body.steps).await?;
+    let tag_ids = resolve_tag_ids(&mut tx, project_id, &body.tag_ids, &body.tag_names).await?;
+    replace_case_tags(&mut tx, case.id, &tag_ids).await?;
+    snapshot_case(&mut tx, &case, "created").await?;
     tx.commit().await?;
 
-    Ok(Json(TestCaseDetail { case, steps }))
+    Ok(Json(load_case_detail(&state.pool, case).await?))
 }
 
 #[utoipa::path(
@@ -202,8 +252,7 @@ pub async fn get_case(
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
 
-    let steps = load_steps(&state.pool, case.id).await?;
-    Ok(Json(TestCaseDetail { case, steps }))
+    Ok(Json(load_case_detail(&state.pool, case).await?))
 }
 
 #[utoipa::path(
@@ -235,6 +284,16 @@ pub async fn update_case(
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
 
+    // Snapshot current version before mutating.
+    snapshot_case(
+        &mut tx,
+        &existing,
+        body.change_summary
+            .as_deref()
+            .unwrap_or("pre-update snapshot"),
+    )
+    .await?;
+
     let title = body.title.unwrap_or(existing.title);
     let suite_id = body.suite_id.or(existing.suite_id);
     let description = body.description.unwrap_or(existing.description);
@@ -261,20 +320,23 @@ pub async fn update_case(
     .fetch_one(&mut *tx)
     .await?;
 
-    let steps = if let Some(ref steps) = body.steps {
-        replace_steps(&mut tx, case.id, steps).await?
-    } else {
-        sqlx::query_as::<_, TestStep>(
-            r#"SELECT id, case_id, position, action, expected_result, data
-               FROM test_steps WHERE case_id = $1 ORDER BY position"#,
+    if let Some(ref steps) = body.steps {
+        replace_steps(&mut tx, case.id, steps).await?;
+    }
+
+    if body.tag_ids.is_some() || body.tag_names.is_some() {
+        let tag_ids = resolve_tag_ids(
+            &mut tx,
+            project_id,
+            body.tag_ids.as_deref().unwrap_or(&[]),
+            body.tag_names.as_deref().unwrap_or(&[]),
         )
-        .bind(case.id)
-        .fetch_all(&mut *tx)
-        .await?
-    };
+        .await?;
+        replace_case_tags(&mut tx, case.id, &tag_ids).await?;
+    }
 
     tx.commit().await?;
-    Ok(Json(TestCaseDetail { case, steps }))
+    Ok(Json(load_case_detail(&state.pool, case).await?))
 }
 
 #[utoipa::path(
@@ -300,4 +362,261 @@ pub async fn delete_case(
         return Err(AppError::NotFound("case".into()));
     }
     Ok(axum::http::StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/cases/bulk",
+    tag = "cases",
+    params(("project_id" = Uuid, Path)),
+    request_body = BulkCasesRequest,
+    responses((status = 200, description = "Bulk result", body = BulkCasesResponse))
+)]
+pub async fn bulk_cases(
+    State(state): State<AppState>,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<BulkCasesRequest>,
+) -> AppResult<Json<BulkCasesResponse>> {
+    ensure_project(&state.pool, project_id).await?;
+    if body.case_ids.is_empty() {
+        return Err(AppError::BadRequest("case_ids required".into()));
+    }
+
+    let mut tx = state.pool.begin().await?;
+    let action = body.action.as_str();
+    let affected = match action {
+        "delete" => {
+            let res = sqlx::query("DELETE FROM test_cases WHERE project_id = $1 AND id = ANY($2)")
+                .bind(project_id)
+                .bind(&body.case_ids)
+                .execute(&mut *tx)
+                .await?;
+            res.rows_affected() as i64
+        }
+        "set_status" => {
+            let status = body
+                .status
+                .as_deref()
+                .ok_or_else(|| AppError::BadRequest("status required".into()))?;
+            let res = sqlx::query(
+                r#"UPDATE test_cases
+                   SET status = $3, version = version + 1, updated_at = NOW()
+                   WHERE project_id = $1 AND id = ANY($2)"#,
+            )
+            .bind(project_id)
+            .bind(&body.case_ids)
+            .bind(status)
+            .execute(&mut *tx)
+            .await?;
+            res.rows_affected() as i64
+        }
+        "set_priority" => {
+            let priority = body
+                .priority
+                .as_deref()
+                .ok_or_else(|| AppError::BadRequest("priority required".into()))?;
+            let res = sqlx::query(
+                r#"UPDATE test_cases
+                   SET priority = $3, version = version + 1, updated_at = NOW()
+                   WHERE project_id = $1 AND id = ANY($2)"#,
+            )
+            .bind(project_id)
+            .bind(&body.case_ids)
+            .bind(priority)
+            .execute(&mut *tx)
+            .await?;
+            res.rows_affected() as i64
+        }
+        "move_suite" => {
+            let suite_id = if body.clear_suite {
+                None
+            } else {
+                body.suite_id
+            };
+            let res = sqlx::query(
+                r#"UPDATE test_cases
+                   SET suite_id = $3, version = version + 1, updated_at = NOW()
+                   WHERE project_id = $1 AND id = ANY($2)"#,
+            )
+            .bind(project_id)
+            .bind(&body.case_ids)
+            .bind(suite_id)
+            .execute(&mut *tx)
+            .await?;
+            res.rows_affected() as i64
+        }
+        "add_tags" | "remove_tags" | "set_tags" => {
+            let tag_ids =
+                resolve_tag_ids(&mut tx, project_id, &body.tag_ids, &body.tag_names).await?;
+            for case_id in &body.case_ids {
+                match action {
+                    "add_tags" => add_case_tags(&mut tx, *case_id, &tag_ids).await?,
+                    "remove_tags" => remove_case_tags(&mut tx, *case_id, &tag_ids).await?,
+                    _ => replace_case_tags(&mut tx, *case_id, &tag_ids).await?,
+                }
+            }
+            body.case_ids.len() as i64
+        }
+        other => {
+            return Err(AppError::BadRequest(format!("unknown action: {other}")));
+        }
+    };
+
+    tx.commit().await?;
+    Ok(Json(BulkCasesResponse {
+        affected,
+        action: body.action,
+    }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/cases/{case_id}/versions",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path),
+        ("case_id" = Uuid, Path)
+    ),
+    responses((status = 200, description = "Version history", body = [CaseVersionSummary]))
+)]
+pub async fn list_versions(
+    State(state): State<AppState>,
+    Path((project_id, case_id)): Path<(Uuid, Uuid)>,
+) -> AppResult<Json<Vec<CaseVersionSummary>>> {
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
+    )
+    .bind(project_id)
+    .bind(case_id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !exists {
+        return Err(AppError::NotFound("case".into()));
+    }
+
+    let rows = sqlx::query_as::<_, CaseVersion>(
+        r#"SELECT id, case_id, version, snapshot, change_summary, created_at
+           FROM case_versions WHERE case_id = $1 ORDER BY version DESC"#,
+    )
+    .bind(case_id)
+    .fetch_all(&state.pool)
+    .await?;
+
+    Ok(Json(
+        rows.into_iter()
+            .map(|v| CaseVersionSummary {
+                id: v.id,
+                case_id: v.case_id,
+                version: v.version,
+                change_summary: v.change_summary,
+                created_at: v.created_at,
+            })
+            .collect(),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/cases/{case_id}/versions/{version}",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path),
+        ("case_id" = Uuid, Path),
+        ("version" = i32, Path)
+    ),
+    responses((status = 200, description = "Version snapshot", body = CaseVersion))
+)]
+pub async fn get_version(
+    State(state): State<AppState>,
+    Path((project_id, case_id, version)): Path<(Uuid, Uuid, i32)>,
+) -> AppResult<Json<CaseVersion>> {
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
+    )
+    .bind(project_id)
+    .bind(case_id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !exists {
+        return Err(AppError::NotFound("case".into()));
+    }
+
+    let row = sqlx::query_as::<_, CaseVersion>(
+        r#"SELECT id, case_id, version, snapshot, change_summary, created_at
+           FROM case_versions WHERE case_id = $1 AND version = $2"#,
+    )
+    .bind(case_id)
+    .bind(version)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("version".into()))?;
+
+    Ok(Json(row))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/cases/{case_id}/custom-fields",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path),
+        ("case_id" = Uuid, Path)
+    ),
+    request_body = Vec<SetCustomFieldValue>,
+    responses((status = 200, description = "Updated case", body = TestCaseDetail))
+)]
+pub async fn set_custom_fields(
+    State(state): State<AppState>,
+    Path((project_id, case_id)): Path<(Uuid, Uuid)>,
+    Json(body): Json<Vec<SetCustomFieldValue>>,
+) -> AppResult<Json<TestCaseDetail>> {
+    let case = sqlx::query_as::<_, TestCase>(
+        r#"SELECT id, project_id, suite_id, key, title, description, precondition,
+                  priority, status, version, created_at, updated_at
+           FROM test_cases WHERE project_id = $1 AND id = $2"#,
+    )
+    .bind(project_id)
+    .bind(case_id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("case".into()))?;
+
+    let mut tx = state.pool.begin().await?;
+    snapshot_case(&mut tx, &case, "custom fields update").await?;
+
+    for item in &body {
+        let owned: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM custom_fields WHERE id = $1 AND project_id = $2)",
+        )
+        .bind(item.field_id)
+        .bind(project_id)
+        .fetch_one(&mut *tx)
+        .await?;
+        if !owned {
+            return Err(AppError::BadRequest("custom field not in project".into()));
+        }
+        sqlx::query(
+            r#"INSERT INTO custom_field_values (case_id, field_id, value)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (case_id, field_id) DO UPDATE SET value = EXCLUDED.value"#,
+        )
+        .bind(case_id)
+        .bind(item.field_id)
+        .bind(&item.value)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    let case = sqlx::query_as::<_, TestCase>(
+        r#"UPDATE test_cases SET version = version + 1, updated_at = NOW()
+           WHERE id = $1
+           RETURNING id, project_id, suite_id, key, title, description, precondition,
+                     priority, status, version, created_at, updated_at"#,
+    )
+    .bind(case_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    tx.commit().await?;
+    Ok(Json(load_case_detail(&state.pool, case).await?))
 }

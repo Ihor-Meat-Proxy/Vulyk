@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::{CustomFieldValue, Tag};
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
 pub struct TestCase {
     pub id: Uuid,
@@ -33,6 +35,10 @@ pub struct TestStep {
 pub struct TestCaseDetail {
     pub case: TestCase,
     pub steps: Vec<TestStep>,
+    #[serde(default)]
+    pub tags: Vec<Tag>,
+    #[serde(default)]
+    pub custom_fields: Vec<CustomFieldValue>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
@@ -59,6 +65,10 @@ pub struct CreateCase {
     pub status: String,
     #[serde(default)]
     pub steps: Vec<CreateStep>,
+    #[serde(default)]
+    pub tag_ids: Vec<Uuid>,
+    #[serde(default)]
+    pub tag_names: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -70,6 +80,10 @@ pub struct UpdateCase {
     pub priority: Option<String>,
     pub status: Option<String>,
     pub steps: Option<Vec<CreateStep>>,
+    pub tag_ids: Option<Vec<Uuid>>,
+    pub tag_names: Option<Vec<String>>,
+    #[serde(default)]
+    pub change_summary: Option<String>,
 }
 
 fn default_priority() -> String {

@@ -27,6 +27,13 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export type Page<T> = {
+  items: T[]
+  total: number
+  limit: number
+  offset: number
+}
+
 export type Project = {
   id: string
   key: string
@@ -68,9 +75,161 @@ export type TestStep = {
   data: string
 }
 
+export type Tag = {
+  id: string
+  project_id: string
+  name: string
+  color: string
+  created_at: string
+}
+
+export type CustomFieldValue = {
+  field_id: string
+  name: string
+  field_type: string
+  value: unknown
+}
+
 export type TestCaseDetail = {
   case: TestCase
   steps: TestStep[]
+  tags: Tag[]
+  custom_fields: CustomFieldValue[]
+}
+
+export type CaseVersionSummary = {
+  id: string
+  case_id: string
+  version: number
+  change_summary: string
+  created_at: string
+}
+
+export type CustomField = {
+  id: string
+  project_id: string
+  name: string
+  field_type: string
+  options: unknown
+  required: boolean
+  sort_order: number
+}
+
+export type TestPlan = {
+  id: string
+  project_id: string
+  name: string
+  description: string
+  created_at: string
+  updated_at: string
+}
+
+export type TestPlanDetail = {
+  plan: TestPlan
+  case_ids: string[]
+  case_count: number
+}
+
+export type TestRun = {
+  id: string
+  project_id: string
+  plan_id: string | null
+  name: string
+  description: string
+  status: string
+  source: string
+  external_ref: string | null
+  meta: Record<string, unknown>
+  started_at: string | null
+  finished_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type RunProgress = {
+  total: number
+  untested: number
+  passed: number
+  failed: number
+  blocked: number
+  skipped: number
+  retest: number
+  completed: number
+  percent: number
+}
+
+export type RunItem = {
+  id: string
+  run_id: string
+  case_id: string
+  assignee: string | null
+  status: string
+  sort_order: number
+  comment: string
+  executed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type RunItemView = {
+  item: RunItem
+  case_key: string
+  case_title: string
+  case_priority: string
+}
+
+export type TestRunDetail = {
+  run: TestRun
+  progress: RunProgress
+  items: RunItemView[]
+}
+
+export type ResultStep = {
+  id: string
+  result_id: string
+  step_id: string | null
+  position: number
+  action: string
+  expected_result: string
+  status: string
+  actual_result: string
+  comment: string
+}
+
+export type TestResult = {
+  id: string
+  run_id: string
+  case_id: string | null
+  run_item_id: string | null
+  status: string
+  message: string
+  source: string
+  external_id: string | null
+  duration_ms: number | null
+  assignee: string | null
+  elapsed_ms: number | null
+  executed_at: string
+}
+
+export type TestResultDetail = {
+  result: TestResult
+  steps: ResultStep[]
+}
+
+export type RunItemExecution = {
+  item: RunItemView
+  steps: TestStep[]
+  latest_result: TestResultDetail | null
+}
+
+export type ListCasesParams = {
+  suiteId?: string | null
+  q?: string
+  tag?: string
+  status?: string
+  priority?: string
+  limit?: number
+  offset?: number
 }
 
 export type UserPublic = {
@@ -365,12 +524,126 @@ export const api = {
     }),
   listSuites: (projectId: string) =>
     request<Suite[]>(`/api/v1/projects/${projectId}/suites`),
-  listCases: (projectId: string, suiteId?: string | null) => {
-    const qs = suiteId ? `?suite_id=${suiteId}` : ''
-    return request<TestCase[]>(`/api/v1/projects/${projectId}/cases${qs}`)
+  listCases: (projectId: string, params: ListCasesParams = {}) => {
+    const qs = new URLSearchParams()
+    if (params.suiteId) qs.set('suite_id', params.suiteId)
+    if (params.q) qs.set('q', params.q)
+    if (params.tag) qs.set('tag', params.tag)
+    if (params.status) qs.set('status', params.status)
+    if (params.priority) qs.set('priority', params.priority)
+    qs.set('limit', String(params.limit ?? 100))
+    qs.set('offset', String(params.offset ?? 0))
+    return request<Page<TestCase>>(
+      `/api/v1/projects/${projectId}/cases?${qs.toString()}`,
+    )
   },
   getCase: (projectId: string, caseId: string) =>
     request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`),
+  updateCase: (
+    projectId: string,
+    caseId: string,
+    body: Record<string, unknown>,
+  ) =>
+    request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  createCase: (projectId: string, body: Record<string, unknown>) =>
+    request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  bulkCases: (projectId: string, body: Record<string, unknown>) =>
+    request<{ affected: number; action: string }>(
+      `/api/v1/projects/${projectId}/cases/bulk`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  listVersions: (projectId: string, caseId: string) =>
+    request<CaseVersionSummary[]>(
+      `/api/v1/projects/${projectId}/cases/${caseId}/versions`,
+    ),
+  setCustomFields: (
+    projectId: string,
+    caseId: string,
+    body: { field_id: string; value: unknown }[],
+  ) =>
+    request<TestCaseDetail>(
+      `/api/v1/projects/${projectId}/cases/${caseId}/custom-fields`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  listTags: (projectId: string) =>
+    request<Tag[]>(`/api/v1/projects/${projectId}/tags`),
+  createTag: (projectId: string, body: { name: string; color?: string }) =>
+    request<Tag>(`/api/v1/projects/${projectId}/tags`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listCustomFields: (projectId: string) =>
+    request<CustomField[]>(`/api/v1/projects/${projectId}/custom-fields`),
+  listPlans: (projectId: string) =>
+    request<TestPlan[]>(`/api/v1/projects/${projectId}/plans`),
+  createPlan: (
+    projectId: string,
+    body: { name: string; description?: string; case_ids?: string[] },
+  ) =>
+    request<TestPlanDetail>(`/api/v1/projects/${projectId}/plans`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listRuns: (projectId: string, limit = 50, offset = 0) =>
+    request<Page<TestRun>>(
+      `/api/v1/projects/${projectId}/runs?limit=${limit}&offset=${offset}`,
+    ),
+  getRun: (projectId: string, runId: string) =>
+    request<TestRunDetail>(`/api/v1/projects/${projectId}/runs/${runId}`),
+  createRun: (projectId: string, body: Record<string, unknown>) =>
+    request<TestRunDetail>(`/api/v1/projects/${projectId}/runs`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateRun: (projectId: string, runId: string, body: Record<string, unknown>) =>
+    request<TestRunDetail>(`/api/v1/projects/${projectId}/runs/${runId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  getRunItem: (projectId: string, runId: string, itemId: string) =>
+    request<RunItemExecution>(
+      `/api/v1/projects/${projectId}/runs/${runId}/items/${itemId}`,
+    ),
+  updateRunItem: (
+    projectId: string,
+    runId: string,
+    itemId: string,
+    body: Record<string, unknown>,
+  ) =>
+    request<RunItemView>(
+      `/api/v1/projects/${projectId}/runs/${runId}/items/${itemId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  createResult: (
+    projectId: string,
+    runId: string,
+    body: Record<string, unknown>,
+  ) =>
+    request<TestResultDetail>(
+      `/api/v1/projects/${projectId}/runs/${runId}/results/execute`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  createAttachment: (
+    projectId: string,
+    body: {
+      entity_type: string
+      entity_id: string
+      filename: string
+      content_type?: string
+      content_base64: string
+    },
+  ) =>
+    request(`/api/v1/projects/${projectId}/attachments`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
 
   listRequirements: (projectId: string) =>
     request<Requirement[]>(`/api/v1/projects/${projectId}/requirements`),
@@ -502,16 +775,6 @@ export const api = {
   revokeToken: (id: string) =>
     request<void>(`/api/v1/tokens/${id}`, { method: 'DELETE' }),
 
-  listRuns: (projectId: string) =>
-    request<TestRun[]>(`/api/v1/projects/${projectId}/runs`),
-  createRun: (
-    projectId: string,
-    body: { name: string; status?: string; source?: string },
-  ) =>
-    request<TestRun>(`/api/v1/projects/${projectId}/runs`, {
-      method: 'POST',
-      body: JSON.stringify(body),
-    }),
   listResults: (runId: string) =>
     request<TestResult[]>(`/api/v1/runs/${runId}/results`),
   listCiConfigs: (projectId: string) =>

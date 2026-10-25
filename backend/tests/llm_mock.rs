@@ -211,7 +211,10 @@ async fn api_token_auth_and_runs_for_mcp() {
         .json()
         .await
         .unwrap();
-    let run_id = run["id"].as_str().unwrap();
+    let run_id = run["run"]["id"]
+        .as_str()
+        .or_else(|| run["id"].as_str())
+        .unwrap();
 
     let triggered: Value = client
         .post(format!(
