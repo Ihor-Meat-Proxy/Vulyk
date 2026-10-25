@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vulyk.fullname" . }}-api
+  labels:
+    {{- include "vulyk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.replicaCount.api }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "vulyk.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "vulyk.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: api
+          image: {{ .Values.image.api | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: {{ include "vulyk.fullname" . }}-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulyk.secretName" . }}
+                  key: DATABASE_URL
+            - name: VULYK_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulyk.secretName" . }}
+                  key: VULYK_JWT_SECRET
+            - name: VULYK_SECRETS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulyk.secretName" . }}
+                  key: VULYK_SECRETS_KEY
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.api.readiness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.api.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.api.readiness.periodSeconds }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.api.liveness.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.probes.api.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.api.liveness.periodSeconds }}
+          {{- with .Values.resources.api }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            - name: attachments
+              mountPath: /var/lib/vulyk/attachments
+      volumes:
+        - name: attachments
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vulyk.fullname" . }}-api
+  labels:
+    {{- include "vulyk.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app.kubernetes.io/name: {{ include "vulyk.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: {{ .Values.service.apiPort }}
+      targetPort: http

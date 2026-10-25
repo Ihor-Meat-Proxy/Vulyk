@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="E2E Suite">
+  <testcase name="TestLink imported login" internalid="TL-100">
+    <summary>Imported from TestLink fixture</summary>
+    <preconditions>User exists</preconditions>
+    <steps>
+      <step>
+        <actions>Open login page</actions>
+        <expectedresults>Form is visible</expectedresults>
+      </step>
+      <step>
+        <actions>Submit credentials</actions>
+        <expectedresults>Dashboard loads</expectedresults>
+      </step>
+    </steps>
+  </testcase>
+  <testcase name="TestLink imported logout" internalid="TL-101">
+    <summary>Logout path</summary>
+    <preconditions></preconditions>
+    <steps>
+      <step>
+        <actions>Click sign out</actions>
+        <expectedresults>Returned to login</expectedresults>
+      </step>
+    </steps>
+  </testcase>
+</testsuite>

@@ -1,5 +1,17 @@
-Vulyk Helm chart skeleton (Phase 1).
+Vulyk {{ .Chart.AppVersion }} installed as release {{ .Release.Name }}.
 
-1. Set postgresql.auth.password and image repositories.
-2. Install: helm upgrade --install vulyk ./deploy/helm/vulyk -n vulyk --create-namespace
-3. Full templates land with workstream W11.
+1. Auth is {{ if .Values.auth.required }}REQUIRED{{ else }}optional{{ end }} by default for this chart.
+2. Create the first admin via the UI login screen (bootstrap) or:
+     POST /api/v1/auth/bootstrap
+3. Secrets are expected in Secret/{{ include "vulyk.secretName" . }}
+   (DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY[, POSTGRES_PASSWORD]).
+
+{{- if .Values.ingress.enabled }}
+Ingress host: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
+{{- else }}
+Port-forward the UI:
+  kubectl port-forward svc/{{ include "vulyk.fullname" . }}-web {{ .Values.service.webPort }}:{{ .Values.service.webPort }}
+  kubectl port-forward svc/{{ include "vulyk.fullname" . }}-api {{ .Values.service.apiPort }}:{{ .Values.service.apiPort }}
+{{- end }}
+
+Backups: see docs/admin-guide.md (pg_dump against the PostgreSQL service).

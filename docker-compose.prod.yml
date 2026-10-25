@@ -1,0 +1,84 @@
+# Production-oriented Compose stack for Vulyk (W11).
+# Auth is required by default. Override secrets via environment or a .env file.
+#
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Required secrets (set in .env.prod or the environment):
+#   POSTGRES_PASSWORD, VULYK_JWT_SECRET, VULYK_SECRETS_KEY
+# Optional:
+#   VULYK_BOOTSTRAP_HINT — printed by install script only
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-vulyk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-vulyk}
+    volumes:
+      - vulyk_pg_data:/var/lib/postgresql/data
+      - vulyk_pg_backup:/backup
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-vulyk} -d ${POSTGRES_DB:-vulyk}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-vulyk}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-vulyk}
+      BIND_ADDR: 0.0.0.0:8080
+      RUST_LOG: ${RUST_LOG:-vulyk_api=info,tower_http=info}
+      VULYK_AUTH_REQUIRED: ${VULYK_AUTH_REQUIRED:-true}
+      VULYK_JWT_SECRET: ${VULYK_JWT_SECRET:?set VULYK_JWT_SECRET}
+      VULYK_SECRETS_KEY: ${VULYK_SECRETS_KEY:?set VULYK_SECRETS_KEY}
+      VULYK_LLM_MOCK: ${VULYK_LLM_MOCK:-0}
+      VULYK_JWT_TTL_HOURS: ${VULYK_JWT_TTL_HOURS:-12}
+      VULYK_SESSION_TTL_HOURS: ${VULYK_SESSION_TTL_HOURS:-168}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    volumes:
+      - vulyk_attachments:/var/lib/vulyk/attachments
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-80}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 8
+      start_period: 10s
+
+volumes:
+  vulyk_pg_data:
+  vulyk_pg_backup:
+  vulyk_attachments:

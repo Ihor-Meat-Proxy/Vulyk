@@ -22,6 +22,9 @@ export function CaseList({ projectId, suiteId }: Props) {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pending, startTransition] = useTransition()
   const deferredQuery = useDeferredValue(query)
+  const [newKey, setNewKey] = useState('')
+  const [newTitle, setNewTitle] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     setOffset(0)
@@ -75,6 +78,44 @@ export function CaseList({ projectId, suiteId }: Props) {
     })
   }
 
+  const createCase = async () => {
+    if (!projectId || !newKey.trim() || !newTitle.trim()) return
+    setCreating(true)
+    try {
+      await api.createCase(projectId, {
+        key: newKey.trim().toUpperCase(),
+        title: newTitle.trim(),
+        suite_id: suiteId,
+        status: 'ready',
+        priority: 'medium',
+        steps: [
+          {
+            action: 'Execute the scenario',
+            expected_result: 'Expected outcome observed',
+          },
+        ],
+      })
+      setNewKey('')
+      setNewTitle('')
+      setOffset(0)
+      const page = await api.listCases(projectId, {
+        suiteId,
+        q: deferredQuery || undefined,
+        tag: tag || undefined,
+        status: status || undefined,
+        limit: PAGE_SIZE,
+        offset: 0,
+      })
+      setCases(page.items)
+      setTotal(page.total)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const bulkStatus = async (nextStatus: string) => {
     if (!projectId || selected.size === 0) return
     await api.bulkCases(projectId, {
@@ -106,6 +147,30 @@ export function CaseList({ projectId, suiteId }: Props) {
 
   return (
     <div className="case-browser">
+      <div className="toolbar create-case-bar">
+        <input
+          className="filter-input"
+          placeholder="Case key"
+          value={newKey}
+          onChange={(e) => setNewKey(e.target.value)}
+          aria-label="New case key"
+        />
+        <input
+          className="search-input"
+          placeholder="New case title"
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          aria-label="New case title"
+        />
+        <button
+          type="button"
+          className="btn"
+          disabled={creating || !newKey.trim() || !newTitle.trim()}
+          onClick={() => void createCase()}
+        >
+          {creating ? 'Creating…' : 'Create case'}
+        </button>
+      </div>
       <div className="toolbar">
         <input
           className="search-input"

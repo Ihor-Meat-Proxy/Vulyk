@@ -7,17 +7,64 @@ replicaCount:
   api: 1
   web: 1
 
+nameOverride: ""
+fullnameOverride: ""
+
+# Auth is required by default in production (W11).
+auth:
+  required: true
+
+env:
+  RUST_LOG: vulyk_api=info,tower_http=info
+  VULYK_LLM_MOCK: "0"
+  VULYK_JWT_TTL_HOURS: "12"
+  VULYK_SESSION_TTL_HOURS: "168"
+
+# Existing secret must provide: DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY
+# Optionally create via --set secrets.create=true for demos only.
+secrets:
+  create: false
+  name: vulyk-secrets
+  # Used only when secrets.create=true (NOT for real production).
+  databaseUrl: postgres://vulyk:change-me@vulyk-postgresql:5432/vulyk
+  jwtSecret: change-me-jwt
+  secretsKey: change-me-secrets-key
+
 postgresql:
   enabled: true
+  image: postgres:16-alpine
   auth:
     username: vulyk
     password: change-me
     database: vulyk
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
 
 service:
   apiPort: 8080
   webPort: 80
+  type: ClusterIP
 
 ingress:
   enabled: false
+  className: ""
   host: vulyk.local
+  tls: []
+  annotations: {}
+
+resources:
+  api: {}
+  web: {}
+
+probes:
+  api:
+    readiness:
+      path: /ready
+      initialDelaySeconds: 5
+      periodSeconds: 10
+    liveness:
+      path: /health
+      initialDelaySeconds: 10
+      periodSeconds: 20

@@ -2,11 +2,11 @@
 
 Open-source **test management** system. *Vulyk* (вулик) is Ukrainian for *beehive*.
 
-Phase 1 foundation plus case/run depth (W2/W3), ALM/importers (W6/W7), LLM providers (W9), and a production MCP server (W10): Rust API (Axum + SQLx + OpenAPI), React UI, MCP/CLI, Docker Compose, and CI.
+Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Helm deploy, and CI.
 
 ## Quick start
 
-### Docker Compose (recommended)
+### Docker Compose (local / demos)
 
 ```bash
 ./scripts/install.sh compose
@@ -20,65 +20,91 @@ Phase 1 foundation plus case/run depth (W2/W3), ALM/importers (W6/W7), LLM provi
 | OpenAPI (Scalar) | http://localhost:8080/api/docs |
 | Health | http://localhost:8080/health |
 
+### Production Compose (auth required)
+
+```bash
+./scripts/install.sh prod
+```
+
+Generates `.env.prod` with random secrets, enables healthchecks/volumes, and sets `VULYK_AUTH_REQUIRED=true`. See [docs/admin-guide.md](docs/admin-guide.md).
+
 ### Local development
 
 ```bash
-./scripts/install.sh dev   # starts Postgres only
+./scripts/install.sh check   # toolchain (Linux / macOS / WSL2)
+./scripts/install.sh dev     # Postgres only
 export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
 cargo run -p vulyk-api
 cd frontend && npm install && npm run dev
 ```
+
+### Helm
+
+```bash
+./scripts/install.sh helm-template
+helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namespace \
+  --set secrets.create=true
+```
+
+## Documentation
+
+| Doc | Description |
+|-----|-------------|
+| [docs/architecture.md](docs/architecture.md) | Product plan, ERD, workstreams W0–W11 |
+| [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
+| [docs/admin-guide.md](docs/admin-guide.md) | Deploy, backups, perf smoke, Helm |
+| [docs/api.md](docs/api.md) | API overview + OpenAPI link |
+| [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth & roles |
+| [docs/integrations/](docs/integrations/) | OpenProject, Jira, importers |
+| [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
+| [docs/llm.md](docs/llm.md) | LLM providers |
+| [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | JUnit ingest & CI triggers |
 
 ## Repository layout
 
 ```
 backend/    Rust API (Axum, Tokio, SQLx, utoipa)
 frontend/   React + Vite + TypeScript UI
-mcp/        MCP server (stdio + HTTP) — see docs/mcp.md
-cli/        CLI / reporter skeleton (W4)
-deploy/     Kubernetes manifests + Helm chart skeleton
-docs/       Architecture, LLM, MCP setup
-scripts/    install.sh
+mcp/        MCP server (stdio + HTTP)
+cli/        CLI / reporter
+e2e/        Playwright end-to-end tests
+deploy/     Kubernetes manifests + Helm chart
+docs/       Architecture, guides, integrations
+scripts/    install.sh, perf-smoke.sh, helpers
 ```
 
-## Architecture
+## API highlights
 
-See **[docs/architecture.md](docs/architecture.md)** for the full product plan, ERD, plugin interfaces (importers, ALM, LLM, CI), MCP design, and parallel workstreams **W0–W11**.
-
-- Case repository & execution: **[docs/w2-w3-cases-runs.md](docs/w2-w3-cases-runs.md)**
-- LLM providers & chat: **[docs/llm.md](docs/llm.md)**
-- MCP setup (Cursor / Claude Desktop): **[docs/mcp.md](docs/mcp.md)**
-
-## API (Phase 1 + W1–W7 + W9/W10)
-
-- `GET /health`, `GET /ready`
-- Auth / RBAC: `/api/v1/auth/*`, `/api/v1/users`, memberships — see [docs/auth-and-rbac.md](docs/auth-and-rbac.md)
-- `CRUD /api/v1/projects`
-- `CRUD /api/v1/projects/{id}/suites`
-- `CRUD /api/v1/projects/{id}/cases` (paginated; steps, tags, custom fields, versions, bulk, FTS `?q=`)
-- `CRUD /api/v1/projects/{id}/tags`, `.../custom-fields`, `.../plans`
-- `CRUD /api/v1/projects/{id}/runs` (+ items, execute, trigger, results ingest, progress)
-- `CRUD /api/v1/projects/{id}/attachments`
-- Ingest (W4): `POST /api/v1/runs/{id}/ingest`, `POST /api/v1/runs/{id}/results:bulk`, `GET /api/v1/jobs/{id}`
-- CI (W5): CI configs + `POST /api/v1/ci-configs/{id}/dispatch`, webhooks under `/api/v1/webhooks/{github|gitlab}`
-- Requirements / ALM (W6): `/requirements`, case links, `/integrations`, `/defects`
-- Importers (W7): `GET /api/v1/importers`, `POST .../imports:preview`, `POST .../imports`
-- `CRUD /api/v1/projects/{id}/llm/configs` + generate-cases / generate-code / ask
-- `POST/GET/DELETE /api/v1/tokens` (MCP / CI API tokens)
-- Admin integration placeholders: `/api/v1/admin/integrations`
+- Auth / RBAC, projects, suites, cases (FTS, tags, custom fields, versions)
+- Plans, runs, step results, attachments
+- Ingest: JUnit + Vulyk JSON, bulk results, job worker
+- CI: GitHub/GitLab dispatch + webhooks
+- Requirements / ALM (OpenProject, Jira Cloud/DC)
+- Importers: TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, CSV
+- **Reports (W8):** dashboard, trends, requirement coverage, flaky detection, CSV/PDF export
+- LLM generate/chat; MCP tools; personal API tokens
 - Interactive docs: `/api/docs`
-- Integration notes: [docs/integrations/](docs/integrations/)
 
-## Ingest & CI (W4 / W5)
+## Testing
 
-- Guide: **[docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md)**
-- CLI: `cargo run -p vulyk-cli -- report --file report.xml --create-run --project-key DEMO`
-- GitHub Action: [`action/`](action/)
-- GitLab template: [`ci/gitlab-upload.yml`](ci/gitlab-upload.yml)
+```bash
+# Backend (needs DATABASE_URL)
+export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
+cargo test --workspace
+
+# Frontend unit
+cd frontend && npm ci && npm test && npm run build
+
+# Playwright e2e (API + UI already running, or use CI job)
+cd e2e && npm ci && npx playwright install chromium && npm test
+
+# Perf smoke (~100k cases)
+./scripts/install.sh perf-smoke
+```
 
 ## License
 
-This project is licensed under the **GNU Affero General Public License v3.0** (see [LICENSE](LICENSE)).
+**GNU Affero General Public License v3.0** — see [LICENSE](LICENSE).
 
 ## Contributing
 

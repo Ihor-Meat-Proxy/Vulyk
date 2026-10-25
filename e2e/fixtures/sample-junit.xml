@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="vulyk-e2e" tests="2" failures="0">
+  <testsuite name="smoke" tests="2" failures="0" skipped="0" errors="0">
+    <testcase classname="e2e.health" name="api_health_ok" time="0.01"/>
+    <testcase classname="e2e.ingest" name="junit_upload" time="0.02"/>
+  </testsuite>
+</testsuites>

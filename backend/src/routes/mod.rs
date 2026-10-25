@@ -13,6 +13,7 @@ pub mod llm;
 pub mod memberships;
 pub mod plans;
 pub mod projects;
+pub mod reports;
 pub mod requirements;
 pub mod runs;
 pub mod suites;
@@ -47,6 +48,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(custom_fields::router())
         .merge(plans::router())
         .merge(runs::router())
+        .merge(reports::router())
         .merge(attachments::router())
         .merge(requirements::router())
         .merge(integrations::router())

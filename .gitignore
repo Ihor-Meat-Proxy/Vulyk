@@ -23,3 +23,12 @@ frontend/dist/
 # Docker / local data
 *.log
 pgdata/
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/
+e2e/blob-report/
+e2e/playwright/.cache/
+
+# Generated prod env
+.env.prod
