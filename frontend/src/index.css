@@ -1096,10 +1096,18 @@ select.project-select {
 .menu-toggle,
 .bottom-nav,
 .drawer-backdrop,
+.drawer-close,
 .run-item-list,
 .mobile-step-card,
 .exec-back {
   display: none;
+}
+
+.brand-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .topbar-lead {
@@ -1284,7 +1292,8 @@ select.project-select {
     cursor: pointer;
   }
 
-  .menu-toggle {
+  .menu-toggle,
+  .drawer-close {
     display: inline-flex;
     align-items: center;
     min-height: 2.5rem;

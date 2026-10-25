@@ -87,7 +87,9 @@ test.describe('mobile viewport', () => {
     await page.getByRole('button', { name: 'Suites' }).click()
     await expect(page.locator('#suite-drawer')).toBeVisible()
     await expect(page.getByRole('button', { name: 'All cases' })).toBeVisible()
-    await page.getByRole('button', { name: 'Close suite drawer' }).click()
+    // Prefer the in-drawer Close control (backdrop sits under the panel on WebKit)
+    await page.locator('#suite-drawer').getByRole('button', { name: 'Close' }).click()
+    await expect(page.locator('.drawer-backdrop')).toHaveCount(0)
 
     // Case list create controls remain usable
     await expect(page.getByLabel('New case key')).toBeVisible()

@@ -63,11 +63,20 @@ export function Layout({
         id="suite-drawer"
         aria-labelledby={drawerTitleId}
       >
-        <div className="brand">
-          <span className="brand-mark" id={drawerTitleId}>
-            Vulyk
-          </span>
-          <span className="brand-tag">Test management</span>
+        <div className="brand-row">
+          <div className="brand">
+            <span className="brand-mark" id={drawerTitleId}>
+              Vulyk
+            </span>
+            <span className="brand-tag">Test management</span>
+          </div>
+          <button
+            type="button"
+            className="btn secondary drawer-close"
+            onClick={() => setDrawerOpen(false)}
+          >
+            Close
+          </button>
         </div>
 
         <nav className="nav nav-desktop" aria-label="Primary">
