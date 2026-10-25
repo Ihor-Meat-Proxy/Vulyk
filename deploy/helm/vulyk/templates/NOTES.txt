@@ -1,0 +1,5 @@
+Vulyk Helm chart skeleton (Phase 1).
+
+1. Set postgresql.auth.password and image repositories.
+2. Install: helm upgrade --install vulyk ./deploy/helm/vulyk -n vulyk --create-namespace
+3. Full templates land with workstream W11.
