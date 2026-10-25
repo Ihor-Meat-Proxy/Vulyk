@@ -11,6 +11,13 @@ use crate::settings::{self, InstanceSettings, RegistrationMode};
 pub async fn run(pool: &PgPool) -> AppResult<()> {
     ensure_setup_token(pool).await?;
     seed_from_env(pool).await?;
+
+    // After headless env setup (or on every boot once setup is done), ensure sample.
+    let completed = settings::get_bool(pool, "setup_completed", false).await?;
+    if completed {
+        let locale = settings::get_string(pool, "default_locale", "en").await?;
+        crate::sample_seed::seed_sample_project(pool, &locale).await?;
+    }
     Ok(())
 }
 
@@ -123,11 +130,9 @@ async fn seed_from_env(pool: &PgPool) -> AppResult<()> {
             }
             settings::save_settings(pool, &instance).await?;
             // Consume any outstanding setup tokens.
-            sqlx::query(
-                "UPDATE setup_tokens SET consumed_at = NOW() WHERE consumed_at IS NULL",
-            )
-            .execute(pool)
-            .await?;
+            sqlx::query("UPDATE setup_tokens SET consumed_at = NOW() WHERE consumed_at IS NULL")
+                .execute(pool)
+                .await?;
         }
 
         if created {
@@ -143,17 +148,9 @@ async fn seed_from_env(pool: &PgPool) -> AppResult<()> {
             .unwrap_or_else(|_| "user@vulyk.local".into())
             .trim()
             .to_lowercase();
-        let demo_password =
-            std::env::var("VULYK_DEMO_PASSWORD").unwrap_or_else(|_| "user".into());
-        let created = upsert_user(
-            pool,
-            &demo_email,
-            "Demo User",
-            &demo_password,
-            false,
-            false,
-        )
-        .await?;
+        let demo_password = std::env::var("VULYK_DEMO_PASSWORD").unwrap_or_else(|_| "user".into());
+        let created =
+            upsert_user(pool, &demo_email, "Demo User", &demo_password, false, false).await?;
         if created {
             tracing::warn!(
                 "Seeded demo user {demo_email} (intended role: Test Automation Engineer on \
@@ -174,11 +171,10 @@ async fn upsert_user(
     is_system_admin: bool,
     must_change_password: bool,
 ) -> AppResult<bool> {
-    let existing: Option<(uuid::Uuid,)> =
-        sqlx::query_as("SELECT id FROM users WHERE email = $1")
-            .bind(email)
-            .fetch_optional(pool)
-            .await?;
+    let existing: Option<(uuid::Uuid,)> = sqlx::query_as("SELECT id FROM users WHERE email = $1")
+        .bind(email)
+        .fetch_optional(pool)
+        .await?;
     if existing.is_some() {
         return Ok(false);
     }
@@ -207,6 +203,27 @@ pub async fn complete_setup(
     display_name: &str,
     settings: &InstanceSettings,
     setup_token: Option<&str>,
+) -> AppResult<()> {
+    complete_setup_with_options(
+        pool,
+        admin_email,
+        admin_password,
+        display_name,
+        settings,
+        setup_token,
+        crate::sample_seed::sample_seed_enabled(),
+    )
+    .await
+}
+
+pub async fn complete_setup_with_options(
+    pool: &PgPool,
+    admin_email: &str,
+    admin_password: &str,
+    display_name: &str,
+    settings: &InstanceSettings,
+    setup_token: Option<&str>,
+    seed_sample: bool,
 ) -> AppResult<()> {
     let completed = settings::get_bool(pool, "setup_completed", false).await?;
     if completed {
@@ -246,6 +263,10 @@ pub async fn complete_setup(
     let mut s = settings.clone();
     s.setup_completed = true;
     settings::save_settings(pool, &s).await?;
+
+    if seed_sample {
+        crate::sample_seed::seed_sample_project(pool, &s.default_locale).await?;
+    }
     Ok(())
 }
 

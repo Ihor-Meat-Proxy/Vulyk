@@ -78,9 +78,7 @@ pub async fn get_bool(pool: &PgPool, key: &str, default: bool) -> AppResult<bool
             .bind(key)
             .fetch_optional(pool)
             .await?;
-    Ok(value
-        .and_then(|v| v.as_bool())
-        .unwrap_or(default))
+    Ok(value.and_then(|v| v.as_bool()).unwrap_or(default))
 }
 
 pub async fn get_string(pool: &PgPool, key: &str, default: &str) -> AppResult<String> {
@@ -108,31 +106,30 @@ pub async fn set_value(pool: &PgPool, key: &str, value: Value) -> AppResult<()> 
 }
 
 pub async fn load_settings(pool: &PgPool) -> AppResult<InstanceSettings> {
-    let mut settings = InstanceSettings::default();
-    settings.setup_completed = get_bool(pool, "setup_completed", false).await?;
-    settings.instance_name = get_string(pool, "instance_name", "Vulyk").await?;
-    settings.base_url = get_string(pool, "base_url", "").await?;
-    settings.default_locale = get_string(pool, "default_locale", "en").await?;
-    settings.default_timezone = get_string(pool, "default_timezone", "UTC").await?;
-
     let mode = get_string(pool, "registration_mode", "disabled").await?;
-    settings.registration_mode = mode
-        .parse()
-        .unwrap_or(RegistrationMode::Disabled);
-
     let role = get_string(pool, "default_role", "viewer").await?;
-    settings.default_role = role.parse().unwrap_or(ProjectRole::Viewer);
-
     let domains: Option<Value> =
         sqlx::query_scalar("SELECT value FROM system_settings WHERE key = 'allowed_email_domains'")
             .fetch_optional(pool)
             .await?;
-    if let Some(Value::Array(arr)) = domains {
-        settings.allowed_email_domains = arr
-            .into_iter()
+    let allowed_email_domains = if let Some(Value::Array(arr)) = domains {
+        arr.into_iter()
             .filter_map(|v| v.as_str().map(str::to_string))
-            .collect();
-    }
+            .collect()
+    } else {
+        Vec::new()
+    };
+
+    let mut settings = InstanceSettings {
+        setup_completed: get_bool(pool, "setup_completed", false).await?,
+        instance_name: get_string(pool, "instance_name", "Vulyk").await?,
+        base_url: get_string(pool, "base_url", "").await?,
+        default_locale: get_string(pool, "default_locale", "en").await?,
+        default_timezone: get_string(pool, "default_timezone", "UTC").await?,
+        registration_mode: mode.parse().unwrap_or(RegistrationMode::Disabled),
+        default_role: role.parse().unwrap_or(ProjectRole::Viewer),
+        allowed_email_domains,
+    };
 
     // Env overrides for registration mode (deploy-time).
     if let Ok(env_mode) = std::env::var("VULYK_REGISTRATION_MODE") {
@@ -217,8 +214,6 @@ pub async fn require_registration_open(pool: &PgPool) -> AppResult<InstanceSetti
         RegistrationMode::Invite => Err(AppError::Forbidden(
             "registration requires an invite".into(),
         )),
-        RegistrationMode::Disabled => Err(AppError::Forbidden(
-            "registration is disabled".into(),
-        )),
+        RegistrationMode::Disabled => Err(AppError::Forbidden("registration is disabled".into())),
     }
 }

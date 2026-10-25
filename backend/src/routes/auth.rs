@@ -181,9 +181,8 @@ pub async fn register(
             .bind(&hash)
             .fetch_optional(&state.pool)
             .await?;
-            let (id, invite_email) = row.ok_or_else(|| {
-                AppError::Forbidden("invalid or expired invite token".into())
-            })?;
+            let (id, invite_email) =
+                row.ok_or_else(|| AppError::Forbidden("invalid or expired invite token".into()))?;
             if !invite_email.eq_ignore_ascii_case(&email) {
                 return Err(AppError::Forbidden(
                     "invite email does not match registration email".into(),
@@ -364,10 +363,14 @@ pub async fn change_password(
         // Allow skipping current when must_change_password (forced reset after seed).
         if !auth.user.must_change_password {
             if current.is_empty() || !verify_password(current, hash)? {
-                return Err(AppError::Unauthorized("current password is incorrect".into()));
+                return Err(AppError::Unauthorized(
+                    "current password is incorrect".into(),
+                ));
             }
         } else if !current.is_empty() && !verify_password(current, hash)? {
-            return Err(AppError::Unauthorized("current password is incorrect".into()));
+            return Err(AppError::Unauthorized(
+                "current password is incorrect".into(),
+            ));
         }
     }
 
@@ -475,9 +478,14 @@ pub async fn sso_callback(
     };
     let redirect_uri = sso::callback_redirect_uri(&base);
 
-    let (user, redirect_to) =
-        sso::handle_callback(&state.pool, &state.secrets, &code, &oauth_state, &redirect_uri)
-            .await?;
+    let (user, redirect_to) = sso::handle_callback(
+        &state.pool,
+        &state.secrets,
+        &code,
+        &oauth_state,
+        &redirect_uri,
+    )
+    .await?;
 
     if user.disabled_at.is_some() {
         return Err(AppError::Forbidden("user account is disabled".into()));

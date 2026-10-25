@@ -150,6 +150,13 @@ pub struct CompleteSetupRequest {
     pub default_locale: Option<String>,
     pub default_timezone: Option<String>,
     pub registration_mode: Option<RegistrationMode>,
+    /// Seed the Kyiv concert sample project (default true).
+    #[serde(default = "default_true")]
+    pub seed_sample: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Debug, Serialize, ToSchema)]

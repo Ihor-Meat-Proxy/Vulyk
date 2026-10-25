@@ -28,7 +28,7 @@ enum Commands {
     /// Run the HTTP API server (default)
     Serve,
     /// Complete first-run instance setup
-    Setup(SetupArgs),
+    Setup(Box<SetupArgs>),
 }
 
 #[tokio::main]
@@ -52,7 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Setup(args) => {
             let pool = db::connect(&database_url).await?;
             db::migrate(&pool).await?;
-            setup_cli::run_setup(&pool, args).await?;
+            setup_cli::run_setup(&pool, *args).await?;
         }
     }
     Ok(())

@@ -5,7 +5,9 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{require_permission, require_project_role, OptionalAuthUser, Permission, ProjectRole};
+use crate::auth::{
+    require_permission, require_project_role, OptionalAuthUser, Permission, ProjectRole,
+};
 use crate::error::{AppError, AppResult};
 use crate::models::{Membership, MembershipView, UpdateMembership, UpsertMembership};
 use crate::routes::AppState;

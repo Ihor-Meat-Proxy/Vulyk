@@ -168,7 +168,14 @@ pub struct SsoIdentity {
 
 /// Apply `VULYK_SSO_<KEY>_*` env overrides into the DB (idempotent).
 pub async fn sync_from_env(pool: &PgPool, secrets: &SecretsKey) -> AppResult<()> {
-    let keys = ["google", "microsoft", "github", "gitlab", "nextcloud", "oidc"];
+    let keys = [
+        "google",
+        "microsoft",
+        "github",
+        "gitlab",
+        "nextcloud",
+        "oidc",
+    ];
     for key in keys {
         let prefix = format!("VULYK_SSO_{}", key.to_uppercase());
         let client_id = std::env::var(format!("{prefix}_CLIENT_ID")).ok();
@@ -244,7 +251,11 @@ pub async fn sync_from_env(pool: &PgPool, secrets: &SecretsKey) -> AppResult<()>
         .execute(pool)
         .await?;
 
-        tracing::info!(provider = key, enabled = provider.enabled, "SSO env sync applied");
+        tracing::info!(
+            provider = key,
+            enabled = provider.enabled,
+            "SSO env sync applied"
+        );
     }
     Ok(())
 }
@@ -483,7 +494,7 @@ pub async fn resolve_endpoints(provider: &SsoProvider) -> AppResult<ResolvedEndp
                 userinfo: Some(format!("{base}/ocs/v2.php/cloud/user")),
             })
         }
-        "oidc" | _ => {
+        _ => {
             let issuer = provider
                 .issuer_url
                 .as_ref()
@@ -558,7 +569,9 @@ pub async fn start_authorization(
         return Err(AppError::BadRequest("SSO provider is disabled".into()));
     }
     if provider.client_id.is_empty() {
-        return Err(AppError::BadRequest("SSO provider client_id not configured".into()));
+        return Err(AppError::BadRequest(
+            "SSO provider client_id not configured".into(),
+        ));
     }
 
     let endpoints = resolve_endpoints(provider).await?;
@@ -788,9 +801,16 @@ fn parse_userinfo_claims(provider_key: &str, claims: Value) -> AppResult<SsoIden
         let subject = data
             .get("id")
             .or_else(|| data.get("uid"))
-            .and_then(|v| v.as_str().map(str::to_string).or_else(|| v.as_i64().map(|n| n.to_string())))
+            .and_then(|v| {
+                v.as_str()
+                    .map(str::to_string)
+                    .or_else(|| v.as_i64().map(|n| n.to_string()))
+            })
             .ok_or_else(|| AppError::Unauthorized("nextcloud user missing id".into()))?;
-        let email = data.get("email").and_then(|v| v.as_str()).map(str::to_string);
+        let email = data
+            .get("email")
+            .and_then(|v| v.as_str())
+            .map(str::to_string);
         let display_name = data
             .get("display-name")
             .or_else(|| data.get("displayname"))
@@ -857,7 +877,11 @@ async fn fetch_github_identity(access_token: &str) -> AppResult<SsoIdentity> {
 
     let subject = user
         .get("id")
-        .and_then(|v| v.as_i64().map(|n| n.to_string()).or_else(|| v.as_str().map(str::to_string)))
+        .and_then(|v| {
+            v.as_i64()
+                .map(|n| n.to_string())
+                .or_else(|| v.as_str().map(str::to_string))
+        })
         .ok_or_else(|| AppError::Unauthorized("github user missing id".into()))?;
 
     let mut email = user
@@ -893,10 +917,7 @@ async fn fetch_github_identity(access_token: &str) -> AppResult<SsoIdentity> {
             let chosen = primary.or(verified).or(arr.first());
             if let Some(e) = chosen {
                 email = e.get("email").and_then(|v| v.as_str()).map(str::to_string);
-                email_verified = e
-                    .get("verified")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
+                email_verified = e.get("verified").and_then(|v| v.as_bool()).unwrap_or(false);
             }
         }
     }
@@ -948,8 +969,7 @@ fn decode_jwt_payload(token: &str) -> AppResult<Value> {
         .decode(payload)
         .or_else(|_| B64.decode(&padded))
         .map_err(|_| AppError::BadRequest("id_token payload decode".into()))?;
-    serde_json::from_slice(&bytes)
-        .map_err(|e| AppError::BadRequest(format!("id_token JSON: {e}")))
+    serde_json::from_slice(&bytes).map_err(|e| AppError::BadRequest(format!("id_token JSON: {e}")))
 }
 
 fn role_from_groups(provider: &SsoProvider, groups: &[String]) -> ProjectRole {
@@ -1037,9 +1057,7 @@ async fn link_or_provision(
         AppError::Forbidden("SSO account has no email; cannot provision user".into())
     })?;
     if !identity.email_verified {
-        return Err(AppError::Forbidden(
-            "SSO email is not verified".into(),
-        ));
+        return Err(AppError::Forbidden("SSO email is not verified".into()));
     }
 
     let display_name = identity
@@ -1114,13 +1132,11 @@ async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<User
 }
 
 async fn load_user(pool: &PgPool, id: Uuid) -> AppResult<User> {
-    sqlx::query_as::<_, User>(&format!(
-        "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
-    ))
-    .bind(id)
-    .fetch_optional(pool)
-    .await?
-    .ok_or_else(|| AppError::Unauthorized("user not found".into()))
+    sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::Unauthorized("user not found".into()))
 }
 
 /// Build the OAuth redirect_uri for this API instance.

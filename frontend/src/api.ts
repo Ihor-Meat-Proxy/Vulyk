@@ -343,6 +343,8 @@ export type CompleteSetupRequest = {
   default_locale?: string
   default_timezone?: string
   registration_mode?: RegistrationMode
+  /** Seed Kyiv concert sample project (default true). */
+  seed_sample?: boolean
 }
 
 export type AuthResponse = {

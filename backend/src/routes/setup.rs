@@ -1,4 +1,8 @@
-use axum::{extract::State, routing::{get, post}, Json, Router};
+use axum::{
+    extract::State,
+    routing::{get, post},
+    Json, Router,
+};
 
 use crate::auth::validate_password_strength;
 use crate::error::{AppError, AppResult};
@@ -74,15 +78,18 @@ pub async fn setup_complete(
         // leave default
     }
 
-    seed::complete_setup(
+    seed::complete_setup_with_options(
         &state.pool,
         &email,
         &body.password,
         display_name,
         &instance,
         Some(body.setup_token.trim()),
+        body.seed_sample,
     )
     .await?;
 
-    Ok(Json(serde_json::json!({ "ok": true, "setup_completed": true })))
+    Ok(Json(
+        serde_json::json!({ "ok": true, "setup_completed": true }),
+    ))
 }

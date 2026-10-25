@@ -1,7 +1,7 @@
 {
   "version": 1,
   "project": {
-    "key": "KYIV-CONCERT-2026",
+    "key": "KYIV_CONCERT_2026",
     "name": {
       "en": "Kyiv Open-Air Concert 2026",
       "uk": "Київський open-air концерт 2026"
@@ -13,7 +13,10 @@
   },
   "suites": [
     {
-      "name": { "en": "Venue & Permits", "uk": "Майданчик і дозволи" },
+      "name": {
+        "en": "Venue & Permits",
+        "uk": "Майданчик і дозволи"
+      },
       "children": [],
       "cases": [
         {
@@ -32,7 +35,11 @@
           },
           "priority": "critical",
           "status": "ready",
-          "tags": ["permits", "venue", "smoke"],
+          "tags": [
+            "permits",
+            "venue",
+            "smoke"
+          ],
           "steps": [
             {
               "action": {
@@ -43,7 +50,10 @@
                 "en": "Blank application form loads with required fields marked.",
                 "uk": "Відкривається порожня форма з позначеними обов'язковими полями."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -68,7 +78,10 @@
                 "en": "PDF includes all attachments and organiser contact details.",
                 "uk": "PDF містить усі додатки та контакти організатора."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -88,7 +101,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["permits", "noise", "venue"],
+          "tags": [
+            "permits",
+            "noise",
+            "venue"
+          ],
           "steps": [
             {
               "action": {
@@ -99,7 +116,10 @@
                 "en": "Boundary receptors show predicted dB(A) values.",
                 "uk": "На межових точках відображаються прогнозовані значення дБ(A)."
               },
-              "data": { "en": "Limit: 55 dB(A) at residential edge", "uk": "Ліміт: 55 дБ(A) біля житлової зони" }
+              "data": {
+                "en": "Limit: 55 dB(A) at residential edge",
+                "uk": "Ліміт: 55 дБ(A) біля житлової зони"
+              }
             },
             {
               "action": {
@@ -110,7 +130,10 @@
                 "en": "Report marks pass or lists receptors over limit.",
                 "uk": "Звіт показує проходження або перелік точок понад ліміт."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -130,7 +153,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["venue", "safety", "capacity"],
+          "tags": [
+            "venue",
+            "safety",
+            "capacity"
+          ],
           "steps": [
             {
               "action": {
@@ -141,7 +168,10 @@
                 "en": "Capacity field becomes read-only with auditor name and date.",
                 "uk": "Поле місткості стає лише для читання з ПІБ аудитора та датою."
               },
-              "data": { "en": "Capacity: 8500", "uk": "Місткість: 8500" }
+              "data": {
+                "en": "Capacity: 8500",
+                "uk": "Місткість: 8500"
+              }
             },
             {
               "action": {
@@ -152,7 +182,10 @@
                 "en": "System rejects the change with a capacity error.",
                 "uk": "Система відхиляє зміну з помилкою місткості."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -163,7 +196,10 @@
                 "en": "Certificate PDF generates with venue name and seal placeholders.",
                 "uk": "Генерується PDF сертифіката з назвою майданчика та місцем для печатки."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -183,7 +219,11 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["permits", "stage", "structure"],
+          "tags": [
+            "permits",
+            "stage",
+            "structure"
+          ],
           "steps": [
             {
               "action": {
@@ -194,7 +234,10 @@
                 "en": "Permit draft links to parent event ID.",
                 "uk": "Чернетка дозволу пов'язана з ID головної події."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -205,18 +248,27 @@
                 "en": "Status moves to Ready for inspection.",
                 "uk": "Статус змінюється на «Готово до інспекції»."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Ticketing", "uk": "Квитки" },
+      "name": {
+        "en": "Ticketing",
+        "uk": "Квитки"
+      },
       "cases": [],
       "children": [
         {
-          "name": { "en": "Online sales", "uk": "Онлайн-продажі" },
+          "name": {
+            "en": "Online sales",
+            "uk": "Онлайн-продажі"
+          },
           "children": [],
           "cases": [
             {
@@ -235,7 +287,11 @@
               },
               "priority": "critical",
               "status": "ready",
-              "tags": ["ticketing", "smoke", "checkout"],
+              "tags": [
+                "ticketing",
+                "smoke",
+                "checkout"
+              ],
               "steps": [
                 {
                   "action": {
@@ -246,7 +302,10 @@
                     "en": "Cart shows price, fee, and currency UAH.",
                     "uk": "Кошик показує ціну, комісію та валюту UAH."
                   },
-                  "data": { "en": "Qty: 1", "uk": "К-сть: 1" }
+                  "data": {
+                    "en": "Qty: 1",
+                    "uk": "К-сть: 1"
+                  }
                 },
                 {
                   "action": {
@@ -257,7 +316,10 @@
                     "en": "Order status Paid; QR ticket issued.",
                     "uk": "Статус замовлення «Оплачено»; видано QR-квиток."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -268,7 +330,10 @@
                     "en": "PDF contains event name, date, and unique QR.",
                     "uk": "PDF містить назву події, дату та унікальний QR."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 }
               ]
             },
@@ -288,7 +353,10 @@
               },
               "priority": "high",
               "status": "ready",
-              "tags": ["ticketing", "promo"],
+              "tags": [
+                "ticketing",
+                "promo"
+              ],
               "steps": [
                 {
                   "action": {
@@ -299,7 +367,10 @@
                     "en": "Discount line appears; total reduced by 15%.",
                     "uk": "З'являється рядок знижки; сума менша на 15%."
                   },
-                  "data": { "en": "Code: KYIV26-15", "uk": "Код: KYIV26-15" }
+                  "data": {
+                    "en": "Code: KYIV26-15",
+                    "uk": "Код: KYIV26-15"
+                  }
                 },
                 {
                   "action": {
@@ -310,7 +381,10 @@
                     "en": "Error shown; previous discount removed.",
                     "uk": "Показано помилку; попередню знижку знято."
                   },
-                  "data": { "en": "Code: OLD-PROMO", "uk": "Код: OLD-PROMO" }
+                  "data": {
+                    "en": "Code: OLD-PROMO",
+                    "uk": "Код: OLD-PROMO"
+                  }
                 }
               ]
             },
@@ -330,7 +404,10 @@
               },
               "priority": "medium",
               "status": "ready",
-              "tags": ["ticketing", "refund"],
+              "tags": [
+                "ticketing",
+                "refund"
+              ],
               "steps": [
                 {
                   "action": {
@@ -341,7 +418,10 @@
                     "en": "Refund form shows eligible amount and policy text.",
                     "uk": "Форма показує суму до повернення та текст політики."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -352,7 +432,10 @@
                     "en": "Order Refunded; ticket QR invalidated; inventory +1.",
                     "uk": "Замовлення «Повернено»; QR анульовано; інвентар +1."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -363,7 +446,10 @@
                     "en": "Scanner shows Refunded / Invalid.",
                     "uk": "Сканер показує «Повернено / Недійсний»."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 }
               ]
             },
@@ -383,7 +469,10 @@
               },
               "priority": "low",
               "status": "ready",
-              "tags": ["ticketing", "waitlist"],
+              "tags": [
+                "ticketing",
+                "waitlist"
+              ],
               "steps": [
                 {
                   "action": {
@@ -394,7 +483,10 @@
                     "en": "Buy button replaced with Join waitlist.",
                     "uk": "Кнопку «Купити» замінено на «До листа очікування»."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -405,14 +497,20 @@
                     "en": "Confirmation toast; entry appears in waitlist admin.",
                     "uk": "Показано підтвердження; запис з'являється в адмінці."
                   },
-                  "data": { "en": "email: waitlist@example.com", "uk": "email: waitlist@example.com" }
+                  "data": {
+                    "en": "email: waitlist@example.com",
+                    "uk": "email: waitlist@example.com"
+                  }
                 }
               ]
             }
           ]
         },
         {
-          "name": { "en": "QR check-in", "uk": "QR check-in" },
+          "name": {
+            "en": "QR check-in",
+            "uk": "QR check-in"
+          },
           "children": [],
           "cases": [
             {
@@ -431,7 +529,11 @@
               },
               "priority": "critical",
               "status": "ready",
-              "tags": ["ticketing", "check-in", "smoke"],
+              "tags": [
+                "ticketing",
+                "check-in",
+                "smoke"
+              ],
               "steps": [
                 {
                   "action": {
@@ -442,7 +544,10 @@
                     "en": "Green admit screen with ticket type and holder name.",
                     "uk": "Зелений екран пропуску з типом квитка та іменем."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -453,7 +558,10 @@
                     "en": "Status Used with gate and timestamp.",
                     "uk": "Статус «Використано» з гейтом і часом."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 }
               ]
             },
@@ -473,7 +581,11 @@
               },
               "priority": "high",
               "status": "ready",
-              "tags": ["ticketing", "check-in", "security"],
+              "tags": [
+                "ticketing",
+                "check-in",
+                "security"
+              ],
               "steps": [
                 {
                   "action": {
@@ -484,7 +596,10 @@
                     "en": "Red reject screen: Already checked in.",
                     "uk": "Червоний екран відмови: «Вже пройшов check-in»."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -495,7 +610,10 @@
                     "en": "Two entries: admit then reject with both gate IDs.",
                     "uk": "Два записи: пропуск і відмова з ID обох гейтів."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 }
               ]
             },
@@ -515,7 +633,11 @@
               },
               "priority": "medium",
               "status": "ready",
-              "tags": ["ticketing", "check-in", "offline"],
+              "tags": [
+                "ticketing",
+                "check-in",
+                "offline"
+              ],
               "steps": [
                 {
                   "action": {
@@ -526,7 +648,10 @@
                     "en": "Local admit; queued for sync badge shown.",
                     "uk": "Локальний пропуск; показано бейдж черги синхронізації."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -537,7 +662,10 @@
                     "en": "Server marks ticket Used; queue clears.",
                     "uk": "Сервер позначає квиток «Використано»; черга очищається."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 },
                 {
                   "action": {
@@ -548,7 +676,10 @@
                     "en": "Reject as already used.",
                     "uk": "Відмова як уже використаний."
                   },
-                  "data": { "en": "", "uk": "" }
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
                 }
               ]
             }
@@ -557,7 +688,10 @@
       ]
     },
     {
-      "name": { "en": "Artists & Line-up", "uk": "Артисти та лайнап" },
+      "name": {
+        "en": "Artists & Line-up",
+        "uk": "Артисти та лайнап"
+      },
       "children": [],
       "cases": [
         {
@@ -576,7 +710,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["artists", "rider", "production"],
+          "tags": [
+            "artists",
+            "rider",
+            "production"
+          ],
           "steps": [
             {
               "action": {
@@ -587,7 +725,10 @@
                 "en": "Items list hospitality, backline, and transport.",
                 "uk": "Список містить hospitality, беклайн і транспорт."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -598,7 +739,10 @@
                 "en": "Progress 100%; readiness badge green.",
                 "uk": "Прогрес 100%; зелений бейдж готовності."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -609,7 +753,10 @@
                 "en": "PDF/email sent with timestamped checklist.",
                 "uk": "Надіслано PDF/email з чеклістом і часовими мітками."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -629,7 +776,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["artists", "schedule", "curfew"],
+          "tags": [
+            "artists",
+            "schedule",
+            "curfew"
+          ],
           "steps": [
             {
               "action": {
@@ -640,7 +791,10 @@
                 "en": "Tool flags any set ending after curfew.",
                 "uk": "Інструмент позначає сети, що закінчуються після комендантської."
               },
-              "data": { "en": "Curfew: 23:00", "uk": "Комендантська: 23:00" }
+              "data": {
+                "en": "Curfew: 23:00",
+                "uk": "Комендантська: 23:00"
+              }
             },
             {
               "action": {
@@ -651,7 +805,10 @@
                 "en": "Updated end time shown; conflicts clear if within limit.",
                 "uk": "Показано новий час завершення; конфлікти зникають у межах ліміту."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -671,7 +828,11 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["artists", "accreditation", "security"],
+          "tags": [
+            "artists",
+            "accreditation",
+            "security"
+          ],
           "steps": [
             {
               "action": {
@@ -682,7 +843,10 @@
                 "en": "Preview shows photo, name, zone All-access / Stage.",
                 "uk": "Прев'ю показує фото, ім'я, зону All-access / Stage."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -693,14 +857,20 @@
                 "en": "Access granted for Stage zone.",
                 "uk": "Доступ до зони Stage надано."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Stage & Sound", "uk": "Сцена і звук" },
+      "name": {
+        "en": "Stage & Sound",
+        "uk": "Сцена і звук"
+      },
       "children": [],
       "cases": [
         {
@@ -719,7 +889,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["stage", "sound", "load-in"],
+          "tags": [
+            "stage",
+            "sound",
+            "load-in"
+          ],
           "steps": [
             {
               "action": {
@@ -730,7 +904,10 @@
                 "en": "Plot progress reaches 100% for hangs.",
                 "uk": "Прогрес плоту для підвісів досягає 100%."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -741,7 +918,10 @@
                 "en": "Health check green for console and stage boxes.",
                 "uk": "Health check зелений для консолі та stage box."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -761,7 +941,11 @@
           },
           "priority": "critical",
           "status": "ready",
-          "tags": ["stage", "sound", "soundcheck"],
+          "tags": [
+            "stage",
+            "sound",
+            "soundcheck"
+          ],
           "steps": [
             {
               "action": {
@@ -772,7 +956,10 @@
                 "en": "Scenes and snapshots load without error.",
                 "uk": "Сцени та снапшоти завантажуються без помилок."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -783,7 +970,10 @@
                 "en": "Reading within target band (±2 dB).",
                 "uk": "Показник у цільовій смузі (±2 дБ)."
               },
-              "data": { "en": "Target: 98 dB(A)", "uk": "Ціль: 98 дБ(A)" }
+              "data": {
+                "en": "Target: 98 dB(A)",
+                "uk": "Ціль: 98 дБ(A)"
+              }
             },
             {
               "action": {
@@ -794,7 +984,10 @@
                 "en": "Log entry visible to stage manager.",
                 "uk": "Запис логу видно stage manager."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -814,7 +1007,11 @@
           },
           "priority": "critical",
           "status": "ready",
-          "tags": ["stage", "power", "failover"],
+          "tags": [
+            "stage",
+            "power",
+            "failover"
+          ],
           "steps": [
             {
               "action": {
@@ -825,7 +1022,10 @@
                 "en": "ATS switches to generator within SLA (<10 s).",
                 "uk": "ATS перемикається на генератор у межах SLA (<10 с)."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -836,7 +1036,10 @@
                 "en": "No console reboot; transfer time recorded.",
                 "uk": "Без перезавантаження консолі; час перемикання зафіксовано."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -856,7 +1059,10 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["stage", "lighting"],
+          "tags": [
+            "stage",
+            "lighting"
+          ],
           "steps": [
             {
               "action": {
@@ -867,7 +1073,10 @@
                 "en": "All fixtures respond; no DMX errors.",
                 "uk": "Усі прилади реагують; немає помилок DMX."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -878,14 +1087,20 @@
                 "en": "Stage dark then house lights up within 2 s.",
                 "uk": "Сцена темна, потім house lights за ≤2 с."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Security & Safety", "uk": "Безпека" },
+      "name": {
+        "en": "Security & Safety",
+        "uk": "Безпека"
+      },
       "children": [],
       "cases": [
         {
@@ -904,7 +1119,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["security", "entry", "smoke"],
+          "tags": [
+            "security",
+            "entry",
+            "smoke"
+          ],
           "steps": [
             {
               "action": {
@@ -915,7 +1134,10 @@
                 "en": "Item refused or seized per policy; visitor informed.",
                 "uk": "Предмет відмовлено або вилучено за політикою; відвідувача поінформовано."
               },
-              "data": { "en": "Item: glass bottle", "uk": "Предмет: скляна пляшка" }
+              "data": {
+                "en": "Item: glass bottle",
+                "uk": "Предмет: скляна пляшка"
+              }
             },
             {
               "action": {
@@ -926,7 +1148,10 @@
                 "en": "Incident ID created with gate and time.",
                 "uk": "Створено ID інциденту з гейтом і часом."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -946,7 +1171,12 @@
           },
           "priority": "critical",
           "status": "ready",
-          "tags": ["security", "air-raid", "safety", "smoke"],
+          "tags": [
+            "security",
+            "air-raid",
+            "safety",
+            "smoke"
+          ],
           "steps": [
             {
               "action": {
@@ -957,7 +1187,10 @@
                 "en": "Ops dashboard turns red; stage manager notified.",
                 "uk": "Ops-дашборд стає червоним; stage manager сповіщено."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -968,7 +1201,10 @@
                 "en": "Script plays; screens show shelter directions.",
                 "uk": "Скрипт відтворюється; екрани показують напрямки до укриття."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -979,7 +1215,10 @@
                 "en": "Show state Paused-alert logged.",
                 "uk": "Стан шоу «Пауза-тривога» залоговано."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -999,7 +1238,12 @@
           },
           "priority": "critical",
           "status": "ready",
-          "tags": ["security", "air-raid", "evacuation", "shelter"],
+          "tags": [
+            "security",
+            "air-raid",
+            "evacuation",
+            "shelter"
+          ],
           "steps": [
             {
               "action": {
@@ -1010,7 +1254,10 @@
                 "en": "Stewards open routes; arrows and staff guide flow.",
                 "uk": "Стюарди відкривають маршрути; стрілки та персонал спрямовують потік."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1021,7 +1268,10 @@
                 "en": "Occupancy under capacity; overflow plan unused or triggered.",
                 "uk": "Заповненість нижча за місткість; план overflow не потрібен або активований."
               },
-              "data": { "en": "Shelter A capacity: 2000", "uk": "Укриття A: місткість 2000" }
+              "data": {
+                "en": "Shelter A capacity: 2000",
+                "uk": "Укриття A: місткість 2000"
+              }
             },
             {
               "action": {
@@ -1032,7 +1282,10 @@
                 "en": "Gates reopen in waves; show resume checklist started.",
                 "uk": "Гейти відкриваються хвилями; стартує чекліст відновлення шоу."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1043,7 +1296,10 @@
                 "en": "Report stored with total evacuation time.",
                 "uk": "Звіт збережено із загальним часом евакуації."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1063,7 +1319,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["security", "medical", "safety"],
+          "tags": [
+            "security",
+            "medical",
+            "safety"
+          ],
           "steps": [
             {
               "action": {
@@ -1074,7 +1334,10 @@
                 "en": "All critical items present and in date.",
                 "uk": "Усі критичні позиції на місці й у терміні придатності."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1085,7 +1348,10 @@
                 "en": "Clear two-way radio acknowledged.",
                 "uk": "Підтверджено чіткий двосторонній зв'язок."
               },
-              "data": { "en": "Channel: MED-1", "uk": "Канал: MED-1" }
+              "data": {
+                "en": "Channel: MED-1",
+                "uk": "Канал: MED-1"
+              }
             }
           ]
         },
@@ -1105,7 +1371,11 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["security", "crowd", "monitoring"],
+          "tags": [
+            "security",
+            "crowd",
+            "monitoring"
+          ],
           "steps": [
             {
               "action": {
@@ -1116,7 +1386,10 @@
                 "en": "Amber alert on ops map; stewards notified.",
                 "uk": "Бурштиновий алерт на ops-карті; стюардів сповіщено."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1127,14 +1400,20 @@
                 "en": "Alert moves to Mitigating; density trend down.",
                 "uk": "Алерт у статусі «Пом'якшення»; тренд щільності вниз."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Logistics & Transport", "uk": "Логістика і транспорт" },
+      "name": {
+        "en": "Logistics & Transport",
+        "uk": "Логістика і транспорт"
+      },
       "children": [],
       "cases": [
         {
@@ -1153,7 +1432,11 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["logistics", "artists", "transport"],
+          "tags": [
+            "logistics",
+            "artists",
+            "transport"
+          ],
           "steps": [
             {
               "action": {
@@ -1164,7 +1447,10 @@
                 "en": "Each artist party has a departure ≥45 min before call.",
                 "uk": "Кожна група артистів має виїзд ≥45 хв до call."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1175,7 +1461,10 @@
                 "en": "Notifications sent; no unassigned runs.",
                 "uk": "Сповіщення надіслано; немає непризначених рейсів."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1195,7 +1484,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["logistics", "load-in", "transport"],
+          "tags": [
+            "logistics",
+            "load-in",
+            "transport"
+          ],
           "steps": [
             {
               "action": {
@@ -1206,7 +1499,10 @@
                 "en": "Gate opens dock assignment.",
                 "uk": "Гейт відкриває призначення доку."
               },
-              "data": { "en": "Plate: AA1234BC", "uk": "Номер: AA1234BC" }
+              "data": {
+                "en": "Plate: AA1234BC",
+                "uk": "Номер: AA1234BC"
+              }
             },
             {
               "action": {
@@ -1217,7 +1513,10 @@
                 "en": "Access denied pending production override.",
                 "uk": "Доступ відхилено до override продакшну."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1228,7 +1527,10 @@
                 "en": "Dock status Free; next truck can check in.",
                 "uk": "Статус доку «Вільний»; наступна вантажівка може заїхати."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1248,7 +1550,11 @@
           },
           "priority": "low",
           "status": "ready",
-          "tags": ["logistics", "audience", "metro"],
+          "tags": [
+            "logistics",
+            "audience",
+            "metro"
+          ],
           "steps": [
             {
               "action": {
@@ -1273,14 +1579,20 @@
                 "en": "Scheduled publications confirmed.",
                 "uk": "Заплановані публікації підтверджено."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Vendors & Food", "uk": "Вендори та їжа" },
+      "name": {
+        "en": "Vendors & Food",
+        "uk": "Вендори та їжа"
+      },
       "children": [],
       "cases": [
         {
@@ -1299,7 +1611,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["vendors", "food", "hygiene"],
+          "tags": [
+            "vendors",
+            "food",
+            "hygiene"
+          ],
           "steps": [
             {
               "action": {
@@ -1310,7 +1626,10 @@
                 "en": "All critical hygiene items pass.",
                 "uk": "Усі критичні пункти гігієни пройдено."
               },
-              "data": { "en": "Fridge max: 5°C", "uk": "Холодильник max: 5°C" }
+              "data": {
+                "en": "Fridge max: 5°C",
+                "uk": "Холодильник max: 5°C"
+              }
             },
             {
               "action": {
@@ -1321,7 +1640,10 @@
                 "en": "Stall status Service allowed in vendor map.",
                 "uk": "Статус кіоску «Обслуговування дозволено» на карті вендорів."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1341,7 +1663,11 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["vendors", "payments", "smoke"],
+          "tags": [
+            "vendors",
+            "payments",
+            "smoke"
+          ],
           "steps": [
             {
               "action": {
@@ -1352,7 +1678,10 @@
                 "en": "Approval code returned; receipt prints or displays.",
                 "uk": "Повернено код approve; чек друкується або показується."
               },
-              "data": { "en": "Amount: 1 UAH", "uk": "Сума: 1 грн" }
+              "data": {
+                "en": "Amount: 1 UAH",
+                "uk": "Сума: 1 грн"
+              }
             },
             {
               "action": {
@@ -1363,7 +1692,10 @@
                 "en": "Settlement shows net zero for the test.",
                 "uk": "У settlement тест дає нульовий підсумок."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1383,7 +1715,12 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["vendors", "food", "allergens", "accessibility"],
+          "tags": [
+            "vendors",
+            "food",
+            "allergens",
+            "accessibility"
+          ],
           "steps": [
             {
               "action": {
@@ -1394,7 +1731,10 @@
                 "en": "Dishes show correct allergen icons.",
                 "uk": "Страви показують правильні іконки алергенів."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1405,14 +1745,20 @@
                 "en": "Print matches digital menu icons.",
                 "uk": "Друк збігається з іконками цифрового меню."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Accessibility", "uk": "Доступність" },
+      "name": {
+        "en": "Accessibility",
+        "uk": "Доступність"
+      },
       "children": [],
       "cases": [
         {
@@ -1431,7 +1777,10 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["accessibility", "venue"],
+          "tags": [
+            "accessibility",
+            "venue"
+          ],
           "steps": [
             {
               "action": {
@@ -1442,7 +1791,10 @@
                 "en": "No steps or blocked slopes; signs bilingual.",
                 "uk": "Немає сходинок чи перекритих ухилів; двомовні вказівники."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1453,7 +1805,10 @@
                 "en": "Companion seats reserved next to wheelchair spots.",
                 "uk": "Місця супроводжуючих зарезервовано поруч із місцями для візків."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1473,7 +1828,10 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["accessibility", "artists"],
+          "tags": [
+            "accessibility",
+            "artists"
+          ],
           "steps": [
             {
               "action": {
@@ -1484,7 +1842,10 @@
                 "en": "Unobstructed view; lighting ≥ specified lux.",
                 "uk": "Огляд без перешкод; освітлення ≥ заданих люксів."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1495,7 +1856,10 @@
                 "en": "ROS lists interpreter active windows.",
                 "uk": "ROS містить вікна активності перекладача."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1515,7 +1879,11 @@
           },
           "priority": "high",
           "status": "ready",
-          "tags": ["accessibility", "venue", "facilities"],
+          "tags": [
+            "accessibility",
+            "venue",
+            "facilities"
+          ],
           "steps": [
             {
               "action": {
@@ -1526,7 +1894,10 @@
                 "en": "All fixtures meet checklist; call button rings ops.",
                 "uk": "Усі елементи відповідають чеклісту; кнопка дзвонить в ops."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1537,14 +1908,20 @@
                 "en": "Accessible restroom pins visible in both maps.",
                 "uk": "Піни доступних вбиралень видно на обох картах."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
       ]
     },
     {
-      "name": { "en": "Marketing & Social", "uk": "Маркетинг і соцмережі" },
+      "name": {
+        "en": "Marketing & Social",
+        "uk": "Маркетинг і соцмережі"
+      },
       "children": [],
       "cases": [
         {
@@ -1563,7 +1940,10 @@
           },
           "priority": "medium",
           "status": "ready",
-          "tags": ["marketing", "social"],
+          "tags": [
+            "marketing",
+            "social"
+          ],
           "steps": [
             {
               "action": {
@@ -1574,7 +1954,10 @@
                 "en": "Calendar shows four posts with correct copy locale.",
                 "uk": "Календар показує чотири пости з правильною локаллю тексту."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1585,7 +1968,10 @@
                 "en": "Image and CTA link to ticket page.",
                 "uk": "Зображення та CTA ведуть на сторінку квитків."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1605,7 +1991,10 @@
           },
           "priority": "low",
           "status": "ready",
-          "tags": ["marketing", "press"],
+          "tags": [
+            "marketing",
+            "press"
+          ],
           "steps": [
             {
               "action": {
@@ -1616,7 +2005,10 @@
                 "en": "Delivery report shows sent count > 0; bounce rate logged.",
                 "uk": "Звіт доставки показує sent > 0; bounce rate залоговано."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1627,7 +2019,10 @@
                 "en": "Zip downloads; contains bios, photos, fact sheet.",
                 "uk": "Zip завантажується; містить біографії, фото, факт-шит."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         },
@@ -1647,7 +2042,11 @@
           },
           "priority": "low",
           "status": "ready",
-          "tags": ["marketing", "livestream", "social"],
+          "tags": [
+            "marketing",
+            "livestream",
+            "social"
+          ],
           "steps": [
             {
               "action": {
@@ -1658,7 +2057,10 @@
                 "en": "Processing completes; public URL available.",
                 "uk": "Обробка завершена; публічний URL доступний."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             },
             {
               "action": {
@@ -1669,7 +2071,10 @@
                 "en": "Player loads on desktop and mobile breakpoints.",
                 "uk": "Плеєр завантажується на desktop і mobile breakpoints."
               },
-              "data": { "en": "", "uk": "" }
+              "data": {
+                "en": "",
+                "uk": ""
+              }
             }
           ]
         }
@@ -1684,7 +2089,12 @@
         "uk": "Отримано міський дозвіл на open-air подію"
       },
       "source": "sample",
-      "case_keys": ["KC-001", "KC-002", "KC-003", "KC-004"]
+      "case_keys": [
+        "KC-001",
+        "KC-002",
+        "KC-003",
+        "KC-004"
+      ]
     },
     {
       "external_key": "REQ-02",
@@ -1693,7 +2103,15 @@
         "uk": "Квиткова платформа готова до продажів і check-in на вході"
       },
       "source": "sample",
-      "case_keys": ["KC-005", "KC-006", "KC-007", "KC-008", "KC-009", "KC-010", "KC-011"]
+      "case_keys": [
+        "KC-005",
+        "KC-006",
+        "KC-007",
+        "KC-008",
+        "KC-009",
+        "KC-010",
+        "KC-011"
+      ]
     },
     {
       "external_key": "REQ-03",
@@ -1702,7 +2120,10 @@
         "uk": "Перевірено процедури повітряної тривоги та евакуації до укриття"
       },
       "source": "sample",
-      "case_keys": ["KC-020", "KC-021"]
+      "case_keys": [
+        "KC-020",
+        "KC-021"
+      ]
     },
     {
       "external_key": "REQ-04",
@@ -1711,7 +2132,11 @@
         "uk": "Системи живлення й звуку сцени готові до відмов"
       },
       "source": "sample",
-      "case_keys": ["KC-015", "KC-016", "KC-017"]
+      "case_keys": [
+        "KC-015",
+        "KC-016",
+        "KC-017"
+      ]
     },
     {
       "external_key": "REQ-05",
@@ -1720,7 +2145,11 @@
         "uk": "Маршрути й об'єкти доступності відповідають стандарту події"
       },
       "source": "sample",
-      "case_keys": ["KC-030", "KC-031", "KC-032"]
+      "case_keys": [
+        "KC-030",
+        "KC-031",
+        "KC-032"
+      ]
     },
     {
       "external_key": "REQ-06",
@@ -1729,7 +2158,11 @@
         "uk": "Фуд-вендори мають дозволи й готові до оплати"
       },
       "source": "sample",
-      "case_keys": ["KC-027", "KC-028", "KC-029"]
+      "case_keys": [
+        "KC-027",
+        "KC-028",
+        "KC-029"
+      ]
     },
     {
       "external_key": "REQ-07",
@@ -1738,7 +2171,11 @@
         "uk": "Контроль райдерів артистів і акредитації налагоджено"
       },
       "source": "sample",
-      "case_keys": ["KC-012", "KC-013", "KC-014"]
+      "case_keys": [
+        "KC-012",
+        "KC-013",
+        "KC-014"
+      ]
     }
   ],
   "runs": [
@@ -1763,7 +2200,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1784,7 +2224,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1805,7 +2248,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1826,7 +2272,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1847,7 +2296,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Failed",
@@ -1868,7 +2320,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1889,7 +2344,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1910,7 +2368,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Blocked",
@@ -1931,7 +2392,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Skipped",
@@ -1952,7 +2416,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1973,7 +2440,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -1994,7 +2464,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2015,7 +2488,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2036,7 +2512,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Failed",
@@ -2057,7 +2536,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2078,7 +2560,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2099,7 +2584,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Blocked",
@@ -2133,7 +2621,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2154,7 +2645,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2168,22 +2662,34 @@
         {
           "case_key": "KC-007",
           "status": "Untested",
-          "comment": { "en": "", "uk": "" },
+          "comment": {
+            "en": "",
+            "uk": ""
+          },
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             }
           ]
         },
         {
           "case_key": "KC-008",
           "status": "Untested",
-          "comment": { "en": "", "uk": "" },
+          "comment": {
+            "en": "",
+            "uk": ""
+          },
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             }
           ]
         },
@@ -2197,7 +2703,10 @@
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             },
             {
               "status": "Passed",
@@ -2211,22 +2720,34 @@
         {
           "case_key": "KC-010",
           "status": "Untested",
-          "comment": { "en": "", "uk": "" },
+          "comment": {
+            "en": "",
+            "uk": ""
+          },
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             }
           ]
         },
         {
           "case_key": "KC-011",
           "status": "Untested",
-          "comment": { "en": "", "uk": "" },
+          "comment": {
+            "en": "",
+            "uk": ""
+          },
           "history": [
             {
               "status": "Untested",
-              "message": { "en": "Queued", "uk": "У черзі" }
+              "message": {
+                "en": "Queued",
+                "uk": "У черзі"
+              }
             }
           ]
         }

@@ -489,41 +489,43 @@ export function CaseDetail({ projectId }: Props) {
                 ))}
               </ul>
             )}
-            <div className="req-form" style={{ marginTop: '0.75rem' }}>
-              <select
-                value={linkId}
-                onChange={(e) => setLinkId(e.target.value)}
-                aria-label="Requirement to link"
-              >
-                <option value="">Link a requirement…</option>
-                {allReqs
-                  .filter((r) => !linked.some((l) => l.id === r.id))
-                  .map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.title}
-                    </option>
-                  ))}
-              </select>
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={!linkId || !caseId}
-                onClick={() => {
-                  if (!projectId || !caseId || !linkId) return
-                  void api
-                    .linkRequirement(projectId, {
-                      case_id: caseId,
-                      requirement_id: linkId,
-                    })
-                    .then(() => api.listCaseRequirements(projectId, caseId))
-                    .then(setLinked)
-                    .then(() => setLinkId(''))
-                    .catch((err: Error) => setError(err.message))
-                }}
-              >
-                Link
-              </button>
-            </div>
+            {canManageReqs && (
+              <div className="req-form" style={{ marginTop: '0.75rem' }}>
+                <select
+                  value={linkId}
+                  onChange={(e) => setLinkId(e.target.value)}
+                  aria-label="Requirement to link"
+                >
+                  <option value="">Link a requirement…</option>
+                  {allReqs
+                    .filter((r) => !linked.some((l) => l.id === r.id))
+                    .map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.title}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={!linkId || !caseId}
+                  onClick={() => {
+                    if (!projectId || !caseId || !linkId) return
+                    void api
+                      .linkRequirement(projectId, {
+                        case_id: caseId,
+                        requirement_id: linkId,
+                      })
+                      .then(() => api.listCaseRequirements(projectId, caseId))
+                      .then(setLinked)
+                      .then(() => setLinkId(''))
+                      .catch((err: Error) => setError(err.message))
+                  }}
+                >
+                  Link
+                </button>
+              </div>
+            )}
           </section>
 
           <section style={{ marginTop: '1.5rem' }}>
@@ -537,7 +539,12 @@ export function CaseDetail({ projectId }: Props) {
                     <span className="badge">v{v.version}</span>{' '}
                     {v.change_summary || 'snapshot'}{' '}
                     <span className="muted">
-                      · {new Date(v.created_at).toLocaleString()}
+                      ·{' '}
+                      {formatTimestamp(v.created_at, {
+                        timeZone: user?.timezone,
+                        instanceTimeZone: authStatus?.default_timezone,
+                        locale: user?.locale ?? authStatus?.default_locale,
+                      })}
                     </span>
                   </li>
                 ))}

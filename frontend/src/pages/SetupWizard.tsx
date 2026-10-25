@@ -32,6 +32,7 @@ export function SetupWizard() {
   )
   const [registrationMode, setRegistrationMode] =
     useState<RegistrationMode>('disabled')
+  const [seedSample, setSeedSample] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -51,6 +52,7 @@ export function SetupWizard() {
         default_locale: locale,
         default_timezone: timezone.trim() || undefined,
         registration_mode: registrationMode,
+        seed_sample: seedSample,
       })
       await refreshStatus()
       setDone(true)
@@ -177,6 +179,14 @@ export function SetupWizard() {
             <option value="invite">{t('setup.modeInvite')}</option>
             <option value="disabled">{t('setup.modeDisabled')}</option>
           </select>
+        </label>
+        <label className="field" style={{ flexDirection: 'row', gap: '0.5rem' }}>
+          <input
+            type="checkbox"
+            checked={seedSample}
+            onChange={(e) => setSeedSample(e.target.checked)}
+          />
+          <span>{t('setup.seedSample')}</span>
         </label>
 
         {error && <p className="error">{error}</p>}

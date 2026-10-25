@@ -20,10 +20,7 @@ pub fn router() -> Router<AppState> {
 
 /// When auth is required: system admin, or any membership with ManageApiTokens.
 /// Viewers (and others without that permission on any project) get 403.
-async fn ensure_can_manage_api_tokens(
-    state: &AppState,
-    auth: &Option<AuthUser>,
-) -> AppResult<()> {
+async fn ensure_can_manage_api_tokens(state: &AppState, auth: &Option<AuthUser>) -> AppResult<()> {
     if !state.auth.required {
         return Ok(());
     }
@@ -33,12 +30,11 @@ async fn ensure_can_manage_api_tokens(
     if user.is_system_admin() {
         return Ok(());
     }
-    let roles = sqlx::query_scalar::<_, ProjectRole>(
-        r#"SELECT role FROM memberships WHERE user_id = $1"#,
-    )
-    .bind(user.id())
-    .fetch_all(&state.pool)
-    .await?;
+    let roles =
+        sqlx::query_scalar::<_, ProjectRole>(r#"SELECT role FROM memberships WHERE user_id = $1"#)
+            .bind(user.id())
+            .fetch_all(&state.pool)
+            .await?;
     if roles
         .iter()
         .any(|role| role.allows(Permission::ManageApiTokens))

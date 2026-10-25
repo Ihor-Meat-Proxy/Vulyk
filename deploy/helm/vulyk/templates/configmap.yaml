@@ -17,6 +17,7 @@ data:
   VULYK_REGISTRATION_MODE: {{ .Values.setup.registrationMode | quote }}
   VULYK_INSTANCE_NAME: {{ .Values.setup.instanceName | quote }}
   VULYK_SEED_DEMO: {{ .Values.setup.seedDemo | ternary "1" "0" | quote }}
+  VULYK_SEED_SAMPLE: {{ .Values.setup.seedSample | ternary "1" "0" | quote }}
   {{- if .Values.setup.baseUrl }}
   VULYK_BASE_URL: {{ .Values.setup.baseUrl | quote }}
   {{- end }}

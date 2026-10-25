@@ -66,6 +66,8 @@ const en: Dict = {
   'setup.modeOpen': 'Open',
   'setup.modeInvite': 'Invite only',
   'setup.modeDisabled': 'Disabled',
+  'setup.seedSample':
+    'Seed sample project “Kyiv Open-Air Concert 2026” (suites, cases, two runs)',
   'setup.submit': 'Complete setup',
   'setup.success': 'Setup complete. Sign in with the admin account.',
   'password.title': 'Change password',
@@ -141,6 +143,8 @@ const uk: Dict = {
   'setup.modeOpen': 'Відкритий',
   'setup.modeInvite': 'Лише за запрошенням',
   'setup.modeDisabled': 'Вимкнено',
+  'setup.seedSample':
+    'Створити зразок «Київський open-air концерт 2026» (сьюти, кейси, два прогони)',
   'setup.submit': 'Завершити налаштування',
   'setup.success': 'Готово. Увійдіть обліковим записом адміна.',
   'password.title': 'Зміна пароля',

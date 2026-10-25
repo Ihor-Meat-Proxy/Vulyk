@@ -34,11 +34,10 @@ pub async fn list_users(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
 ) -> AppResult<Json<Vec<UserPublic>>> {
-    let users = sqlx::query_as::<_, User>(&format!(
-        "SELECT {USER_COLUMNS} FROM users ORDER BY email"
-    ))
-    .fetch_all(&state.pool)
-    .await?;
+    let users =
+        sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users ORDER BY email"))
+            .fetch_all(&state.pool)
+            .await?;
     Ok(Json(users.into_iter().map(UserPublic::from).collect()))
 }
 
@@ -191,11 +190,9 @@ pub async fn delete_user(
 }
 
 async fn load_user(state: &AppState, id: Uuid) -> AppResult<User> {
-    sqlx::query_as::<_, User>(&format!(
-        "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
-    ))
-    .bind(id)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("user".into()))
+    sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(&state.pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound("user".into()))
 }

@@ -10,6 +10,7 @@ pub mod llm;
 pub mod models;
 pub mod openapi;
 pub mod routes;
+pub mod sample_seed;
 pub mod seed;
 pub mod services;
 pub mod settings;

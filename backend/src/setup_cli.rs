@@ -22,7 +22,11 @@ pub struct SetupArgs {
     pub admin_password: Option<String>,
 
     /// Admin display name
-    #[arg(long, env = "VULYK_ADMIN_DISPLAY_NAME", default_value = "Administrator")]
+    #[arg(
+        long,
+        env = "VULYK_ADMIN_DISPLAY_NAME",
+        default_value = "Administrator"
+    )]
     pub admin_display_name: String,
 
     /// Instance display name
@@ -52,6 +56,10 @@ pub struct SetupArgs {
     /// Skip confirmation prompts
     #[arg(long, short = 'y')]
     pub yes: bool,
+
+    /// Seed the Kyiv Open-Air Concert sample project (default on)
+    #[arg(long, env = "VULYK_SEED_SAMPLE", default_value = "1")]
+    pub seed_sample: String,
 }
 
 /// Entry point used by `vulyk-api setup`.
@@ -124,10 +132,7 @@ pub async fn run_setup(pool: &PgPool, args: SetupArgs) -> AppResult<()> {
             .map_err(AppError::BadRequest)?;
     } else if interactive {
         let current = instance.registration_mode.as_str();
-        let mode = prompt_default(
-            "Registration mode (open|invite|disabled)",
-            current,
-        )?;
+        let mode = prompt_default("Registration mode (open|invite|disabled)", current)?;
         instance.registration_mode = mode
             .parse::<RegistrationMode>()
             .map_err(AppError::BadRequest)?;
@@ -155,13 +160,19 @@ pub async fn run_setup(pool: &PgPool, args: SetupArgs) -> AppResult<()> {
         display_name
     };
 
-    seed::complete_setup(
+    let seed_sample = !matches!(
+        args.seed_sample.to_lowercase().as_str(),
+        "0" | "false" | "no" | "off"
+    );
+
+    seed::complete_setup_with_options(
         pool,
         &admin_email,
         &admin_password,
         display_name,
         &instance,
         args.setup_token.as_deref(),
+        seed_sample,
     )
     .await?;
 
@@ -215,7 +226,7 @@ fn prompt_secret(label: &str) -> AppResult<String> {
             .status();
         eprintln!();
         result.map_err(|e| AppError::Internal(format!("stdin: {e}")))?;
-        return Ok(line.trim().to_string());
+        Ok(line.trim().to_string())
     }
     #[cfg(not(unix))]
     {

@@ -94,7 +94,7 @@ export async function createCase(
   projectId: string,
   body: Record<string, unknown>,
 ) {
-  return apiJson<{ case: { id: string; key: string; title: string }; id?: string }>(
+  return apiJson<{ case: { id: string; key: string; title: string } }>(
     request,
     'POST',
     `/api/v1/projects/${projectId}/cases`,
@@ -166,7 +166,7 @@ export async function createPlan(
   projectId: string,
   body: { name: string; description?: string; case_ids?: string[] },
 ) {
-  return apiJson<{ plan: { id: string; name: string }; id?: string }>(
+  return apiJson<{ plan: { id: string; name: string }; case_ids: string[] }>(
     request,
     'POST',
     `/api/v1/projects/${projectId}/plans`,
