@@ -1,0 +1,14 @@
+{
+  "cases": [
+    {
+      "id": 55,
+      "title": "Verify cart totals",
+      "section": "Cart",
+      "priority_id": 2,
+      "custom_preconds": "Items in cart",
+      "custom_steps_separated": [
+        { "content": "Open cart", "expected": "Totals match" }
+      ]
+    }
+  ]
+}

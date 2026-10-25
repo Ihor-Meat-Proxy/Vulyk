@@ -7,7 +7,9 @@ import { CaseDetail } from './pages/CaseDetail'
 import { CaseList } from './pages/CaseList'
 import { Chat } from './pages/Chat'
 import { Generate } from './pages/Generate'
+import { ImportPage } from './pages/ImportPage'
 import { Placeholder } from './pages/Placeholder'
+import { RequirementsPage } from './pages/RequirementsPage'
 
 const PROJECT_KEY = 'vulyk.selectedProjectId'
 
@@ -167,6 +169,14 @@ export default function App() {
           <Route
             path="cases/:caseId"
             element={<CaseDetail projectId={activeProjectId} />}
+          />
+          <Route
+            path="requirements"
+            element={<RequirementsPage projectId={activeProjectId} />}
+          />
+          <Route
+            path="import"
+            element={<ImportPage projectId={activeProjectId} />}
           />
           <Route
             path="generate"

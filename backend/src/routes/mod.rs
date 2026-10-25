@@ -1,7 +1,10 @@
 pub mod cases;
 pub mod health;
+pub mod imports;
+pub mod integrations;
 pub mod llm;
 pub mod projects;
+pub mod requirements;
 pub mod runs;
 pub mod suites;
 pub mod tokens;
@@ -28,6 +31,9 @@ pub fn app_router(state: AppState) -> Router {
         .merge(suites::router())
         .merge(cases::router())
         .merge(runs::router())
+        .merge(requirements::router())
+        .merge(integrations::router())
+        .merge(imports::router())
         .merge(llm::router())
         .merge(tokens::router())
         .layer(middleware::from_fn_with_state(

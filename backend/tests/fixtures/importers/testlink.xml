@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Smoke">
+  <testcase internalid="101" name="User login">
+    <summary><![CDATA[Login with valid user]]></summary>
+    <preconditions><![CDATA[User exists]]></preconditions>
+    <steps>
+      <step>
+        <actions><![CDATA[Open login]]></actions>
+        <expectedresults><![CDATA[Form visible]]></expectedresults>
+      </step>
+      <step>
+        <actions><![CDATA[Submit credentials]]></actions>
+        <expectedresults><![CDATA[Dashboard]]></expectedresults>
+      </step>
+    </steps>
+  </testcase>
+</testsuite>

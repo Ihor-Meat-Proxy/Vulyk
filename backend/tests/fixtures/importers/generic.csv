@@ -1,0 +1,4 @@
+key,title,description,precondition,priority,status,suite,steps
+CSV-1,Open login page,Navigate to login,,high,ready,Smoke,"Open /login
+See form"
+CSV-2,Submit credentials,Valid user can enter,,medium,draft,Smoke,Click Sign in
