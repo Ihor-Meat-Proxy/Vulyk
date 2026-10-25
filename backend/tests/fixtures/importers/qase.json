@@ -1,0 +1,14 @@
+{
+  "result": {
+    "entities": [
+      {
+        "id": 3,
+        "title": "API health check",
+        "suite_title": "API",
+        "steps": [
+          { "action": "GET /health", "expected_result": "200", "data": "" }
+        ]
+      }
+    ]
+  }
+}

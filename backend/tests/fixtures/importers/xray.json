@@ -1,0 +1,18 @@
+{
+  "tests": [
+    {
+      "key": "CALC-1",
+      "fields": {
+        "summary": "Add two numbers",
+        "description": "Calculator addition"
+      },
+      "testScript": {
+        "steps": [
+          { "action": "Enter 2 and 3", "data": "", "result": "Shows 5" }
+        ]
+      },
+      "summary": "Add two numbers",
+      "priority": "high"
+    }
+  ]
+}

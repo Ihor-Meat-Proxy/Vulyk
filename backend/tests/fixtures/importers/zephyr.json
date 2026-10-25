@@ -1,0 +1,21 @@
+{
+  "testCases": [
+    {
+      "key": "Z-10",
+      "name": "Checkout with valid card",
+      "objective": "Pay successfully",
+      "precondition": "Cart has items",
+      "priority": "High",
+      "folder": { "name": "Checkout" },
+      "testScript": {
+        "steps": [
+          {
+            "description": "Enter card details",
+            "expectedResult": "Accepted",
+            "testData": "4111..."
+          }
+        ]
+      }
+    }
+  ]
+}

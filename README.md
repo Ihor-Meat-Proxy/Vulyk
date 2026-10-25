@@ -55,9 +55,12 @@ See **[docs/architecture.md](docs/architecture.md)** for the full product plan, 
 - `CRUD /api/v1/projects/{id}/suites`
 - `CRUD /api/v1/projects/{id}/cases` (with steps; optional `?suite_id=` / `?q=` search)
 - `CRUD /api/v1/projects/{id}/runs` (+ trigger, results ingest)
+- Requirements / ALM (W6): `/requirements`, case links, `/integrations`, `/defects`
+- Importers (W7): `GET /api/v1/importers`, `POST .../imports:preview`, `POST .../imports`
 - `CRUD /api/v1/projects/{id}/llm/configs` + generate-cases / generate-code / ask
 - `POST/GET/DELETE /api/v1/tokens` (MCP API tokens)
 - Interactive docs: `/api/docs`
+- Integration notes: [docs/integrations/](docs/integrations/)
 
 ## License
 

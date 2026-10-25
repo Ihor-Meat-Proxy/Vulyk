@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { api, type TestCaseDetail } from '../api'
+import { api, type Requirement, type TestCaseDetail } from '../api'
 
 type Props = {
   projectId: string | null
@@ -9,6 +9,9 @@ type Props = {
 export function CaseDetail({ projectId }: Props) {
   const { caseId } = useParams()
   const [detail, setDetail] = useState<TestCaseDetail | null>(null)
+  const [linked, setLinked] = useState<Requirement[]>([])
+  const [allReqs, setAllReqs] = useState<Requirement[]>([])
+  const [linkId, setLinkId] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -19,11 +22,16 @@ export function CaseDetail({ projectId }: Props) {
     }
     let cancelled = false
     setLoading(true)
-    api
-      .getCase(projectId, caseId)
-      .then((data) => {
+    Promise.all([
+      api.getCase(projectId, caseId),
+      api.listCaseRequirements(projectId, caseId),
+      api.listRequirements(projectId),
+    ])
+      .then(([data, reqs, all]) => {
         if (!cancelled) {
           setDetail(data)
+          setLinked(reqs)
+          setAllReqs(all)
           setError(null)
         }
       })
@@ -108,6 +116,57 @@ export function CaseDetail({ projectId }: Props) {
             ))}
           </div>
         )}
+      </section>
+
+      <section style={{ marginTop: '1.5rem' }}>
+        <h3>Linked requirements</h3>
+        {linked.length === 0 ? (
+          <p className="muted">No requirements linked.</p>
+        ) : (
+          <ul className="req-list">
+            {linked.map((r) => (
+              <li key={r.id}>
+                <span className="badge">{r.external_key ?? r.source}</span>{' '}
+                {r.title}
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="req-form" style={{ marginTop: '0.75rem' }}>
+          <select
+            value={linkId}
+            onChange={(e) => setLinkId(e.target.value)}
+            aria-label="Requirement to link"
+          >
+            <option value="">Link a requirement…</option>
+            {allReqs
+              .filter((r) => !linked.some((l) => l.id === r.id))
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+          </select>
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={!linkId || !caseId}
+            onClick={() => {
+              if (!projectId || !caseId || !linkId) return
+              void api
+                .linkRequirement(projectId, {
+                  case_id: caseId,
+                  requirement_id: linkId,
+                })
+                .then(() => api.listCaseRequirements(projectId, caseId))
+                .then(setLinked)
+                .then(() => setLinkId(''))
+                .catch((err: Error) => setError(err.message))
+            }}
+          >
+            Link
+          </button>
+        </div>
       </section>
     </div>
   )

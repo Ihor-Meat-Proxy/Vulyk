@@ -101,6 +101,101 @@ export type ApiTokenPublic = {
   revoked_at: string | null
 }
 
+
+export type Requirement = {
+  id: string
+  project_id: string
+  external_key: string | null
+  external_id: string | null
+  title: string
+  description: string
+  source: string
+  url: string
+  created_at: string
+  updated_at: string
+}
+
+export type ImporterInfo = {
+  id: string
+  name: string
+  supported_formats: string[]
+}
+
+export type FieldMapping = {
+  title: string
+  key: string
+  description: string
+  precondition: string
+  priority: string
+  status: string
+  suite: string
+  steps: string
+}
+
+export type ImportCaseDraft = {
+  key?: string | null
+  title: string
+  description: string
+  precondition: string
+  priority: string
+  status: string
+  suite_name?: string | null
+  steps: { action: string; expected_result: string; data: string }[]
+  external_id?: string | null
+}
+
+export type ImportPreview = {
+  importer_id: string
+  format: string
+  total: number
+  cases: ImportCaseDraft[]
+  warnings: string[]
+  field_mapping: FieldMapping
+}
+
+export type ImportReport = {
+  importer_id: string
+  created_cases: number
+  created_suites: number
+  skipped: number
+  warnings: string[]
+  case_ids: string[]
+}
+
+export type IntegrationPublic = {
+  id: string
+  project_id: string
+  kind: string
+  name: string
+  base_url: string
+  config: Record<string, unknown>
+  has_secrets: boolean
+  enabled: boolean
+}
+
+export type Defect = {
+  id: string
+  project_id: string
+  integration_id: string | null
+  result_id: string | null
+  case_id: string | null
+  external_key: string | null
+  external_url: string
+  title: string
+  status: string
+}
+
+const defaultMapping = (): FieldMapping => ({
+  title: 'title',
+  key: 'key',
+  description: 'description',
+  precondition: 'precondition',
+  priority: 'priority',
+  status: 'status',
+  suite: 'suite',
+  steps: 'steps',
+})
+
 export const api = {
   listProjects: () => request<Project[]>('/api/v1/projects'),
   createProject: (body: { key: string; name: string; description?: string }) =>
@@ -116,6 +211,73 @@ export const api = {
   },
   getCase: (projectId: string, caseId: string) =>
     request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`),
+
+  listRequirements: (projectId: string) =>
+    request<Requirement[]>(`/api/v1/projects/${projectId}/requirements`),
+  createRequirement: (
+    projectId: string,
+    body: { title: string; description?: string; source?: string },
+  ) =>
+    request<Requirement>(`/api/v1/projects/${projectId}/requirements`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  linkRequirement: (
+    projectId: string,
+    body: { case_id: string; requirement_id: string },
+  ) =>
+    request(`/api/v1/projects/${projectId}/requirements:link`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listCaseRequirements: (projectId: string, caseId: string) =>
+    request<Requirement[]>(
+      `/api/v1/projects/${projectId}/cases/${caseId}/requirements`,
+    ),
+  listImporters: () => request<ImporterInfo[]>('/api/v1/importers'),
+  previewImport: (
+    projectId: string,
+    body: {
+      importer_id: string
+      format: string
+      content: string
+      field_mapping?: FieldMapping
+    },
+  ) =>
+    request<ImportPreview>(`/api/v1/projects/${projectId}/imports:preview`, {
+      method: 'POST',
+      body: JSON.stringify({
+        field_mapping: defaultMapping(),
+        ...body,
+      }),
+    }),
+  runImport: (
+    projectId: string,
+    body: {
+      importer_id: string
+      format: string
+      content: string
+      field_mapping?: FieldMapping
+      dry_run?: boolean
+    },
+  ) =>
+    request<ImportPreview | ImportReport>(
+      `/api/v1/projects/${projectId}/imports`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          field_mapping: defaultMapping(),
+          dry_run: false,
+          ...body,
+        }),
+      },
+    ),
+  listIntegrations: (projectId: string) =>
+    request<IntegrationPublic[]>(
+      `/api/v1/projects/${projectId}/integrations`,
+    ),
+  listDefects: (projectId: string) =>
+    request<Defect[]>(`/api/v1/projects/${projectId}/defects`),
 
   listLlmProviders: () => request<ProviderKindInfo[]>('/api/v1/llm/providers'),
   listLlmConfigs: (projectId: string) =>

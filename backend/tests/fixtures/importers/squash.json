@@ -1,0 +1,13 @@
+{
+  "test-cases": [
+    {
+      "id": 7,
+      "name": "Reset password",
+      "reference": "SQ-7",
+      "folder": { "name": "Account" },
+      "steps": [
+        { "action": "Click forgot password", "expectedResult": "Email form shown" }
+      ]
+    }
+  ]
+}

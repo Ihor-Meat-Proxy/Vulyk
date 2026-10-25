@@ -1,0 +1,11 @@
+{
+  "_embedded": {
+    "elements": [
+      {
+        "id": 42,
+        "subject": "Users must authenticate",
+        "description": { "format": "plain", "raw": "Login gate" }
+      }
+    ]
+  }
+}

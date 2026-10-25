@@ -1,0 +1,8 @@
+[
+  {
+    "pk": 4,
+    "summary": "Create project",
+    "text": "Admin can create a project",
+    "category__name": "Admin"
+  }
+]
