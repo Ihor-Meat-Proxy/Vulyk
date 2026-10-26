@@ -1340,7 +1340,12 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
             {status.latest_url ? (
               <>
                 {' '}
-                <a href={status.latest_url} target="_blank" rel="noreferrer">
+                <a
+                  href={status.latest_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  {...testIdProps(TestIds.adminUpdatesReleaseLink)}
+                >
                   GitHub
                 </a>
               </>

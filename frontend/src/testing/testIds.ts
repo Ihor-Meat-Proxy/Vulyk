@@ -530,6 +530,7 @@ export const TestIds = {
   adminSettingsSaveButton: 'admin-settings-save-button',
   adminUpdatesCurrentVersion: 'admin-updates-current-version',
   adminUpdatesLatestVersion: 'admin-updates-latest-version',
+  adminUpdatesReleaseLink: 'admin-updates-release-link',
   adminUpdatesNotes: 'admin-updates-notes',
   adminUpdatesCheckButton: 'admin-updates-check-button',
   adminUpdatesApplyButton: 'admin-updates-apply-button',
