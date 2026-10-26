@@ -44,10 +44,12 @@ describe('locale-aware Intl formatting', () => {
     const en = new Intl.NumberFormat(intlLocale('en')).format(n)
     const de = new Intl.NumberFormat(intlLocale('de')).format(n)
     const fr = new Intl.NumberFormat(intlLocale('fr')).format(n)
+    // en-US uses 12,345.6 ; de-DE uses 12.345,6 ; fr-FR uses narrow-space grouping
+    expect(en).toMatch(/,/)
+    expect(de).toMatch(/\./)
+    expect(de).toMatch(/,/)
     expect(en).not.toEqual(de)
-    expect(en.replace(/,/g, '')).not.toEqual(
-      fr.replace(/[\s\u00a0\u202f]/g, '').replace(',', '.'),
-    )
+    expect(fr).not.toEqual(en)
   })
 
   it('formats dates with locale medium style', () => {
