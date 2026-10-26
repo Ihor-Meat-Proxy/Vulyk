@@ -561,6 +561,7 @@ export const TestIds = {
   adminSettingsRegistrationSelect: 'admin-settings-registration-select',
   adminSettingsDefaultRoleSelect: 'admin-settings-default-role-select',
   adminSettingsSaveButton: 'admin-settings-save-button',
+  adminUpdatesPanel: 'admin-updates-panel',
   adminUpdatesCurrentVersion: 'admin-updates-current-version',
   adminUpdatesLatestVersion: 'admin-updates-latest-version',
   adminUpdatesReleaseLink: 'admin-updates-release-link',

@@ -21,6 +21,8 @@ export class AdminPage {
       | 'integrations'
       | 'sso'
       | 'settings'
+      | 'updates'
+      | 'backups'
       | 'lists'
       | 'customFields'
       | 'config'
@@ -36,6 +38,8 @@ export class AdminPage {
       integrations: TestIds.adminTabIntegrations,
       sso: TestIds.adminTabSso,
       settings: TestIds.adminTabSettings,
+      updates: TestIds.adminTabUpdates,
+      backups: TestIds.adminTabBackups,
       lists: TestIds.adminTabLists,
       customFields: TestIds.adminTabCustomFields,
       config: TestIds.adminTabConfig,
