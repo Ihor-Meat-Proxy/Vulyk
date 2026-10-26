@@ -3,6 +3,8 @@
 //! CI lifecycle runs (`lifecycle = 'ci'`) move open → in_progress on first result
 //! and do **not** auto-close; legacy runs still complete on ingest.
 
+use std::collections::HashMap;
+
 use chrono::Utc;
 use serde_json::Value;
 use sqlx::{PgPool, Postgres, QueryBuilder};
@@ -42,7 +44,8 @@ pub async fn persist_results(
     let mut matched_case_updates: Vec<(Uuid, String)> = Vec::new();
 
     for chunk in items.chunks(SYNC_BATCH) {
-        let mut resolved = Vec::with_capacity(chunk.len());
+        let mut prepared: Vec<BulkResultItem> = Vec::with_capacity(chunk.len());
+        let mut keys_needed: Vec<String> = Vec::new();
         for item in chunk {
             let mut row = item.clone();
             row.status = normalize_result_status(&row.status);
@@ -57,18 +60,23 @@ pub async fn persist_results(
                 if let Some(ref key) = row.case_key {
                     let key = normalize_case_key(key);
                     row.case_key = Some(key.clone());
-                    match find_case_id(pool, project_id, &key).await? {
-                        Some(id) => row.case_id = Some(id),
+                    keys_needed.push(key);
+                }
+            }
+            prepared.push(row);
+        }
+
+        let by_key = lookup_cases_by_keys(pool, project_id, &keys_needed).await?;
+        let mut resolved = Vec::with_capacity(prepared.len());
+        for mut row in prepared {
+            if row.case_id.is_none() {
+                if let Some(ref key) = row.case_key {
+                    match by_key.get(key) {
+                        Some(id) => row.case_id = Some(*id),
                         None => {
-                            // Also try external_key match.
-                            match find_case_by_external(pool, project_id, &key).await? {
-                                Some(id) => row.case_id = Some(id),
-                                None => {
-                                    unmatched_case_keys.push(key);
-                                    // Design: do not persist unmatched keys as orphan results.
-                                    continue;
-                                }
-                            }
+                            unmatched_case_keys.push(key.clone());
+                            // Design: do not persist unmatched keys as orphan results.
+                            continue;
                         }
                     }
                 }
@@ -82,22 +90,7 @@ pub async fn persist_results(
         matched_case_updates.extend(matched);
     }
 
-    // Refresh denormalized latest automation status on matched cases.
-    for (case_id, status) in &matched_case_updates {
-        sqlx::query(
-            r#"UPDATE test_cases SET
-                 last_automation_status = $2,
-                 last_automation_run_id = $3,
-                 last_automation_at = NOW(),
-                 updated_at = NOW()
-               WHERE id = $1"#,
-        )
-        .bind(case_id)
-        .bind(status)
-        .bind(run_id)
-        .execute(pool)
-        .await?;
-    }
+    refresh_last_automation(pool, run_id, &matched_case_updates).await?;
 
     if inserted > 0 || idempotent_replays > 0 {
         if lifecycle == "ci" {
@@ -128,7 +121,9 @@ pub async fn persist_results(
             .execute(pool)
             .await?;
         }
-        let _ = crate::services::campaigns::refresh_run_counters(pool, run_id).await;
+        if let Err(e) = crate::services::campaigns::refresh_run_counters(pool, run_id).await {
+            tracing::warn!(error = %e, %run_id, "refresh_run_counters after ingest failed");
+        }
         if let Some(iteration_id) = sqlx::query_scalar::<_, Option<Uuid>>(
             "SELECT iteration_id FROM test_runs WHERE id = $1",
         )
@@ -137,8 +132,16 @@ pub async fn persist_results(
         .await?
         .flatten()
         {
-            let _ =
-                crate::services::campaigns::sync_iteration_item_statuses(pool, iteration_id).await;
+            if let Err(e) =
+                crate::services::campaigns::sync_iteration_item_statuses(pool, iteration_id).await
+            {
+                tracing::warn!(
+                    error = %e,
+                    %run_id,
+                    %iteration_id,
+                    "sync_iteration_item_statuses after ingest failed"
+                );
+            }
         }
     }
 
@@ -176,33 +179,83 @@ async fn ensure_run(pool: &PgPool, run_id: Uuid, project_id: Uuid) -> AppResult<
     row.ok_or_else(|| AppError::NotFound("run".into()))
 }
 
-async fn find_case_id(pool: &PgPool, project_id: Uuid, key: &str) -> AppResult<Option<Uuid>> {
-    // Keys are stored uppercase; match case-insensitively for client payloads.
-    let row: Option<(Uuid,)> = sqlx::query_as(
-        r#"SELECT id FROM test_cases
-           WHERE project_id = $1 AND upper(key) = $2"#,
-    )
-    .bind(project_id)
-    .bind(key)
-    .fetch_optional(pool)
-    .await?;
-    Ok(row.map(|r| r.0))
-}
-
-async fn find_case_by_external(
+/// Resolve case keys (and external_key fallback) in two queries per chunk.
+/// Prefer matching `test_cases.key`; fall back to `external_key` only when the
+/// lookup token was not already claimed by a primary key (same as the prior
+/// per-row lookup order). Keys are matched case-insensitively (uppercase).
+async fn lookup_cases_by_keys(
     pool: &PgPool,
     project_id: Uuid,
-    external_key: &str,
-) -> AppResult<Option<Uuid>> {
-    let row: Option<(Uuid,)> = sqlx::query_as(
-        r#"SELECT id FROM test_cases
-           WHERE project_id = $1 AND upper(external_key) = $2"#,
+    keys: &[String],
+) -> AppResult<HashMap<String, Uuid>> {
+    if keys.is_empty() {
+        return Ok(HashMap::new());
+    }
+    let mut unique: Vec<String> = keys.to_vec();
+    unique.sort();
+    unique.dedup();
+
+    let by_key: Vec<(Uuid, String)> = sqlx::query_as(
+        r#"SELECT id, upper(key) FROM test_cases
+           WHERE project_id = $1 AND upper(key) = ANY($2)"#,
     )
     .bind(project_id)
-    .bind(external_key)
-    .fetch_optional(pool)
+    .bind(&unique)
+    .fetch_all(pool)
     .await?;
-    Ok(row.map(|r| r.0))
+
+    let mut map: HashMap<String, Uuid> = by_key.into_iter().map(|(id, k)| (k, id)).collect();
+
+    let missing: Vec<String> = unique
+        .into_iter()
+        .filter(|k| !map.contains_key(k))
+        .collect();
+    if !missing.is_empty() {
+        let by_external: Vec<(Uuid, String)> = sqlx::query_as(
+            r#"SELECT id, upper(external_key) FROM test_cases
+               WHERE project_id = $1 AND upper(external_key) = ANY($2)"#,
+        )
+        .bind(project_id)
+        .bind(&missing)
+        .fetch_all(pool)
+        .await?;
+        for (id, ext) in by_external {
+            map.entry(ext).or_insert(id);
+        }
+    }
+    Ok(map)
+}
+
+/// Last status per case wins (matches the previous sequential UPDATE loop).
+async fn refresh_last_automation(
+    pool: &PgPool,
+    run_id: Uuid,
+    matched: &[(Uuid, String)],
+) -> AppResult<()> {
+    if matched.is_empty() {
+        return Ok(());
+    }
+    let mut by_case: HashMap<Uuid, String> = HashMap::new();
+    for (case_id, status) in matched {
+        by_case.insert(*case_id, status.clone());
+    }
+    let (case_ids, statuses): (Vec<Uuid>, Vec<String>) = by_case.into_iter().unzip();
+
+    sqlx::query(
+        r#"UPDATE test_cases AS tc SET
+             last_automation_status = v.status,
+             last_automation_run_id = $3,
+             last_automation_at = NOW(),
+             updated_at = NOW()
+           FROM UNNEST($1::uuid[], $2::text[]) AS v(id, status)
+           WHERE tc.id = v.id"#,
+    )
+    .bind(&case_ids)
+    .bind(&statuses)
+    .bind(run_id)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// Returns `(inserted, idempotent_replays, matched_case_status_updates)`.
@@ -279,4 +332,27 @@ async fn insert_batch(
         .filter_map(|r| r.case_id.map(|id| (id, r.status.clone())))
         .collect();
     Ok((result.rows_affected() as i64, replays, matched))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn last_automation_dedupes_keeping_last_status() {
+        let c1 = Uuid::nil();
+        let c2 = Uuid::from_u128(2);
+        let matched: Vec<(Uuid, String)> = vec![
+            (c1, "passed".into()),
+            (c2, "failed".into()),
+            (c1, "failed".into()),
+        ];
+        let mut by_case: HashMap<Uuid, String> = HashMap::new();
+        for (case_id, status) in &matched {
+            by_case.insert(*case_id, status.clone());
+        }
+        assert_eq!(by_case.get(&c1).map(String::as_str), Some("failed"));
+        assert_eq!(by_case.get(&c2).map(String::as_str), Some("failed"));
+        assert_eq!(by_case.len(), 2);
+    }
 }
