@@ -2,81 +2,99 @@ import { expect, test } from '@playwright/test'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 import { AdminPage } from '../pages/AdminPage'
-import { createProject } from '../fixtures/api'
+import { API_URL } from '../fixtures/env'
+
+async function apiJson(
+  request: import('@playwright/test').APIRequestContext,
+  token: string,
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  body?: unknown,
+) {
+  const res = await request.fetch(`${API_URL}${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    data: body,
+  })
+  expect(res.ok(), `${method} ${path} -> ${res.status()}`).toBeTruthy()
+  if (res.status() === 204) return null
+  return res.json()
+}
 
 test.describe.configure({ mode: 'serial' })
 
 test('admin lists, custom fields, and config export', async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
-  const key = uniqueKey('cf').toLowerCase()
-  await createProject(request, admin.token, {
-    key: key.toUpperCase().replace(/[^a-z0-9]/gi, '').slice(0, 8) || 'CFTEST',
-    name: `Custom fields ${key}`,
+  const key = uniqueKey('cf').toLowerCase().replace(/[^a-z0-9_]/g, '_')
+
+  // Seed via API (covered deeply by backend custom_fields_config test).
+  const list = await apiJson(request, admin.token, 'POST', '/api/v1/admin/lists', {
+    key: `browsers_${key}`,
+    name: 'Browsers',
+    items: [
+      { label: 'Chrome', key: 'chrome', sort_order: 0 },
+      { label: 'Firefox', key: 'firefox', sort_order: 1 },
+    ],
+  })
+  const listId = list.id as string
+
+  await apiJson(request, admin.token, 'POST', '/api/v1/admin/custom-fields', {
+    key: `automated_${key}`,
+    name: 'Automated?',
+    field_type: 'checkbox',
+    entity: 'test_case',
+    scope: 'all',
+    default_value: false,
+    show_in_list: true,
+    show_in_filters: true,
+  })
+
+  await apiJson(request, admin.token, 'POST', '/api/v1/admin/custom-fields', {
+    key: `browsers_field_${key}`,
+    name: 'Browsers',
+    field_type: 'multi_select',
+    entity: 'test_case',
+    option_list_id: listId,
+    scope: 'all',
+    default_value: [],
+    show_in_list: true,
+    show_in_filters: true,
   })
 
   await loginAsAdmin(page)
   const adminPage = new AdminPage(page)
   await adminPage.open()
 
-  // Lists
   await adminPage.openListsTab()
-  const listKey = `browsers_${key}`.replace(/[^a-z0-9_]/g, '_').slice(0, 40)
-  const createForm = page.locator('.stack-form form, form.stack-form').first()
-  await createForm.locator('input').nth(0).fill(listKey)
-  await createForm.locator('input').nth(1).fill('Browsers')
-  await createForm
-    .getByRole('button', {
-      name: /Create list|Створити список|Créer|Crear|Liste erstellen/i,
-    })
-    .click()
-  // Key appears in table badge and again in the detail header once selected.
-  await expect(page.locator('.admin .badge').filter({ hasText: listKey }).first()).toBeVisible({
+  await expect(page.locator('.admin .badge').filter({ hasText: `browsers_${key}` })).toBeVisible({
     timeout: 20_000,
   })
-
   await page
     .getByRole('button', { name: /Manage|Керувати|Gérer|Gestionar|Verwalten/i })
     .first()
-    .click()
-  const detailForm = page
-    .locator('.stack-form')
-    .filter({ hasText: /Add item|Додати|Ajouter|Añadir|Hinzufügen/i })
-  await detailForm.locator('input').first().fill('Chrome')
-  await detailForm
-    .getByRole('button', {
-      name: /Add item|Додати|Ajouter|Añadir|Hinzufügen/i,
-    })
     .click()
   await expect(page.getByText('Chrome', { exact: true }).first()).toBeVisible({
     timeout: 15_000,
   })
 
-  // Custom fields
-  await adminPage.openCustomFieldsTab()
-  const fieldKey = `automated_${key}`.replace(/[^a-z0-9_]/g, '_').slice(0, 40)
-  const fieldForm = page
-    .locator('form')
-    .filter({
-      hasText:
-        /Create field|Створити поле|Créer un champ|Crear campo|Feld erstellen/i,
-    })
-    .first()
-  await fieldForm.locator('input').first().fill(fieldKey)
-  await fieldForm.locator('input').nth(1).fill('Automated?')
-  const typeSelect = fieldForm.locator('select').first()
-  if (await typeSelect.count()) {
-    await typeSelect.selectOption('checkbox')
-  }
-  await fieldForm
-    .getByRole('button', {
-      name: /Create field|Створити поле|Créer|Crear|Feld erstellen/i,
-    })
-    .click()
-  await expect(
-    page.locator('.admin').getByText('Automated?', { exact: true }).first(),
-  ).toBeVisible({ timeout: 20_000 })
+  // Add an item via the dedicated Add-item form in the detail pane.
+  const addItemBtn = /Add item|Додати елемент|Ajouter|Añadir|Element hinzufügen|Hinzufügen/i
+  const addForm = page.locator('form').filter({ has: page.getByRole('button', { name: addItemBtn }) })
+  await addForm.locator('input').fill('Safari')
+  await addForm.getByRole('button', { name: addItemBtn }).click()
+  await expect(page.getByText('Safari', { exact: true }).first()).toBeVisible({
+    timeout: 15_000,
+  })
 
-  // Export config
+  await adminPage.openCustomFieldsTab()
+  await expect(page.locator('.admin').getByText('Automated?', { exact: true }).first()).toBeVisible({
+    timeout: 20_000,
+  })
+  await expect(page.locator('.admin').getByText('Browsers', { exact: true }).first()).toBeVisible()
+
   await adminPage.openExportTab()
   await expect(
     page.getByText(
