@@ -80,7 +80,11 @@ export class SettingsPage {
       /Project|Проєкт|Projet|Proyecto|Projekt/i,
     )
     await select.selectOption({ value: projectId }).catch(async () => {
-      await select.selectOption({ label: new RegExp(projectKey) })
+      const options = await select.locator('option').allTextContents()
+      const idx = options.findIndex((text) => text.includes(projectKey))
+      if (idx >= 0) {
+        await select.selectOption({ index: idx })
+      }
     })
   }
 
