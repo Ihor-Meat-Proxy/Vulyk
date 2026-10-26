@@ -1242,7 +1242,7 @@ register_post_upgrade_version_backups() {
     --rollback >/tmp/vulyk-vb-register.json || warn "version-backup register failed"
   version_backups_cmd prune --current-version "${to_ver}" >/tmp/vulyk-vb-prune.json || true
   if [[ -f /tmp/vulyk-vb-register.json ]]; then
-    log "Rollback point kept under ${VERSION_BACKUP_DIR}/ (see Admin → Updates or install.sh rollback)"
+    log "Rollback point kept under ${VERSION_BACKUP_DIR}/ (see Admin Updates or install.sh rollback)"
   fi
 }
 

@@ -480,10 +480,7 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
             rollback: None,
             retention: default_retention(),
         });
-    let rb_ver = backups
-        .rollback
-        .as_ref()
-        .map(|r| r.version.as_str());
+    let rb_ver = backups.rollback.as_ref().map(|r| r.version.as_str());
     Ok(UpdatesStatus {
         current_version: current,
         latest_version: latest_clean,

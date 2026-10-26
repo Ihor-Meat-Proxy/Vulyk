@@ -259,7 +259,10 @@ PY
 
 log "Saving pre-upgrade DB dump for rollback assertion..."
 need_cmd pg_dump
-pg_dump "${DATABASE_URL}" --no-owner --no-acl | gzip -c > /tmp/vulyk-pre-upgrade.sql.gz
+# Filter GUCs that newer pg_dump emits but Postgres 16 rejects (e.g. transaction_timeout).
+pg_dump "${DATABASE_URL}" --no-owner --no-acl \
+  | grep -Ev '^(SET |SELECT pg_catalog\.set_config\().*transaction_timeout' \
+  | gzip -c > /tmp/vulyk-pre-upgrade.sql.gz
 [[ -s /tmp/vulyk-pre-upgrade.sql.gz ]] || die "pre-upgrade dump empty"
 printf '%s\n' "VULYK_SECRETS_KEY=${VULYK_SECRETS_KEY}" "VULYK_JWT_SECRET=${VULYK_JWT_SECRET}" \
   > /tmp/vulyk-pre-upgrade.env
@@ -391,7 +394,9 @@ log "Restoring pre-upgrade dump (rollback)..."
 # Drop and recreate public schema then restore (mirrors install.sh restore_db_from_dump)
 psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
   "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
-gzip -dc /tmp/vulyk-pre-upgrade.sql.gz | psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -q
+gzip -dc /tmp/vulyk-pre-upgrade.sql.gz \
+  | grep -Ev '^(SET |SELECT pg_catalog\.set_config\().*transaction_timeout' \
+  | psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -q
 
 # Config snapshot must still match preserved secrets key
 grep -q "VULYK_SECRETS_KEY=${VULYK_SECRETS_KEY}" /tmp/vulyk-pre-upgrade.env \
