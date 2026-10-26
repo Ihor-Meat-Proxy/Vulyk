@@ -689,7 +689,7 @@ pub fn render_case_pdf(data: &CaseExportData) -> AppResult<Vec<u8>> {
     if data.detail.steps.is_empty() {
         doc.push(body_para(labels.none));
     } else {
-        push_steps_table(&mut doc, labels, &data.detail.steps);
+        push_steps_table(&mut doc, labels, &data.detail.steps)?;
     }
 
     doc.push(Break::new(0.6));
@@ -715,7 +715,7 @@ pub fn render_case_pdf(data: &CaseExportData) -> AppResult<Vec<u8>> {
     if data.results.is_empty() {
         doc.push(body_para(labels.none));
     } else {
-        push_results_table(&mut doc, labels, data);
+        push_results_table(&mut doc, labels, data)?;
     }
 
     let mut bytes = Vec::new();
@@ -725,7 +725,11 @@ pub fn render_case_pdf(data: &CaseExportData) -> AppResult<Vec<u8>> {
     Ok(bytes)
 }
 
-fn push_steps_table(doc: &mut genpdf::Document, labels: PdfLabels, steps: &[TestStep]) {
+fn push_steps_table(
+    doc: &mut genpdf::Document,
+    labels: PdfLabels,
+    steps: &[TestStep],
+) -> AppResult<()> {
     let mut table = TableLayout::new(vec![1, 5, 5]);
     table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
     let header_style = Style::new().bold().with_font_size(8);
@@ -735,7 +739,7 @@ fn push_steps_table(doc: &mut genpdf::Document, labels: PdfLabels, steps: &[Test
         .element(Paragraph::new(labels.action).styled(header_style))
         .element(Paragraph::new(labels.expected).styled(header_style))
         .push()
-        .expect("steps header");
+        .map_err(|e| AppError::Internal(format!("PDF steps header: {e}")))?;
 
     let cell = Style::new().with_font_size(8);
     for (i, step) in steps.iter().enumerate() {
@@ -745,12 +749,17 @@ fn push_steps_table(doc: &mut genpdf::Document, labels: PdfLabels, steps: &[Test
             .element(Paragraph::new(step.action.clone()).styled(cell))
             .element(Paragraph::new(step.expected_result.clone()).styled(cell))
             .push()
-            .expect("step row");
+            .map_err(|e| AppError::Internal(format!("PDF step row: {e}")))?;
     }
     doc.push(table);
+    Ok(())
 }
 
-fn push_results_table(doc: &mut genpdf::Document, labels: PdfLabels, data: &CaseExportData) {
+fn push_results_table(
+    doc: &mut genpdf::Document,
+    labels: PdfLabels,
+    data: &CaseExportData,
+) -> AppResult<()> {
     let mut table = TableLayout::new(vec![3, 3, 2, 2, 3, 3, 3]);
     table.set_cell_decorator(elements::FrameCellDecorator::new(true, true, false));
     let header_style = Style::new().bold().with_font_size(7);
@@ -764,7 +773,7 @@ fn push_results_table(doc: &mut genpdf::Document, labels: PdfLabels, data: &Case
         .element(Paragraph::new(labels.col_env).styled(header_style))
         .element(Paragraph::new(labels.col_comment).styled(header_style))
         .push()
-        .expect("results header");
+        .map_err(|e| AppError::Internal(format!("PDF results header: {e}")))?;
 
     let cell = Style::new().with_font_size(7);
     for row_data in &data.results {
@@ -786,7 +795,7 @@ fn push_results_table(doc: &mut genpdf::Document, labels: PdfLabels, data: &Case
             .element(Paragraph::new(truncate(&row_data.environment, 36)).styled(cell))
             .element(Paragraph::new(truncate(&row_data.comment, COMMENT_MAX)).styled(cell))
             .push()
-            .expect("result row");
+            .map_err(|e| AppError::Internal(format!("PDF result row: {e}")))?;
     }
     doc.push(table);
 
@@ -799,6 +808,7 @@ fn push_results_table(doc: &mut genpdf::Document, labels: PdfLabels, data: &Case
             row_data.run_name, row_data.link
         )));
     }
+    Ok(())
 }
 
 /// Insert a UTF-8 PDF comment after the header so tests can assert key/title/Cyrillic.

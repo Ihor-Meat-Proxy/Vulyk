@@ -11,7 +11,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::models::{
     ExportQuery, FlakyQuery, FlakyReport, PassFailTrends, ProjectDashboard,
     RequirementCoverageDetail, RequirementCoverageReport, RunCaseResultExpand, RunCaseResultsPage,
@@ -528,14 +528,58 @@ pub async fn export_report(
         }
     };
 
+    attachment_download(filename, content_type, body)
+}
+
+/// Build download headers without panicking on malformed values.
+fn attachment_download(
+    filename: &str,
+    content_type: &str,
+    body: Vec<u8>,
+) -> AppResult<(StatusCode, HeaderMap, Vec<u8>)> {
+    let safe_name = sanitize_attachment_filename(filename);
     let mut headers = HeaderMap::new();
     headers.insert(
         header::CONTENT_TYPE,
-        HeaderValue::from_str(content_type).unwrap(),
+        HeaderValue::from_str(content_type)
+            .map_err(|e| AppError::Internal(format!("content-type: {e}")))?,
     );
+    let disposition = format!("attachment; filename=\"{safe_name}\"");
     headers.insert(
         header::CONTENT_DISPOSITION,
-        HeaderValue::from_str(&format!("attachment; filename=\"{filename}\"")).unwrap(),
+        HeaderValue::from_str(&disposition)
+            .map_err(|e| AppError::Internal(format!("content-disposition: {e}")))?,
     );
     Ok((StatusCode::OK, headers, body))
+}
+
+/// Strip characters that break `Content-Disposition` / `HeaderValue`.
+fn sanitize_attachment_filename(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| match c {
+            '"' | '\\' | '\r' | '\n' => '_',
+            c if c.is_control() => '_',
+            c => c,
+        })
+        .collect();
+    if cleaned.is_empty() {
+        "download.bin".into()
+    } else {
+        cleaned
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_attachment_filename;
+
+    #[test]
+    fn sanitize_strips_quotes_and_controls() {
+        assert_eq!(
+            sanitize_attachment_filename("report\"evil\n.pdf"),
+            "report_evil_.pdf"
+        );
+        assert_eq!(sanitize_attachment_filename(""), "download.bin");
+    }
 }
