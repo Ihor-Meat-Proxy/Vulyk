@@ -379,6 +379,28 @@ async fn ci_token_auth_and_permissions() {
         .unwrap();
     assert_eq!(manage.status(), reqwest::StatusCode::FORBIDDEN);
 
+    // CI token cannot create projects
+    let create_proj = client
+        .post(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .json(&json!({ "key": unique_key("Z"), "name": "Hijack" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(create_proj.status(), reqwest::StatusCode::FORBIDDEN);
+
+    // CI token cannot mutate runs via ExecuteRuns APIs
+    let mutate = client
+        .delete(format!(
+            "{base}/api/v1/projects/{project_id}/runs/{}",
+            opened["run"]["id"].as_str().unwrap()
+        ))
+        .header("Authorization", format!("Bearer {secret}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(mutate.status(), reqwest::StatusCode::FORBIDDEN);
+
     // Other project rejected
     let other: Value = client
         .post(format!("{base}/api/v1/projects"))
