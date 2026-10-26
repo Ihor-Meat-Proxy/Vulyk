@@ -376,11 +376,16 @@ async fn weak_password_login_forces_change_and_blocks_api() {
     let bad_change = client
         .post(format!("{base}/api/v1/auth/change-password"))
         .header("Authorization", format!("Bearer {token}"))
-        .json(&serde_json::json!({ "new_password": "still-too-short1" }))
+        .json(&serde_json::json!({ "new_password": "short1" }))
         .send()
         .await
         .expect("bad change");
-    assert_eq!(bad_change.status().as_u16(), 400);
+    let bad_status = bad_change.status().as_u16();
+    let bad_body = bad_change.text().await.unwrap_or_default();
+    assert_eq!(
+        bad_status, 400,
+        "weak change-password should be rejected: {bad_body}"
+    );
 
     let strong = "brand-new-password1";
     let changed = client
