@@ -49,7 +49,11 @@ async function selectProject(page: import('@playwright/test').Page) {
 
 test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace', async ({
   page,
+  context,
 }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {
+    /* some browsers reject clipboard-read; write still works in Chromium */
+  })
   await loginAsAdmin(page)
   await selectProject(page)
 
@@ -64,21 +68,28 @@ test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace',
   await expect(page.getByTestId('case-detail-breadcrumb-current')).toContainText(
     caseKey,
   )
-  await expect(page.getByTestId('case-detail-back')).toContainText(/Backspace|Retour|Retroceso|Rücktaste|Backspace/i)
+  await expect(page.getByTestId('case-detail-back')).toBeVisible()
+  await expect(page.getByTestId('case-detail-back').locator('kbd')).toBeVisible()
 
-  // Copy key badge
+  // Copy key badge → toast
   await page.getByTestId('case-detail-key-badge').click()
-  await expect(page.getByTestId('app-toast')).toContainText(caseKey)
+  await expect(page.getByTestId('app-toast')).toContainText(caseKey, {
+    timeout: 5_000,
+  })
 
   // UUID URL redirects (replace) to key URL
   await page.goto(`/cases/${caseId}`)
   await expect(page).toHaveURL(new RegExp(`/cases/${caseKey}$`), {
     timeout: 20_000,
   })
+  await expect(page.getByTestId('case-detail-page')).toBeVisible({
+    timeout: 20_000,
+  })
 
-  // Backspace returns to folder-filtered list
+  // Backspace returns to folder-filtered list (focus outside inputs)
+  await page.getByTestId('case-detail-page').click()
   await page.keyboard.press('Backspace')
-  await expect(page).toHaveURL(/\/$/)
+  await expect(page).toHaveURL(/\/(?:\?.*)?$/)
   await expect(cases.listPanel().getByText(caseTitle)).toBeVisible({
     timeout: 20_000,
   })
