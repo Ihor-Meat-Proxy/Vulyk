@@ -206,7 +206,11 @@ export function CaseFolderTree({
               <CaseStatusIcon status={c.status} />
               <span className="visually-hidden">{c.status}</span>
             </span>
-            <Link to={`/cases/${c.id}`} className="folder-tree-case-link">
+            <Link
+              to={`/cases/${encodeURIComponent(c.key)}`}
+              className="folder-tree-case-link"
+              data-testid="folder-tree-case-link"
+            >
               <span className="folder-tree-case-key">{c.key}</span>
               <span className="folder-tree-case-title">{c.title}</span>
             </Link>

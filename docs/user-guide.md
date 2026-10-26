@@ -18,7 +18,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~160+ cases with Playwright-oriented steps (folder tree, i18n/locales, header menus, executions, …), requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~169 cases with Playwright-oriented steps (folder tree, key URLs, i18n/locales, header menus, executions, …), requirements per area, smoke + regression runs |
 
 Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local` / `admin` (forced password change), `user@vulyk.local` / `user` (TAE on sample projects). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
 
@@ -27,6 +27,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 - Use the project switcher in the top bar.
 - **Cases** shows a SquashTM-style **folder tree** on the left of the page (the only folder UI — not duplicated in the app sidebar). Nested folders + cases with priority bar and status icon; **All cases** is the tree root. Folder badges show the **recursive** case total (tooltip includes the direct count). Expanding a folder **lazy-loads** its direct cases (100 at a time with Load more). Selecting a folder filters the list (including subfolders by default; use **Direct only** to exclude descendants). Cases sort by numeric key suffix (`PREFIX-2` before `PREFIX-10`). On narrow viewports the tree opens as a **Folders** drawer.
 - **Create case** needs only a title — keys are allocated automatically as `PREFIX-N` (prefix from project name initials, e.g. *Kyiv Open-Air Concert 2026* → `KOC`). Admins may edit the prefix before any cases exist. Deleted numbers are never reused.
+- Case detail URLs use the key (`/cases/PLTK-2194`). List and folder-tree links open the key URL. Old `/cases/<uuid>` bookmarks still work and **replace**-redirect to the key URL. Opening a deleted/retired key shows a clear **Case deleted** page. Click the key badge to copy it (toast + keyboard Enter/Space); optional **Copy link** copies the absolute URL. **Backspace** (when focus is not in an input/dialog) returns to the Cases list filtered to the case’s folder; the back control shows the shortcut hint. Breadcrumbs above the back link are **Project > Folder > … > KEY title**.
 - Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
 - **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
 

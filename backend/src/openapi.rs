@@ -99,6 +99,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::cases::list_cases,
         crate::routes::cases::create_case,
         crate::routes::cases::get_case,
+        crate::routes::cases::get_case_by_key,
         crate::routes::cases::update_case,
         crate::routes::cases::delete_case,
         crate::routes::attachments::create_attachment,
