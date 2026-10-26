@@ -71,7 +71,7 @@ test.describe('PWA + mobile Chromium viewport', () => {
     )
     await caseLink.click({ force: true })
     await expect(page.getByText(caseKey).first()).toBeVisible()
-    await expect(page.getByRole('link', { name: /Back to cases/i })).toBeVisible()
+    await expect(page.getByTestId('case-detail-back')).toBeVisible()
 
     await bottom
       .getByRole('link', {

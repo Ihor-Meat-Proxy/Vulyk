@@ -1967,6 +1967,418 @@
               }
             }
           ]
+        },
+        {
+          "key": "VQA-041",
+          "title": {
+            "en": "Case detail URL uses human-readable key",
+            "uk": "URL деталей кейсу використовує читабельний ключ"
+          },
+          "description": {
+            "en": "Opening a case navigates to /cases/PREFIX-N; list and tree links use the key.",
+            "uk": "Opening a case navigates to /cases/PREFIX-N; list and tree links use the key."
+          },
+          "precondition": {
+            "en": "Cases page; at least one case with known key.",
+            "uk": "Cases page; at least one case with known key."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "case-keys",
+            "urls",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "On Cases list, click the case title link (data-testid=case-list-title-link).",
+                "uk": "On Cases list, click the case title link (data-testid=case-list-title-link)."
+              },
+              "expected_result": {
+                "en": "Browser URL is /cases/{KEY} (not a UUID); case detail panel (data-testid=case-detail-page) shows the same key badge.",
+                "uk": "Browser URL is /cases/{KEY} (not a UUID); case detail panel (data-testid=case-detail-page) shows the same key badge."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "From the folder tree, click a case row link (data-testid=folder-tree-case-link).",
+                "uk": "From the folder tree, click a case row link (data-testid=folder-tree-case-link)."
+              },
+              "expected_result": {
+                "en": "URL is again /cases/{KEY}; title and key match the row.",
+                "uk": "URL is again /cases/{KEY}; title and key match the row."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-042",
+          "title": {
+            "en": "Legacy UUID case URL redirects to key URL",
+            "uk": "Застарілий UUID URL кейсу перенаправляє на ключ"
+          },
+          "description": {
+            "en": "Visiting /cases/{uuid} replace-navigates to /cases/{KEY}.",
+            "uk": "Visiting /cases/{uuid} replace-navigates to /cases/{KEY}."
+          },
+          "precondition": {
+            "en": "Known case id and key; authenticated session.",
+            "uk": "Known case id and key; authenticated session."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "case-keys",
+            "urls",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Navigate to /cases/{uuid} for an existing case.",
+                "uk": "Navigate to /cases/{uuid} for an existing case."
+              },
+              "expected_result": {
+                "en": "History is replaced with /cases/{KEY}; detail loads for that case.",
+                "uk": "History is replaced with /cases/{KEY}; detail loads for that case."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-043",
+          "title": {
+            "en": "GET cases/by-key resolves case-insensitively",
+            "uk": "GET cases/by-key резолвить без урахування регістру"
+          },
+          "description": {
+            "en": "API GET /api/v1/cases/by-key/{key} returns the case for any casing of PREFIX-N.",
+            "uk": "API GET /api/v1/cases/by-key/{key} returns the case for any casing of PREFIX-N."
+          },
+          "precondition": {
+            "en": "Existing case PREFIX-N; API reachable.",
+            "uk": "Existing case PREFIX-N; API reachable."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "api",
+            "case-keys",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "GET /api/v1/cases/by-key/{lowercased-key}.",
+                "uk": "GET /api/v1/cases/by-key/{lowercased-key}."
+              },
+              "expected_result": {
+                "en": "200 with case.key equal to canonical PREFIX-N and matching id.",
+                "uk": "200 with case.key equal to canonical PREFIX-N and matching id."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-044",
+          "title": {
+            "en": "Deleted key shows case deleted page",
+            "uk": "Видалений ключ показує сторінку «кейс видалено»"
+          },
+          "description": {
+            "en": "Retired keys return API 410 case_deleted; UI shows a clear deleted state.",
+            "uk": "Retired keys return API 410 case_deleted; UI shows a clear deleted state."
+          },
+          "precondition": {
+            "en": "Delete a case (tombstone); note its key.",
+            "uk": "Delete a case (tombstone); note its key."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "api",
+            "case-keys",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "GET /api/v1/cases/by-key/{retired-key}.",
+                "uk": "GET /api/v1/cases/by-key/{retired-key}."
+              },
+              "expected_result": {
+                "en": "HTTP 410; error.code is case_deleted.",
+                "uk": "HTTP 410; error.code is case_deleted."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Open /cases/{retired-key} in the UI.",
+                "uk": "Open /cases/{retired-key} in the UI."
+              },
+              "expected_result": {
+                "en": "data-testid=case-detail-deleted shows cases.deletedTitle; back link returns to Cases.",
+                "uk": "data-testid=case-detail-deleted shows cases.deletedTitle; back link returns to Cases."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-045",
+          "title": {
+            "en": "Key badge copies key with toast and keyboard",
+            "uk": "Бейдж ключа копіює ключ з тостом і клавіатурою"
+          },
+          "description": {
+            "en": "Clicking or activating the key badge copies PREFIX-N and shows Copied toast.",
+            "uk": "Clicking or activating the key badge copies PREFIX-N and shows Copied toast."
+          },
+          "precondition": {
+            "en": "Case detail open.",
+            "uk": "Case detail open."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "case-keys",
+            "a11y",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Click data-testid=case-detail-key-badge.",
+                "uk": "Click data-testid=case-detail-key-badge."
+              },
+              "expected_result": {
+                "en": "Clipboard holds the key; data-testid=app-toast shows Copied {KEY} (localized).",
+                "uk": "Clipboard holds the key; data-testid=app-toast shows Copied {KEY} (localized)."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Focus the badge; press Enter then Space.",
+                "uk": "Focus the badge; press Enter then Space."
+              },
+              "expected_result": {
+                "en": "Each activation copies again; tooltip/aria-label describe copy.",
+                "uk": "Each activation copies again; tooltip/aria-label describe copy."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Optional: click data-testid=case-detail-copy-link.",
+                "uk": "Optional: click data-testid=case-detail-copy-link."
+              },
+              "expected_result": {
+                "en": "Clipboard holds absolute /cases/{KEY} URL; toast confirms.",
+                "uk": "Clipboard holds absolute /cases/{KEY} URL; toast confirms."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-046",
+          "title": {
+            "en": "Backspace returns to folder-scoped case list",
+            "uk": "Backspace повертає до списку кейсів у теці"
+          },
+          "description": {
+            "en": "Backspace (outside inputs/dialogs) navigates to Cases filtered to the case folder; hint shown on back control.",
+            "uk": "Backspace (outside inputs/dialogs) navigates to Cases filtered to the case folder; hint shown on back control."
+          },
+          "precondition": {
+            "en": "Case in a folder; detail open; focus not in an input.",
+            "uk": "Case in a folder; detail open; focus not in an input."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "case-keys",
+            "folders",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Confirm data-testid=case-detail-back shows a Backspace shortcut hint.",
+                "uk": "Confirm data-testid=case-detail-back shows a Backspace shortcut hint."
+              },
+              "expected_result": {
+                "en": "Hint is visible and titled with cases.backspaceHint.",
+                "uk": "Hint is visible and titled with cases.backspaceHint."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Press Backspace.",
+                "uk": "Press Backspace."
+              },
+              "expected_result": {
+                "en": "App navigates to Cases; folder filter matches the case suite_id; list scroll/state preserved when applicable.",
+                "uk": "App navigates to Cases; folder filter matches the case suite_id; list scroll/state preserved when applicable."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Focus a title input on the detail page; press Backspace.",
+                "uk": "Focus a title input on the detail page; press Backspace."
+              },
+              "expected_result": {
+                "en": "Character deleted in the field; no navigation.",
+                "uk": "Character deleted in the field; no navigation."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
+        },
+        {
+          "key": "VQA-047",
+          "title": {
+            "en": "Case breadcrumbs link project and folders",
+            "uk": "Хлібні крихти кейсу ведуть до проєкту і тек"
+          },
+          "description": {
+            "en": "Above the back link: Project > Folder > … > KEY title with aria-current on the last segment.",
+            "uk": "Above the back link: Project > Folder > … > KEY title with aria-current on the last segment."
+          },
+          "precondition": {
+            "en": "Case in a nested folder path.",
+            "uk": "Case in a nested folder path."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "case-keys",
+            "folders",
+            "a11y",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Inspect nav[data-testid=case-detail-breadcrumbs] (aria-label cases.breadcrumbNav).",
+                "uk": "Inspect nav[data-testid=case-detail-breadcrumbs] (aria-label cases.breadcrumbNav)."
+              },
+              "expected_result": {
+                "en": "Segments show project name, each ancestor folder, then KEY title with aria-current=page.",
+                "uk": "Segments show project name, each ancestor folder, then KEY title with aria-current=page."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Click a folder breadcrumb segment.",
+                "uk": "Click a folder breadcrumb segment."
+              },
+              "expected_result": {
+                "en": "Cases list opens scoped to that folder.",
+                "uk": "Cases list opens scoped to that folder."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "With a long folder name, hover truncated segment.",
+                "uk": "With a long folder name, hover truncated segment."
+              },
+              "expected_result": {
+                "en": "Full name appears in title tooltip; layout remains usable on narrow viewports.",
+                "uk": "Full name appears in title tooltip; layout remains usable on narrow viewports."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts"
         }
       ]
     },
@@ -1984,7 +2396,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-041",
+              "key": "VQA-048",
               "title": {
                 "en": "Single folder tree on Cases page (no sidebar Folders)",
                 "uk": "Єдине дерево тек на Cases (без Folders у сайдбарі)"
@@ -2040,7 +2452,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-042",
+              "key": "VQA-049",
               "title": {
                 "en": "All cases is the tree root node",
                 "uk": "Усі кейси — корінь дерева"
@@ -2096,7 +2508,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-043",
+              "key": "VQA-050",
               "title": {
                 "en": "Recursive folder counts with direct-count tooltip",
                 "uk": "Рекурсивні лічильники з підказкою прямих"
@@ -2153,7 +2565,7 @@
               "external_key": "e2e:folder-tree-lazy.spec.ts"
             },
             {
-              "key": "VQA-044",
+              "key": "VQA-051",
               "title": {
                 "en": "Parent folder list includes descendant cases",
                 "uk": "Вибір батьківської теки включає нащадків"
@@ -2209,7 +2621,7 @@
               "external_key": "e2e:folder-tree-lazy.spec.ts"
             },
             {
-              "key": "VQA-045",
+              "key": "VQA-052",
               "title": {
                 "en": "Direct only excludes descendant cases",
                 "uk": "Лише прямі виключає нащадків"
@@ -2250,7 +2662,7 @@
               ]
             },
             {
-              "key": "VQA-046",
+              "key": "VQA-053",
               "title": {
                 "en": "Lazy load folder cases with Load more",
                 "uk": "Ліниве завантаження кейсів теки з Load more"
@@ -2307,7 +2719,7 @@
               "external_key": "e2e:folder-tree-lazy.spec.ts"
             },
             {
-              "key": "VQA-047",
+              "key": "VQA-054",
               "title": {
                 "en": "Cases sort by numeric key suffix in tree and list",
                 "uk": "Сортування за числовим суфіксом ключа"
@@ -2373,7 +2785,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-048",
+              "key": "VQA-055",
               "title": {
                 "en": "Create nested folder via folder tree",
                 "uk": "Створити вкладену теку через дерево"
@@ -2415,7 +2827,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-049",
+              "key": "VQA-056",
               "title": {
                 "en": "Rename folder",
                 "uk": "Перейменувати теку"
@@ -2455,7 +2867,7 @@
               ]
             },
             {
-              "key": "VQA-050",
+              "key": "VQA-057",
               "title": {
                 "en": "Move folder via drag-drop or Move to",
                 "uk": "Перемістити теку drag-drop або Move to"
@@ -2495,7 +2907,7 @@
               ]
             },
             {
-              "key": "VQA-051",
+              "key": "VQA-058",
               "title": {
                 "en": "Delete empty folder",
                 "uk": "Видалити порожню теку"
@@ -2534,7 +2946,7 @@
               ]
             },
             {
-              "key": "VQA-052",
+              "key": "VQA-059",
               "title": {
                 "en": "Delete non-empty folder with move_to_parent",
                 "uk": "Видалити непорожню теку з move_to_parent"
@@ -2574,7 +2986,7 @@
               ]
             },
             {
-              "key": "VQA-053",
+              "key": "VQA-060",
               "title": {
                 "en": "Delete non-empty folder with delete_cases retires keys",
                 "uk": "Видалення теки з delete_cases ізолює ключі"
@@ -2633,7 +3045,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-054",
+              "key": "VQA-061",
               "title": {
                 "en": "Create case with steps via UI",
                 "uk": "Створити кейс із кроками через UI"
@@ -2675,7 +3087,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-055",
+              "key": "VQA-062",
               "title": {
                 "en": "Update case title and description",
                 "uk": "Оновити назву і опис кейсу"
@@ -2715,7 +3127,7 @@
               ]
             },
             {
-              "key": "VQA-056",
+              "key": "VQA-063",
               "title": {
                 "en": "Delete case removes it from list",
                 "uk": "Видалення кейсу прибирає його зі списку"
@@ -2755,7 +3167,7 @@
               ]
             },
             {
-              "key": "VQA-057",
+              "key": "VQA-064",
               "title": {
                 "en": "Reorder steps positions",
                 "uk": "Змінити порядок кроків"
@@ -2794,7 +3206,7 @@
               ]
             },
             {
-              "key": "VQA-058",
+              "key": "VQA-065",
               "title": {
                 "en": "Case with empty steps list is allowed on create",
                 "uk": "Кейс без кроків дозволений при створенні"
@@ -2843,7 +3255,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-059",
+              "key": "VQA-066",
               "title": {
                 "en": "Assign tags and priority on case",
                 "uk": "Призначити теги і пріоритет кейсу"
@@ -2883,7 +3295,7 @@
               ]
             },
             {
-              "key": "VQA-060",
+              "key": "VQA-067",
               "title": {
                 "en": "Filter cases by tag",
                 "uk": "Фільтрувати кейси за тегом"
@@ -2922,7 +3334,7 @@
               ]
             },
             {
-              "key": "VQA-061",
+              "key": "VQA-068",
               "title": {
                 "en": "Bulk mark ready",
                 "uk": "Масово позначити готовими"
@@ -2972,7 +3384,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-062",
+              "key": "VQA-069",
               "title": {
                 "en": "FTS search finds case by title token",
                 "uk": "FTS-пошук знаходить кейс за токеном назви"
@@ -3014,7 +3426,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-063",
+              "key": "VQA-070",
               "title": {
                 "en": "Status filter draft vs ready",
                 "uk": "Фільтр статусу draft vs ready"
@@ -3055,7 +3467,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-064",
+              "key": "VQA-071",
               "title": {
                 "en": "Search with no matches shows empty state",
                 "uk": "Пошук без збігів показує порожній стан"
@@ -3104,7 +3516,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-065",
+              "key": "VQA-072",
               "title": {
                 "en": "Case History/Results tab shows cross-run results",
                 "uk": "Вкладка History/Results показує результати з прогонів"
@@ -3146,7 +3558,7 @@
               "external_key": "e2e:result-history.spec.ts"
             },
             {
-              "key": "VQA-066",
+              "key": "VQA-073",
               "title": {
                 "en": "Case version history on Details after edit",
                 "uk": "Історія версій на Details після редагування"
@@ -3197,7 +3609,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-067",
+          "key": "VQA-074",
           "title": {
             "en": "Create requirement and link to cases",
             "uk": "Створити вимогу і прив'язати до кейсів"
@@ -3253,7 +3665,7 @@
           "external_key": "e2e:imports-reports.spec.ts"
         },
         {
-          "key": "VQA-068",
+          "key": "VQA-075",
           "title": {
             "en": "Unlink requirement from case",
             "uk": "Відв'язати вимогу від кейсу"
@@ -3293,7 +3705,7 @@
           ]
         },
         {
-          "key": "VQA-069",
+          "key": "VQA-076",
           "title": {
             "en": "ALM import of remote requirement (OpenProject/Jira)",
             "uk": "ALM-імпорт віддаленої вимоги (OpenProject/Jira)"
@@ -3348,7 +3760,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-070",
+              "key": "VQA-077",
               "title": {
                 "en": "Create plan and start a run",
                 "uk": "Створити план і стартувати прогін"
@@ -3390,7 +3802,7 @@
               "external_key": "e2e:plans-runs.spec.ts"
             },
             {
-              "key": "VQA-071",
+              "key": "VQA-078",
               "title": {
                 "en": "Mark run item Passed",
                 "uk": "Позначити елемент прогону Passed"
@@ -3432,7 +3844,7 @@
               "external_key": "e2e:plans-runs.spec.ts"
             },
             {
-              "key": "VQA-072",
+              "key": "VQA-079",
               "title": {
                 "en": "Mark run item Failed, Blocked, Skipped",
                 "uk": "Позначити Failed, Blocked, Skipped"
@@ -3474,7 +3886,7 @@
               "external_key": "e2e:result-history.spec.ts"
             },
             {
-              "key": "VQA-073",
+              "key": "VQA-080",
               "title": {
                 "en": "Attach note and camera photo to result",
                 "uk": "Додати нотатку і фото з камери до результату"
@@ -3516,7 +3928,7 @@
               "external_key": "e2e:plans-runs.spec.ts"
             },
             {
-              "key": "VQA-074",
+              "key": "VQA-081",
               "title": {
                 "en": "Close completed run",
                 "uk": "Закрити завершений прогін"
@@ -3556,7 +3968,7 @@
               ]
             },
             {
-              "key": "VQA-075",
+              "key": "VQA-082",
               "title": {
                 "en": "Cannot execute on closed run",
                 "uk": "Не можна виконувати закритий прогін"
@@ -3608,7 +4020,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-076",
+          "key": "VQA-083",
           "title": {
             "en": "Upload JUnit XML into target run",
             "uk": "Завантажити JUnit XML у цільовий прогін"
@@ -3651,7 +4063,7 @@
           "external_key": "e2e:smoke.spec.ts"
         },
         {
-          "key": "VQA-077",
+          "key": "VQA-084",
           "title": {
             "en": "Ingest via API token (CI upload)",
             "uk": "Ingest через API-токен (CI upload)"
@@ -3693,7 +4105,7 @@
           "external_key": "e2e:imports-reports.spec.ts"
         },
         {
-          "key": "VQA-078",
+          "key": "VQA-085",
           "title": {
             "en": "Vulyk JSON bulk results ingest",
             "uk": "Ingest масових результатів у форматі Vulyk JSON"
@@ -3733,7 +4145,7 @@
           ]
         },
         {
-          "key": "VQA-079",
+          "key": "VQA-086",
           "title": {
             "en": "Save CI trigger config (GitHub/GitLab)",
             "uk": "Зберегти CI trigger config (GitHub/GitLab)"
@@ -3774,7 +4186,7 @@
           "external_key": "e2e:integrations-llm.spec.ts"
         },
         {
-          "key": "VQA-080",
+          "key": "VQA-087",
           "title": {
             "en": "Dispatch CI config",
             "uk": "Запустити dispatch CI-конфігу"
@@ -3814,7 +4226,7 @@
           ]
         },
         {
-          "key": "VQA-081",
+          "key": "VQA-088",
           "title": {
             "en": "CLI reporter uploads JUnit with --create-run",
             "uk": "CLI reporter завантажує JUnit з --create-run"
@@ -3852,208 +4264,6 @@
               }
             }
           ]
-        },
-        {
-          "key": "VQA-163",
-          "title": {
-            "en": "Create a named automation repository and attach it to multiple projects",
-            "uk": "Створити іменований репозиторій автоматизації і прив’язати до кількох проєктів"
-          },
-          "description": {
-            "en": "Settings multi-repo CRUD with many-to-many project links.",
-            "uk": "Settings multi-repo CRUD with many-to-many project links."
-          },
-          "precondition": {
-            "en": "Signed in as Admin or Test Automation Engineer; project selected.",
-            "uk": "Увійшли як Admin або Test Automation Engineer; обрано проєкт."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "regression",
-            "automation",
-            "ci",
-            "type:functional",
-            "vulyk-qa"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Open Settings → Test automation repositories; add a repo (name, GitHub, URL, branch); multi-select two projects; Save.",
-                "uk": "Open Settings → Test automation repositories; add a repo (name, GitHub, URL, branch); multi-select two projects; Save."
-              },
-              "expected_result": {
-                "en": "Repo appears in the list with masked token field empty; both projects listed; GET /api/v1/projects/{id}/automation-repos returns it for each project.",
-                "uk": "Repo appears in the list with masked token field empty; both projects listed; GET /api/v1/projects/{id}/automation-repos returns it for each project."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "VQA-164",
-          "title": {
-            "en": "Create and revoke a project CI token",
-            "uk": "Створити та відкликати CI-токен проєкту"
-          },
-          "description": {
-            "en": "Project-scoped CI token hashed at rest; secret shown once.",
-            "uk": "Project-scoped CI token hashed at rest; secret shown once."
-          },
-          "precondition": {
-            "en": "Signed in as Admin or Test Automation Engineer; project selected.",
-            "uk": "Увійшли як Admin або Test Automation Engineer; обрано проєкт."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "regression",
-            "automation",
-            "ci",
-            "type:functional",
-            "vulyk-qa"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Open Settings → Project CI tokens; choose project; Create CI token named github-main; copy secret; Revoke.",
-                "uk": "Open Settings → Project CI tokens; choose project; Create CI token named github-main; copy secret; Revoke."
-              },
-              "expected_result": {
-                "en": "Secret starts with vulyk_ci_; after revoke, API calls with that token return 401.",
-                "uk": "Secret starts with vulyk_ci_; after revoke, API calls with that token return 401."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "VQA-165",
-          "title": {
-            "en": "CI run lifecycle open → results → close with unmatched keys reported",
-            "uk": "Життєвий цикл CI-прогону open → results → close з невідомими ключами"
-          },
-          "description": {
-            "en": "Open run via CI API, ingest JUnit with test_key, close; unknown keys listed.",
-            "uk": "Open run via CI API, ingest JUnit with test_key, close; unknown keys listed."
-          },
-          "precondition": {
-            "en": "Signed in as Admin or Test Automation Engineer; project selected.",
-            "uk": "Увійшли як Admin або Test Automation Engineer; обрано проєкт."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "regression",
-            "automation",
-            "ci",
-            "api",
-            "type:functional",
-            "vulyk-qa"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "POST /ci/runs with CI token; POST .../ingest with JUnit containing one known test_key and one unknown; POST .../close.",
-                "uk": "POST /ci/runs with CI token; POST .../ingest with JUnit containing one known test_key and one unknown; POST .../close."
-              },
-              "expected_result": {
-                "en": "Run status becomes in_progress after ingest then closed; response includes unmatched_case_keys for the unknown key; matched case history updated.",
-                "uk": "Run status becomes in_progress after ingest then closed; response includes unmatched_case_keys for the unknown key; matched case history updated."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "VQA-166",
-          "title": {
-            "en": "Generate page shows repo picker when several repos are linked",
-            "uk": "Сторінка Generate показує вибір репозиторію при кількох зв’язках"
-          },
-          "description": {
-            "en": "When a project has multiple automation repos, Generate offers a picker.",
-            "uk": "When a project has multiple automation repos, Generate offers a picker."
-          },
-          "precondition": {
-            "en": "Signed in as Admin or Test Automation Engineer; project selected.",
-            "uk": "Увійшли як Admin або Test Automation Engineer; обрано проєкт."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "regression",
-            "automation",
-            "llm",
-            "type:functional",
-            "vulyk-qa"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Link two repos to the project; open Generate; select the second repo; generate code for a case.",
-                "uk": "Link two repos to the project; open Generate; select the second repo; generate code for a case."
-              },
-              "expected_result": {
-                "en": "Repo picker is visible; generation uses the selected repo_id (context_files reflect that repo when indexed).",
-                "uk": "Repo picker is visible; generation uses the selected repo_id (context_files reflect that repo when indexed)."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "VQA-167",
-          "title": {
-            "en": "Executions suite row shows CI source badge and pipeline link",
-            "uk": "Рядок suite у Executions показує бейдж джерела CI і посилання на пайплайн"
-          },
-          "description": {
-            "en": "CI-created runs display provider badge and pipeline URL.",
-            "uk": "CI-created runs display provider badge and pipeline URL."
-          },
-          "precondition": {
-            "en": "Signed in as Admin or Test Automation Engineer; project selected.",
-            "uk": "Увійшли як Admin або Test Automation Engineer; обрано проєкт."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "regression",
-            "automation",
-            "ci",
-            "ui",
-            "type:functional",
-            "vulyk-qa"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Create a CI run with provider github and pipeline_url; open Executions → Automated suites for the iteration.",
-                "uk": "Create a CI run with provider github and pipeline_url; open Executions → Automated suites for the iteration."
-              },
-              "expected_result": {
-                "en": "Row shows GitHub (or CI) badge and a Pipeline link opening the pipeline_url; status shows Open/In progress/Closed as applicable.",
-                "uk": "Row shows GitHub (or CI) badge and a Pipeline link opening the pipeline_url; status shows Open/In progress/Closed as applicable."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
         }
       ]
     },
@@ -4065,7 +4275,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-082",
+          "key": "VQA-089",
           "title": {
             "en": "Reports dashboard shows KPIs",
             "uk": "Дашборд Reports показує KPI"
@@ -4107,7 +4317,7 @@
           "external_key": "e2e:imports-reports.spec.ts"
         },
         {
-          "key": "VQA-083",
+          "key": "VQA-090",
           "title": {
             "en": "Export reports CSV",
             "uk": "Експорт звітів у CSV"
@@ -4148,7 +4358,7 @@
           "external_key": "e2e:imports-reports.spec.ts"
         },
         {
-          "key": "VQA-084",
+          "key": "VQA-091",
           "title": {
             "en": "Requirement coverage report",
             "uk": "Звіт покриття вимог"
@@ -4188,7 +4398,7 @@
           ]
         },
         {
-          "key": "VQA-085",
+          "key": "VQA-092",
           "title": {
             "en": "Flaky detection report endpoint",
             "uk": "Ендпоінт звіту flaky"
@@ -4228,7 +4438,7 @@
           ]
         },
         {
-          "key": "VQA-086",
+          "key": "VQA-093",
           "title": {
             "en": "Trends report for pass/fail over time",
             "uk": "Trends-звіт pass/fail у часі"
@@ -4283,7 +4493,7 @@
           "children": [],
           "cases": [
             {
-              "key": "VQA-087",
+              "key": "VQA-094",
               "title": {
                 "en": "Import TestLink XML sample",
                 "uk": "Імпорт зразка TestLink XML"
@@ -4325,7 +4535,7 @@
               "external_key": "e2e:imports-reports.spec.ts"
             },
             {
-              "key": "VQA-088",
+              "key": "VQA-095",
               "title": {
                 "en": "Import Xray JSON sample",
                 "uk": "Імпорт зразка Xray JSON"
@@ -4366,7 +4576,7 @@
               "external_key": "e2e:imports-reports.spec.ts"
             },
             {
-              "key": "VQA-089",
+              "key": "VQA-096",
               "title": {
                 "en": "Import SquashTM XML sample",
                 "uk": "Імпорт зразка SquashTM XML"
@@ -4407,7 +4617,7 @@
               "external_key": "e2e:imports-reports.spec.ts"
             },
             {
-              "key": "VQA-090",
+              "key": "VQA-097",
               "title": {
                 "en": "Import preview does not persist",
                 "uk": "Preview імпорту не зберігає дані"
@@ -4447,7 +4657,7 @@
               ]
             },
             {
-              "key": "VQA-091",
+              "key": "VQA-098",
               "title": {
                 "en": "Reject unknown importer kind",
                 "uk": "Відхилити невідомий тип імпортера"
@@ -4488,7 +4698,7 @@
               ]
             },
             {
-              "key": "VQA-092",
+              "key": "VQA-099",
               "title": {
                 "en": "List available importers",
                 "uk": "Список доступних імпортерів"
@@ -4539,7 +4749,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-093",
+          "key": "VQA-100",
           "title": {
             "en": "Admin configures mock LLM provider",
             "uk": "Admin налаштовує mock LLM-провайдер"
@@ -4581,7 +4791,7 @@
           "external_key": "e2e:integrations-llm.spec.ts"
         },
         {
-          "key": "VQA-094",
+          "key": "VQA-101",
           "title": {
             "en": "List LLM provider kinds",
             "uk": "Список типів LLM-провайдерів"
@@ -4620,7 +4830,7 @@
           ]
         },
         {
-          "key": "VQA-095",
+          "key": "VQA-102",
           "title": {
             "en": "Reject LLM config with missing secrets for remote provider",
             "uk": "Відхилити LLM-конфіг без секретів для remote"
@@ -4660,7 +4870,7 @@
           ]
         },
         {
-          "key": "VQA-096",
+          "key": "VQA-103",
           "title": {
             "en": "RAG over tests corpus",
             "uk": "RAG по корпусу тестів"
@@ -4708,7 +4918,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-097",
+          "key": "VQA-104",
           "title": {
             "en": "Generate drafts cases via Generate page",
             "uk": "Generate створює чернетки кейсів"
@@ -4750,7 +4960,7 @@
           "external_key": "e2e:llm-chat.spec.ts"
         },
         {
-          "key": "VQA-098",
+          "key": "VQA-105",
           "title": {
             "en": "Generate Playwright automation code",
             "uk": "Generate генерує Playwright-код"
@@ -4791,7 +5001,7 @@
           "external_key": "e2e:llm-chat.spec.ts"
         },
         {
-          "key": "VQA-099",
+          "key": "VQA-106",
           "title": {
             "en": "Chat ask over project cases",
             "uk": "Chat ask по кейсах проєкту"
@@ -4833,7 +5043,7 @@
           "external_key": "e2e:llm-chat.spec.ts"
         },
         {
-          "key": "VQA-100",
+          "key": "VQA-107",
           "title": {
             "en": "Generate/Chat hidden for Viewer",
             "uk": "Generate/Chat сховані для Viewer"
@@ -4883,7 +5093,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-101",
+          "key": "VQA-108",
           "title": {
             "en": "MCP search_cases returns project cases",
             "uk": "MCP search_cases повертає кейси проєкту"
@@ -4923,7 +5133,7 @@
           ]
         },
         {
-          "key": "VQA-102",
+          "key": "VQA-109",
           "title": {
             "en": "MCP create_case and get_case round-trip",
             "uk": "MCP create_case і get_case round-trip"
@@ -4962,7 +5172,7 @@
           ]
         },
         {
-          "key": "VQA-103",
+          "key": "VQA-110",
           "title": {
             "en": "MCP list_runs and ingest_results",
             "uk": "MCP list_runs і ingest_results"
@@ -5002,7 +5212,7 @@
           ]
         },
         {
-          "key": "VQA-104",
+          "key": "VQA-111",
           "title": {
             "en": "MCP ask_tests uses LLM assist",
             "uk": "MCP ask_tests використовує LLM"
@@ -5042,7 +5252,7 @@
           ]
         },
         {
-          "key": "VQA-105",
+          "key": "VQA-112",
           "title": {
             "en": "MCP HTTP transport binds configured address",
             "uk": "MCP HTTP-транспорт слухає налаштовану адресу"
@@ -5090,7 +5300,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-106",
+          "key": "VQA-113",
           "title": {
             "en": "Create personal API token",
             "uk": "Створити персональний API-токен"
@@ -5132,7 +5342,7 @@
           ]
         },
         {
-          "key": "VQA-107",
+          "key": "VQA-114",
           "title": {
             "en": "Revoke API token rejects subsequent calls",
             "uk": "Відкликаний токен відхиляє наступні виклики"
@@ -5173,7 +5383,7 @@
           ]
         },
         {
-          "key": "VQA-108",
+          "key": "VQA-115",
           "title": {
             "en": "OpenAPI Scalar docs available at /api/docs",
             "uk": "OpenAPI Scalar-документація на /api/docs"
@@ -5214,7 +5424,7 @@
           ]
         },
         {
-          "key": "VQA-109",
+          "key": "VQA-116",
           "title": {
             "en": "OpenAPI documents auth and cases endpoints",
             "uk": "OpenAPI документує auth і cases"
@@ -5262,7 +5472,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-110",
+          "key": "VQA-117",
           "title": {
             "en": "Globe language menu lists native names with checkmark",
             "uk": "Меню мови (глобус) показує рідні назви з галочкою"
@@ -5306,7 +5516,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-111",
+          "key": "VQA-118",
           "title": {
             "en": "Switch UI locale to Ukrainian via globe menu",
             "uk": "Перемкнути локаль UI на українську через меню глобуса"
@@ -5347,7 +5557,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-112",
+          "key": "VQA-119",
           "title": {
             "en": "Switch UI locale to French via globe menu",
             "uk": "Перемкнути локаль UI на французьку через меню глобуса"
@@ -5388,7 +5598,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-113",
+          "key": "VQA-120",
           "title": {
             "en": "Switch UI locale to Spanish via globe menu",
             "uk": "Перемкнути локаль UI на іспанську через меню глобуса"
@@ -5429,7 +5639,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-114",
+          "key": "VQA-121",
           "title": {
             "en": "Switch UI locale to German via globe menu",
             "uk": "Перемкнути локаль UI на німецьку через меню глобуса"
@@ -5470,7 +5680,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-115",
+          "key": "VQA-122",
           "title": {
             "en": "Switch UI locale back to English via globe menu",
             "uk": "Повернути локаль UI на англійську через меню глобуса"
@@ -5511,7 +5721,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-116",
+          "key": "VQA-123",
           "title": {
             "en": "Locale choice persists for signed-in user",
             "uk": "Вибір локалі зберігається для підписаного користувача"
@@ -5553,7 +5763,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-117",
+          "key": "VQA-124",
           "title": {
             "en": "Locale choice persists for anonymous via localStorage",
             "uk": "Вибір локалі зберігається для аноніма через localStorage"
@@ -5594,7 +5804,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-118",
+          "key": "VQA-125",
           "title": {
             "en": "Install/setup accepts --locale fr",
             "uk": "Setup приймає --locale fr"
@@ -5636,7 +5846,7 @@
           "external_key": "e2e:setup-wizard.spec.ts"
         },
         {
-          "key": "VQA-119",
+          "key": "VQA-126",
           "title": {
             "en": "Install/setup accepts --locale es",
             "uk": "Setup приймає --locale es"
@@ -5676,7 +5886,7 @@
           ]
         },
         {
-          "key": "VQA-120",
+          "key": "VQA-127",
           "title": {
             "en": "Install/setup accepts --locale de",
             "uk": "Setup приймає --locale de"
@@ -5716,7 +5926,7 @@
           ]
         },
         {
-          "key": "VQA-121",
+          "key": "VQA-128",
           "title": {
             "en": "Instance default locale from setup applies to new sessions",
             "uk": "Локаль інстансу з setup застосовується до нових сесій"
@@ -5756,7 +5966,7 @@
           ]
         },
         {
-          "key": "VQA-122",
+          "key": "VQA-129",
           "title": {
             "en": "Locale-aware date and number formatting",
             "uk": "Форматування дат і чисел за локаллю"
@@ -5811,7 +6021,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-123",
+          "key": "VQA-130",
           "title": {
             "en": "Missing i18n keys fall back to English then key",
             "uk": "Відсутні i18n-ключі падають назад на англійську, потім на ключ"
@@ -5854,7 +6064,7 @@
           "external_key": "unit:i18n/parity.test.ts"
         },
         {
-          "key": "VQA-124",
+          "key": "VQA-131",
           "title": {
             "en": "Server-side messages fall back gracefully for fr es de",
             "uk": "Серверні повідомлення коректно відступають для fr/es/de"
@@ -5909,7 +6119,7 @@
           "external_key": "e2e:locale-switch.spec.ts"
         },
         {
-          "key": "VQA-125",
+          "key": "VQA-132",
           "title": {
             "en": "Bilingual sample content picks locale",
             "uk": "Двомовний sample-контент обирає локаль"
@@ -5958,7 +6168,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-126",
+          "key": "VQA-133",
           "title": {
             "en": "Gear user menu shows profile header and core items",
             "uk": "Меню шестерні показує профіль і основні пункти"
@@ -6001,7 +6211,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-127",
+          "key": "VQA-134",
           "title": {
             "en": "Gear menu Admin settings only for admins",
             "uk": "Пункт Admin settings лише для адмінів"
@@ -6058,7 +6268,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-128",
+          "key": "VQA-135",
           "title": {
             "en": "Appearance opens from gear menu not left nav",
             "uk": "Вигляд відкривається з меню шестерні, не з лівої навігації"
@@ -6100,7 +6310,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-129",
+          "key": "VQA-136",
           "title": {
             "en": "Log out from gear menu; Sign in when anonymous",
             "uk": "Вихід з меню шестерні; Увійти для аноніма"
@@ -6156,7 +6366,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-130",
+          "key": "VQA-137",
           "title": {
             "en": "My settings page edits profile language timezone password tokens",
             "uk": "Сторінка Мої налаштування: профіль, мова, TZ, пароль, токени"
@@ -6212,7 +6422,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-131",
+          "key": "VQA-138",
           "title": {
             "en": "Open-mode badge lives in gear menu not topbar text",
             "uk": "Бейдж Open mode у меню шестерні, не текстом у topbar"
@@ -6262,7 +6472,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-132",
+          "key": "VQA-139",
           "title": {
             "en": "Apply Light, Dark, High contrast, and Sepia themes",
             "uk": "Застосувати теми Light, Dark, High contrast і Sepia"
@@ -6304,7 +6514,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-133",
+          "key": "VQA-140",
           "title": {
             "en": "System theme follows prefers-color-scheme",
             "uk": "Системна тема слідує prefers-color-scheme"
@@ -6343,7 +6553,7 @@
           ]
         },
         {
-          "key": "VQA-134",
+          "key": "VQA-141",
           "title": {
             "en": "Font scale and density controls",
             "uk": "Масштаб шрифту і щільність"
@@ -6384,7 +6594,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-135",
+          "key": "VQA-142",
           "title": {
             "en": "Status badges show icon and label in all themes",
             "uk": "Статусні бейджі з іконкою і підписом у всіх темах"
@@ -6426,7 +6636,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-136",
+          "key": "VQA-143",
           "title": {
             "en": "Reduced motion preference honoured",
             "uk": "Повага до reduced motion"
@@ -6475,7 +6685,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-137",
+          "key": "VQA-144",
           "title": {
             "en": "Mobile bottom nav Cases/Runs/Reports; Admin via gear",
             "uk": "Мобільна нижня навігація Cases/Runs/Reports; Admin через шестерню"
@@ -6533,7 +6743,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-138",
+          "key": "VQA-145",
           "title": {
             "en": "Folders drawer on mobile",
             "uk": "Drawer тек на мобільному"
@@ -6605,7 +6815,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-139",
+          "key": "VQA-146",
           "title": {
             "en": "Create case on mobile layout",
             "uk": "Створити кейс у мобільному layout"
@@ -6646,7 +6856,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-140",
+          "key": "VQA-147",
           "title": {
             "en": "Web app manifest and service worker register",
             "uk": "Маніфест PWA і реєстрація service worker"
@@ -6687,7 +6897,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-141",
+          "key": "VQA-148",
           "title": {
             "en": "Offline fallback page is available",
             "uk": "Офлайн fallback-сторінка доступна"
@@ -6728,7 +6938,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-142",
+          "key": "VQA-149",
           "title": {
             "en": "Offline queue syncs step results when back online",
             "uk": "Офлайн-черга синхронізує результати кроків онлайн"
@@ -6777,7 +6987,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-143",
+          "key": "VQA-150",
           "title": {
             "en": "Cases list remains usable with ~20k cases",
             "uk": "Список кейсів лишається робочим при ~20k кейсів"
@@ -6831,7 +7041,7 @@
           ]
         },
         {
-          "key": "VQA-144",
+          "key": "VQA-151",
           "title": {
             "en": "FTS search on 20k cases returns quickly",
             "uk": "FTS-пошук по 20k кейсах швидкий"
@@ -6871,7 +7081,7 @@
           ]
         },
         {
-          "key": "VQA-145",
+          "key": "VQA-152",
           "title": {
             "en": "Folder tree with deep nesting stays responsive",
             "uk": "Дерево тек з глибокою вкладеністю лишається чуйним"
@@ -6911,7 +7121,7 @@
           ]
         },
         {
-          "key": "VQA-146",
+          "key": "VQA-153",
           "title": {
             "en": "10×10×200 folder shape: recursive counts and lazy pages",
             "uk": "Форма 10×10×200: рекурсивні лічильники і lazy-сторінки"
@@ -6967,7 +7177,7 @@
           "external_key": "e2e:folder-tree-lazy.spec.ts"
         },
         {
-          "key": "VQA-147",
+          "key": "VQA-154",
           "title": {
             "en": "Cursor pagination for huge lists",
             "uk": "Cursor-пагінація для великих списків"
@@ -7016,7 +7226,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-148",
+          "key": "VQA-155",
           "title": {
             "en": "Health endpoint returns ok",
             "uk": "Health-ендпоінт повертає ok"
@@ -7056,7 +7266,7 @@
           ]
         },
         {
-          "key": "VQA-149",
+          "key": "VQA-156",
           "title": {
             "en": "Ready endpoint checks database",
             "uk": "Ready-ендпоінт перевіряє БД"
@@ -7096,7 +7306,7 @@
           ]
         },
         {
-          "key": "VQA-150",
+          "key": "VQA-157",
           "title": {
             "en": "Roles matrix endpoint documents permissions",
             "uk": "Ендпоінт матриці ролей документує дозволи"
@@ -7135,7 +7345,7 @@
           ]
         },
         {
-          "key": "VQA-151",
+          "key": "VQA-158",
           "title": {
             "en": "Custom field definitions UI",
             "uk": "UI визначення кастомних полів"
@@ -7175,7 +7385,7 @@
           ]
         },
         {
-          "key": "VQA-152",
+          "key": "VQA-159",
           "title": {
             "en": "Result partitioning for very large histories",
             "uk": "Partitioning результатів для великих історій"
@@ -7215,7 +7425,7 @@
           ]
         },
         {
-          "key": "VQA-153",
+          "key": "VQA-160",
           "title": {
             "en": "GitHub Action uploads results to Vulyk",
             "uk": "GitHub Action завантажує результати в Vulyk"
@@ -7254,7 +7464,7 @@
           ]
         },
         {
-          "key": "VQA-154",
+          "key": "VQA-161",
           "title": {
             "en": "Webhook receiver accepts GitHub/GitLab payloads",
             "uk": "Webhook приймає payload GitHub/GitLab"
@@ -7294,7 +7504,7 @@
           ]
         },
         {
-          "key": "VQA-155",
+          "key": "VQA-162",
           "title": {
             "en": "Admin global integrations placeholders",
             "uk": "Глобальні інтеграції адміна (placeholders)"
@@ -7335,7 +7545,7 @@
           "external_key": "e2e:integrations-llm.spec.ts"
         },
         {
-          "key": "VQA-156",
+          "key": "VQA-163",
           "title": {
             "en": "Defect create from failed result via ALM",
             "uk": "Створення дефекту з failed-результату через ALM"
@@ -7375,7 +7585,7 @@
           ]
         },
         {
-          "key": "VQA-157",
+          "key": "VQA-164",
           "title": {
             "en": "Retest status available after Failed",
             "uk": "Статус Retest доступний після Failed"
@@ -7415,7 +7625,7 @@
           ]
         },
         {
-          "key": "VQA-158",
+          "key": "VQA-165",
           "title": {
             "en": "Step-level results within a run item",
             "uk": "Результати на рівні кроків у елементі прогону"
@@ -7454,7 +7664,7 @@
           ]
         },
         {
-          "key": "VQA-159",
+          "key": "VQA-166",
           "title": {
             "en": "Assign run item to a user",
             "uk": "Призначити елемент прогону користувачу"
@@ -7493,7 +7703,7 @@
           ]
         },
         {
-          "key": "VQA-160",
+          "key": "VQA-167",
           "title": {
             "en": "Project switcher changes active project context",
             "uk": "Перемикач проєктів змінює активний контекст"
@@ -7535,7 +7745,7 @@
           "external_key": "e2e:sample-project.spec.ts"
         },
         {
-          "key": "VQA-161",
+          "key": "VQA-168",
           "title": {
             "en": "Demo user membership on sample projects is TAE",
             "uk": "Demo-користувач має роль TAE на sample-проєктах"
@@ -7576,7 +7786,7 @@
           ]
         },
         {
-          "key": "VQA-162",
+          "key": "VQA-169",
           "title": {
             "en": "Idempotent re-seed does not duplicate sample projects",
             "uk": "Ідемпотентний повторний сід не дублює sample-проєкти"

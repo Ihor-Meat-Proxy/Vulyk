@@ -320,7 +320,7 @@ export function IterationDashboard({
             <ul className="exec-mini-list">
               {dashboard.flaky_tests.map((row) => (
                 <li key={row.case_id}>
-                  <Link to={`/cases/${row.case_id}`}>
+                  <Link to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}>
                     <span className="badge">{row.case_key}</span> {row.case_title}
                   </Link>
                   <span className="muted">flips {row.flips}</span>
@@ -339,7 +339,7 @@ export function IterationDashboard({
             <ul className="exec-mini-list">
               {dashboard.slowest_tests.map((row) => (
                 <li key={row.case_id}>
-                  <Link to={`/cases/${row.case_id}`}>
+                  <Link to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}>
                     <span className="badge">{row.case_key}</span> {row.case_title}
                   </Link>
                   <span className="muted">

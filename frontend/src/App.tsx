@@ -218,7 +218,20 @@ export default function App() {
           />
           <Route
             path="cases/:caseId"
-            element={<CaseDetail projectId={activeProjectId} />}
+            element={
+              <CaseDetail
+                projectId={activeProjectId}
+                projectName={project?.name ?? ''}
+                suites={suites}
+                onEnsureProject={(id) => {
+                  if (id !== projectId) setProjectId(id)
+                }}
+                onBackToList={(suiteId) => {
+                  setSelectedSuiteId(suiteId)
+                  navigate('/')
+                }}
+              />
+            }
           />
           <Route
             path="requirements"

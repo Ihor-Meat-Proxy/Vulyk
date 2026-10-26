@@ -2777,3 +2777,175 @@ select.project-select {
     max-height: 16rem;
   }
 }
+
+/* —— Case detail: key URLs, breadcrumbs, copy badge —— */
+.case-breadcrumbs {
+  margin: 0 0 0.5rem;
+  max-width: 100%;
+}
+
+.case-breadcrumbs-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.15rem 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.88rem;
+  color: var(--ink-muted);
+  min-width: 0;
+}
+
+.case-breadcrumbs-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.case-breadcrumbs-sep {
+  margin-right: 0.25rem;
+  color: var(--ink-muted);
+  opacity: 0.7;
+}
+
+.case-breadcrumbs-link,
+.case-breadcrumbs-current {
+  display: inline-block;
+  max-width: min(14rem, 42vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.case-breadcrumbs-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.case-breadcrumbs-link:hover,
+.case-breadcrumbs-link:focus-visible {
+  text-decoration: underline;
+}
+
+.case-breadcrumbs-current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.case-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.case-detail-back:hover,
+.case-detail-back:focus-visible {
+  text-decoration: underline;
+}
+
+.shortcut-hint {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--line);
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--bg) 70%, var(--bg-elevated));
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.case-key-badge-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  vertical-align: middle;
+}
+
+.case-key-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.case-key-badge:hover .case-key-copy-icon,
+.case-key-badge:focus-visible .case-key-copy-icon {
+  opacity: 1;
+}
+
+.case-key-copy-icon {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.case-key-badge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.case-key-copy-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.case-key-copy-link:hover,
+.case-key-copy-link:focus-visible {
+  color: var(--accent);
+}
+
+.app-toasts {
+  position: fixed;
+  z-index: 50;
+  top: calc(0.75rem + env(safe-area-inset-top, 0px));
+  right: 0.75rem;
+  left: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  pointer-events: none;
+  max-width: min(22rem, calc(100vw - 1.5rem));
+}
+
+.app-toast {
+  pointer-events: auto;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent-soft) 75%, var(--bg-elevated));
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--ink) 10%, transparent);
+  font-size: 0.9rem;
+}
+
+.case-deleted h2 {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .case-breadcrumbs-link,
+  .case-breadcrumbs-current {
+    max-width: min(10rem, 55vw);
+  }
+
+  .case-key-copy-icon {
+    opacity: 0.85;
+  }
+}

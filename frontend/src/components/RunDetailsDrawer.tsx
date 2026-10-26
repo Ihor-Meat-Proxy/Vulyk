@@ -180,7 +180,9 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                             {t('executions.executionView')}
                           </Link>
                           {' · '}
-                          <Link to={`/cases/${row.case_id}`}>
+                          <Link
+                            to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
+                          >
                             {t('executions.caseInfo')}
                           </Link>
                         </p>

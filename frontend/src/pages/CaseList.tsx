@@ -6,6 +6,7 @@ import { CaseStatusIcon } from '../components/CaseStatusIcon'
 import { VirtualList } from '../components/VirtualList'
 import { useI18n } from '../i18n'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { casePath } from '../lib/caseUrls'
 
 type Props = {
   projectId: string | null
@@ -59,6 +60,30 @@ export function CaseList({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [treeDrawerOpen])
+
+  // Restore list scroll after returning from case detail (Backspace / back link).
+  useEffect(() => {
+    const key = 'vulyk.caseListScroll'
+    try {
+      const raw = sessionStorage.getItem(key)
+      if (raw) {
+        const y = Number(raw)
+        if (!Number.isNaN(y)) {
+          requestAnimationFrame(() => window.scrollTo(0, y))
+        }
+        sessionStorage.removeItem(key)
+      }
+    } catch {
+      /* ignore */
+    }
+    return () => {
+      try {
+        sessionStorage.setItem(key, String(window.scrollY))
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [])
 
   const selectSuite = (id: string | null) => {
     onSelectSuite(id)
@@ -493,10 +518,12 @@ export function CaseList({
                   ) : (
                     <span />
                   )}
-                  <Link to={`/cases/${c.id}`}>
+                  <Link to={casePath(c.key)} data-testid="case-list-key-link">
                     <span className="badge">{c.key}</span>
                   </Link>
-                  <Link to={`/cases/${c.id}`}>{c.title}</Link>
+                  <Link to={casePath(c.key)} data-testid="case-list-title-link">
+                    {c.title}
+                  </Link>
                   <span className={`priority-label priority-${c.priority}`}>
                     <span
                       className={`priority-bar inline priority-${c.priority}`}

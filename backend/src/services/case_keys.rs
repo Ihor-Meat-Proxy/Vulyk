@@ -142,6 +142,49 @@ pub async fn retire_case_key(
     Ok(())
 }
 
+/// Normalize a case key for lookup (trim + uppercase). Prefixes are stored uppercase.
+pub fn normalize_case_key(key: &str) -> String {
+    key.trim().to_ascii_uppercase()
+}
+
+/// True when `key` appears in `case_key_tombstones` (case-insensitive).
+pub async fn is_key_retired(pool: &PgPool, key: &str) -> AppResult<bool> {
+    let normalized = normalize_case_key(key);
+    if normalized.is_empty() {
+        return Ok(false);
+    }
+    let retired: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(
+             SELECT 1 FROM case_key_tombstones WHERE upper(key) = $1
+           )"#,
+    )
+    .bind(&normalized)
+    .fetch_one(pool)
+    .await?;
+    Ok(retired)
+}
+
+/// Load a live test case by human-readable key (case-insensitive).
+/// Prefixes are globally unique, so the key is unique across the instance.
+pub async fn find_case_by_key(
+    pool: &PgPool,
+    key: &str,
+) -> AppResult<Option<crate::models::TestCase>> {
+    let normalized = normalize_case_key(key);
+    if normalized.is_empty() {
+        return Ok(None);
+    }
+    let case = sqlx::query_as::<_, crate::models::TestCase>(
+        r#"SELECT id, project_id, suite_id, key, title, description, precondition,
+                  priority, status, version, external_key, sort_order, created_at, updated_at
+           FROM test_cases WHERE upper(key) = $1"#,
+    )
+    .bind(&normalized)
+    .fetch_optional(pool)
+    .await?;
+    Ok(case)
+}
+
 pub fn parse_case_number(key: &str) -> Option<i32> {
     let (_, num) = key.rsplit_once('-')?;
     num.parse().ok()

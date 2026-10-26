@@ -102,6 +102,20 @@ export async function createCase(
   )
 }
 
+export async function deleteCase(
+  request: APIRequestContext,
+  token: string,
+  projectId: string,
+  caseId: string,
+) {
+  return apiJson<void>(
+    request,
+    'DELETE',
+    `/api/v1/projects/${projectId}/cases/${caseId}`,
+    { token, expectedStatus: 204 },
+  )
+}
+
 export async function createUser(
   request: APIRequestContext,
   token: string,

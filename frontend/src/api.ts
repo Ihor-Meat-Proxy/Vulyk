@@ -2,6 +2,18 @@ import { getStoredToken } from './token'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
+export class ApiError extends Error {
+  status: number
+  code: string
+
+  constructor(message: string, status: number, code = 'error') {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.code = code
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken()
   const headers: Record<string, string> = {
@@ -24,12 +36,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         error?: { message?: string; code?: string }
       }
       if (parsed?.error?.message) {
-        throw new Error(parsed.error.message)
+        throw new ApiError(
+          parsed.error.message,
+          res.status,
+          parsed.error.code ?? 'error',
+        )
       }
     } catch (err) {
+      if (err instanceof ApiError) throw err
       if (err instanceof Error && err.message !== text) throw err
     }
-    throw new Error(text || res.statusText)
+    throw new ApiError(text || res.statusText, res.status)
   }
   if (res.status === 204) {
     return undefined as T
@@ -1309,6 +1326,11 @@ export const api = {
   },
   getCase: (projectId: string, caseId: string) =>
     request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`),
+  /** Resolve a case by human-readable key (PREFIX-N), case-insensitive. */
+  getCaseByKey: (key: string) =>
+    request<TestCaseDetail>(
+      `/api/v1/cases/by-key/${encodeURIComponent(key)}`,
+    ),
   updateCase: (
     projectId: string,
     caseId: string,

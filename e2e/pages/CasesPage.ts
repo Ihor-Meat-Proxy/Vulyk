@@ -41,6 +41,10 @@ export class CasesPage {
     await this.listPanel().getByRole('link', { name: title }).click()
   }
 
+  async backToCases() {
+    await this.page.getByTestId('case-detail-back').click()
+  }
+
   folderTree() {
     return this.page.locator('.folder-tree')
   }
