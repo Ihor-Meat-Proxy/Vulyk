@@ -75,7 +75,7 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 2. Change the admin password if the default was used.
 3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled):
    - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, and two example runs (dress rehearsal + ticketing smoke).
-   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~130+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, cases, runs, import, LLM, MCP, i18n, appearance, PWA, performance), requirements, and two example runs. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
+   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~140+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n, appearance, PWA, performance), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
 4. Create additional projects and memberships under **Admin**.
 5. Mint API tokens for CI/MCP.
 6. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.

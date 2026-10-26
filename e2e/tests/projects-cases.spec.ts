@@ -61,8 +61,10 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   const cases = new CasesPage(page)
   await cases.open()
 
-  // Folder tree panel is present (SquashTM-style); Smoke appears there (and may also be in the nav drawer)
+  // Sole folder UI is the Cases page SquashTM tree (not the app sidebar).
+  await expect(page.locator('.sidebar .suite-block')).toHaveCount(0)
   await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
+  await expect(cases.folderTree().getByTestId('folder-all-cases')).toBeVisible()
   await expect(cases.folderTree().getByText('Smoke')).toBeVisible({
     timeout: 20_000,
   })

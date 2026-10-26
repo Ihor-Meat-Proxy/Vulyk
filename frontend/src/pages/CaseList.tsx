@@ -34,30 +34,52 @@ export function CaseList({
   const canLlm = can('llm_assist')
 
   const [cases, setCases] = useState<TestCase[]>([])
-  const [treeCases, setTreeCases] = useState<TestCase[]>([])
   const [total, setTotal] = useState(0)
+  const [projectCaseTotal, setProjectCaseTotal] = useState(0)
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState('')
   const [status, setStatus] = useState('')
+  const [directOnly, setDirectOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pending, startTransition] = useTransition()
   const deferredQuery = useDeferredValue(query)
   const [newTitle, setNewTitle] = useState('')
   const [creating, setCreating] = useState(false)
+  const [treeReloadToken, setTreeReloadToken] = useState(0)
+  const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
+
+  useEffect(() => {
+    if (!treeDrawerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTreeDrawerOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [treeDrawerOpen])
+
+  const selectSuite = (id: string | null) => {
+    onSelectSuite(id)
+    setTreeDrawerOpen(false)
+  }
 
   useEffect(() => {
     setOffset(0)
     setSelected(new Set())
-  }, [projectId, suiteId, deferredQuery, tag, status])
+  }, [projectId, suiteId, deferredQuery, tag, status, directOnly])
+
+  useEffect(() => {
+    // Direct-only only applies when a folder is selected.
+    if (suiteId == null) setDirectOnly(false)
+  }, [suiteId])
 
   useEffect(() => {
     if (!projectId) {
       setCases([])
       setTotal(0)
-      setTreeCases([])
+      setProjectCaseTotal(0)
       return
     }
     let cancelled = false
@@ -65,6 +87,7 @@ export function CaseList({
     api
       .listCases(projectId, {
         suiteId,
+        directOnly: suiteId != null && directOnly ? true : undefined,
         q: deferredQuery || undefined,
         tag: tag || undefined,
         status: status || undefined,
@@ -90,24 +113,24 @@ export function CaseList({
     return () => {
       cancelled = true
     }
-  }, [projectId, suiteId, deferredQuery, tag, status, offset])
+  }, [projectId, suiteId, deferredQuery, tag, status, offset, directOnly])
 
+  // Unfiltered project total for the tree "All cases" badge (never from a capped tree fetch).
   useEffect(() => {
     if (!projectId) return
     let cancelled = false
-    // Load a broad set for the tree panel (folders show their cases).
     api
-      .listCases(projectId, { limit: 500, offset: 0 })
+      .listCases(projectId, { limit: 1, offset: 0 })
       .then((page) => {
-        if (!cancelled) setTreeCases(page.items)
+        if (!cancelled) setProjectCaseTotal(page.total)
       })
       .catch(() => {
-        /* list panel still works */
+        /* tree still works without the badge */
       })
     return () => {
       cancelled = true
     }
-  }, [projectId, suites, cases.length])
+  }, [projectId, suites, treeReloadToken])
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -118,10 +141,13 @@ export function CaseList({
     })
   }
 
+  const bumpTree = () => setTreeReloadToken((n) => n + 1)
+
   const reloadList = async () => {
     if (!projectId) return
     const page = await api.listCases(projectId, {
       suiteId,
+      directOnly: suiteId != null && directOnly ? true : undefined,
       q: deferredQuery || undefined,
       tag: tag || undefined,
       status: status || undefined,
@@ -131,8 +157,9 @@ export function CaseList({
     setOffset(0)
     setCases(page.items)
     setTotal(page.total)
-    const tree = await api.listCases(projectId, { limit: 500, offset: 0 })
-    setTreeCases(tree.items)
+    const all = await api.listCases(projectId, { limit: 1, offset: 0 })
+    setProjectCaseTotal(all.total)
+    bumpTree()
   }
 
   const createCase = async () => {
@@ -153,6 +180,7 @@ export function CaseList({
       })
       setNewTitle('')
       await reloadList()
+      onSuitesChanged()
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -204,8 +232,8 @@ export function CaseList({
     if (!projectId || !canManageFolders) return
     const hasContent =
       (suite.case_count ?? 0) > 0 ||
-      suites.some((s) => s.parent_id === suite.id) ||
-      treeCases.some((c) => c.suite_id === suite.id)
+      (suite.direct_case_count ?? 0) > 0 ||
+      suites.some((s) => s.parent_id === suite.id)
     let onNonempty: 'move_to_parent' | 'delete_cases' = 'move_to_parent'
     if (hasContent) {
       const choice = window.prompt(
@@ -227,7 +255,7 @@ export function CaseList({
     }
     try {
       await api.deleteSuite(projectId, suite.id, onNonempty)
-      if (suiteId === suite.id) onSelectSuite(null)
+      if (suiteId === suite.id) selectSuite(null)
       onSuitesChanged()
       await reloadList()
     } catch (err) {
@@ -273,24 +301,61 @@ export function CaseList({
   }
 
   return (
-    <div className="case-browser case-browser-split">
-      <aside className="case-tree-panel">
+    <div
+      className={`case-browser case-browser-split${treeDrawerOpen ? ' tree-drawer-open' : ''}`}
+    >
+      {treeDrawerOpen && (
+        <button
+          type="button"
+          className="case-tree-backdrop"
+          aria-label={t('nav.close')}
+          onClick={() => setTreeDrawerOpen(false)}
+        />
+      )}
+      <aside
+        className="case-tree-panel"
+        id="case-folder-drawer"
+        aria-hidden={false}
+      >
+        <div className="case-tree-drawer-header">
+          <span className="folder-tree-title">{t('folders.title')}</span>
+          <button
+            type="button"
+            className="btn secondary case-tree-drawer-close"
+            onClick={() => setTreeDrawerOpen(false)}
+          >
+            {t('nav.close')}
+          </button>
+        </div>
         <CaseFolderTree
+          projectId={projectId}
           suites={suites}
-          cases={treeCases}
+          projectCaseTotal={projectCaseTotal}
           selectedSuiteId={suiteId}
           canManage={canManageFolders}
           canEditCases={canBulkEdit}
-          onSelectSuite={onSelectSuite}
+          onSelectSuite={selectSuite}
           onCreateFolder={(id) => void onCreateFolder(id)}
           onRenameFolder={(s) => void onRenameFolder(s)}
           onDeleteFolder={(s) => void onDeleteFolder(s)}
           onMoveCase={(id, sid) => void onMoveCase(id, sid)}
           onMoveFolder={(id, pid) => void onMoveFolder(id, pid)}
+          reloadToken={treeReloadToken}
         />
       </aside>
 
       <div className="case-list-panel">
+        <div className="toolbar folders-drawer-bar">
+          <button
+            type="button"
+            className="btn secondary folders-drawer-toggle"
+            aria-expanded={treeDrawerOpen}
+            aria-controls="case-folder-drawer"
+            onClick={() => setTreeDrawerOpen(true)}
+          >
+            {t('folders.title')}
+          </button>
+        </div>
         {canCreate && (
           <div className="toolbar create-case-bar">
             <input
@@ -338,6 +403,16 @@ export function CaseList({
             <option value="ready">ready</option>
             <option value="deprecated">deprecated</option>
           </select>
+          {suiteId != null && (
+            <label className="direct-only-toggle">
+              <input
+                type="checkbox"
+                checked={directOnly}
+                onChange={(e) => setDirectOnly(e.target.checked)}
+              />
+              {t('folders.directOnly')}
+            </label>
+          )}
           <span className="muted">
             {total.toLocaleString()} {t('cases.count')}
             {pending || loading ? ` · ${t('common.loading')}` : ''}

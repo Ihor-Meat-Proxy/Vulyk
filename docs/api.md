@@ -21,7 +21,7 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Area | Paths |
 |------|-------|
 | Auth | `/api/v1/auth/*` |
-| Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suite delete accepts `on_nonempty` |
+| Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suites list returns recursive `case_count` + `direct_case_count`; cases list accepts `suite_id`, `direct_only`, `unfiled_only` and sorts by numeric key; suite delete accepts `on_nonempty` |
 | Automation repo | `/api/v1/projects/{id}/automation-repo` (+ `/test`, `/reindex`) — encrypted Git token, shallow index for generate-code context |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
 | Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` |

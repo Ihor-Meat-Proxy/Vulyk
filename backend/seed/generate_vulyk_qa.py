@@ -196,7 +196,7 @@ def build() -> dict:
                         ),
                         step(
                             "Select project Vulyk QA in .project-select.",
-                            "Cases page shows folder tree with '01. Setup & Install' (or UK equivalent).",
+                            "Cases page .folder-tree (region Case folders|Теки кейсів) shows All cases|Усі кейси root and '01. Setup & Install' (or UK). App sidebar (#nav-drawer / .sidebar) has no Folders section.",
                         ),
                     ],
                 ),
@@ -831,10 +831,146 @@ def build() -> dict:
             ],
         ),
         # ── 06 Folders ──────────────────────────────────────────────────
+        # Sole folder UI is the Cases page SquashTM tree (.folder-tree / #case-folder-drawer).
+        # App sidebar has primary nav only — no Folders section / suite counts.
         suite(
             "06. Folders",
             "06. Теки",
             children=[
+                suite(
+                    "Tree UI & counts",
+                    "Дерево та лічильники",
+                    cases=[
+                        case(
+                            "Single folder tree on Cases page (no sidebar Folders)",
+                            title_uk="Єдине дерево тек на Cases (без Folders у сайдбарі)",
+                            desc_en="Folders live only in the Cases content tree — not duplicated in the left app sidebar.",
+                            pre_en="Desktop viewport; Cases page; project with nested folders.",
+                            priority="critical",
+                            tags=["smoke", "regression", "e2e", "folders"],
+                            external_key="e2e:projects-cases.spec.ts",
+                            steps=[
+                                step(
+                                    "Open Cases; inspect .sidebar / #nav-drawer.",
+                                    "No .suite-block / Folders|Теки heading in the app sidebar; primary nav links only.",
+                                ),
+                                step(
+                                    "Locate region Case folders|Теки кейсів (.folder-tree) in the Cases split layout.",
+                                    "Tree panel is the sole folder UI beside the case list; folders and cases appear there.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "All cases is the tree root node",
+                            title_uk="Усі кейси — корінь дерева",
+                            desc_en="data-testid=folder-all-cases shows project total; selecting it clears suite filter.",
+                            pre_en="Cases page with folders and cases.",
+                            priority="critical",
+                            tags=["smoke", "regression", "e2e", "folders"],
+                            external_key="e2e:projects-cases.spec.ts",
+                            steps=[
+                                step(
+                                    "In .folder-tree click [data-testid=folder-all-cases] (All cases|Усі кейси).",
+                                    "Root is active; case list shows unfiltered project total; folder filter cleared.",
+                                ),
+                                step(
+                                    "Hover the root count badge (title folders.projectTotal).",
+                                    "Badge shows total cases in the project (unfiltered).",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Recursive folder counts with direct-count tooltip",
+                            title_uk="Рекурсивні лічильники з підказкою прямих",
+                            desc_en="Folder badge = recursive total; title attribute shows 'N (D direct)'.",
+                            pre_en="Parent folder with child that has cases; optional direct case on parent.",
+                            priority="critical",
+                            tags=["smoke", "regression", "e2e", "api", "folders"],
+                            external_key="e2e:folder-tree-lazy.spec.ts",
+                            steps=[
+                                step(
+                                    "GET /projects/{id}/suites; read case_count and direct_case_count on parent and child.",
+                                    "Parent case_count equals sum of descendant directs; direct_case_count is cases with suite_id exactly that folder.",
+                                ),
+                                step(
+                                    "In .folder-tree find [data-testid=folder-count-{parentId}]; check text and title.",
+                                    "Visible text is recursive total; title matches '{recursive} ({direct} direct)'.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Parent folder list includes descendant cases",
+                            title_uk="Вибір батьківської теки включає нащадків",
+                            desc_en="Selecting a parent filters the right-hand list to that folder + descendants (default).",
+                            pre_en="Parent with child folder that has cases; optional Direct only unchecked.",
+                            priority="high",
+                            tags=["regression", "e2e", "api", "folders"],
+                            external_key="e2e:folder-tree-lazy.spec.ts",
+                            steps=[
+                                step(
+                                    "Click the parent folder name button in .folder-tree (not only the twistie).",
+                                    "List panel muted count matches recursive total; cases from child folders appear.",
+                                ),
+                                step(
+                                    "GET cases?suite_id={parentId} without direct_only.",
+                                    "total includes descendant cases.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Direct only excludes descendant cases",
+                            title_uk="Лише прямі виключає нащадків",
+                            desc_en="Direct only checkbox on list panel scopes to suite_id exactly.",
+                            pre_en="Parent selected; descendants have cases.",
+                            priority="high",
+                            tags=["regression", "e2e", "api", "folders"],
+                            steps=[
+                                step(
+                                    "With a folder selected, enable checkbox Direct only|Лише прямі in .case-list-panel.",
+                                    "List total drops to direct_case_count; GET cases?suite_id=&direct_only=true matches.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Lazy load folder cases with Load more",
+                            title_uk="Ліниве завантаження кейсів теки з Load more",
+                            desc_en="Expanding a folder fetches direct cases in pages of 100 — never a global capped project fetch.",
+                            pre_en="Folder with >100 direct cases (e.g. 220). Cases page open.",
+                            priority="critical",
+                            tags=["smoke", "regression", "e2e", "folders", "performance"],
+                            external_key="e2e:folder-tree-lazy.spec.ts",
+                            steps=[
+                                step(
+                                    "Expand a high-count leaf via .folder-tree-twistie; watch network for cases?direct_only=true&limit=100.",
+                                    "First page shows 100 .folder-tree-case rows under that folder; no listCases(limit:500) for the whole project.",
+                                ),
+                                step(
+                                    "Click Load more|Завантажити ще (.folder-tree-load-more).",
+                                    "Next page appends; control shows loaded/total until all direct cases are visible.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Cases sort by numeric key suffix in tree and list",
+                            title_uk="Сортування за числовим суфіксом ключа",
+                            desc_en="PREFIX-2 precedes PREFIX-10 (not localeCompare string order).",
+                            pre_en="Folder with ≥12 cases allocated as PREFIX-N.",
+                            priority="high",
+                            tags=["regression", "e2e", "api", "folders", "case-keys"],
+                            external_key="e2e:folder-tree-lazy.spec.ts",
+                            steps=[
+                                step(
+                                    "GET cases?suite_id={id}&direct_only=true&limit=20; read item keys.",
+                                    "Numeric order: …-2 before …-10 (string sort would put -10 first).",
+                                ),
+                                step(
+                                    "Expand the same folder in .folder-tree; read .folder-tree-case-key texts.",
+                                    "Tree order matches numeric API order.",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
                 suite(
                     "CRUD & nesting",
                     "CRUD і вкладеність",
@@ -842,15 +978,15 @@ def build() -> dict:
                         case(
                             "Create nested folder via folder tree",
                             title_uk="Створити вкладену теку через дерево",
-                            desc_en="New folder under selected parent appears in tree with counts.",
-                            pre_en="Cases page; project selected.",
+                            desc_en="New folder under selected parent appears in the Cases .folder-tree with recursive/direct counts.",
+                            pre_en="Cases page; project selected; manage_suites permission.",
                             priority="critical",
                             tags=["smoke", "regression", "e2e", "folders"],
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
                                     "In region Case folders|Теки кейсів, click New folder|Нова тека; name it.",
-                                    "Folder button appears in .folder-tree under parent.",
+                                    "Folder button appears in .folder-tree under parent; count badge starts at 0.",
                                     "Folder name: Nested QA",
                                 ),
                             ],
@@ -864,50 +1000,50 @@ def build() -> dict:
                             tags=["regression", "e2e", "folders"],
                             steps=[
                                 step(
-                                    "Rename folder via tree action / PATCH suite.",
-                                    "New name visible; case count unchanged; cases still listed when selected.",
+                                    "Rename folder via tree ✎ action / PATCH suite.",
+                                    "New name visible in .folder-tree; recursive count unchanged; cases still listed when selected.",
                                 ),
                             ],
                         ),
                         case(
                             "Move folder via drag-drop or Move to",
                             title_uk="Перемістити теку drag-drop або Move to",
-                            desc_en="Reparent suite; mobile uses Move to.",
+                            desc_en="Reparent suite in the Cases tree; mobile uses Move to.",
                             pre_en="Two sibling folders A and B.",
                             priority="high",
                             tags=["regression", "e2e", "folders"],
                             steps=[
                                 step(
                                     "Drag folder A onto B (desktop) or use Move to on mobile.",
-                                    "A becomes child of B; URL/filter still works; no cases lost.",
+                                    "A becomes child of B in .folder-tree; parent recursive counts update; no cases lost.",
                                 ),
                             ],
                         ),
                         case(
                             "Delete empty folder",
                             title_uk="Видалити порожню теку",
-                            desc_en="Empty folder deletes cleanly.",
+                            desc_en="Empty folder deletes cleanly from the Cases tree.",
                             pre_en="Empty folder.",
                             priority="medium",
                             tags=["regression", "folders"],
                             steps=[
                                 step(
-                                    "Delete the empty folder.",
-                                    "Folder removed from tree; API GET suites no longer lists it.",
+                                    "Delete the empty folder via tree ⌫.",
+                                    "Folder removed from .folder-tree; API GET suites no longer lists it.",
                                 ),
                             ],
                         ),
                         case(
                             "Delete non-empty folder with move_to_parent",
                             title_uk="Видалити непорожню теку з move_to_parent",
-                            desc_en="Cases move to parent; keys preserved.",
+                            desc_en="Cases move to parent; keys preserved; recursive counts update.",
                             pre_en="Folder with ≥1 case.",
                             priority="high",
                             tags=["regression", "api", "folders"],
                             steps=[
                                 step(
                                     "DELETE suite with on_nonempty=move_to_parent.",
-                                    "Suite gone; cases now under parent; keys unchanged.",
+                                    "Suite gone; cases now under parent; keys unchanged; parent counts include moved cases.",
                                 ),
                             ],
                         ),
@@ -922,21 +1058,6 @@ def build() -> dict:
                                 step(
                                     "DELETE suite with on_nonempty=delete_cases; create a new case.",
                                     "Deleted keys not reused; counter continues.",
-                                ),
-                            ],
-                        ),
-                        case(
-                            "Folder case counts include nested children",
-                            title_uk="Лічильники кейсів у теці включають нащадків",
-                            desc_en="Selecting parent filters list including subfolders.",
-                            pre_en="Parent with child folder that has cases.",
-                            priority="medium",
-                            tags=["regression", "e2e", "folders"],
-                            external_key="e2e:projects-cases.spec.ts",
-                            steps=[
-                                step(
-                                    "Click parent folder in tree; observe list and count badge.",
-                                    "List shows cases from descendants; count matches.",
                                 ),
                             ],
                         ),
@@ -2038,17 +2159,25 @@ def build() -> dict:
                     ],
                 ),
                 case(
-                    "Suite drawer on mobile",
+                    "Folders drawer on mobile",
                     title_uk="Drawer тек на мобільному",
-                    desc_en="#suite-drawer / folder access.",
-                    pre_en="Mobile viewport; Cases page.",
-                    priority="high",
-                    tags=["regression", "e2e", "mobile", "folders"],
+                    desc_en="On ≤860px the Cases SquashTM tree is #case-folder-drawer (not app-sidebar Folders). Top-bar Menu opens #nav-drawer for primary nav only.",
+                    pre_en="Chromium mobile / Pixel viewport; Cases page.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "mobile", "folders", "pwa"],
                     external_key="e2e:pwa-mobile.spec.ts",
                     steps=[
                         step(
-                            "Open suite drawer; select a folder.",
-                            "Drawer opens; selecting folder filters cases; backdrop dismisses.",
+                            "Click top-bar Menu|Меню (.menu-toggle); inspect #nav-drawer.",
+                            "Primary nav is visible; no Folders|Теки suite list / .suite-block in the app sidebar.",
+                        ),
+                        step(
+                            "Close menu; in .case-list-panel click Folders|Теки (.folders-drawer-toggle).",
+                            "#case-folder-drawer slides open with .folder-tree; [data-testid=folder-all-cases] visible.",
+                        ),
+                        step(
+                            "Select All cases or a folder; or click Close / .case-tree-backdrop.",
+                            "Selecting a folder filters the list and closes the drawer; backdrop/Close dismisses without changing route.",
                         ),
                     ],
                 ),
@@ -2155,15 +2284,35 @@ def build() -> dict:
                 case(
                     "Folder tree with deep nesting stays responsive",
                     title_uk="Дерево тек з глибокою вкладеністю лишається чуйним",
-                    desc_en="Edge: many nested suites.",
+                    desc_en="Edge: many nested suites with recursive counts; expand still lazy-loads.",
                     pre_en="Project with deep folder hierarchy (≥5 levels) and counts.",
                     priority="medium",
                     tags=["performance", "folders", "edge"],
                     case_type="edge",
                     steps=[
                         step(
-                            "Expand nested folders in .folder-tree.",
-                            "Expand/collapse remains responsive; selecting leaf filters cases.",
+                            "Expand nested folders in .folder-tree; note recursive badges.",
+                            "Expand/collapse remains responsive; selecting leaf filters cases; counts stay correct.",
+                        ),
+                    ],
+                ),
+                case(
+                    "10×10×200 folder shape: recursive counts and lazy pages",
+                    title_uk="Форма 10×10×200: рекурсивні лічильники і lazy-сторінки",
+                    desc_en="Perf fixture: 10 root folders × 10 leaves × 200 cases (20k). Suite counts and direct_only pages must stay correct without a global 500-cap tree fetch.",
+                    pre_en="Backend/perf fixture or generated 10×10×200 project (see case_keys_folders / folder-tree-lazy).",
+                    priority="high",
+                    tags=["performance", "folders", "api", "regression"],
+                    case_type="performance",
+                    external_key="e2e:folder-tree-lazy.spec.ts",
+                    steps=[
+                        step(
+                            "GET suites; check a root folder case_count=2000 and a leaf case_count=direct_case_count=200.",
+                            "Recursive aggregation matches the shape; All cases / project total = 20 000.",
+                        ),
+                        step(
+                            "GET cases?suite_id={leaf}&direct_only=true&limit=100&offset=0 then offset=100.",
+                            "Each page returns 100 items; total=200; keys remain numeric-ordered.",
                         ),
                     ],
                 ),

@@ -12,9 +12,12 @@ pub struct Suite {
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    /// Direct (non-recursive) case count in this folder.
+    /// Recursive total: this folder + all descendant folders.
     #[serde(default)]
     pub case_count: i64,
+    /// Cases whose `suite_id` is exactly this folder (no descendants).
+    #[serde(default)]
+    pub direct_case_count: i64,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

@@ -63,6 +63,13 @@ pub fn router() -> Router<AppState> {
 #[derive(Debug, Deserialize)]
 pub struct ListCasesQuery {
     pub suite_id: Option<Uuid>,
+    /// When true with `suite_id`, only cases directly in that folder (no descendants).
+    /// Default false: selecting a parent includes all descendant folders.
+    #[serde(default)]
+    pub direct_only: bool,
+    /// When true, only cases with no folder (`suite_id IS NULL`). Ignores `suite_id`.
+    #[serde(default)]
+    pub unfiled_only: bool,
     pub q: Option<String>,
     pub tag: Option<String>,
     pub status: Option<String>,
@@ -86,7 +93,9 @@ impl ListCasesQuery {
     tag = "cases",
     params(
         ("project_id" = Uuid, Path, description = "Project id"),
-        ("suite_id" = Option<Uuid>, Query, description = "Filter by suite"),
+        ("suite_id" = Option<Uuid>, Query, description = "Filter by suite/folder (includes descendants by default)"),
+        ("direct_only" = Option<bool>, Query, description = "If true with suite_id, only direct cases in that folder"),
+        ("unfiled_only" = Option<bool>, Query, description = "If true, only cases with no suite_id"),
         ("q" = Option<String>, Query, description = "Full-text / title search"),
         ("tag" = Option<String>, Query, description = "Filter by tag name"),
         ("status" = Option<String>, Query, description = "Filter by status"),
@@ -116,7 +125,20 @@ pub async fn list_cases(
     let limit = page.limit();
     let offset = page.offset();
 
-    let total: i64 = sqlx::query_scalar(
+    // Folder filter: by default include descendants; `direct_only` scopes to that suite only.
+    // `unfiled_only` returns cases with no folder (used by the tree's lazy unfiled load).
+    // Must not wrap in `$2 IS NULL OR …` — that would ignore `unfiled_only` when suite_id is absent.
+    let suite_predicate = if query.unfiled_only {
+        "tc.suite_id IS NULL".to_string()
+    } else if query.suite_id.is_none() {
+        "TRUE".to_string()
+    } else if query.direct_only {
+        "tc.suite_id = $2".to_string()
+    } else {
+        "(tc.suite_id = $2 OR tc.suite_id IN (SELECT id FROM suite_tree))".to_string()
+    };
+
+    let total_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
              SELECT id FROM suites WHERE id = $2
              UNION ALL
@@ -128,11 +150,7 @@ pub async fn list_cases(
            LEFT JOIN case_tags ct ON ct.case_id = tc.id
            LEFT JOIN tags tg ON tg.id = ct.tag_id
            WHERE tc.project_id = $1
-             AND (
-               $2::uuid IS NULL
-               OR tc.suite_id = $2
-               OR tc.suite_id IN (SELECT id FROM suite_tree)
-             )
+             AND ({suite_predicate})
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ($5::text IS NULL OR tg.name = $5)
@@ -141,18 +159,21 @@ pub async fn list_cases(
                tc.search_vector @@ plainto_tsquery('english', $6) OR
                tc.title ILIKE '%' || $6 || '%' OR
                tc.key ILIKE '%' || $6 || '%'
-             )"#,
-    )
-    .bind(project_id)
-    .bind(query.suite_id)
-    .bind(query.status.as_deref())
-    .bind(query.priority.as_deref())
-    .bind(query.tag.as_deref())
-    .bind(query.q.as_deref())
-    .fetch_one(&state.pool)
-    .await?;
+             )"#
+    );
 
-    let cases = sqlx::query_as::<_, TestCase>(
+    let total: i64 = sqlx::query_scalar(&total_sql)
+        .bind(project_id)
+        .bind(query.suite_id)
+        .bind(query.status.as_deref())
+        .bind(query.priority.as_deref())
+        .bind(query.tag.as_deref())
+        .bind(query.q.as_deref())
+        .fetch_one(&state.pool)
+        .await?;
+
+    // Numeric PREFIX-N ordering (PLTK-2 before PLTK-10), then key as tie-breaker.
+    let list_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
              SELECT id FROM suites WHERE id = $2
              UNION ALL
@@ -165,11 +186,7 @@ pub async fn list_cases(
            LEFT JOIN case_tags ct ON ct.case_id = tc.id
            LEFT JOIN tags tg ON tg.id = ct.tag_id
            WHERE tc.project_id = $1
-             AND (
-               $2::uuid IS NULL
-               OR tc.suite_id = $2
-               OR tc.suite_id IN (SELECT id FROM suite_tree)
-             )
+             AND ({suite_predicate})
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ($5::text IS NULL OR tg.name = $5)
@@ -184,19 +201,27 @@ pub async fn list_cases(
              CASE WHEN $6::text IS NOT NULL
                THEN ts_rank(tc.search_vector, plainto_tsquery('english', $6))
                ELSE 0 END DESC,
-             tc.sort_order, tc.key
-           LIMIT $7 OFFSET $8"#,
-    )
-    .bind(project_id)
-    .bind(query.suite_id)
-    .bind(query.status.as_deref())
-    .bind(query.priority.as_deref())
-    .bind(query.tag.as_deref())
-    .bind(query.q.as_deref())
-    .bind(limit)
-    .bind(offset)
-    .fetch_all(&state.pool)
-    .await?;
+             tc.sort_order,
+             CASE
+               WHEN tc.key ~ '^[A-Z][A-Z0-9]*-[0-9]+$'
+               THEN (regexp_match(tc.key, '-([0-9]+)$'))[1]::bigint
+               ELSE NULL
+             END ASC NULLS LAST,
+             tc.key
+           LIMIT $7 OFFSET $8"#
+    );
+
+    let cases = sqlx::query_as::<_, TestCase>(&list_sql)
+        .bind(project_id)
+        .bind(query.suite_id)
+        .bind(query.status.as_deref())
+        .bind(query.priority.as_deref())
+        .bind(query.tag.as_deref())
+        .bind(query.q.as_deref())
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(&state.pool)
+        .await?;
 
     Ok(Json(Page::new(cases, total, limit, offset)))
 }

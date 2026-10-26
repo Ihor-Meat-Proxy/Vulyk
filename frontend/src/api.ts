@@ -61,7 +61,10 @@ export type Suite = {
   parent_id: string | null
   name: string
   sort_order: number
+  /** Recursive total (folder + descendants). */
   case_count?: number
+  /** Cases whose suite_id is exactly this folder. */
+  direct_case_count?: number
   created_at?: string
   updated_at?: string
 }
@@ -523,6 +526,10 @@ export type RunItemExecution = {
 
 export type ListCasesParams = {
   suiteId?: string | null
+  /** Only cases directly in suiteId (no descendants). */
+  directOnly?: boolean
+  /** Only cases with no suite_id. */
+  unfiledOnly?: boolean
   q?: string
   tag?: string
   status?: string
@@ -1231,6 +1238,8 @@ export const api = {
   listCases: (projectId: string, params: ListCasesParams = {}) => {
     const qs = new URLSearchParams()
     if (params.suiteId) qs.set('suite_id', params.suiteId)
+    if (params.directOnly) qs.set('direct_only', 'true')
+    if (params.unfiledOnly) qs.set('unfiled_only', 'true')
     if (params.q) qs.set('q', params.q)
     if (params.tag) qs.set('tag', params.tag)
     if (params.status) qs.set('status', params.status)

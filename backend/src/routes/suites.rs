@@ -10,6 +10,7 @@ use crate::error::{AppError, AppResult};
 use crate::models::{CreateSuite, DeleteSuiteQuery, Suite, UpdateSuite};
 use crate::routes::AppState;
 use crate::services::case_keys::retire_case_key;
+use crate::services::suites::{get_suite_with_counts, list_suites_with_counts};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -34,19 +35,12 @@ pub async fn ensure_project(pool: &sqlx::PgPool, project_id: Uuid) -> AppResult<
     Ok(())
 }
 
-const SUITE_SELECT: &str = r#"SELECT s.id, s.project_id, s.parent_id, s.name, s.sort_order,
-              s.created_at, s.updated_at,
-              COALESCE((
-                SELECT COUNT(*)::bigint FROM test_cases tc WHERE tc.suite_id = s.id
-              ), 0) AS case_count
-       FROM suites s"#;
-
 #[utoipa::path(
     get,
     path = "/api/v1/projects/{project_id}/suites",
     tag = "suites",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "List suites (folders)", body = [Suite])),
+    responses((status = 200, description = "List suites/folders with recursive case_count", body = [Suite])),
     security(("bearer_auth" = []))
 )]
 pub async fn list_suites(
@@ -63,13 +57,9 @@ pub async fn list_suites(
     )
     .await?;
     ensure_project(&state.pool, project_id).await?;
-    let suites = sqlx::query_as::<_, Suite>(&format!(
-        "{SUITE_SELECT} WHERE s.project_id = $1 ORDER BY s.sort_order, s.name"
+    Ok(Json(
+        list_suites_with_counts(&state.pool, project_id).await?,
     ))
-    .bind(project_id)
-    .fetch_all(&state.pool)
-    .await?;
-    Ok(Json(suites))
 }
 
 #[utoipa::path(
@@ -120,7 +110,9 @@ pub async fn create_suite(
              RETURNING id, project_id, parent_id, name, sort_order, created_at, updated_at
            )
            SELECT i.id, i.project_id, i.parent_id, i.name, i.sort_order,
-                  i.created_at, i.updated_at, 0::bigint AS case_count
+                  i.created_at, i.updated_at,
+                  0::bigint AS case_count,
+                  0::bigint AS direct_case_count
            FROM inserted i"#,
     )
     .bind(project_id)
@@ -157,14 +149,9 @@ pub async fn get_suite(
         Permission::ViewProject,
     )
     .await?;
-    let suite = sqlx::query_as::<_, Suite>(&format!(
-        "{SUITE_SELECT} WHERE s.project_id = $1 AND s.id = $2"
-    ))
-    .bind(project_id)
-    .bind(suite_id)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("suite".into()))?;
+    let suite = get_suite_with_counts(&state.pool, project_id, suite_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("suite".into()))?;
     Ok(Json(suite))
 }
 
@@ -217,14 +204,9 @@ pub async fn update_suite(
         Permission::ManageSuites,
     )
     .await?;
-    let existing = sqlx::query_as::<_, Suite>(&format!(
-        "{SUITE_SELECT} WHERE s.project_id = $1 AND s.id = $2"
-    ))
-    .bind(project_id)
-    .bind(suite_id)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("suite".into()))?;
+    let existing = get_suite_with_counts(&state.pool, project_id, suite_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("suite".into()))?;
 
     let name = body.name.unwrap_or(existing.name);
     let parent_id = if body.clear_parent {
@@ -252,28 +234,22 @@ pub async fn update_suite(
         }
     }
 
-    let suite = sqlx::query_as::<_, Suite>(
-        r#"WITH updated AS (
-             UPDATE suites
-             SET name = $3, parent_id = $4, sort_order = $5, updated_at = NOW()
-             WHERE project_id = $1 AND id = $2
-             RETURNING id, project_id, parent_id, name, sort_order, created_at, updated_at
-           )
-           SELECT u.id, u.project_id, u.parent_id, u.name, u.sort_order,
-                  u.created_at, u.updated_at,
-                  COALESCE((
-                    SELECT COUNT(*)::bigint FROM test_cases tc WHERE tc.suite_id = u.id
-                  ), 0) AS case_count
-           FROM updated u"#,
+    sqlx::query(
+        r#"UPDATE suites
+           SET name = $3, parent_id = $4, sort_order = $5, updated_at = NOW()
+           WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
     .bind(suite_id)
-    .bind(name)
+    .bind(&name)
     .bind(parent_id)
     .bind(sort_order)
-    .fetch_one(&state.pool)
+    .execute(&state.pool)
     .await?;
 
+    let suite = get_suite_with_counts(&state.pool, project_id, suite_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("suite".into()))?;
     Ok(Json(suite))
 }
 
@@ -304,14 +280,9 @@ pub async fn delete_suite(
     )
     .await?;
 
-    let existing = sqlx::query_as::<_, Suite>(&format!(
-        "{SUITE_SELECT} WHERE s.project_id = $1 AND s.id = $2"
-    ))
-    .bind(project_id)
-    .bind(suite_id)
-    .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::NotFound("suite".into()))?;
+    let existing = get_suite_with_counts(&state.pool, project_id, suite_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("suite".into()))?;
 
     let mut tx = state.pool.begin().await?;
 
@@ -329,7 +300,6 @@ pub async fn delete_suite(
 
     match query.on_nonempty.as_str() {
         "delete_cases" => {
-            // Need DeleteCases permission as well when destroying cases.
             require_permission(
                 &state.pool,
                 &auth,
@@ -366,7 +336,6 @@ pub async fn delete_suite(
             .bind(parent)
             .execute(&mut *tx)
             .await?;
-            // Reparent immediate children to the deleted folder's parent.
             sqlx::query(
                 r#"UPDATE suites
                    SET parent_id = $3, updated_at = NOW()

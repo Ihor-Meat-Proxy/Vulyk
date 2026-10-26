@@ -24,7 +24,8 @@ Recording a pass/fail/blocked/skipped result on a run while offline enqueues the
 ## Mobile UX
 
 - **Bottom navigation** (Cases / Runs / Reports / Admin) on viewports ≤860px
-- **Suite tree drawer** — open with the **Suites** control in the top bar
+- **Menu drawer** — top-bar **Menu** opens primary nav (full link set beyond the bottom bar)
+- **Folders drawer** on Cases — open with **Folders**; SquashTM tree with All cases root, recursive counts, lazy load; selecting a folder closes the drawer
 - Case list → detail stacks full-width; tables scroll horizontally when needed
 - **Run execution** is one-handed: case queue list → single-step card → large **Passed / Failed / Blocked / Skipped** buttons near the thumb; camera capture for result attachments (`capture="environment"`)
 - Admin tabs and report tables use larger tap targets and stacked grids
@@ -43,7 +44,7 @@ Service worker registration is disabled in `vite` dev (`devOptions.enabled: fals
 
 ## CI checks
 
-- **Playwright** (`e2e/`): Desktop Chromium plus **iPhone 13** and **Pixel 5** projects (`mobile.spec.ts` covers bottom nav, suite drawer, manifest/SW).
+- **Playwright** (`e2e/`): Desktop Chromium plus **iPhone 13** and **Pixel 5** projects (`pwa-mobile.spec.ts` covers bottom nav, folders drawer, manifest/SW).
 - **Lighthouse**: `frontend/scripts/lighthouse-ci.mjs` asserts accessibility ≥ 0.9 and PWA audits (`installable-manifest`, `service-worker`, `maskable-icon`, `viewport`, splash/theme).
 
 Workflow jobs: `Playwright e2e` and `Lighthouse PWA/a11y` in `.github/workflows/ci.yml`.

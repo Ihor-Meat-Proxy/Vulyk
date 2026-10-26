@@ -7,7 +7,7 @@ This note documents the Case / Plan / Run surface delivered after the Phase 1 fo
 | Capability | API / UI |
 |------------|----------|
 | Automatic case keys | `POST .../cases` allocates `case_key_prefix-N` via atomic `UPDATE projects SET next_case_number = next_case_number + 1 RETURNING …`. Prefix derived from project name initials (stop words/years skipped); unique across projects; editable until first case. Deletes insert `case_key_tombstones` — numbers never reused. Imports store original id in `external_key`. |
-| Nested folders | Suites are unlimited-depth folders. List includes `case_count`. `DELETE .../suites/{id}?on_nonempty=move_to_parent\|delete_cases`. UI: left tree with expand/collapse, priority bar, colour-blind status icons, drag-and-drop / Move to. |
+| Nested folders | Suites are unlimited-depth folders. List returns recursive `case_count` + `direct_case_count` (single CTE aggregation). `GET .../cases?suite_id=` includes descendants; `direct_only=true` / `unfiled_only=true` for tree lazy load. Cases order by `sort_order` then numeric key suffix. `DELETE .../suites/{id}?on_nonempty=move_to_parent\|delete_cases`. UI: left tree expands per-folder (paginated 100), priority bar, colour-blind status icons, drag-and-drop / Move to. |
 | Steps editor | Case detail edit mode; `PUT .../cases/{id}` with `steps[]` |
 | Tags | `CRUD /projects/{id}/tags`; case create/update accepts `tag_ids` / `tag_names` |
 | Custom fields | `CRUD /projects/{id}/custom-fields`; `POST .../cases/{id}/custom-fields` |
