@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { createCase, createProject } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
@@ -60,15 +61,20 @@ test('customize columns: hide priority, show automated, keyboard reorder, sort, 
   await expect(titleBox).toBeChecked()
   await expect(titleBox).toBeDisabled()
 
-  await cases.toggleColumn(/Priority|Пріоритет/i, false)
-  await cases.toggleColumn(/Automated|Автоматизовано/i, true)
-  await expect(cases.caseListHead()).not.toContainText(/Priority|Пріоритет/i)
-  await expect(cases.caseListHead()).toContainText(/Automated|Автоматизовано/i)
+  // Prefer data-entity-key — seeded "Automated?" custom fields also match label text.
+  await cases.toggleColumn('priority', false)
+  await cases.toggleColumn('automated', true)
   await expect(
-    cases.listPanel().getByText(/Yes|Так/i).first(),
+    cases.caseListHead().getByTestId(TestIds.caseListColPriority),
+  ).toHaveCount(0)
+  await expect(
+    cases.caseListHead().getByTestId(TestIds.caseListColAutomated),
+  ).toBeVisible()
+  await expect(
+    cases.listPanel().getByTestId(TestIds.caseRowAutomated).first(),
   ).toBeVisible()
 
-  await cases.moveColumn(/Key|Ключ/i, 'right')
+  await cases.moveColumn('key', 'right')
   await cases.columnsButton().click()
   await expect(cases.columnsDialog()).toBeHidden()
 
@@ -79,16 +85,20 @@ test('customize columns: hide priority, show automated, keyboard reorder, sort, 
   )
   await cases
     .caseListHead()
-    .getByRole('button', { name: /Sort by Title|Сортувати за Назва/i })
+    .locator(
+      `[data-testid="${TestIds.caseListColSort}"][data-entity-key="title"]`,
+    )
     .click()
   await sortReq
 
   await cases.openColumnsSettings()
   await cases.resetColumns()
-  await expect(cases.caseListHead()).toContainText(/Priority|Пріоритет/i)
-  await expect(cases.caseListHead()).not.toContainText(
-    /Automated|Автоматизовано/i,
-  )
+  await expect(
+    cases.caseListHead().getByTestId(TestIds.caseListColPriority),
+  ).toBeVisible()
+  await expect(
+    cases.caseListHead().getByTestId(TestIds.caseListColAutomated),
+  ).toHaveCount(0)
 })
 
 test('column preferences API persists per project', async ({ request }) => {
