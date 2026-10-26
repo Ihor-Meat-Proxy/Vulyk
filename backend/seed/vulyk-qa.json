@@ -7897,6 +7897,144 @@
           ]
         }
       ]
+    },
+    {
+      "name": {
+        "en": "22. Status badges & sample data",
+        "uk": "22. Бейджі статусів і sample-дані"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-163",
+          "title": {
+            "en": "Runs list shows colour-blind-safe status badges with icons and labels",
+            "uk": "Список прогонів показує безпечні для дальтоніків бейджі зі іконками та підписами"
+          },
+          "description": {
+            "en": "Single action: open the Runs list (Name / Status / Source / Created) for a sample project and verify every status chip uses StatusBadge (icon + translated label), never a raw snake_case string or a generic green .badge.",
+            "uk": "Single action: open the Runs list (Name / Status / Source / Created) for a sample project and verify every status chip uses StatusBadge (icon + translated label), never a raw snake_case string or a generic green .badge."
+          },
+          "precondition": {
+            "en": "Demo install with VULYK_SEED_SAMPLE=1 (or wizard seed_sample checked); auth may be open locally; sample projects seeded; signed in as admin.",
+            "uk": "Demo install with VULYK_SEED_SAMPLE=1 (or wizard seed_sample checked); auth may be open locally; sample projects seeded; signed in as admin."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "runs",
+            "a11y",
+            "single-action",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Open Runs for KYIV_CONCERT_2026 and inspect the Status column for failed, in_progress/completed (and any Sample nightly suite statuses).",
+                "uk": "Open Runs for KYIV_CONCERT_2026 and inspect the Status column for failed, in_progress/completed (and any Sample nightly suite statuses)."
+              },
+              "expected_result": {
+                "en": "Each row shows a status-pill with a distinct icon + translated label (Failed red/X, In progress blue spinner/clock, Completed/Passed green check); no raw enums like in_progress; WCAG AA contrast in light/dark/high-contrast.",
+                "uk": "Each row shows a status-pill with a distinct icon + translated label (Failed red/X, In progress blue spinner/clock, Completed/Passed green check); no raw enums like in_progress; WCAG AA contrast in light/dark/high-contrast."
+              },
+              "data": {
+                "en": "data-testid=runs-list-status-badge",
+                "uk": "data-testid=runs-list-status-badge"
+              }
+            }
+          ],
+          "external_key": "e2e:status-sample.spec.ts"
+        },
+        {
+          "key": "VQA-164",
+          "title": {
+            "en": "Sample badge appears on sample projects and nightly suites",
+            "uk": "Бейдж Sample видно на sample-проєктах і nightly-сюїтах"
+          },
+          "description": {
+            "en": "Single action: confirm the Sample chip is visible on seeded entities (project header, admin projects list, Sample nightly suites).",
+            "uk": "Single action: confirm the Sample chip is visible on seeded entities (project header, admin projects list, Sample nightly suites)."
+          },
+          "precondition": {
+            "en": "Sample data present (is_sample=true).",
+            "uk": "Sample data present (is_sample=true)."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "sample",
+            "single-action",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Select Vulyk QA in the project switcher, open Executions automated suites for the Kyiv sample nightly iteration, and open Admin → Projects.",
+                "uk": "Select Vulyk QA in the project switcher, open Executions automated suites for the Kyiv sample nightly iteration, and open Admin → Projects."
+              },
+              "expected_result": {
+                "en": "Header shows Sample badge; suite names look like “Sample nightly #N” created by “Sample CI”; admin project rows for KYIV_CONCERT_2026 / VULYK_QA show Sample; no WALL-E-rror / CI #N — wall-e naming remains.",
+                "uk": "Header shows Sample badge; suite names look like “Sample nightly #N” created by “Sample CI”; admin project rows for KYIV_CONCERT_2026 / VULYK_QA show Sample; no WALL-E-rror / CI #N — wall-e naming remains."
+              },
+              "data": {
+                "en": "data-testid=sample-badge",
+                "uk": "data-testid=sample-badge"
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-165",
+          "title": {
+            "en": "Admin can remove and re-seed sample data safely",
+            "uk": "Адмін може безпечно видалити й знову посіяти sample-дані"
+          },
+          "description": {
+            "en": "Single action: use Admin → Settings → Sample data to remove all is_sample rows (confirm danger dialog), then re-seed; user-created projects stay.",
+            "uk": "Single action: use Admin → Settings → Sample data to remove all is_sample rows (confirm danger dialog), then re-seed; user-created projects stay."
+          },
+          "precondition": {
+            "en": "admin@vulyk.local / admin (must_change_password on first login after seed); sample data present; optionally one non-sample project exists.",
+            "uk": "admin@vulyk.local / admin (must_change_password on first login after seed); sample data present; optionally one non-sample project exists."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "admin",
+            "sample",
+            "single-action",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "In Admin Settings open Sample data, click Remove sample data, confirm, then click Re-seed sample data.",
+                "uk": "In Admin Settings open Sample data, click Remove sample data, confirm, then click Re-seed sample data."
+              },
+              "expected_result": {
+                "en": "After remove: sample projects gone, non-sample projects untouched, endpoint idempotent on second remove. After re-seed: KYIV_CONCERT_2026 and VULYK_QA return with varied suite outcomes and Sample badges. Non-admin callers get 403.",
+                "uk": "After remove: sample projects gone, non-sample projects untouched, endpoint idempotent on second remove. After re-seed: KYIV_CONCERT_2026 and VULYK_QA return with varied suite outcomes and Sample badges. Non-admin callers get 403."
+              },
+              "data": {
+                "en": "data-testid=admin-sample-data-section",
+                "uk": "data-testid=admin-sample-data-section"
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "requirements": [

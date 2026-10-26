@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom'
 import {
   api,
   RESULT_STATUSES,
-  statusClass,
   type RunItemExecution,
   type TestRunDetail,
 } from '../api'
@@ -263,7 +262,7 @@ export function RunDetail({ projectId }: Props) {
         </p>
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
-          <span className={`status-pill ${statusClass(run.status)}`}>{run.status}</span>
+          <StatusBadge status={run.status} testId="run-detail-status-badge" />
           <span>
             Progress: {progress.completed}/{progress.total} ({progress.percent.toFixed(0)}%)
           </span>

@@ -43,6 +43,9 @@ pub struct TestRun {
     /// `legacy` (auto-close on ingest) or `ci` (open → in_progress → closed).
     #[serde(default = "default_lifecycle")]
     pub lifecycle: String,
+    /// Seeded demo run (admin sample-data remove targets these).
+    #[serde(default)]
+    pub is_sample: bool,
 }
 
 fn default_lifecycle() -> String {
@@ -50,7 +53,7 @@ fn default_lifecycle() -> String {
 }
 
 /// Shared SELECT / RETURNING column list for `test_runs` → [`TestRun`].
-pub const TEST_RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at, suite_name, ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url, lifecycle";
+pub const TEST_RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at, suite_name, ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url, lifecycle, is_sample";
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
 pub struct RunItem {

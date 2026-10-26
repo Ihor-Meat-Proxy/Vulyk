@@ -5,12 +5,107 @@
 
 use std::collections::HashMap;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::models::normalize_result_status;
+
+/// Counts of sample rows currently in the database (for admin UI / remove response).
+#[derive(Debug, Clone, Default, Serialize, ToSchema)]
+pub struct SampleDataSummary {
+    pub projects: i64,
+    pub runs: i64,
+    pub campaigns: i64,
+    pub cases: i64,
+}
+
+impl SampleDataSummary {
+    pub async fn from_pool(pool: &PgPool) -> AppResult<Self> {
+        let projects: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::bigint FROM projects WHERE is_sample = TRUE",
+        )
+        .fetch_one(pool)
+        .await?;
+        let runs: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::bigint FROM test_runs WHERE is_sample = TRUE",
+        )
+        .fetch_one(pool)
+        .await?;
+        let campaigns: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::bigint FROM campaigns WHERE is_sample = TRUE",
+        )
+        .fetch_one(pool)
+        .await?;
+        let cases: i64 = sqlx::query_scalar(
+            r#"SELECT COUNT(*)::bigint FROM test_cases tc
+               INNER JOIN projects p ON p.id = tc.project_id
+               WHERE p.is_sample = TRUE"#,
+        )
+        .fetch_one(pool)
+        .await?;
+        Ok(Self {
+            projects,
+            runs,
+            campaigns,
+            cases,
+        })
+    }
+}
+
+/// Delete every `is_sample` entity. Idempotent. Retires case keys before
+/// deleting sample projects so the never-reuse rule is exercised; tombstones
+/// cascade with the project afterward (project-scoped).
+pub async fn remove_sample_data(pool: &PgPool) -> AppResult<SampleDataSummary> {
+    let before = SampleDataSummary::from_pool(pool).await?;
+
+    let project_ids: Vec<Uuid> =
+        sqlx::query_scalar("SELECT id FROM projects WHERE is_sample = TRUE")
+            .fetch_all(pool)
+            .await?;
+
+    // Delete runs first. `test_results.case_id` is ON DELETE SET NULL, which would
+    // fire the append-only UPDATE trigger if cases were removed while results remain.
+    sqlx::query(
+        r#"DELETE FROM test_runs
+           WHERE is_sample = TRUE
+              OR project_id = ANY($1)"#,
+    )
+    .bind(&project_ids)
+    .execute(pool)
+    .await?;
+
+    for project_id in &project_ids {
+        let mut tx = pool.begin().await?;
+        let keys: Vec<String> = sqlx::query_scalar(
+            "SELECT key FROM test_cases WHERE project_id = $1",
+        )
+        .bind(project_id)
+        .fetch_all(&mut *tx)
+        .await?;
+        for key in &keys {
+            crate::services::case_keys::retire_case_key(&mut tx, *project_id, key).await?;
+        }
+        sqlx::query("DELETE FROM projects WHERE id = $1 AND is_sample = TRUE")
+            .bind(project_id)
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
+
+    // Leftover sample campaigns / orphan sample runs (idempotent).
+    sqlx::query("DELETE FROM campaigns WHERE is_sample = TRUE")
+        .execute(pool)
+        .await?;
+    sqlx::query("DELETE FROM test_runs WHERE is_sample = TRUE")
+        .execute(pool)
+        .await?;
+
+    // Return counts that were removed (idempotent: zeros when nothing present).
+    Ok(before)
+}
 
 /// Embedded sample seed files: (project key, JSON).
 const SAMPLE_SEEDS: &[(&str, &str)] = &[
@@ -173,7 +268,15 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
         tracing::info!("VULYK_SEED_SAMPLE disabled; skipping sample projects");
         return Ok(None);
     }
+    seed_sample_projects_forced(pool, locale).await
+}
 
+/// Admin re-seed: always attempt (ignores `VULYK_SEED_SAMPLE=0`). Still idempotent
+/// per project key — missing samples are created; existing ones are left alone.
+pub async fn seed_sample_projects_forced(
+    pool: &PgPool,
+    locale: &str,
+) -> AppResult<Option<Uuid>> {
     let mut first_id: Option<Uuid> = None;
     for (project_key, json) in SAMPLE_SEEDS {
         let id = seed_one_sample(pool, locale, project_key, json).await?;
@@ -331,8 +434,8 @@ async fn insert_project(
     let prefix = unique_prefix(pool, &preferred, None).await?;
 
     let id: Uuid = sqlx::query_scalar(
-        r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
-           VALUES ($1, $2, $3, $4, 0)
+        r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number, is_sample)
+           VALUES ($1, $2, $3, $4, 0, TRUE)
            RETURNING id"#,
     )
     .bind(project.key.trim().to_uppercase())
@@ -509,8 +612,8 @@ async fn insert_run(
 
     let run_id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_runs
-             (project_id, name, description, status, source, started_at, finished_at)
-           VALUES ($1, $2, $3, $4, 'sample', $5, $6)
+             (project_id, name, description, status, source, started_at, finished_at, is_sample)
+           VALUES ($1, $2, $3, $4, 'sample', $5, $6, TRUE)
            RETURNING id"#,
     )
     .bind(project_id)
@@ -622,8 +725,8 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
         pool,
         project_id,
         &CreateCampaign {
-            name: "Integration_Automation".into(),
-            description: "Nightly and on-push automation for concert stack".into(),
+            name: "Sample Integration_Automation".into(),
+            description: "Sample nightly and on-push automation for concert stack".into(),
             parent_id: None,
             sort_order: 0,
         },
@@ -726,22 +829,33 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
     )
     .await?;
 
-    let statuses_rot = [
-        "Passed",
-        "Passed",
-        "Passed",
-        "Failed",
-        "Skipped",
-        "Passed",
-        "Blocked",
-        "Passed",
-        "Passed",
-        "Failed",
-        "Passed",
-        "Untestable",
-        "Passed",
-        "Passed",
-        "Running",
+    // Mark all campaigns created above as sample (column not on Campaign DTO).
+    sqlx::query(
+        r#"UPDATE campaigns SET is_sample = TRUE
+           WHERE project_id = $1 AND is_sample = FALSE"#,
+    )
+    .bind(project_id)
+    .execute(pool)
+    .await?;
+
+    // Mostly passed suites; a few failed; one in_progress; one cancelled.
+    // Case index 3 still flips Passed/Failed across days for flaky detection.
+    let suite_plan: [(&str, Option<&str>); 15] = [
+        ("passed", None),
+        ("passed", None),
+        ("passed", None),
+        ("failed", None),
+        ("passed", None),
+        ("passed", None),
+        ("failed", None),
+        ("passed", None),
+        ("passed", None),
+        ("passed", None),
+        ("passed", None),
+        ("failed", None),
+        ("passed", None),
+        ("in_progress", Some("in_progress")),
+        ("cancelled", Some("cancelled")),
     ];
     let env = json!({"runner": "Playwright", "browser": "chromium", "os": "linux"});
     let artifacts = json!([
@@ -752,24 +866,60 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
     ]);
 
     for day in 0..15 {
+        let (kind, status_override) = suite_plan[day];
         let mut results: Vec<(Uuid, &str, i32)> = Vec::new();
         let take = 10.min(case_ids.len());
         for (i, case_id) in case_ids.iter().take(take).enumerate() {
-            // Flip a couple of cases across days to seed flaky detection.
-            let mut status = statuses_rot[(i + day) % statuses_rot.len()];
-            if i == 3 && day % 2 == 0 {
-                status = "Failed";
-            } else if i == 3 {
-                status = "Passed";
+            let mut status = match kind {
+                "failed" => {
+                    if i == 0 || i == 5 {
+                        "Failed"
+                    } else if i == 7 {
+                        "Skipped"
+                    } else {
+                        "Passed"
+                    }
+                }
+                "in_progress" => {
+                    if i < 4 {
+                        "Passed"
+                    } else if i == 4 {
+                        "Running"
+                    } else {
+                        "Ready"
+                    }
+                }
+                "cancelled" => {
+                    if i < 3 {
+                        "Passed"
+                    } else if i == 3 {
+                        "Skipped"
+                    } else {
+                        "Ready"
+                    }
+                }
+                _ => {
+                    if i == 7 {
+                        "Skipped"
+                    } else if i == 8 {
+                        "Blocked"
+                    } else {
+                        "Passed"
+                    }
+                }
+            };
+            // Keep a flaky case (index 3) for flaky-test detection.
+            if i == 3 && kind != "in_progress" && kind != "cancelled" {
+                status = if day % 2 == 0 { "Failed" } else { "Passed" };
             }
-            if status == "Running" {
+            if status == "Running" && kind != "in_progress" {
                 status = "Ready";
             }
             let ms = 800 + ((i * 337 + day * 110) % 170_000) as i32;
             results.push((*case_id, status, ms));
         }
         let name = format!(
-            "CI #{} — wall-e {}",
+            "Sample nightly #{} — {}",
             80 - day,
             (chrono::Utc::now() - chrono::Duration::days(day as i64)).format("%m/%d %H:%M")
         );
@@ -778,16 +928,17 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
             project_id,
             daily.id,
             &name,
-            "WALL-E-rror",
+            "Sample CI",
             day as i64,
             &results,
             env.clone(),
             artifacts.clone(),
+            status_override,
         )
         .await?;
     }
 
-    tracing::info!("Seeded sample executions tree with 15 automated suites");
+    tracing::info!("Seeded sample executions tree with 15 automated suites (varied outcomes)");
     Ok(())
 }
 

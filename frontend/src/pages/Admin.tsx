@@ -10,10 +10,12 @@ import {
   type ProjectRole,
   type ProviderKindInfo,
   type RegistrationMode,
+  type SampleDataStatus,
   type SsoProviderAdmin,
   type UserPublic,
 } from '../api'
 import { useAuth } from '../auth'
+import { SampleBadge } from '../components/SampleBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
@@ -559,6 +561,7 @@ function ProjectsPanel({
               >
                 <td>
                   <span className="badge">{p.key}</span>
+                  {p.is_sample ? <SampleBadge testId="admin-project-sample-badge" /> : null}
                 </td>
                 <td>{p.name}</td>
               </tr>
@@ -1319,7 +1322,122 @@ function SettingsPanel({
           {t('common.save')}
         </button>
       </form>
+      <SampleDataPanel onChanged={onChanged} onError={onError} />
     </div>
+  )
+}
+
+function SampleDataPanel({
+  onChanged,
+  onError,
+}: {
+  onChanged: () => void
+  onError: (msg: string) => void
+}) {
+  const { t } = useI18n()
+  const [status, setStatus] = useState<SampleDataStatus | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      setStatus(await api.getSampleData())
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }, [onError])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  const onRemove = async () => {
+    if (!window.confirm(t('admin.sampleConfirm'))) return
+    setBusy(true)
+    setNotice(null)
+    try {
+      await api.removeSampleData()
+      setNotice(t('admin.sampleRemoved'))
+      await refresh()
+      onChanged()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onReseed = async () => {
+    setBusy(true)
+    setNotice(null)
+    try {
+      const next = await api.reseedSampleData()
+      setStatus(next)
+      setNotice(t('admin.sampleReseeded'))
+      onChanged()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section
+      className="stack-form"
+      style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--line)' }}
+      data-testid="admin-sample-data-section"
+    >
+      <h3 style={{ marginTop: 0 }}>{t('admin.sampleSection')}</h3>
+      <p className="muted" style={{ marginTop: 0 }}>
+        {t('admin.sampleHelp')}
+      </p>
+      {status?.present ? (
+        <>
+          <p data-testid="admin-sample-data-present">{t('admin.samplePresent')}</p>
+          <ul data-testid="admin-sample-data-list">
+            {status.projects.map((p) => (
+              <li key={p.id}>
+                <code>{p.key}</code> — {p.name} <SampleBadge />
+              </li>
+            ))}
+          </ul>
+          <p className="muted" data-testid="admin-sample-data-summary">
+            {status.summary.projects} projects · {status.summary.cases} cases ·{' '}
+            {status.summary.runs} runs · {status.summary.campaigns} campaigns
+          </p>
+        </>
+      ) : (
+        <p className="muted" data-testid="admin-sample-data-empty">
+          {t('admin.sampleEmpty')}
+        </p>
+      )}
+      {notice && (
+        <p className="notice" data-testid="admin-sample-data-notice">
+          {notice}
+        </p>
+      )}
+      <div className="toolbar" style={{ gap: '0.5rem' }}>
+        <button
+          type="button"
+          className="btn danger"
+          disabled={busy || !status?.present}
+          onClick={() => void onRemove()}
+          data-testid="admin-sample-data-remove-button"
+        >
+          {t('admin.sampleRemove')}
+        </button>
+        <button
+          type="button"
+          className="btn secondary"
+          disabled={busy}
+          onClick={() => void onReseed()}
+          data-testid="admin-sample-data-reseed-button"
+        >
+          {t('admin.sampleReseed')}
+        </button>
+      </div>
+    </section>
   )
 }
 

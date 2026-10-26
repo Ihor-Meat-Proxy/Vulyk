@@ -13,6 +13,9 @@ pub struct Project {
     pub case_key_prefix: String,
     /// Monotonic counter; next allocated case uses this+1. Never decreases.
     pub next_case_number: i32,
+    /// Seeded demo project (admin can remove/re-seed).
+    #[serde(default)]
+    pub is_sample: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -21,6 +21,7 @@ pub mod projects;
 pub mod reports;
 pub mod requirements;
 pub mod runs;
+pub mod sample_data;
 pub mod setup;
 pub mod sso_admin;
 pub mod suites;
@@ -73,6 +74,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(users::router())
         .merge(memberships::router())
         .merge(admin::router())
+        .merge(sample_data::router())
         .merge(sso_admin::router())
         .merge(instance_settings::router())
         .layer(middleware::from_fn_with_state(

@@ -6,10 +6,14 @@ import { StatusIcon } from './StatusIcon'
 type Props = {
   status: string
   className?: string
-  /** Larger control style for execute buttons */
-  asButton?: boolean
+  /** Override default `status-badge` test id. */
+  testId?: string
 }
 
+/**
+ * i18n keys for result, run, and CI dispatch statuses.
+ * Unknown values fall back to the raw string only as a last resort.
+ */
 const STATUS_I18N: Record<string, string> = {
   untested: 'status.untested',
   ready: 'status.ready',
@@ -20,18 +24,32 @@ const STATUS_I18N: Record<string, string> = {
   skipped: 'status.skipped',
   retest: 'status.retest',
   untestable: 'status.untestable',
-  open: 'executions.statusOpen',
-  in_progress: 'executions.statusInProgress',
-  'in-progress': 'executions.statusInProgress',
-  closed: 'executions.statusClosed',
+  // Run / suite lifecycle
+  draft: 'status.draft',
+  completed: 'status.completed',
+  in_progress: 'status.inProgress',
+  'in-progress': 'status.inProgress',
+  cancelled: 'status.cancelled',
+  canceled: 'status.cancelled',
+  // CI run open/closed + dispatch
+  open: 'status.open',
+  closed: 'status.closed',
+  queued: 'status.queued',
+  dispatched: 'status.dispatched',
+  succeeded: 'status.succeeded',
 }
 
 export function statusLabelKey(status: string): string {
-  return STATUS_I18N[status.toLowerCase()] ?? ''
+  const normalized = status.trim().toLowerCase().replace(/-/g, '_')
+  return (
+    STATUS_I18N[normalized] ||
+    STATUS_I18N[status.trim().toLowerCase()] ||
+    ''
+  )
 }
 
-/** Colour-blind-safe status chip: always icon + label (never colour alone). */
-export function StatusBadge({ status, className }: Props) {
+/** Colour-blind-safe status chip: always icon + translated label (never colour alone). */
+export function StatusBadge({ status, className, testId }: Props) {
   const { t } = useI18n()
   const key = statusLabelKey(status)
   const label = key ? t(key) : status
@@ -40,6 +58,7 @@ export function StatusBadge({ status, className }: Props) {
     <span
       className={`status-pill ${statusClass(status)}${className ? ` ${className}` : ''}`}
       data-status={status}
+      data-testid={testId ?? 'status-badge'}
     >
       <StatusIcon status={status} />
       <span className="status-label">{label}</span>

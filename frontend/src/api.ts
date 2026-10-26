@@ -68,6 +68,8 @@ export type Project = {
   description: string
   case_key_prefix: string
   next_case_number: number
+  /** Seeded demo project — show Sample badge; removable via admin. */
+  is_sample?: boolean
   created_at: string
   updated_at: string
 }
@@ -198,6 +200,7 @@ export type TestRun = {
   pipeline_url?: string | null
   job_url?: string | null
   lifecycle?: string
+  is_sample?: boolean
 }
 
 export type RunProgress = {
@@ -278,8 +281,27 @@ export const DASHBOARD_STATUSES = [
 
 export type DashboardStatus = (typeof DASHBOARD_STATUSES)[number]
 
+/**
+ * CSS modifier for status pills. Normalizes aliases so run/CI vocabularies
+ * (`completed`, `in_progress`, `cancelled`, …) share colour-blind-safe styles
+ * with result statuses where appropriate.
+ */
 export function statusClass(status: string): string {
-  return `status-${status.toLowerCase()}`
+  const raw = status.trim().toLowerCase().replace(/-/g, '_')
+  const aliases: Record<string, string> = {
+    completed: 'completed',
+    succeeded: 'succeeded',
+    closed: 'closed',
+    in_progress: 'in_progress',
+    cancelled: 'cancelled',
+    canceled: 'cancelled',
+    open: 'open',
+    queued: 'queued',
+    dispatched: 'dispatched',
+    draft: 'draft',
+  }
+  const key = aliases[raw] ?? raw
+  return `status-${key}`
 }
 
 export type Campaign = {
@@ -430,6 +452,7 @@ export type AutomatedSuite = {
   ci_provider?: string | null
   pipeline_url?: string | null
   job_url?: string | null
+  is_sample?: boolean
 }
 
 export type AutomatedSuitesParams = {
@@ -657,6 +680,19 @@ export type ProjectRole =
   | 'test_automation_engineer'
   | 'developer'
   | 'viewer'
+
+export type SampleDataSummary = {
+  projects: number
+  runs: number
+  campaigns: number
+  cases: number
+}
+
+export type SampleDataStatus = {
+  present: boolean
+  projects: { id: string; key: string; name: string }[]
+  summary: SampleDataSummary
+}
 
 export type InstanceSettings = {
   setup_completed: boolean
@@ -1207,6 +1243,17 @@ export const api = {
     request<InstanceSettings>('/api/v1/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(body),
+    }),
+  getSampleData: () =>
+    request<SampleDataStatus>('/api/v1/admin/sample-data'),
+  removeSampleData: () =>
+    request<SampleDataSummary>('/api/v1/admin/sample-data', {
+      method: 'DELETE',
+    }),
+  reseedSampleData: (body?: { locale?: string }) =>
+    request<SampleDataStatus>('/api/v1/admin/sample-data/reseed', {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
     }),
   listSsoProvidersAdmin: () =>
     request<SsoProviderAdmin[]>('/api/v1/admin/sso/providers'),

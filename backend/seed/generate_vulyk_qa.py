@@ -3015,6 +3015,81 @@ def build() -> dict:
     )
     suites.append(misc)
 
+    # Single-action detailed steps — one deliberate action per case for smoke execution.
+    single_action = suite(
+        "22. Status badges & sample data",
+        "22. Бейджі статусів і sample-дані",
+        cases=[
+            case(
+                "Runs list shows colour-blind-safe status badges with icons and labels",
+                title_uk="Список прогонів показує безпечні для дальтоніків бейджі зі іконками та підписами",
+                desc_en=(
+                    "Single action: open the Runs list (Name / Status / Source / Created) for a sample "
+                    "project and verify every status chip uses StatusBadge (icon + translated label), "
+                    "never a raw snake_case string or a generic green .badge."
+                ),
+                pre_en=f"{BASE}; sample projects seeded; signed in as admin.",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "runs", "a11y", "single-action"],
+                external_key="e2e:status-sample.spec.ts",
+                steps=[
+                    step(
+                        "Open Runs for KYIV_CONCERT_2026 and inspect the Status column for "
+                        "failed, in_progress/completed (and any Sample nightly suite statuses).",
+                        "Each row shows a status-pill with a distinct icon + translated label "
+                        "(Failed red/X, In progress blue spinner/clock, Completed/Passed green check); "
+                        "no raw enums like in_progress; WCAG AA contrast in light/dark/high-contrast.",
+                        data_en="data-testid=runs-list-status-badge",
+                    )
+                ],
+            ),
+            case(
+                "Sample badge appears on sample projects and nightly suites",
+                title_uk="Бейдж Sample видно на sample-проєктах і nightly-сюїтах",
+                desc_en=(
+                    "Single action: confirm the Sample chip is visible on seeded entities "
+                    "(project header, admin projects list, Sample nightly suites)."
+                ),
+                pre_en="Sample data present (is_sample=true).",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "sample", "single-action"],
+                steps=[
+                    step(
+                        "Select Vulyk QA in the project switcher, open Executions automated suites "
+                        "for the Kyiv sample nightly iteration, and open Admin → Projects.",
+                        "Header shows Sample badge; suite names look like “Sample nightly #N” "
+                        "created by “Sample CI”; admin project rows for KYIV_CONCERT_2026 / VULYK_QA "
+                        "show Sample; no WALL-E-rror / CI #N — wall-e naming remains.",
+                        data_en="data-testid=sample-badge",
+                    )
+                ],
+            ),
+            case(
+                "Admin can remove and re-seed sample data safely",
+                title_uk="Адмін може безпечно видалити й знову посіяти sample-дані",
+                desc_en=(
+                    "Single action: use Admin → Settings → Sample data to remove all is_sample "
+                    "rows (confirm danger dialog), then re-seed; user-created projects stay."
+                ),
+                pre_en=f"{ADMIN}; sample data present; optionally one non-sample project exists.",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "admin", "sample", "single-action"],
+                steps=[
+                    step(
+                        "In Admin Settings open Sample data, click Remove sample data, confirm, "
+                        "then click Re-seed sample data.",
+                        "After remove: sample projects gone, non-sample projects untouched, "
+                        "endpoint idempotent on second remove. After re-seed: KYIV_CONCERT_2026 "
+                        "and VULYK_QA return with varied suite outcomes and Sample badges. "
+                        "Non-admin callers get 403.",
+                        data_en="data-testid=admin-sample-data-section",
+                    )
+                ],
+            ),
+        ],
+    )
+    suites.append(single_action)
+
     requirements = [
         {
             "external_key": "VQA-REQ-01",

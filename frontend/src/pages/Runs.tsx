@@ -7,6 +7,8 @@ import {
   type TestRun,
 } from '../api'
 import { useAuth } from '../auth'
+import { SampleBadge } from '../components/SampleBadge'
+import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
@@ -202,9 +204,17 @@ export function Runs({ projectId }: Props) {
                     index,
                   })}
                 >
-                  <td {...testIdProps(TestIds.runRowName)}>{run.name}</td>
+                  <td {...testIdProps(TestIds.runRowName)}>
+                    {run.name}
+                    {run.is_sample ? (
+                      <>
+                        {' '}
+                        <SampleBadge testId="runs-list-sample-badge" />
+                      </>
+                    ) : null}
+                  </td>
                   <td {...testIdProps(TestIds.runRowStatus)}>
-                    <span className="badge">{run.status}</span>
+                    <StatusBadge status={run.status} testId="runs-list-status-badge" />
                   </td>
                   <td>{run.source}</td>
                   <td className="muted">{fmt(run.created_at)}</td>
@@ -234,7 +244,7 @@ export function Runs({ projectId }: Props) {
                   {results.map((r) => (
                     <tr key={r.id} style={{ cursor: 'default' }}>
                       <td>
-                        <span className="badge">{r.status}</span>
+                        <StatusBadge status={r.status} testId="runs-result-status-badge" />
                       </td>
                       <td>
                         <code>{r.external_id ?? '—'}</code>
@@ -362,7 +372,7 @@ export function Runs({ projectId }: Props) {
                 {dispatches.slice(0, 10).map((d, index) => (
                   <tr key={d.id} style={{ cursor: 'default' }}>
                     <td>
-                      <span className="badge">{d.status}</span>
+                      <StatusBadge status={d.status} testId="runs-dispatch-status-badge" />
                     </td>
                     <td>
                       {d.external_url ? (
