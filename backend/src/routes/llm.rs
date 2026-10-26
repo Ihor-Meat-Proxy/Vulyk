@@ -652,7 +652,7 @@ async fn load_config_row(
 /// `VULYK_LLM_MOCK=1` no longer overrides a configured provider (that hid real
 /// OpenRouter keys behind a silent mock). It remains documented for CI as a
 /// hint that mock is acceptable when nothing is configured.
-async fn resolve_provider(
+pub(crate) async fn resolve_provider(
     state: &AppState,
     project_id: Uuid,
     config_id: Option<Uuid>,

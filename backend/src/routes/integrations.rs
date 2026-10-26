@@ -306,6 +306,8 @@ pub async fn import_remote_requirements(
         let body = CreateRequirement {
             title: item.title.clone(),
             description: item.description.clone(),
+            acceptance_criteria: String::new(),
+            folder_id: None,
             source: integration.kind.clone(),
             external_key: Some(item.external_key.clone()),
             external_id: Some(item.external_id.clone()),
@@ -467,8 +469,8 @@ async fn upsert_requirement(
 ) -> AppResult<Requirement> {
     if let Some(ref key) = body.external_key {
         let existing: Option<Requirement> = sqlx::query_as(
-            r#"SELECT id, project_id, external_key, external_id, title, description, source, url,
-                      metadata, created_at, updated_at
+            r#"SELECT id, project_id, folder_id, external_key, external_id, title, description,
+                      acceptance_criteria, source, url, metadata, created_at, updated_at
                FROM requirements
                WHERE project_id = $1 AND source = $2 AND external_key = $3"#,
         )
@@ -482,8 +484,8 @@ async fn upsert_requirement(
                 r#"UPDATE requirements SET
                      title = $3, description = $4, external_id = $5, url = $6, metadata = $7, updated_at = NOW()
                    WHERE id = $1 AND project_id = $2
-                   RETURNING id, project_id, external_key, external_id, title, description, source, url,
-                             metadata, created_at, updated_at"#,
+                   RETURNING id, project_id, folder_id, external_key, external_id, title, description,
+                             acceptance_criteria, source, url, metadata, created_at, updated_at"#,
             )
             .bind(existing.id)
             .bind(project_id)
@@ -504,16 +506,19 @@ async fn upsert_requirement(
     };
     let row = sqlx::query_as::<_, Requirement>(
         r#"INSERT INTO requirements
-           (project_id, external_key, external_id, title, description, source, url, metadata)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           RETURNING id, project_id, external_key, external_id, title, description, source, url,
-                     metadata, created_at, updated_at"#,
+           (project_id, folder_id, external_key, external_id, title, description,
+            acceptance_criteria, source, url, metadata)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id, project_id, folder_id, external_key, external_id, title, description,
+                     acceptance_criteria, source, url, metadata, created_at, updated_at"#,
     )
     .bind(project_id)
+    .bind(body.folder_id)
     .bind(&body.external_key)
     .bind(&body.external_id)
     .bind(&body.title)
     .bind(&body.description)
+    .bind(&body.acceptance_criteria)
     .bind(&body.source)
     .bind(&body.url)
     .bind(metadata)
