@@ -1006,9 +1006,7 @@ pub async fn bulk_cases(
         }
         "set_custom_fields" => {
             if body.custom_field_values.is_empty() {
-                return Err(AppError::BadRequest(
-                    "custom_field_values required".into(),
-                ));
+                return Err(AppError::BadRequest("custom_field_values required".into()));
             }
             // Apply outside this tx — set_case_values manages its own transaction.
             tx.rollback().await?;
@@ -1185,10 +1183,8 @@ pub async fn set_custom_fields(
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
 
-    let pairs: Vec<(Uuid, serde_json::Value)> = body
-        .iter()
-        .map(|i| (i.field_id, i.value.clone()))
-        .collect();
+    let pairs: Vec<(Uuid, serde_json::Value)> =
+        body.iter().map(|i| (i.field_id, i.value.clone())).collect();
     crate::services::custom_fields::set_case_values(&state.pool, project_id, case_id, &pairs)
         .await?;
 

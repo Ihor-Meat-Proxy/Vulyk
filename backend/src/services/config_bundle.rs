@@ -78,13 +78,12 @@ pub fn parse_bundle(raw: &str) -> AppResult<ConfigBundle> {
     }
 }
 
-pub async fn import(
-    pool: &PgPool,
-    req: ConfigImportRequest,
-) -> AppResult<ConfigImportPreview> {
+pub async fn import(pool: &PgPool, req: ConfigImportRequest) -> AppResult<ConfigImportPreview> {
     let strategy = req.strategy.to_lowercase();
     if !matches!(strategy.as_str(), "merge" | "replace") {
-        return Err(AppError::BadRequest("strategy must be merge or replace".into()));
+        return Err(AppError::BadRequest(
+            "strategy must be merge or replace".into(),
+        ));
     }
 
     let mut creates = Vec::new();
@@ -151,20 +150,16 @@ pub async fn import(
 
     // Ensure projects exist (by key) before custom field scopes
     for project in &req.bundle.projects {
-        let existing: Option<(Uuid,)> =
-            sqlx::query_as("SELECT id FROM projects WHERE key = $1")
-                .bind(&project.key)
-                .fetch_optional(pool)
-                .await?;
+        let existing: Option<(Uuid,)> = sqlx::query_as("SELECT id FROM projects WHERE key = $1")
+            .bind(&project.key)
+            .fetch_optional(pool)
+            .await?;
         match existing {
             None => {
                 creates.push(change("project", &project.key, "create", &project.name));
                 if !req.dry_run {
                     let prefix = normalize_case_key_prefix(
-                        project
-                            .case_key_prefix
-                            .as_deref()
-                            .unwrap_or(&project.key),
+                        project.case_key_prefix.as_deref().unwrap_or(&project.key),
                     );
                     sqlx::query(
                         r#"INSERT INTO projects (key, name, description, case_key_prefix)
@@ -179,7 +174,12 @@ pub async fn import(
                 }
             }
             Some(_) => {
-                updates.push(change("project", &project.key, "update", "existing project"));
+                updates.push(change(
+                    "project",
+                    &project.key,
+                    "update",
+                    "existing project",
+                ));
                 if !req.dry_run && strategy != "merge" {
                     sqlx::query(
                         r#"UPDATE projects SET name = $2, description = $3,
@@ -208,12 +208,11 @@ pub async fn import(
 
     // Custom fields
     for field in &req.bundle.custom_fields {
-        let existing: Option<(Uuid,)> = sqlx::query_as(
-            "SELECT id FROM custom_field_definitions WHERE key = $1",
-        )
-        .bind(&field.key)
-        .fetch_optional(pool)
-        .await?;
+        let existing: Option<(Uuid,)> =
+            sqlx::query_as("SELECT id FROM custom_field_definitions WHERE key = $1")
+                .bind(&field.key)
+                .fetch_optional(pool)
+                .await?;
 
         let option_list_id = if let Some(list_key) = &field.option_list_key {
             crate::services::option_lists::get_by_key(pool, list_key)
@@ -252,7 +251,12 @@ pub async fn import(
                 }
             }
             Some((id,)) => {
-                updates.push(change("custom_field", &field.key, "update", "existing field"));
+                updates.push(change(
+                    "custom_field",
+                    &field.key,
+                    "update",
+                    "existing field",
+                ));
                 if !req.dry_run {
                     crate::services::custom_fields::update_definition(
                         pool,
@@ -377,12 +381,10 @@ async fn resolve_project_ids(pool: &PgPool, req: &ConfigExportRequest) -> AppRes
     if req.project_scope == "selected" {
         let mut ids = req.project_ids.clone();
         if !req.project_keys.is_empty() {
-            let more: Vec<Uuid> = sqlx::query_scalar(
-                "SELECT id FROM projects WHERE key = ANY($1)",
-            )
-            .bind(&req.project_keys)
-            .fetch_all(pool)
-            .await?;
+            let more: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM projects WHERE key = ANY($1)")
+                .bind(&req.project_keys)
+                .fetch_all(pool)
+                .await?;
             ids.extend(more);
         }
         ids.sort();
@@ -449,11 +451,8 @@ async fn export_custom_fields(
     for detail in defs {
         let field = detail.field;
         // Include if scope=all OR intersects selected projects
-        let include = field.scope == "all"
-            || detail
-                .project_ids
-                .iter()
-                .any(|p| project_ids.contains(p));
+        let include =
+            field.scope == "all" || detail.project_ids.iter().any(|p| project_ids.contains(p));
         if !include {
             continue;
         }
@@ -637,7 +636,14 @@ async fn export_integrations(
         use sqlx::Row;
         let mut config: Value = row.try_get("config").unwrap_or(json!({}));
         if let Some(obj) = config.as_object_mut() {
-            for k in ["token", "api_key", "apiKey", "secret", "password", "webhook_secret"] {
+            for k in [
+                "token",
+                "api_key",
+                "apiKey",
+                "secret",
+                "password",
+                "webhook_secret",
+            ] {
                 obj.remove(k);
             }
         }
@@ -680,10 +686,7 @@ async fn export_automation_repos(
     Ok(out)
 }
 
-async fn export_sso(
-    pool: &PgPool,
-    passphrase: Option<&str>,
-) -> AppResult<Vec<ConfigSsoProvider>> {
+async fn export_sso(pool: &PgPool, passphrase: Option<&str>) -> AppResult<Vec<ConfigSsoProvider>> {
     let rows = sqlx::query(
         r#"SELECT provider_key, display_name, enabled, issuer_url, client_id, scopes,
                   extra_config, client_secret_ciphertext
@@ -709,7 +712,8 @@ async fn export_sso(
             }
         }
         let encrypted_secrets = if let Some(pass) = passphrase {
-            let secret_enc: Option<Vec<u8>> = row.try_get("client_secret_ciphertext").ok().flatten();
+            let secret_enc: Option<Vec<u8>> =
+                row.try_get("client_secret_ciphertext").ok().flatten();
             secret_enc.map(|bytes| {
                 use sha2::{Digest, Sha256};
                 let mut hasher = Sha256::new();

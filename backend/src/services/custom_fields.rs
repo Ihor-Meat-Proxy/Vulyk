@@ -5,9 +5,9 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::{
     is_allowed_field_type, needs_option_list, normalize_field_type, AddFieldToProject,
-    CreateCustomFieldDefinition, CustomField, CustomFieldDefinition,
-    CustomFieldDefinitionDetail, CustomFieldProjectOverride, CustomFieldValue,
-    ScopeChangeWarning, UpdateCustomFieldDefinition, UpsertProjectFieldOverride,
+    CreateCustomFieldDefinition, CustomField, CustomFieldDefinition, CustomFieldDefinitionDetail,
+    CustomFieldProjectOverride, CustomFieldValue, ScopeChangeWarning, UpdateCustomFieldDefinition,
+    UpsertProjectFieldOverride,
 };
 
 const DEF_COLS: &str = "id, key, name, field_type, entity, option_list_id, default_value, required, help_text, sort_order, show_in_list, show_in_filters, active, scope, created_at, updated_at";
@@ -49,12 +49,11 @@ async fn enrich_definition(
     .fetch_all(pool)
     .await?;
     let project_ids = overrides.iter().map(|o| o.project_id).collect();
-    let in_use: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM custom_field_values WHERE field_id = $1)",
-    )
-    .bind(field.id)
-    .fetch_one(pool)
-    .await?;
+    let in_use: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM custom_field_values WHERE field_id = $1)")
+            .bind(field.id)
+            .fetch_one(pool)
+            .await?;
     Ok(CustomFieldDefinitionDetail {
         field,
         project_ids,
@@ -169,9 +168,7 @@ pub async fn update_definition(
     if !is_allowed_field_type(&field_type) {
         return Err(AppError::BadRequest("invalid field_type".into()));
     }
-    let entity = body
-        .entity
-        .unwrap_or(existing.entity.clone());
+    let entity = body.entity.unwrap_or(existing.entity.clone());
     if !matches!(entity.as_str(), "test_case" | "requirement" | "both") {
         return Err(AppError::BadRequest("invalid entity".into()));
     }
@@ -306,12 +303,11 @@ pub async fn update_definition(
 }
 
 pub async fn delete_or_deactivate(pool: &PgPool, id: Uuid) -> AppResult<&'static str> {
-    let in_use: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM custom_field_values WHERE field_id = $1)",
-    )
-    .bind(id)
-    .fetch_one(pool)
-    .await?;
+    let in_use: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM custom_field_values WHERE field_id = $1)")
+            .bind(id)
+            .fetch_one(pool)
+            .await?;
     if in_use {
         sqlx::query(
             "UPDATE custom_field_definitions SET active = FALSE, updated_at = NOW() WHERE id = $1",
@@ -393,7 +389,10 @@ pub async fn list_for_project(
 }
 
 /// Selected-scope fields not yet enabled on the project ("Fields available to add").
-pub async fn available_to_add(pool: &PgPool, project_id: Uuid) -> AppResult<Vec<CustomFieldDefinition>> {
+pub async fn available_to_add(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> AppResult<Vec<CustomFieldDefinition>> {
     let rows = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
         r#"SELECT {DEF_COLS}
            FROM custom_field_definitions cfd
@@ -720,16 +719,17 @@ pub async fn validate_value(pool: &PgPool, field_id: Uuid, value: &Value) -> App
             if ft == "url" {
                 if let Some(s) = value.as_str() {
                     if !s.is_empty() && !(s.starts_with("http://") || s.starts_with("https://")) {
-                        return Err(AppError::BadRequest("url must start with http(s)://".into()));
+                        return Err(AppError::BadRequest(
+                            "url must start with http(s)://".into(),
+                        ));
                     }
                 }
             }
         }
-        "multi_select" => {
-            if !value.is_null() && !value.is_array() {
-                return Err(AppError::BadRequest("multi_select expects array".into()));
-            }
-        }
+        "multi_select" => match value {
+            Value::Null | Value::Array(_) => {}
+            _ => return Err(AppError::BadRequest("multi_select expects array".into())),
+        },
         _ => {}
     }
     Ok(())

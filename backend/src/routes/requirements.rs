@@ -232,10 +232,8 @@ pub async fn set_requirement_custom_fields(
     if !exists {
         return Err(AppError::NotFound("requirement".into()));
     }
-    let pairs: Vec<(Uuid, serde_json::Value)> = body
-        .iter()
-        .map(|i| (i.field_id, i.value.clone()))
-        .collect();
+    let pairs: Vec<(Uuid, serde_json::Value)> =
+        body.iter().map(|i| (i.field_id, i.value.clone())).collect();
     crate::services::custom_fields::set_requirement_values(&state.pool, project_id, id, &pairs)
         .await?;
     let mut row = sqlx::query_as::<_, Requirement>(&format!(

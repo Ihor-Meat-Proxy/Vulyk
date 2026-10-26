@@ -7,9 +7,7 @@ use axum::{
 
 use crate::auth::RequireSystemAdmin;
 use crate::error::AppResult;
-use crate::models::{
-    ConfigBundle, ConfigExportRequest, ConfigImportPreview, ConfigImportRequest,
-};
+use crate::models::{ConfigBundle, ConfigExportRequest, ConfigImportPreview, ConfigImportRequest};
 use crate::routes::AppState;
 use crate::services::config_bundle;
 
@@ -17,10 +15,7 @@ pub fn router() -> Router<AppState> {
     Router::new()
         .route("/api/v1/admin/config/export", post(export_config))
         .route("/api/v1/admin/config/import", post(import_config))
-        .route(
-            "/api/v1/admin/config/import/preview",
-            post(import_preview),
-        )
+        .route("/api/v1/admin/config/import/preview", post(import_preview))
 }
 
 #[utoipa::path(
@@ -48,10 +43,9 @@ pub async fn export_config(
     };
     let mut response = axum::response::Response::new(body.into());
     *response.status_mut() = StatusCode::OK;
-    response.headers_mut().insert(
-        header::CONTENT_TYPE,
-        ctype.parse().unwrap(),
-    );
+    response
+        .headers_mut()
+        .insert(header::CONTENT_TYPE, ctype.parse().unwrap());
     response.headers_mut().insert(
         header::CONTENT_DISPOSITION,
         format!("attachment; filename=\"vulyk-config.{ext}\"")

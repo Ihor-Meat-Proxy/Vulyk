@@ -12,12 +12,12 @@ use crate::error::{AppError, AppResult};
 use crate::models::{
     is_allowed_field_type, needs_option_list, normalize_field_type, AddFieldToProject,
     CreateCustomField, CreateCustomFieldDefinition, CustomField, CustomFieldDefinition,
-    CustomFieldDefinitionDetail, CustomFieldProjectOverride, ScopeChangeWarning,
-    UpdateCustomField, UpdateCustomFieldDefinition, UpsertProjectFieldOverride,
+    CustomFieldDefinitionDetail, CustomFieldProjectOverride, ScopeChangeWarning, UpdateCustomField,
+    UpdateCustomFieldDefinition, UpsertProjectFieldOverride,
 };
 use crate::routes::AppState;
-use crate::services::{cases::ensure_project, custom_fields, option_lists};
 use crate::services::option_lists::suggest_key;
+use crate::services::{cases::ensure_project, custom_fields, option_lists};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -43,7 +43,9 @@ pub fn router() -> Router<AppState> {
         )
         .route(
             "/api/v1/projects/{project_id}/custom-fields/{field_id}",
-            get(get_field).put(update_field_compat).delete(delete_field_compat),
+            get(get_field)
+                .put(update_field_compat)
+                .delete(delete_field_compat),
         )
         .route(
             "/api/v1/projects/{project_id}/custom-fields/{field_id}/add",
@@ -287,10 +289,7 @@ pub async fn create_field_compat(
 ) -> AppResult<Json<CustomField>> {
     // Only system admins may create definitions; project editors get 403 unless open auth.
     if state.auth.required {
-        let is_admin = auth
-            .as_ref()
-            .map(|a| a.is_system_admin())
-            .unwrap_or(false);
+        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
         if !is_admin {
             return Err(AppError::Forbidden(
                 "only system administrators can create custom field definitions".into(),
@@ -430,10 +429,7 @@ pub async fn update_field_compat(
     Json(body): Json<UpdateCustomField>,
 ) -> AppResult<Json<CustomField>> {
     if state.auth.required {
-        let is_admin = auth
-            .as_ref()
-            .map(|a| a.is_system_admin())
-            .unwrap_or(false);
+        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
         if !is_admin {
             // Allow per-project override of required/default for editors with create-edit.
             require_permission(
@@ -507,10 +503,7 @@ pub async fn delete_field_compat(
     Path((project_id, field_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<serde_json::Value>> {
     if state.auth.required {
-        let is_admin = auth
-            .as_ref()
-            .map(|a| a.is_system_admin())
-            .unwrap_or(false);
+        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
         if !is_admin {
             require_permission(
                 &state.pool,

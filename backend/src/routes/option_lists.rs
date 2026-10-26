@@ -16,10 +16,7 @@ use crate::services::option_lists;
 
 pub fn router() -> Router<AppState> {
     Router::new()
-        .route(
-            "/api/v1/admin/lists",
-            get(list_lists).post(create_list),
-        )
+        .route("/api/v1/admin/lists", get(list_lists).post(create_list))
         .route(
             "/api/v1/admin/lists/{id}",
             get(get_list).put(update_list).delete(delete_list),

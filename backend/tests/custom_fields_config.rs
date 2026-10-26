@@ -36,7 +36,10 @@ async fn spawn_app(auth_required: bool) -> (String, sqlx::PgPool) {
 }
 
 fn unique(prefix: &str) -> String {
-    format!("{prefix}_{}", &uuid::Uuid::new_v4().simple().to_string()[..8])
+    format!(
+        "{prefix}_{}",
+        &uuid::Uuid::new_v4().simple().to_string()[..8]
+    )
 }
 
 async fn insert_admin(pool: &sqlx::PgPool, email: &str, password: &str) -> uuid::Uuid {
@@ -82,7 +85,8 @@ async fn lists_custom_fields_values_and_config_roundtrip() {
     let password = "TestPass1";
     insert_admin(&pool, &email, password).await;
     let token = login(&client, &base, &email, password).await;
-    let auth = |req: reqwest::RequestBuilder| req.header("Authorization", format!("Bearer {token}"));
+    let auth =
+        |req: reqwest::RequestBuilder| req.header("Authorization", format!("Bearer {token}"));
 
     // Create project
     let pkey = unique("CFP").to_uppercase();
@@ -103,18 +107,16 @@ async fn lists_custom_fields_values_and_config_roundtrip() {
 
     // Option list
     let list_key = unique("browsers");
-    let list: Value = auth(
-        client
-            .post(format!("{base}/api/v1/admin/lists"))
-            .json(&serde_json::json!({
-                "key": list_key,
-                "name": "Browsers",
-                "items": [
-                    { "label": "Chrome", "key": "chrome", "sort_order": 0 },
-                    { "label": "Firefox", "key": "firefox", "sort_order": 1 }
-                ]
-            })),
-    )
+    let list: Value = auth(client.post(format!("{base}/api/v1/admin/lists")).json(
+        &serde_json::json!({
+            "key": list_key,
+            "name": "Browsers",
+            "items": [
+                { "label": "Chrome", "key": "chrome", "sort_order": 0 },
+                { "label": "Firefox", "key": "firefox", "sort_order": 1 }
+            ]
+        }),
+    ))
     .send()
     .await
     .expect("list")
@@ -261,11 +263,9 @@ async fn lists_custom_fields_values_and_config_roundtrip() {
 
     // Deprecate list item in use
     let item_id = list["items"][0]["id"].as_str().expect("item");
-    let dep: Value = auth(
-        client.delete(format!(
-            "{base}/api/v1/admin/lists/{list_id}/items/{item_id}"
-        )),
-    )
+    let dep: Value = auth(client.delete(format!(
+        "{base}/api/v1/admin/lists/{list_id}/items/{item_id}"
+    )))
     .send()
     .await
     .expect("dep")

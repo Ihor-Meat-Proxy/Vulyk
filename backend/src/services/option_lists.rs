@@ -117,9 +117,7 @@ pub async fn update(pool: &PgPool, id: Uuid, body: UpdateOptionList) -> AppResul
     if key.is_empty() || name.is_empty() {
         return Err(AppError::BadRequest("key and name are required".into()));
     }
-    let description = body
-        .description
-        .unwrap_or(existing.description);
+    let description = body.description.unwrap_or(existing.description);
     let active = body.active.unwrap_or(existing.active);
 
     let row = sqlx::query_as::<_, OptionList>(&format!(
@@ -331,7 +329,11 @@ pub async fn delete_or_deprecate_item(
     }
 }
 
-pub async fn reorder_items(pool: &PgPool, list_id: Uuid, item_ids: &[Uuid]) -> AppResult<Vec<OptionListItem>> {
+pub async fn reorder_items(
+    pool: &PgPool,
+    list_id: Uuid,
+    item_ids: &[Uuid],
+) -> AppResult<Vec<OptionListItem>> {
     ensure_list(pool, list_id).await?;
     let mut tx = pool.begin().await?;
     for (idx, item_id) in item_ids.iter().enumerate() {
@@ -346,9 +348,7 @@ pub async fn reorder_items(pool: &PgPool, list_id: Uuid, item_ids: &[Uuid]) -> A
         .execute(&mut *tx)
         .await?;
         if res.rows_affected() == 0 {
-            return Err(AppError::BadRequest(format!(
-                "item {item_id} not in list"
-            )));
+            return Err(AppError::BadRequest(format!("item {item_id} not in list")));
         }
     }
     tx.commit().await?;
