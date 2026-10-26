@@ -2095,16 +2095,75 @@ def build() -> dict:
                     ],
                 ),
                 case(
-                    "Install/setup accepts fr es de locales",
-                    title_uk="Setup приймає локалі fr, es, de",
-                    desc_en="--locale / wizard / Admin Settings offer en uk fr es de.",
+                    "Locale choice persists for signed-in user",
+                    title_uk="Вибір локалі зберігається для підписаного користувача",
+                    desc_en="Globe selection PATCHes users.locale and survives reload.",
+                    pre_en="Signed-in user.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Choose Français via globe; reload; GET /api/v1/auth/me.",
+                            "html[lang]=fr after reload; me.locale is fr; localStorage vulyk.locale is fr.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Locale choice persists for anonymous via localStorage",
+                    title_uk="Вибір локалі зберігається для аноніма через localStorage",
+                    desc_en="Without a session, globe still writes vulyk.locale and restores on next visit.",
+                    pre_en="Logged out (or open mode without session). Login / setup page visible.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "On login screen open globe; choose Deutsch; reload.",
+                            "localStorage vulyk.locale=de; html[lang]=de; login chrome uses German labels.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Install/setup accepts --locale fr",
+                    title_uk="Setup приймає --locale fr",
+                    desc_en="install.sh / CLI / wizard accept French as default_locale.",
+                    pre_en="Setup CLI, install.sh, or web wizard available.",
+                    priority="medium",
+                    tags=["regression", "e2e", "i18n", "setup"],
+                    external_key="e2e:setup-wizard.spec.ts",
+                    steps=[
+                        step(
+                            "Run setup with --locale=fr (or select Français in wizard).",
+                            "default_locale persisted as fr; new sessions prefer French until user overrides.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Install/setup accepts --locale es",
+                    title_uk="Setup приймає --locale es",
+                    desc_en="install.sh / CLI / wizard accept Spanish.",
                     pre_en="Setup CLI, install.sh, or web wizard available.",
                     priority="medium",
                     tags=["regression", "i18n", "setup"],
                     steps=[
                         step(
-                            "Run setup with --locale=fr (or select Français in wizard/Admin Settings).",
-                            "default_locale persisted as fr; UI defaults to French for new sessions until user overrides.",
+                            "Run setup with --locale=es (or select Español in wizard).",
+                            "default_locale persisted as es.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Install/setup accepts --locale de",
+                    title_uk="Setup приймає --locale de",
+                    desc_en="install.sh / CLI / wizard accept German.",
+                    pre_en="Setup CLI, install.sh, or web wizard available.",
+                    priority="medium",
+                    tags=["regression", "i18n", "setup"],
+                    steps=[
+                        step(
+                            "Run setup with --locale=de (or select Deutsch in wizard).",
+                            "default_locale persisted as de.",
                         ),
                     ],
                 ),
@@ -2119,6 +2178,59 @@ def build() -> dict:
                         step(
                             "Set default locale uk in Admin Settings; open fresh browser profile login.",
                             "Default strings prefer UK until user overrides via globe menu.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Locale-aware date and number formatting",
+                    title_uk="Форматування дат і чисел за локаллю",
+                    desc_en="UI uses Intl with locale BCP-47 tags (en-US, uk-UA, fr-FR, es-ES, de-DE).",
+                    pre_en="Signed-in user; Cases page shows total count via formatNumber.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Switch to Deutsch; open Cases; note count formatting.",
+                            "Numbers use de-DE grouping (e.g. 1.234); dates elsewhere use German medium style when formatDate is used.",
+                        ),
+                        step(
+                            "Switch to Français; compare the same count.",
+                            "fr-FR grouping/separators differ from en-US; html[lang]=fr.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Missing i18n keys fall back to English then key",
+                    title_uk="Відсутні i18n-ключі падають назад на англійську, потім на ключ",
+                    desc_en="t(key) uses active locale → en → raw key; parity CI forbids missing keys in shipped locales.",
+                    pre_en="Frontend unit tests (parity.test.ts) run in CI via npm test.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "i18n", "ci"],
+                    external_key="unit:i18n/parity.test.ts",
+                    steps=[
+                        step(
+                            "Run frontend unit tests; inspect t() implementation.",
+                            "All of en/uk/fr/es/de share the same key set (no missing/extra/empty). Runtime fallback: dict[key] ?? en[key] ?? key.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Server-side messages fall back gracefully for fr es de",
+                    title_uk="Серверні повідомлення коректно відступають для fr/es/de",
+                    desc_en="API error messages stay English; Localized seed pick() uses fr/es/de when set else EN; UI still shows errors under non-EN locale.",
+                    pre_en="UI locale Français. Seed Localized struct supports en/uk/fr/es/de.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "With UI in Français, submit invalid login credentials.",
+                            "Error banner shows API message (English text OK); page remains usable; no blank crash.",
+                        ),
+                        step(
+                            "Inspect seeded sample names when instance locale was fr/es/de without translated fields.",
+                            "Empty fr/es/de Localized fields fall back to English at seed time.",
                         ),
                     ],
                 ),

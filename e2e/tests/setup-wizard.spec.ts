@@ -160,4 +160,6 @@ test('setup CLI --help is available', async () => {
           },
         )
   expect(out).toMatch(/Complete first-run instance setup|admin-email|--yes/i)
+  expect(out).toMatch(/--locale/i)
+  expect(out).toMatch(/en|uk|fr|es|de/i)
 })

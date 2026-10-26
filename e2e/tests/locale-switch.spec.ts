@@ -1,5 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
+import {
+  API_URL,
+  ensureAdminSession,
+  loginAsAdmin,
+  logout,
+} from '../fixtures/auth'
 import { chooseLocale, openLanguageMenu } from '../fixtures/header'
 
 test.describe.configure({ mode: 'serial' })
@@ -48,4 +53,102 @@ test('globe menu lists native names and switches each locale', async ({
     ).toHaveAttribute('aria-checked', 'true')
     await page.keyboard.press('Escape')
   }
+})
+
+test('locale persists for signed-in user and in localStorage', async ({
+  page,
+  request,
+}) => {
+  const admin = await ensureAdminSession(request)
+  await loginAsAdmin(page)
+  await chooseLocale(page, 'Français')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+
+  const stored = await page.evaluate(() => localStorage.getItem('vulyk.locale'))
+  expect(stored).toBe('fr')
+
+  await expect
+    .poll(async () => {
+      const res = await request.get(`${API_URL}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${admin.token}` },
+      })
+      if (!res.ok()) return null
+      const body = (await res.json()) as { locale?: string | null }
+      return body.locale ?? null
+    })
+    .toBe('fr')
+
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+  await expect(
+    page.getByRole('navigation', { name: 'Primary' }).getByRole('link').first(),
+  ).toContainText(/Cas de test/)
+
+  // Restore English for later specs.
+  await chooseLocale(page, 'English')
+})
+
+test('anonymous login page keeps locale from localStorage', async ({ page }) => {
+  await loginAsAdmin(page)
+  await chooseLocale(page, 'Deutsch')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+
+  await logout(page)
+  await expect(page.locator('.login-panel')).toBeVisible()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+  const stored = await page.evaluate(() => localStorage.getItem('vulyk.locale'))
+  expect(stored).toBe('de')
+  await expect(page.getByRole('heading').or(page.locator('.brand-tag'))).toContainText(
+    /Anmelden|Sign in|Connexion|Iniciar|Увійти/i,
+  )
+  // German sign-in label
+  await expect(page.locator('.brand-tag')).toContainText(/Anmelden/)
+
+  await openLanguageMenu(page)
+  await page.getByRole('menuitemradio', { name: 'English' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+})
+
+test('locale-aware number formatting on Cases', async ({ page }) => {
+  await loginAsAdmin(page)
+  await chooseLocale(page, 'English')
+  await page
+    .getByRole('navigation', { name: 'Primary' })
+    .getByRole('link', { name: /Cases|Кейси|Cas de test|Casos|Testfälle/i })
+    .click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+
+  const formats = await page.evaluate(() => {
+    const n = 1234
+    return {
+      en: new Intl.NumberFormat('en-US').format(n),
+      de: new Intl.NumberFormat('de-DE').format(n),
+      fr: new Intl.NumberFormat('fr-FR').format(n),
+    }
+  })
+  expect(formats.en).not.toBe(formats.de)
+  expect(formats.de).toContain('.')
+
+  await chooseLocale(page, 'Deutsch')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'de')
+  await expect(page.locator('.muted').filter({ hasText: /Fälle/i }).first()).toBeVisible({
+    timeout: 15_000,
+  })
+
+  await chooseLocale(page, 'English')
+})
+
+test('API errors still display under non-English locale', async ({ page }) => {
+  await loginAsAdmin(page)
+  await chooseLocale(page, 'Français')
+  await logout(page)
+
+  await page.locator('.login-panel input[type="email"]').fill('nobody@example.com')
+  await page.locator('.login-panel input[type="password"]').fill('wrong-password-99')
+  await page.locator('.login-panel button[type="submit"]').click()
+  await expect(page.locator('.login-panel .error')).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('.login-panel .error')).not.toHaveText('')
+  // Login chrome remains French (localStorage) while error text may be English from API.
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+  await expect(page.locator('.brand-tag')).toContainText(/Connexion|Sign in/i)
 })

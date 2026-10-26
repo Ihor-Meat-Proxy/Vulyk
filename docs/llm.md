@@ -19,7 +19,7 @@ Vulyk can call local and cloud LLMs to:
 | `xai` | xAI Grok (OpenAI-compatible) |
 | `mock` | Deterministic offline provider for tests / demos |
 
-Configure per project under **Admin → LLM providers**, or via:
+Configure per project under gear → **Admin settings** → **LLM providers**, or via:
 
 - `GET /api/v1/llm/providers`
 - `CRUD /api/v1/projects/{id}/llm/configs`

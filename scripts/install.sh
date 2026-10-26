@@ -71,7 +71,7 @@ Modes:
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
   --admin-password=PASSWORD
-  --locale=en|uk|fr|es|de
+  --locale=en|uk|fr|es|de  Instance default UI language
   --timezone=TZ            e.g. UTC, Europe/Kyiv
   --registration-mode=MODE open | invite | disabled
   --instance-name=NAME
@@ -88,7 +88,7 @@ Written into .env (compose/dev) or .env.prod (prod). Defaults:
   compose/dev: seed demo=1, registration=open, admin@vulyk.local / admin
   prod:        seed demo=0, registration=disabled
 
-After compose/prod/dev, complete setup if needed:
+After compose/prod/dev, if setup did not complete automatically:
   ./scripts/install.sh setup --yes
   # or: docker compose run --rm api vulyk-api setup --yes ...
   # or: cargo run -p vulyk-api -- setup ...
@@ -96,7 +96,7 @@ After compose/prod/dev, complete setup if needed:
 See docs/guides/first-run-setup.md
 
 Environment:
-  Linux, macOS, and WSL2 are supported. Native Windows is not - use WSL2.
+  Linux, macOS (bash 3.2+), and WSL2 are supported. Native Windows is not - use WSL2.
 EOF
 }
 
@@ -684,7 +684,7 @@ Vulyk is starting (dev compose - auth optional).
   Health:    http://localhost:8080/health
 
 Admin/demo seeding uses .env (VULYK_ADMIN_EMAIL=${ADMIN_EMAIL}, VULYK_SEED_DEMO=${SEED_DEMO}).
-If you need an explicit setup pass:
+If setup did not complete automatically (or you need to re-run first-time configuration):
   ./scripts/install.sh setup --yes
   # or: docker compose run --rm api vulyk-api setup --yes
 

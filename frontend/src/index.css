@@ -549,7 +549,18 @@ select.project-select {
   margin: 0.25rem 0;
 }
 
+.login-shell-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.35rem;
+  z-index: 2;
+}
+
 .login-shell {
+  position: relative;
+
   min-height: 100vh;
   display: grid;
   place-items: center;

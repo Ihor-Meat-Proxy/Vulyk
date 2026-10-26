@@ -5311,12 +5311,137 @@
         {
           "key": "VQA-116",
           "title": {
-            "en": "Install/setup accepts fr es de locales",
-            "uk": "Setup приймає локалі fr, es, de"
+            "en": "Locale choice persists for signed-in user",
+            "uk": "Вибір локалі зберігається для підписаного користувача"
           },
           "description": {
-            "en": "--locale / wizard / Admin Settings offer en uk fr es de.",
-            "uk": "--locale / wizard / Admin Settings offer en uk fr es de."
+            "en": "Globe selection PATCHes users.locale and survives reload.",
+            "uk": "Globe selection PATCHes users.locale and survives reload."
+          },
+          "precondition": {
+            "en": "Signed-in user.",
+            "uk": "Signed-in user."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "i18n",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Choose Français via globe; reload; GET /api/v1/auth/me.",
+                "uk": "Choose Français via globe; reload; GET /api/v1/auth/me."
+              },
+              "expected_result": {
+                "en": "html[lang]=fr after reload; me.locale is fr; localStorage vulyk.locale is fr.",
+                "uk": "html[lang]=fr after reload; me.locale is fr; localStorage vulyk.locale is fr."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:locale-switch.spec.ts"
+        },
+        {
+          "key": "VQA-117",
+          "title": {
+            "en": "Locale choice persists for anonymous via localStorage",
+            "uk": "Вибір локалі зберігається для аноніма через localStorage"
+          },
+          "description": {
+            "en": "Without a session, globe still writes vulyk.locale and restores on next visit.",
+            "uk": "Without a session, globe still writes vulyk.locale and restores on next visit."
+          },
+          "precondition": {
+            "en": "Logged out (or open mode without session). Login / setup page visible.",
+            "uk": "Logged out (or open mode without session). Login / setup page visible."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "i18n",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "On login screen open globe; choose Deutsch; reload.",
+                "uk": "On login screen open globe; choose Deutsch; reload."
+              },
+              "expected_result": {
+                "en": "localStorage vulyk.locale=de; html[lang]=de; login chrome uses German labels.",
+                "uk": "localStorage vulyk.locale=de; html[lang]=de; login chrome uses German labels."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:locale-switch.spec.ts"
+        },
+        {
+          "key": "VQA-118",
+          "title": {
+            "en": "Install/setup accepts --locale fr",
+            "uk": "Setup приймає --locale fr"
+          },
+          "description": {
+            "en": "install.sh / CLI / wizard accept French as default_locale.",
+            "uk": "install.sh / CLI / wizard accept French as default_locale."
+          },
+          "precondition": {
+            "en": "Setup CLI, install.sh, or web wizard available.",
+            "uk": "Setup CLI, install.sh, or web wizard available."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "i18n",
+            "setup",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Run setup with --locale=fr (or select Français in wizard).",
+                "uk": "Run setup with --locale=fr (or select Français in wizard)."
+              },
+              "expected_result": {
+                "en": "default_locale persisted as fr; new sessions prefer French until user overrides.",
+                "uk": "default_locale persisted as fr; new sessions prefer French until user overrides."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:setup-wizard.spec.ts"
+        },
+        {
+          "key": "VQA-119",
+          "title": {
+            "en": "Install/setup accepts --locale es",
+            "uk": "Setup приймає --locale es"
+          },
+          "description": {
+            "en": "install.sh / CLI / wizard accept Spanish.",
+            "uk": "install.sh / CLI / wizard accept Spanish."
           },
           "precondition": {
             "en": "Setup CLI, install.sh, or web wizard available.",
@@ -5334,12 +5459,12 @@
           "steps": [
             {
               "action": {
-                "en": "Run setup with --locale=fr (or select Français in wizard/Admin Settings).",
-                "uk": "Run setup with --locale=fr (or select Français in wizard/Admin Settings)."
+                "en": "Run setup with --locale=es (or select Español in wizard).",
+                "uk": "Run setup with --locale=es (or select Español in wizard)."
               },
               "expected_result": {
-                "en": "default_locale persisted as fr; UI defaults to French for new sessions until user overrides.",
-                "uk": "default_locale persisted as fr; UI defaults to French for new sessions until user overrides."
+                "en": "default_locale persisted as es.",
+                "uk": "default_locale persisted as es."
               },
               "data": {
                 "en": "",
@@ -5349,7 +5474,47 @@
           ]
         },
         {
-          "key": "VQA-117",
+          "key": "VQA-120",
+          "title": {
+            "en": "Install/setup accepts --locale de",
+            "uk": "Setup приймає --locale de"
+          },
+          "description": {
+            "en": "install.sh / CLI / wizard accept German.",
+            "uk": "install.sh / CLI / wizard accept German."
+          },
+          "precondition": {
+            "en": "Setup CLI, install.sh, or web wizard available.",
+            "uk": "Setup CLI, install.sh, or web wizard available."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "i18n",
+            "setup",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Run setup with --locale=de (or select Deutsch in wizard).",
+                "uk": "Run setup with --locale=de (or select Deutsch in wizard)."
+              },
+              "expected_result": {
+                "en": "default_locale persisted as de.",
+                "uk": "default_locale persisted as de."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-121",
           "title": {
             "en": "Instance default locale from setup applies to new sessions",
             "uk": "Локаль інстансу з setup застосовується до нових сесій"
@@ -5389,7 +5554,160 @@
           ]
         },
         {
-          "key": "VQA-118",
+          "key": "VQA-122",
+          "title": {
+            "en": "Locale-aware date and number formatting",
+            "uk": "Форматування дат і чисел за локаллю"
+          },
+          "description": {
+            "en": "UI uses Intl with locale BCP-47 tags (en-US, uk-UA, fr-FR, es-ES, de-DE).",
+            "uk": "UI uses Intl with locale BCP-47 tags (en-US, uk-UA, fr-FR, es-ES, de-DE)."
+          },
+          "precondition": {
+            "en": "Signed-in user; Cases page shows total count via formatNumber.",
+            "uk": "Signed-in user; Cases page shows total count via formatNumber."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "i18n",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Switch to Deutsch; open Cases; note count formatting.",
+                "uk": "Switch to Deutsch; open Cases; note count formatting."
+              },
+              "expected_result": {
+                "en": "Numbers use de-DE grouping (e.g. 1.234); dates elsewhere use German medium style when formatDate is used.",
+                "uk": "Numbers use de-DE grouping (e.g. 1.234); dates elsewhere use German medium style when formatDate is used."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Switch to Français; compare the same count.",
+                "uk": "Switch to Français; compare the same count."
+              },
+              "expected_result": {
+                "en": "fr-FR grouping/separators differ from en-US; html[lang]=fr.",
+                "uk": "fr-FR grouping/separators differ from en-US; html[lang]=fr."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:locale-switch.spec.ts"
+        },
+        {
+          "key": "VQA-123",
+          "title": {
+            "en": "Missing i18n keys fall back to English then key",
+            "uk": "Відсутні i18n-ключі падають назад на англійську, потім на ключ"
+          },
+          "description": {
+            "en": "t(key) uses active locale → en → raw key; parity CI forbids missing keys in shipped locales.",
+            "uk": "t(key) uses active locale → en → raw key; parity CI forbids missing keys in shipped locales."
+          },
+          "precondition": {
+            "en": "Frontend unit tests (parity.test.ts) run in CI via npm test.",
+            "uk": "Frontend unit tests (parity.test.ts) run in CI via npm test."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "i18n",
+            "ci",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Run frontend unit tests; inspect t() implementation.",
+                "uk": "Run frontend unit tests; inspect t() implementation."
+              },
+              "expected_result": {
+                "en": "All of en/uk/fr/es/de share the same key set (no missing/extra/empty). Runtime fallback: dict[key] ?? en[key] ?? key.",
+                "uk": "All of en/uk/fr/es/de share the same key set (no missing/extra/empty). Runtime fallback: dict[key] ?? en[key] ?? key."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "unit:i18n/parity.test.ts"
+        },
+        {
+          "key": "VQA-124",
+          "title": {
+            "en": "Server-side messages fall back gracefully for fr es de",
+            "uk": "Серверні повідомлення коректно відступають для fr/es/de"
+          },
+          "description": {
+            "en": "API error messages stay English; Localized seed pick() uses fr/es/de when set else EN; UI still shows errors under non-EN locale.",
+            "uk": "API error messages stay English; Localized seed pick() uses fr/es/de when set else EN; UI still shows errors under non-EN locale."
+          },
+          "precondition": {
+            "en": "UI locale Français. Seed Localized struct supports en/uk/fr/es/de.",
+            "uk": "UI locale Français. Seed Localized struct supports en/uk/fr/es/de."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "i18n",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "With UI in Français, submit invalid login credentials.",
+                "uk": "With UI in Français, submit invalid login credentials."
+              },
+              "expected_result": {
+                "en": "Error banner shows API message (English text OK); page remains usable; no blank crash.",
+                "uk": "Error banner shows API message (English text OK); page remains usable; no blank crash."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Inspect seeded sample names when instance locale was fr/es/de without translated fields.",
+                "uk": "Inspect seeded sample names when instance locale was fr/es/de without translated fields."
+              },
+              "expected_result": {
+                "en": "Empty fr/es/de Localized fields fall back to English at seed time.",
+                "uk": "Empty fr/es/de Localized fields fall back to English at seed time."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:locale-switch.spec.ts"
+        },
+        {
+          "key": "VQA-125",
           "title": {
             "en": "Bilingual sample content picks locale",
             "uk": "Двомовний sample-контент обирає локаль"
@@ -5438,7 +5756,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-119",
+          "key": "VQA-126",
           "title": {
             "en": "Gear user menu shows profile header and core items",
             "uk": "Меню шестерні показує профіль і основні пункти"
@@ -5481,7 +5799,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-120",
+          "key": "VQA-127",
           "title": {
             "en": "Gear menu Admin settings only for admins",
             "uk": "Пункт Admin settings лише для адмінів"
@@ -5538,7 +5856,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-121",
+          "key": "VQA-128",
           "title": {
             "en": "Appearance opens from gear menu not left nav",
             "uk": "Вигляд відкривається з меню шестерні, не з лівої навігації"
@@ -5580,7 +5898,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-122",
+          "key": "VQA-129",
           "title": {
             "en": "Log out from gear menu; Sign in when anonymous",
             "uk": "Вихід з меню шестерні; Увійти для аноніма"
@@ -5636,7 +5954,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-123",
+          "key": "VQA-130",
           "title": {
             "en": "My settings page edits profile language timezone password tokens",
             "uk": "Сторінка Мої налаштування: профіль, мова, TZ, пароль, токени"
@@ -5692,7 +6010,7 @@
           "external_key": "e2e:header-menu.spec.ts"
         },
         {
-          "key": "VQA-124",
+          "key": "VQA-131",
           "title": {
             "en": "Open-mode badge lives in gear menu not topbar text",
             "uk": "Бейдж Open mode у меню шестерні, не текстом у topbar"
@@ -5742,7 +6060,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-125",
+          "key": "VQA-132",
           "title": {
             "en": "Apply Light, Dark, High contrast, and Sepia themes",
             "uk": "Застосувати теми Light, Dark, High contrast і Sepia"
@@ -5784,7 +6102,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-126",
+          "key": "VQA-133",
           "title": {
             "en": "System theme follows prefers-color-scheme",
             "uk": "Системна тема слідує prefers-color-scheme"
@@ -5823,7 +6141,7 @@
           ]
         },
         {
-          "key": "VQA-127",
+          "key": "VQA-134",
           "title": {
             "en": "Font scale and density controls",
             "uk": "Масштаб шрифту і щільність"
@@ -5864,7 +6182,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-128",
+          "key": "VQA-135",
           "title": {
             "en": "Status badges show icon and label in all themes",
             "uk": "Статусні бейджі з іконкою і підписом у всіх темах"
@@ -5906,7 +6224,7 @@
           "external_key": "e2e:appearance.spec.ts"
         },
         {
-          "key": "VQA-129",
+          "key": "VQA-136",
           "title": {
             "en": "Reduced motion preference honoured",
             "uk": "Повага до reduced motion"
@@ -5955,7 +6273,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-130",
+          "key": "VQA-137",
           "title": {
             "en": "Mobile bottom nav Cases/Runs/Reports; Admin via gear",
             "uk": "Мобільна нижня навігація Cases/Runs/Reports; Admin через шестерню"
@@ -6013,7 +6331,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-131",
+          "key": "VQA-138",
           "title": {
             "en": "Folders drawer on mobile",
             "uk": "Drawer тек на мобільному"
@@ -6085,7 +6403,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-132",
+          "key": "VQA-139",
           "title": {
             "en": "Create case on mobile layout",
             "uk": "Створити кейс у мобільному layout"
@@ -6126,7 +6444,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-133",
+          "key": "VQA-140",
           "title": {
             "en": "Web app manifest and service worker register",
             "uk": "Маніфест PWA і реєстрація service worker"
@@ -6167,7 +6485,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-134",
+          "key": "VQA-141",
           "title": {
             "en": "Offline fallback page is available",
             "uk": "Офлайн fallback-сторінка доступна"
@@ -6208,7 +6526,7 @@
           "external_key": "e2e:pwa-mobile.spec.ts"
         },
         {
-          "key": "VQA-135",
+          "key": "VQA-142",
           "title": {
             "en": "Offline queue syncs step results when back online",
             "uk": "Офлайн-черга синхронізує результати кроків онлайн"
@@ -6257,7 +6575,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-136",
+          "key": "VQA-143",
           "title": {
             "en": "Cases list remains usable with ~20k cases",
             "uk": "Список кейсів лишається робочим при ~20k кейсів"
@@ -6311,7 +6629,7 @@
           ]
         },
         {
-          "key": "VQA-137",
+          "key": "VQA-144",
           "title": {
             "en": "FTS search on 20k cases returns quickly",
             "uk": "FTS-пошук по 20k кейсах швидкий"
@@ -6351,7 +6669,7 @@
           ]
         },
         {
-          "key": "VQA-138",
+          "key": "VQA-145",
           "title": {
             "en": "Folder tree with deep nesting stays responsive",
             "uk": "Дерево тек з глибокою вкладеністю лишається чуйним"
@@ -6391,7 +6709,7 @@
           ]
         },
         {
-          "key": "VQA-139",
+          "key": "VQA-146",
           "title": {
             "en": "10×10×200 folder shape: recursive counts and lazy pages",
             "uk": "Форма 10×10×200: рекурсивні лічильники і lazy-сторінки"
@@ -6447,7 +6765,7 @@
           "external_key": "e2e:folder-tree-lazy.spec.ts"
         },
         {
-          "key": "VQA-140",
+          "key": "VQA-147",
           "title": {
             "en": "Cursor pagination for huge lists",
             "uk": "Cursor-пагінація для великих списків"
@@ -6496,7 +6814,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-141",
+          "key": "VQA-148",
           "title": {
             "en": "Health endpoint returns ok",
             "uk": "Health-ендпоінт повертає ok"
@@ -6536,7 +6854,7 @@
           ]
         },
         {
-          "key": "VQA-142",
+          "key": "VQA-149",
           "title": {
             "en": "Ready endpoint checks database",
             "uk": "Ready-ендпоінт перевіряє БД"
@@ -6576,7 +6894,7 @@
           ]
         },
         {
-          "key": "VQA-143",
+          "key": "VQA-150",
           "title": {
             "en": "Roles matrix endpoint documents permissions",
             "uk": "Ендпоінт матриці ролей документує дозволи"
@@ -6615,7 +6933,7 @@
           ]
         },
         {
-          "key": "VQA-144",
+          "key": "VQA-151",
           "title": {
             "en": "Custom field definitions UI",
             "uk": "UI визначення кастомних полів"
@@ -6655,7 +6973,7 @@
           ]
         },
         {
-          "key": "VQA-145",
+          "key": "VQA-152",
           "title": {
             "en": "Result partitioning for very large histories",
             "uk": "Partitioning результатів для великих історій"
@@ -6695,7 +7013,7 @@
           ]
         },
         {
-          "key": "VQA-146",
+          "key": "VQA-153",
           "title": {
             "en": "GitHub Action uploads results to Vulyk",
             "uk": "GitHub Action завантажує результати в Vulyk"
@@ -6734,7 +7052,7 @@
           ]
         },
         {
-          "key": "VQA-147",
+          "key": "VQA-154",
           "title": {
             "en": "Webhook receiver accepts GitHub/GitLab payloads",
             "uk": "Webhook приймає payload GitHub/GitLab"
@@ -6774,7 +7092,7 @@
           ]
         },
         {
-          "key": "VQA-148",
+          "key": "VQA-155",
           "title": {
             "en": "Admin global integrations placeholders",
             "uk": "Глобальні інтеграції адміна (placeholders)"
@@ -6815,7 +7133,7 @@
           "external_key": "e2e:integrations-llm.spec.ts"
         },
         {
-          "key": "VQA-149",
+          "key": "VQA-156",
           "title": {
             "en": "Defect create from failed result via ALM",
             "uk": "Створення дефекту з failed-результату через ALM"
@@ -6855,7 +7173,7 @@
           ]
         },
         {
-          "key": "VQA-150",
+          "key": "VQA-157",
           "title": {
             "en": "Retest status available after Failed",
             "uk": "Статус Retest доступний після Failed"
@@ -6895,7 +7213,7 @@
           ]
         },
         {
-          "key": "VQA-151",
+          "key": "VQA-158",
           "title": {
             "en": "Step-level results within a run item",
             "uk": "Результати на рівні кроків у елементі прогону"
@@ -6934,7 +7252,7 @@
           ]
         },
         {
-          "key": "VQA-152",
+          "key": "VQA-159",
           "title": {
             "en": "Assign run item to a user",
             "uk": "Призначити елемент прогону користувачу"
@@ -6973,7 +7291,7 @@
           ]
         },
         {
-          "key": "VQA-153",
+          "key": "VQA-160",
           "title": {
             "en": "Project switcher changes active project context",
             "uk": "Перемикач проєктів змінює активний контекст"
@@ -7015,7 +7333,7 @@
           "external_key": "e2e:sample-project.spec.ts"
         },
         {
-          "key": "VQA-154",
+          "key": "VQA-161",
           "title": {
             "en": "Demo user membership on sample projects is TAE",
             "uk": "Demo-користувач має роль TAE на sample-проєктах"
@@ -7056,7 +7374,7 @@
           ]
         },
         {
-          "key": "VQA-155",
+          "key": "VQA-162",
           "title": {
             "en": "Idempotent re-seed does not duplicate sample projects",
             "uk": "Ідемпотентний повторний сід не дублює sample-проєкти"

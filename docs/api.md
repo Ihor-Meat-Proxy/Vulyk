@@ -13,7 +13,8 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 
 - Base path: `/api/v1`
 - Auth: session cookie or `Authorization: Bearer <jwt|api_token>`
-- Errors: `{ "error": { "code": "...", "message": "..." } }`
+- Errors: `{ "error": { "code": "...", "message": "..." } }` (English messages; UI shows them in any locale without crashing — seed content may be localized via bilingual fields)
+- Locales: instance `default_locale` and `PATCH /api/v1/auth/me` `locale` accept `en` / `uk` / `fr` / `es` / `de`
 - Health: `GET /health`, `GET /ready`
 
 ## Major surfaces

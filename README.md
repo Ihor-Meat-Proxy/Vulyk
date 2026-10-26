@@ -77,9 +77,11 @@ Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it de
 | [docs/guides/sso.md](docs/guides/sso.md) | Google, Entra, GitHub, GitLab, Nextcloud |
 | [docs/integrations/](docs/integrations/) | OpenProject, Jira, importers |
 | [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
-| [docs/llm.md](docs/llm.md) | LLM providers |
+| [docs/llm.md](docs/llm.md) | LLM providers, generate, chat propose/create |
 | [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | JUnit ingest & CI triggers |
+| [docs/guides/executions.md](docs/guides/executions.md) | Campaigns, iterations, pipeline upload |
 | [docs/guides/pwa-and-mobile.md](docs/guides/pwa-and-mobile.md) | PWA install, offline queue, mobile UX |
+| [docs/design-tokens.md](docs/design-tokens.md) | Themes, appearance, locale prefs |
 
 ## Repository layout
 
@@ -96,15 +98,12 @@ scripts/    install.sh, perf-smoke.sh, helpers
 
 ## API highlights
 
-- Auth / RBAC, projects, suites, cases (FTS, tags, custom fields, versions)
-- Plans, runs, step results, attachments
-- Ingest: JUnit + Vulyk JSON, bulk results, job worker
-- CI: GitHub/GitLab dispatch + webhooks
-- Requirements / ALM (OpenProject, Jira Cloud/DC)
-- Importers: TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, CSV
-- **Reports (W8):** dashboard, trends, requirement coverage, flaky detection, CSV/PDF export
-- LLM generate/chat; MCP tools; personal API tokens
-- Interactive docs: `/api/docs`
+- Auth / RBAC, projects (optional key), nested folders, auto `PREFIX-N` case keys
+- Plans, runs, step results; automation executions (campaigns / iterations / pipeline ingest)
+- Ingest: JUnit / Playwright / pytest / Vulyk JSON; CI dispatch + webhooks
+- Requirements / ALM; importers; reports (dashboard, trends, coverage, flaky, export)
+- LLM generate/chat (propose/create); MCP; personal API tokens
+- Locales: `en` / `uk` / `fr` / `es` / `de` — Interactive docs: `/api/docs`
 
 ## Testing
 

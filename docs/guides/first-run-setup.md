@@ -8,7 +8,7 @@ Complete Vulyk setup by creating the first system admin, instance name, locale/t
 |---------|------------|--------|
 | Admin email | `VULYK_ADMIN_EMAIL` / `--admin-email` | Default local: `admin@vulyk.local` |
 | Admin password | `VULYK_ADMIN_PASSWORD` / `--admin-password` | Env seed accepts short `admin` (forces change). CLI requires ≥8 chars + letter + digit |
-| Locale | `VULYK_DEFAULT_LOCALE` / `--locale` | `en`, `uk`, `fr`, `es`, or `de` |
+| Locale | `VULYK_DEFAULT_LOCALE` / `--locale` | `en`, `uk`, `fr`, `es`, or `de` (UI switchable later via header globe) |
 | Timezone | `VULYK_DEFAULT_TIMEZONE` / `--timezone` | e.g. `UTC`, `Europe/Kyiv` |
 | Registration | `VULYK_REGISTRATION_MODE` / `--registration-mode` | `open` \| `invite` \| `disabled` |
 | Instance name | `VULYK_INSTANCE_NAME` / `--instance-name` | |
@@ -40,7 +40,7 @@ Writes `.env` and starts the stack. Compose defaults:
 - `VULYK_SEED_DEMO=1`
 - `VULYK_REGISTRATION_MODE=open`
 
-**Explicit setup pass** (if admin was not seeded):
+**Run setup again** (if admin was not seeded or setup did not complete):
 
 ```bash
 ./scripts/install.sh setup --yes
@@ -162,4 +162,8 @@ Open the UI; the wizard asks for the token (or pass `VULYK_SETUP_TOKEN` / `--set
 
 Never use these defaults in production.
 
-See also: [auth-and-rbac.md](../auth-and-rbac.md), [admin-guide.md](../admin-guide.md), [sso.md](sso.md).
+### Platforms
+
+`scripts/install.sh` runs on Linux, macOS (bash 3.2+), and WSL2. Use `./scripts/install.sh check` to verify the toolchain and script syntax.
+
+See also: [auth-and-rbac.md](../auth-and-rbac.md), [admin-guide.md](../admin-guide.md), [sso.md](sso.md), [user-guide.md](../user-guide.md#language--settings).

@@ -50,7 +50,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
     info(
         title = "Vulyk API",
         version = "0.2.0",
-        description = "Open-source test management system (beehive). W1–W11: auth, cases/runs, ingest/CI, ALM, importers, reports, LLM, MCP, deploy.",
+        description = "Open-source test management system (beehive). Projects (optional key, case_key_prefix + never-reused PREFIX-N case numbers), nested folder trees with recursive counts, plans/runs, automation executions (campaigns/iterations/pipeline ingest), ALM/importers/reports, LLM generate/chat (propose/create), MCP, locales en/uk/fr/es/de, deploy.",
         license(name = "AGPL-3.0")
     ),
     paths(
