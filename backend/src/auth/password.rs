@@ -136,6 +136,13 @@ pub fn hash_password(password: &str) -> AppResult<String> {
         .map_err(|e| AppError::Internal(format!("password hash failed: {e}")))
 }
 
+/// Hash on a blocking pool so Argon2 does not stall Tokio workers.
+pub async fn hash_password_async(password: String) -> AppResult<String> {
+    tokio::task::spawn_blocking(move || hash_password(&password))
+        .await
+        .map_err(|e| AppError::Internal(format!("password hash join: {e}")))?
+}
+
 /// Verify `password` against a PHC hash. Returns false on mismatch or bad hash.
 pub fn verify_password(password: &str, password_hash: &str) -> AppResult<bool> {
     let parsed = match PasswordHash::new(password_hash) {
@@ -149,6 +156,13 @@ pub fn verify_password(password: &str, password_hash: &str) -> AppResult<bool> {
     Ok(Argon2::default()
         .verify_password(password.as_bytes(), &parsed)
         .is_ok())
+}
+
+/// Verify on a blocking pool (request-path companion to [`hash_password_async`]).
+pub async fn verify_password_async(password: String, password_hash: String) -> AppResult<bool> {
+    tokio::task::spawn_blocking(move || verify_password(&password, &password_hash))
+        .await
+        .map_err(|e| AppError::Internal(format!("password verify join: {e}")))?
 }
 
 fn verify_password_raw(password: &str, password_hash: &str) -> bool {
@@ -168,6 +182,18 @@ fn verify_password_raw(password: &str, password_hash: &str) -> bool {
 pub fn verify_password_for_login(password: &str, password_hash: Option<&str>) -> bool {
     let hash = password_hash.unwrap_or(DUMMY_PASSWORD_HASH);
     verify_password_raw(password, hash)
+}
+
+/// Login verify on a blocking pool; join failures fail closed (`false`).
+pub async fn verify_password_for_login_async(
+    password: String,
+    password_hash: Option<String>,
+) -> bool {
+    tokio::task::spawn_blocking(move || {
+        verify_password_for_login(&password, password_hash.as_deref())
+    })
+    .await
+    .unwrap_or(false)
 }
 
 /// Strength check using the process-wide policy.
@@ -259,6 +285,21 @@ mod tests {
         assert!(verify_password_for_login("admin", Some(&hash)));
         assert!(!verify_password_for_login("admin", None));
         assert!(!verify_password_for_login("wrong", Some(&hash)));
+    }
+
+    #[tokio::test]
+    async fn async_hash_and_verify_match_sync() {
+        let hash = hash_password_async("admin-async".into())
+            .await
+            .expect("hash");
+        assert!(verify_password_async("admin-async".into(), hash.clone())
+            .await
+            .unwrap());
+        assert!(!verify_password_async("wrong".into(), hash.clone())
+            .await
+            .unwrap());
+        assert!(verify_password_for_login_async("admin-async".into(), Some(hash)).await);
+        assert!(!verify_password_for_login_async("admin-async".into(), None).await);
     }
 
     #[test]

@@ -5,7 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{hash_password, RequireSystemAdmin};
+use crate::auth::{hash_password_async, RequireSystemAdmin};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateUserRequest, UpdateUserRequest, User, UserPublic};
 use crate::routes::AppState;
@@ -67,7 +67,7 @@ pub async fn create_user(
         return Err(AppError::BadRequest("display_name is required".into()));
     }
 
-    let password_hash = hash_password(&body.password)?;
+    let password_hash = hash_password_async(body.password.clone()).await?;
     let user = sqlx::query_as::<_, User>(&format!(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
            VALUES ($1, $2, $3, $4)
@@ -139,7 +139,7 @@ pub async fn update_user(
     let timezone = body.timezone.or(existing.timezone);
     let password_hash = if let Some(password) = body.password {
         state.password_policy.validate(&password)?;
-        Some(hash_password(&password)?)
+        Some(hash_password_async(password).await?)
     } else {
         existing.password_hash
     };

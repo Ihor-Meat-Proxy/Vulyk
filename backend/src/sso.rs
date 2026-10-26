@@ -11,7 +11,7 @@ use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::auth::{generate_password, hash_password, PasswordPolicy, ProjectRole};
+use crate::auth::{generate_password, hash_password_async, PasswordPolicy, ProjectRole};
 use crate::crypto::SecretsKey;
 use crate::error::{AppError, AppResult};
 use crate::models::{SsoProviderPublic, User};
@@ -1068,7 +1068,7 @@ async fn link_or_provision(
 
     // Random unusable local password that still meets the shared policy.
     let random_pw = generate_password(&PasswordPolicy::global());
-    let password_hash = hash_password(&random_pw)?;
+    let password_hash = hash_password_async(random_pw).await?;
     // default_role / group_role_mapping applied when assigning project memberships later.
     let _assigned_role = role_from_groups(provider, &identity.groups);
     tracing::debug!(role = %_assigned_role, "SSO JIT default role resolved");
