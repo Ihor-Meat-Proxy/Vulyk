@@ -7906,7 +7906,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-170",
+          "key": "VQA-171",
           "title": {
             "en": "Runs list shows colour-blind-safe status badges with icons and labels",
             "uk": "Список прогонів показує безпечні для дальтоніків бейджі зі іконками та підписами"
@@ -7950,7 +7950,7 @@
           "external_key": "e2e:status-sample.spec.ts"
         },
         {
-          "key": "VQA-171",
+          "key": "VQA-172",
           "title": {
             "en": "Sample badge appears on sample projects and nightly suites",
             "uk": "Бейдж Sample видно на sample-проєктах і nightly-сюїтах"
@@ -7992,7 +7992,7 @@
           ]
         },
         {
-          "key": "VQA-172",
+          "key": "VQA-173",
           "title": {
             "en": "Admin can remove and re-seed sample data safely",
             "uk": "Адмін може безпечно видалити й знову посіяти sample-дані"
