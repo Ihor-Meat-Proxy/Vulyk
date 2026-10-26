@@ -1,0 +1,42 @@
+---
+description: Prevent parallel-PR CI failures (seeds, migrations, Playwright, Lighthouse)
+globs:
+  - backend/seed/**
+  - backend/src/sample_seed.rs
+  - backend/migrations/**
+  - e2e/**
+  - frontend/src/testing/**
+  - .github/workflows/ci.yml
+alwaysApply: true
+---
+
+# Parallel PR CI guardrails
+
+Before finishing a PR:
+
+1. Rebase onto latest `main` immediately before merge.
+2. Run `./scripts/check.sh` (hooks: `git config core.hooksPath scripts/githooks`).
+3. Read root `AGENTS.md` and `docs/ci-failures.md`.
+
+## Seed data
+
+- Do **not** append hardcoded `VQA-NNN` keys to `vulyk-qa.json` from parallel feature PRs.
+- Add `backend/seed/vulyk-qa.d/<feature>.json` with keys omitted; register in `VULYK_QA_FRAGMENTS`.
+- Run `./scripts/check-seed-keys.sh` after rebase.
+
+## Playwright
+
+- Use `TestIds` / `getByTestId`; avoid ambiguous `getByText` for shared controls.
+- See `docs/testing/test-ids.md`.
+
+## Migrations
+
+- New unique timestamped files only; never edit migrations already on `main`.
+
+## Lighthouse
+
+- Job is advisory (`continue-on-error`). Keep `browser-actions/setup-chrome`; do not make CfT download the sole Chrome install path again.
+
+## OpenProject
+
+- Never open PRs against OpenProject repos from this work.

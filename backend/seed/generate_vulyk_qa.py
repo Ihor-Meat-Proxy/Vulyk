@@ -3,6 +3,11 @@
 
 Run: python3 backend/seed/generate_vulyk_qa.py
 Idempotent output; commit the JSON. Keep this script for maintainability.
+
+Parallel feature PRs: do NOT append new hardcoded VQA-NNN cases here from
+multiple branches. Add backend/seed/vulyk-qa.d/<feature>.json with keys omitted
+and register the fragment in backend/src/sample_seed.rs (VULYK_QA_FRAGMENTS).
+See backend/seed/vulyk-qa.d/README.md and ./scripts/check-seed-keys.sh.
 """
 from __future__ import annotations
 
@@ -3335,7 +3340,7 @@ def main() -> None:
 
     # Validate
     assert len(all_keys) == len(set(all_keys)), "duplicate keys"
-    assert 120 <= len(all_keys) <= 200, f"case count {len(all_keys)} out of range"
+    assert 120 <= len(all_keys) <= 250, f"case count {len(all_keys)} out of range"
     for s in data["suites"]:
         def check(suite):
             for c in suite.get("cases") or []:

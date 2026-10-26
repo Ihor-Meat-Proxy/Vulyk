@@ -2,8 +2,18 @@
 //!
 //! Opt out with `VULYK_SEED_SAMPLE=0`. Default: seed when setup completes.
 //! Not seeded in prod unless `VULYK_SEED_SAMPLE` is enabled (compose/wizard default on).
+//!
+//! ## Parallel-PR seed keys
+//!
+//! Hardcoding the next `VQA-NNN` in `vulyk-qa.json` from multiple PRs causes
+//! duplicate-key CI failures after rebase. Prefer:
+//! 1. A feature fragment under `backend/seed/vulyk-qa.d/` with keys omitted
+//!    (registered in [`VULYK_QA_FRAGMENTS`]), or
+//! 2. Omitting `"key"` so allocation fills the next free `VQA-N` at seed time.
+//!
+//! CI runs `scripts/check-seed-keys.sh` for a clear duplicate-key error.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
@@ -103,16 +113,21 @@ pub async fn remove_sample_data(pool: &PgPool) -> AppResult<SampleDataSummary> {
     Ok(before)
 }
 
-/// Embedded sample seed files: (project key, JSON).
-const SAMPLE_SEEDS: &[(&str, &str)] = &[
-    (
-        "KYIV_CONCERT_2026",
-        include_str!("../seed/kyiv-concert-2026.json"),
-    ),
-    ("VULYK_QA", include_str!("../seed/vulyk-qa.json")),
-];
+/// Embedded standalone sample seed files: (project key, JSON).
+/// Vulyk QA is composed separately (base JSON + optional feature fragments).
+const STANDALONE_SAMPLE_SEEDS: &[(&str, &str)] = &[(
+    "KYIV_CONCERT_2026",
+    include_str!("../seed/kyiv-concert-2026.json"),
+)];
 
-#[derive(Debug, Default, Deserialize, Clone)]
+const VULYK_QA_BASE: &str = include_str!("../seed/vulyk-qa.json");
+
+/// Feature-scoped overlays merged into Vulyk QA. Prefer these over appending
+/// hardcoded `VQA-NNN` keys to the shared base file from parallel PRs.
+/// Register every `backend/seed/vulyk-qa.d/*.json` file here (see that dir's README).
+const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[];
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
 struct Localized {
     #[serde(default)]
     en: String,
@@ -145,7 +160,7 @@ impl Localized {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedFile {
     project: SeedProject,
     suites: Vec<SeedSuite>,
@@ -155,14 +170,14 @@ struct SeedFile {
     runs: Vec<SeedRun>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedProject {
     key: String,
     name: Localized,
     description: Localized,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedSuite {
     name: Localized,
     #[serde(default)]
@@ -171,8 +186,10 @@ struct SeedSuite {
     cases: Vec<SeedCase>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedCase {
+    /// Optional. Empty / omitted keys are allocated as `{prefix}-{n}` at seed time.
+    #[serde(default)]
     key: String,
     title: Localized,
     #[serde(default)]
@@ -188,8 +205,21 @@ struct SeedCase {
     #[serde(default)]
     steps: Vec<SeedStep>,
     /// Optional link to Playwright spec or other external id (e.g. `e2e:auth.spec.ts`).
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     external_key: Option<String>,
+}
+
+/// Feature fragment merged into the Vulyk QA base seed.
+#[derive(Debug, Deserialize)]
+struct SeedFragment {
+    #[serde(default)]
+    feature: String,
+    #[serde(default)]
+    suites: Vec<SeedSuite>,
+    #[serde(default)]
+    requirements: Vec<SeedRequirement>,
+    #[serde(default)]
+    runs: Vec<SeedRun>,
 }
 
 fn default_priority() -> String {
@@ -199,7 +229,7 @@ fn default_case_status() -> String {
     "ready".into()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedStep {
     action: Localized,
     expected_result: Localized,
@@ -207,7 +237,7 @@ struct SeedStep {
     data: Localized,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedRequirement {
     external_key: String,
     title: Localized,
@@ -221,7 +251,7 @@ fn default_source() -> String {
     "sample".into()
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedRun {
     name: Localized,
     #[serde(default)]
@@ -231,7 +261,7 @@ struct SeedRun {
     results: Vec<SeedResult>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedResult {
     case_key: String,
     status: String,
@@ -241,7 +271,7 @@ struct SeedResult {
     history: Vec<SeedHistory>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct SeedHistory {
     status: String,
     #[serde(default)]
@@ -271,13 +301,191 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
 /// per project key — missing samples are created; existing ones are left alone.
 pub async fn seed_sample_projects_forced(pool: &PgPool, locale: &str) -> AppResult<Option<Uuid>> {
     let mut first_id: Option<Uuid> = None;
-    for (project_key, json) in SAMPLE_SEEDS {
+    for (project_key, json) in STANDALONE_SAMPLE_SEEDS {
         let id = seed_one_sample(pool, locale, project_key, json).await?;
         if first_id.is_none() {
             first_id = id;
         }
     }
+
+    let vulyk_json = compose_vulyk_qa_json()?;
+    let id = seed_one_sample(pool, locale, "VULYK_QA", &vulyk_json).await?;
+    if first_id.is_none() {
+        first_id = id;
+    }
     Ok(first_id)
+}
+
+/// Merge base Vulyk QA JSON with registered feature fragments and allocate
+/// any omitted case keys. Used by seeding and unit tests.
+fn compose_vulyk_qa_json() -> AppResult<String> {
+    let mut seed = compose_vulyk_qa_seed()?;
+    prepare_case_keys(&mut seed, "VQA")?;
+    serde_json::to_string(&seed)
+        .map_err(|e| AppError::Internal(format!("serialize composed Vulyk QA seed: {e}")))
+}
+
+fn compose_vulyk_qa_seed() -> AppResult<SeedFile> {
+    let mut seed: SeedFile = serde_json::from_str(VULYK_QA_BASE)
+        .map_err(|e| AppError::Internal(format!("sample seed JSON (VULYK_QA): {e}")))?;
+
+    let mut seen_features = HashSet::new();
+    for (slug, json) in VULYK_QA_FRAGMENTS {
+        let frag: SeedFragment = serde_json::from_str(json)
+            .map_err(|e| AppError::Internal(format!("sample seed fragment {slug}: {e}")))?;
+        let feature = if frag.feature.trim().is_empty() {
+            (*slug).to_string()
+        } else {
+            frag.feature.trim().to_string()
+        };
+        if !seen_features.insert(feature.clone()) {
+            return Err(AppError::Internal(format!(
+                "duplicate Vulyk QA fragment feature {feature:?}; each fragment needs a unique feature slug"
+            )));
+        }
+        seed.suites.extend(frag.suites);
+        seed.requirements.extend(frag.requirements);
+        seed.runs.extend(frag.runs);
+    }
+    Ok(seed)
+}
+
+/// Fill omitted keys and reject duplicates before any DB writes.
+/// Keys must match `{prefix}-{digits}` (project PREFIX-N convention).
+fn prepare_case_keys(seed: &mut SeedFile, project_prefix: &str) -> AppResult<()> {
+    let prefix = project_prefix.trim().to_uppercase();
+    let mut max_n: i32 = 0;
+    let mut seen: HashMap<String, String> = HashMap::new();
+    let mut empty_paths: Vec<String> = Vec::new();
+
+    collect_keys_for_prepare(
+        &seed.suites,
+        "suites",
+        &prefix,
+        &mut max_n,
+        &mut seen,
+        &mut empty_paths,
+    )?;
+
+    let mut next_n = max_n;
+    let mut empty_iter = empty_paths.into_iter();
+    assign_empty_keys(
+        &mut seed.suites,
+        "suites",
+        &prefix,
+        &mut next_n,
+        &mut seen,
+        &mut empty_iter,
+    )?;
+    Ok(())
+}
+
+fn collect_keys_for_prepare(
+    suites: &[SeedSuite],
+    path: &str,
+    prefix: &str,
+    max_n: &mut i32,
+    seen: &mut HashMap<String, String>,
+    empty_paths: &mut Vec<String>,
+) -> AppResult<()> {
+    for (si, suite) in suites.iter().enumerate() {
+        let suite_name = suite.name.en.as_str();
+        let here = format!("{path}[{si}]({suite_name})");
+        for (ci, case) in suite.cases.iter().enumerate() {
+            let loc = format!("{here}.cases[{ci}]");
+            let raw = case.key.trim();
+            if raw.is_empty() {
+                empty_paths.push(loc);
+                continue;
+            }
+            let n = validate_seed_key_number(raw, prefix, &loc)?;
+            let key = raw.to_uppercase();
+            if let Some(first) = seen.get(&key) {
+                return Err(AppError::Internal(format!(
+                    "duplicate sample seed case key {key} (first at {first}, also at {loc}). \
+                     Parallel PRs must not reuse the same VQA-NNN range — omit keys or add a \
+                     fragment under backend/seed/vulyk-qa.d/ (see README). Run ./scripts/check-seed-keys.sh"
+                )));
+            }
+            *max_n = (*max_n).max(n);
+            seen.insert(key, loc);
+        }
+        collect_keys_for_prepare(
+            &suite.children,
+            &format!("{here}.children"),
+            prefix,
+            max_n,
+            seen,
+            empty_paths,
+        )?;
+    }
+    Ok(())
+}
+
+fn assign_empty_keys(
+    suites: &mut [SeedSuite],
+    path: &str,
+    prefix: &str,
+    next_n: &mut i32,
+    seen: &mut HashMap<String, String>,
+    empty_iter: &mut impl Iterator<Item = String>,
+) -> AppResult<()> {
+    for (si, suite) in suites.iter_mut().enumerate() {
+        let suite_name = suite.name.en.clone();
+        let here = format!("{path}[{si}]({suite_name})");
+        for (ci, case) in suite.cases.iter_mut().enumerate() {
+            if !case.key.trim().is_empty() {
+                continue;
+            }
+            let loc = empty_iter
+                .next()
+                .unwrap_or_else(|| format!("{here}.cases[{ci}]"));
+            *next_n += 1;
+            // Match generator padding (VQA-001) so keys stay sortable as text.
+            let key = format!("{prefix}-{next_n:03}");
+            if let Some(first) = seen.get(&key) {
+                return Err(AppError::Internal(format!(
+                    "allocated sample seed key {key} for {loc} collides with {first}"
+                )));
+            }
+            seen.insert(key.clone(), loc);
+            case.key = key;
+        }
+        assign_empty_keys(
+            &mut suite.children,
+            &format!("{here}.children"),
+            prefix,
+            next_n,
+            seen,
+            empty_iter,
+        )?;
+    }
+    Ok(())
+}
+
+fn validate_seed_key_number(raw: &str, prefix: &str, loc: &str) -> AppResult<i32> {
+    let upper = raw.trim().to_uppercase();
+    let Some((p, num)) = upper.rsplit_once('-') else {
+        return Err(AppError::Internal(format!(
+            "invalid sample seed case key {raw:?} at {loc}; expected {prefix}-N"
+        )));
+    };
+    if p != prefix {
+        return Err(AppError::Internal(format!(
+            "sample seed case key {raw:?} at {loc} uses prefix {p}, expected {prefix}"
+        )));
+    }
+    let n: i32 = num.parse().map_err(|_| {
+        AppError::Internal(format!(
+            "invalid sample seed case key {raw:?} at {loc}; expected {prefix}-N"
+        ))
+    })?;
+    if n < 1 {
+        return Err(AppError::Internal(format!(
+            "sample seed case key {raw:?} at {loc} must have N >= 1"
+        )));
+    }
+    Ok(n)
 }
 
 async fn seed_one_sample(
@@ -299,7 +507,7 @@ async fn seed_one_sample(
         return Ok(Some(id));
     }
 
-    let seed: SeedFile = serde_json::from_str(json)
+    let mut seed: SeedFile = serde_json::from_str(json)
         .map_err(|e| AppError::Internal(format!("sample seed JSON ({project_key}): {e}")))?;
 
     if seed.project.key.trim().to_uppercase() != project_key {
@@ -309,7 +517,12 @@ async fn seed_one_sample(
         )));
     }
 
-    let project_id = insert_project(pool, &seed.project, locale, json).await?;
+    let preferred_prefix = seed_preferred_prefix_from_seed(&seed).unwrap_or_else(|| {
+        crate::services::case_keys::derive_prefix_from_name(seed.project.name.en.as_str())
+    });
+    prepare_case_keys(&mut seed, &preferred_prefix)?;
+
+    let project_id = insert_project(pool, &seed.project, locale, &preferred_prefix).await?;
     let mut case_ids: HashMap<String, Uuid> = HashMap::new();
 
     for (idx, suite) in seed.suites.iter().enumerate() {
@@ -416,15 +629,12 @@ async fn insert_project(
     pool: &PgPool,
     project: &SeedProject,
     locale: &str,
-    json: &str,
+    preferred_prefix: &str,
 ) -> AppResult<Uuid> {
-    use crate::services::case_keys::{derive_prefix_from_name, unique_prefix};
+    use crate::services::case_keys::unique_prefix;
 
     let name = project.name.pick(locale);
-    // Prefer prefix inferred from seeded case keys (VQA-001 → VQA, KC-001 → KC);
-    // otherwise derive initials from the display name.
-    let preferred = seed_preferred_prefix(json).unwrap_or_else(|| derive_prefix_from_name(name));
-    let prefix = unique_prefix(pool, &preferred, None).await?;
+    let prefix = unique_prefix(pool, preferred_prefix, None).await?;
 
     let id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number, is_sample)
@@ -440,8 +650,7 @@ async fn insert_project(
     Ok(id)
 }
 
-fn seed_preferred_prefix(json: &str) -> Option<String> {
-    let seed: SeedFile = serde_json::from_str(json).ok()?;
+fn seed_preferred_prefix_from_seed(seed: &SeedFile) -> Option<String> {
     for suite in &seed.suites {
         if let Some(p) = find_prefix_in_suite(suite) {
             return Some(p);
@@ -452,10 +661,17 @@ fn seed_preferred_prefix(json: &str) -> Option<String> {
 
 fn find_prefix_in_suite(suite: &SeedSuite) -> Option<String> {
     for case in &suite.cases {
-        if let Some((prefix, _)) = case.key.rsplit_once('-') {
-            let p = prefix.trim().to_uppercase();
-            if p.len() >= 2 {
-                return Some(p);
+        let raw = case.key.trim();
+        if raw.is_empty() {
+            continue;
+        }
+        if let Some((prefix, num)) = raw.rsplit_once('-') {
+            if num.chars().all(|c| c.is_ascii_digit()) {
+                let p = prefix.trim().to_uppercase();
+                // Project prefixes are 2–8 chars (PREFIX-N). Ignore namespaced lookalikes.
+                if (2..=8).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphanumeric()) {
+                    return Some(p);
+                }
             }
         }
     }
@@ -940,16 +1156,21 @@ mod seed_file_tests {
     use super::*;
     use std::collections::HashSet;
 
-    fn parse_all() -> Vec<(&'static str, SeedFile)> {
-        SAMPLE_SEEDS
-            .iter()
-            .map(|(key, json)| {
-                let seed: SeedFile = serde_json::from_str(json).unwrap_or_else(|e| {
-                    panic!("parse {key}: {e}");
-                });
-                (*key, seed)
-            })
-            .collect()
+    fn parse_all() -> Vec<(String, SeedFile)> {
+        let mut out = Vec::new();
+        for (key, json) in STANDALONE_SAMPLE_SEEDS {
+            let mut seed: SeedFile = serde_json::from_str(json).unwrap_or_else(|e| {
+                panic!("parse {key}: {e}");
+            });
+            let prefix = seed_preferred_prefix_from_seed(&seed)
+                .unwrap_or_else(|| panic!("{key}: no case key prefix"));
+            prepare_case_keys(&mut seed, &prefix).unwrap_or_else(|e| panic!("{key}: {e}"));
+            out.push(((*key).to_string(), seed));
+        }
+        let mut vulyk = compose_vulyk_qa_seed().expect("compose VULYK_QA");
+        prepare_case_keys(&mut vulyk, "VQA").expect("prepare VULYK_QA keys");
+        out.push(("VULYK_QA".into(), vulyk));
+        out
     }
 
     fn walk_cases<'a>(suite: &'a SeedSuite, out: &mut Vec<&'a SeedCase>) {
@@ -972,6 +1193,10 @@ mod seed_file_tests {
             let mut seen = HashSet::new();
             for c in &cases {
                 assert!(
+                    !c.key.trim().is_empty(),
+                    "empty case key left after prepare in {key}"
+                );
+                assert!(
                     seen.insert(c.key.as_str()),
                     "duplicate case key {} in {key}",
                     c.key
@@ -987,19 +1212,19 @@ mod seed_file_tests {
             }
             if key == "VULYK_QA" {
                 assert!(
-                    (120..=200).contains(&cases.len()),
-                    "Vulyk QA expected 120–200 cases, got {}",
+                    (120..=250).contains(&cases.len()),
+                    "Vulyk QA expected 120–250 cases, got {}",
                     cases.len()
                 );
                 assert_eq!(
-                    seed_preferred_prefix(SAMPLE_SEEDS[1].1).as_deref(),
+                    seed_preferred_prefix_from_seed(&seed).as_deref(),
                     Some("VQA")
                 );
             }
             if key == "KYIV_CONCERT_2026" {
                 assert!(cases.len() >= 25, "Kyiv sample too small");
                 assert_eq!(
-                    seed_preferred_prefix(SAMPLE_SEEDS[0].1).as_deref(),
+                    seed_preferred_prefix_from_seed(&seed).as_deref(),
                     Some("KC")
                 );
             }
@@ -1007,10 +1232,106 @@ mod seed_file_tests {
     }
 
     #[test]
+    fn omitted_keys_are_allocated_after_max() {
+        let mut seed = compose_vulyk_qa_seed().expect("compose");
+        let mut before = Vec::new();
+        for s in &seed.suites {
+            walk_cases(s, &mut before);
+        }
+        let max_before = before
+            .iter()
+            .filter_map(|c| c.key.rsplit_once('-')?.1.parse::<i32>().ok())
+            .max()
+            .unwrap_or(0);
+
+        seed.suites.push(SeedSuite {
+            name: Localized {
+                en: "CI fragment probe".into(),
+                ..Localized::default()
+            },
+            children: vec![],
+            cases: vec![SeedCase {
+                key: String::new(),
+                title: Localized {
+                    en: "Auto-keyed case".into(),
+                    ..Localized::default()
+                },
+                description: Localized::default(),
+                precondition: Localized::default(),
+                priority: "medium".into(),
+                status: "ready".into(),
+                tags: vec!["ci".into()],
+                steps: vec![SeedStep {
+                    action: Localized {
+                        en: "act".into(),
+                        ..Localized::default()
+                    },
+                    expected_result: Localized {
+                        en: "ok".into(),
+                        ..Localized::default()
+                    },
+                    data: Localized::default(),
+                }],
+                external_key: None,
+            }],
+        });
+        prepare_case_keys(&mut seed, "VQA").expect("allocate");
+        let mut cases = Vec::new();
+        for s in &seed.suites {
+            walk_cases(s, &mut cases);
+        }
+        let auto = cases
+            .iter()
+            .find(|c| c.title.en == "Auto-keyed case")
+            .expect("auto case");
+        assert_eq!(auto.key, format!("VQA-{}", max_before + 1));
+        let mut seen = HashSet::new();
+        for c in &cases {
+            assert!(seen.insert(c.key.as_str()), "dup {}", c.key);
+        }
+    }
+
+    #[test]
+    fn duplicate_explicit_keys_error_clearly() {
+        let mut seed = compose_vulyk_qa_seed().expect("compose");
+        let dup_key = seed.suites[0].cases[0].key.clone();
+        seed.suites[0].cases.push(SeedCase {
+            key: dup_key.clone(),
+            title: Localized {
+                en: "dup".into(),
+                ..Localized::default()
+            },
+            description: Localized::default(),
+            precondition: Localized::default(),
+            priority: "medium".into(),
+            status: "ready".into(),
+            tags: vec![],
+            steps: vec![SeedStep {
+                action: Localized {
+                    en: "a".into(),
+                    ..Localized::default()
+                },
+                expected_result: Localized {
+                    en: "b".into(),
+                    ..Localized::default()
+                },
+                data: Localized::default(),
+            }],
+            external_key: None,
+        });
+        let err = prepare_case_keys(&mut seed, "VQA").expect_err("dup keys");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("duplicate sample seed case key") && msg.contains(&dup_key),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
     fn vulyk_qa_has_area_folders_and_planned_drafts() {
         let (_, seed) = parse_all()
             .into_iter()
-            .find(|(k, _)| *k == "VULYK_QA")
+            .find(|(k, _)| k == "VULYK_QA")
             .expect("VULYK_QA");
         let top: Vec<_> = seed.suites.iter().map(|s| s.name.en.as_str()).collect();
         assert!(top.iter().any(|n| n.contains("Setup")));

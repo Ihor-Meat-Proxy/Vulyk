@@ -21,15 +21,28 @@ cd frontend && npm install && npm run dev
 
 ## Checks (same as CI)
 
+Prefer the single entrypoint (also used by git hooks):
+
 ```bash
+./scripts/check.sh          # fmt, seed keys, migrations, lint, tsc, testids, e2e tsc
+./scripts/check.sh --full   # + clippy, cargo test, vitest
+git config core.hooksPath scripts/githooks   # once per clone
+```
+
+Manual equivalents:
+
+```bash
+./scripts/check-seed-keys.sh
+./scripts/check-migrations.sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cd frontend && npm ci && npm run lint && npm run typecheck && npm run test && npm run check:test-ids && npm run build
+cd frontend && npm ci && npm run lint && npm run typecheck && npm run check:test-ids && npm run test && npm run build
 docker build -f backend/Dockerfile -t vulyk-api:local .
 docker build -f frontend/Dockerfile -t vulyk-web:local ./frontend
-./scripts/check-migrations.sh
 ```
+
+Agents: see root [AGENTS.md](AGENTS.md) and [docs/ci-failures.md](docs/ci-failures.md).
 
 ## Database migrations
 
@@ -73,3 +86,13 @@ Interactive UI must expose stable `data-testid` attributes. Convention, list/row
 ## Parallel workstreams
 
 Coordinate via the table in `docs/architecture.md`. Shared contracts: OpenAPI + this doc. Suggested merge order when conflicting: **W1 → W2/W3 → W4 → others**.
+
+**Rebase onto latest `main` immediately before merge.** For sample cases, prefer
+`backend/seed/vulyk-qa.d/` fragments with omitted keys over appending `VQA-NNN` to
+the shared seed (see `AGENTS.md`). For UI e2e, use `data-testid` / `TestIds` only.
+
+## Lighthouse
+
+The CI job **Lighthouse PWA/a11y (advisory)** is `continue-on-error` and installs
+Chrome via `browser-actions/setup-chrome`. Do not block merges on Chrome CDN flakes;
+still fix real PWA/a11y score regressions before release.

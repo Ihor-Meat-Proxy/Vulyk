@@ -2,12 +2,31 @@
 
 Chromium-only end-to-end suite (Desktop Chrome + Pixel 5 viewport project).
 
+## Locators (required)
+
+**Prefer `data-testid` via shared `TestIds` — avoid ambiguous text locators.**
+
+```ts
+import { TestIds } from '../../frontend/src/testing/testIds'
+
+await page.getByTestId(TestIds.loginSubmitButton).click()
+// lists: scope by entity attrs, then child test id
+await page.locator(`[data-testid="case-row"][data-entity-key="${key}"]`)
+  .getByTestId(TestIds.caseRowTitle)
+  .click()
+```
+
+- Source of truth: [`frontend/src/testing/testIds.ts`](../frontend/src/testing/testIds.ts)
+- Convention + security: [`docs/testing/test-ids.md`](../docs/testing/test-ids.md)
+- Do **not** use bare `getByText('Save')` / toast text when parallel UI PRs can duplicate those strings (Playwright strict-mode failures).
+- When adding UI, add a `TestIds` constant, wire `testIdProps` / `listItemProps`, update the page object here, run `npm run check:test-ids` in `frontend/`.
+
 ## Layout
 
 ```
 e2e/
   fixtures/          # auth/api helpers + sample import files
-  pages/             # page objects
+  pages/             # page objects (getByTestId-first)
   tests/             # focused specs
   mock-oidc/server.mjs
   playwright.config.ts

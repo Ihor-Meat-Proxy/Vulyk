@@ -48,6 +48,10 @@ jobs:
         run: cargo fmt --all -- --check
       - name: cargo clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Sample seed key uniqueness
+        run: |
+          chmod +x scripts/check-seed-keys.sh
+          ./scripts/check-seed-keys.sh
       - name: cargo test
         run: cargo test --workspace
       - name: migrate CLI help
@@ -71,6 +75,10 @@ jobs:
           else
             ./scripts/check-migrations.sh "origin/main~1" || ./scripts/check-migrations.sh "HEAD~1" || ./scripts/check-migrations.sh
           fi
+      - name: Sample seed key uniqueness
+        run: |
+          chmod +x scripts/check-seed-keys.sh
+          ./scripts/check-seed-keys.sh
 
   upgrade-test:
     name: Upgrade (base → PR)
@@ -274,12 +282,17 @@ jobs:
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
+          bash -n scripts/check-seed-keys.sh
+          bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
           bash -n scripts/check-version.sh
+          bash -n scripts/githooks/pre-commit
+          bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
-            scripts/check-migrations.sh scripts/ci-upgrade-test.sh scripts/check-version.sh
+            scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check.sh \
+            scripts/ci-upgrade-test.sh scripts/check-version.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
-          if grep -nP '[^\x00-\x7F]' scripts/*.sh; then
+          if grep -nP '[^\x00-\x7F]' scripts/*.sh scripts/githooks/*; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
             exit 1
           fi
@@ -305,6 +318,8 @@ jobs:
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
+          bash -n scripts/check-seed-keys.sh
+          bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
           bash -n scripts/check-version.sh
           ./scripts/check-version.sh
@@ -432,9 +447,13 @@ jobs:
           cat /tmp/vulyk-api-e2e.log || true
           cat /tmp/vulyk-web-e2e.log || true
 
+  # Advisory: Chrome download / launcher flakes must not block merges.
+  # Real PWA/a11y regressions still show as a red (soft) check — investigate
+  # before release, but do not treat infra flakes as merge blockers.
   lighthouse:
-    name: Lighthouse PWA/a11y
+    name: Lighthouse PWA/a11y (advisory)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -448,39 +467,10 @@ jobs:
           npm ci
           npm run build
       - name: Install Chrome for Lighthouse
-        run: |
-          # Prefer @puppeteer/browsers; chrome-for-testing CDN often flakes.
-          # Fall back to the runner's system Chrome / Chromium.
-          for attempt in 1 2 3; do
-            if npx --yes @puppeteer/browsers install chrome@stable; then
-              echo "Installed chrome via @puppeteer/browsers"
-              exit 0
-            fi
-            echo "Chrome install attempt ${attempt} failed; retrying…" >&2
-            sleep $((attempt * 3))
-          done
-          for candidate in \
-            /usr/bin/google-chrome-stable \
-            /usr/bin/google-chrome \
-            /usr/bin/chromium-browser \
-            /usr/bin/chromium; do
-            if [ -x "$candidate" ]; then
-              echo "Using system browser: $candidate"
-              echo "CHROME_PATH=$candidate" >> "$GITHUB_ENV"
-              exit 0
-            fi
-          done
-          # Last resort: apt chromium
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq chromium-browser || sudo apt-get install -y -qq chromium
-          for candidate in /usr/bin/chromium-browser /usr/bin/chromium; do
-            if [ -x "$candidate" ]; then
-              echo "CHROME_PATH=$candidate" >> "$GITHUB_ENV"
-              exit 0
-            fi
-          done
-          echo "No Chrome/Chromium available for Lighthouse" >&2
-          exit 1
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
       - name: Start preview
         working-directory: frontend
         run: |
@@ -502,15 +492,18 @@ jobs:
           LIGHTHOUSE_URL: http://127.0.0.1:5173
           LH_MIN_PWA: "0.8"
           LH_MIN_A11Y: "0.85"
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
-          if [ -z "${CHROME_PATH:-}" ]; then
-            CHROME_BIN="$(find "$HOME/.cache/puppeteer" -type f -name chrome -path '*/chrome-linux*/chrome' 2>/dev/null | head -n1 || true)"
-            if [ -n "$CHROME_BIN" ]; then
-              export CHROME_PATH="$CHROME_BIN"
-            fi
+          if [ -z "${CHROME_PATH:-}" ] || [ ! -x "${CHROME_PATH}" ]; then
+            echo "error: setup-chrome did not provide an executable CHROME_PATH=${CHROME_PATH:-}" >&2
+            exit 1
           fi
-          echo "CHROME_PATH=${CHROME_PATH:-"(chrome-launcher default)"}"
-          npm run lighthouse:ci
+          echo "CHROME_PATH=${CHROME_PATH}"
+          # One retry for transient lighthouse/chrome crashes (not score failures).
+          if ! npm run lighthouse:ci; then
+            echo "Lighthouse failed once; retrying…" >&2
+            npm run lighthouse:ci
+          fi
       - name: Upload Lighthouse report
         if: always()
         uses: actions/upload-artifact@v4

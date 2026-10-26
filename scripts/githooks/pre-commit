@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Fast gate before commit. Install: git config core.hooksPath scripts/githooks
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+cd "${ROOT}"
+exec ./scripts/check.sh --quick
