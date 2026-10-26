@@ -31,21 +31,35 @@ test('smoke: login → case → run → junit → import → report', async ({ p
 
   const caseKey = `SMK-${uniqueKey('').slice(-6)}`
   const caseTitle = `Smoke case ${caseKey}`
-  await page.getByLabel(/New case title|Назва нового кейсу/i).fill(caseTitle)
+  await page
+    .getByLabel(
+      /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
+    )
+    .fill(caseTitle)
   await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
   await expect(page.locator('.case-list-panel').getByText(caseTitle)).toBeVisible({
     timeout: 30_000,
   })
 
   const nav = page.getByRole('navigation', { name: 'Primary' })
-  await nav.getByRole('link', { name: /Runs|Прогони/i, exact: true }).click()
+  await nav
+    .getByRole('link', {
+      name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
+      exact: true,
+    })
+    .click()
   await expect(page.getByRole('heading', { name: 'Start a run' })).toBeVisible()
   const runName = `Smoke run ${caseKey}`
   await page.getByPlaceholder('Run name').fill(runName)
   await page.getByRole('button', { name: 'Create run' }).click()
   await expect(page.getByText(runName).first()).toBeVisible({ timeout: 30_000 })
 
-  await nav.getByRole('link', { name: /Runs|Прогони/i, exact: true }).click()
+  await nav
+    .getByRole('link', {
+      name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
+      exact: true,
+    })
+    .click()
   await expect(
     page.getByRole('heading', { name: 'Upload JUnit results' }),
   ).toBeVisible()

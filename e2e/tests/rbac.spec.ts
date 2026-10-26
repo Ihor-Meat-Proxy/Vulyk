@@ -75,7 +75,11 @@ test('viewer is denied mutating APIs and hides write UI', async ({
     if (match >= 0) await select.selectOption({ index: match })
   }
 
-  await expect(page.getByLabel(/New case title|Назва нового кейсу/i)).toHaveCount(0)
+  await expect(
+    page.getByLabel(
+      /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
+    ),
+  ).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Create case|Створити кейс/i })).toHaveCount(0)
 
   const nav = page.getByRole('navigation', { name: 'Primary' })

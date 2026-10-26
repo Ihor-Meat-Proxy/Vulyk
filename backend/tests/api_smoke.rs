@@ -53,6 +53,11 @@ async fn health_and_project_case_crud() {
         .await
         .expect("json");
     assert_eq!(health["status"], "ok");
+    assert_eq!(
+        health["version"],
+        vulyk_api::db::crate_version(),
+        "health should expose API semver"
+    );
 
     let key = format!(
         "T{}",

@@ -39,6 +39,70 @@ jobs:
         run: cargo clippy --workspace --all-targets -- -D warnings
       - name: cargo test
         run: cargo test --workspace
+      - name: migrate CLI help
+        run: |
+          cargo build -p vulyk-api
+          ./target/debug/vulyk-api version
+          ./target/debug/vulyk-api migrate status || true
+
+  migrations:
+    name: Migration integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check immutable migrations + unique versions
+        run: |
+          chmod +x scripts/check-migrations.sh
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ./scripts/check-migrations.sh "origin/${{ github.base_ref }}"
+          else
+            ./scripts/check-migrations.sh "origin/main~1" || ./scripts/check-migrations.sh "HEAD~1" || ./scripts/check-migrations.sh
+          fi
+
+  upgrade-test:
+    name: Upgrade (base → PR)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+      VULYK_API_URL: http://127.0.0.1:8080
+      BIND_ADDR: 127.0.0.1:8080
+      PERF_CASES: "200"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install psql client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Resolve base SHA
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "sha=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$(git rev-parse HEAD~1)" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Run upgrade test
+        run: |
+          chmod +x scripts/ci-upgrade-test.sh
+          ./scripts/ci-upgrade-test.sh "${{ steps.base.outputs.sha }}"
 
   frontend:
     name: Frontend (lint, typecheck, test, build)
@@ -195,7 +259,10 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
-          shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh
+          bash -n scripts/check-migrations.sh
+          bash -n scripts/ci-upgrade-test.sh
+          shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
+            scripts/check-migrations.sh scripts/ci-upgrade-test.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
           if grep -nP '[^\x00-\x7F]' scripts/*.sh; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
@@ -221,6 +288,8 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
+          bash -n scripts/check-migrations.sh
+          bash -n scripts/ci-upgrade-test.sh
           ./scripts/install.sh check
 
   helm:

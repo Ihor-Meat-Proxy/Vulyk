@@ -39,7 +39,7 @@ export class AdminPage {
   }
 
   async createProject(name: string, key?: string) {
-    await this.openTab(/Projects|Проєкти/i)
+    await this.openTab(/Projects|Проєкти|Projets|Proyectos|Projekte/i)
     await this.page.locator('form.stack-form').getByLabel(/^Name$/i).fill(name)
     if (key) {
       await this.page

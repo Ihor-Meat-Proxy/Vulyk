@@ -61,7 +61,7 @@ test('chat shows provider/model; project key optional; global default resolves',
   // Admin UI: optional key + global LLM checkbox present.
   const adminUi = new AdminPage(page)
   await adminUi.open()
-  await adminUi.openTab(/Projects|Проєкти/i)
+  await adminUi.openTab(/Projects|Проєкти|Projets|Proyectos|Projekte/i)
   await expect(
     page.locator('form.stack-form').getByLabel(/^Key \(optional\)$/i),
   ).toBeVisible()

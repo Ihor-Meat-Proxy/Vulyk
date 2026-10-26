@@ -6,6 +6,11 @@ metadata:
   labels:
     {{- include "vulyk.labels" . | nindent 4 }}
     app.kubernetes.io/component: postgresql
+  {{- if .Values.postgresql.persistence.keepOnUninstall }}
+  annotations:
+    # Keep Postgres data when the Helm release is uninstalled.
+    helm.sh/resource-policy: keep
+  {{- end }}
 spec:
   accessModes: ["ReadWriteOnce"]
   {{- if .Values.postgresql.persistence.storageClass }}

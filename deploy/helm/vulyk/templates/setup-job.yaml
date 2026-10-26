@@ -7,7 +7,8 @@ metadata:
     {{- include "vulyk.labels" . | nindent 4 }}
     app.kubernetes.io/component: setup
   annotations:
-    helm.sh/hook: post-install,post-upgrade
+    # post-install only: setup fails once completed; upgrades use migrate Job.
+    helm.sh/hook: post-install
     helm.sh/hook-weight: "5"
     helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
 spec:

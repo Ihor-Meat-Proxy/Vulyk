@@ -4,6 +4,7 @@ import type { Project } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { AppVersion } from './AppVersion'
 import { BottomNav } from './BottomNav'
 import { LanguageMenu } from './LanguageMenu'
 import { PwaToasts } from './PwaToasts'
@@ -126,6 +127,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             </NavLink>
           ) : null}
         </nav>
+        <AppVersion />
       </aside>
 
       <div className="main">

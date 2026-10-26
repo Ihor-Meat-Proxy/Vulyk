@@ -29,6 +29,21 @@ enum Commands {
     Serve,
     /// Complete first-run instance setup
     Setup(Box<SetupArgs>),
+    /// Database migration helpers
+    Migrate {
+        #[command(subcommand)]
+        action: MigrateAction,
+    },
+    /// Print the API binary version (semver from Cargo.toml)
+    Version,
+}
+
+#[derive(Subcommand, Debug)]
+enum MigrateAction {
+    /// List applied and pending migrations
+    Status,
+    /// Apply pending migrations (advisory-locked)
+    Run,
 }
 
 #[tokio::main]
@@ -51,8 +66,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::Serve => run_serve(&database_url).await?,
         Commands::Setup(args) => {
             let pool = db::connect(&database_url).await?;
-            db::migrate(&pool).await?;
+            db::prepare_schema(&pool).await?;
             setup_cli::run_setup(&pool, *args).await?;
+        }
+        Commands::Migrate { action } => match action {
+            MigrateAction::Status => {
+                let pool = db::connect(&database_url).await?;
+                let status = db::migration_status(&pool).await?;
+                print!("{}", db::format_migration_status(&status));
+                if status.schema_newer_than_binary() {
+                    std::process::exit(2);
+                }
+                if !status.pending.is_empty() {
+                    std::process::exit(1);
+                }
+            }
+            MigrateAction::Run => {
+                let pool = db::connect(&database_url).await?;
+                db::migrate(&pool).await?;
+                let status = db::migration_status(&pool).await?;
+                print!("{}", db::format_migration_status(&status));
+            }
+        },
+        Commands::Version => {
+            println!("{}", db::crate_version());
         }
     }
     Ok(())
@@ -62,7 +99,7 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
     let bind = std::env::var("BIND_ADDR").unwrap_or_else(|_| "0.0.0.0:8080".to_string());
 
     let pool = db::connect(database_url).await?;
-    db::migrate(&pool).await?;
+    db::prepare_schema(&pool).await?;
 
     let secrets = SecretsKey::from_env();
     seed::run(&pool).await?;
@@ -92,7 +129,10 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
         .layer(cors);
 
     let addr: SocketAddr = bind.parse()?;
-    tracing::info!("Vulyk API listening on http://{addr}");
+    tracing::info!(
+        version = db::crate_version(),
+        "Vulyk API listening on http://{addr}"
+    );
     tracing::info!("OpenAPI docs at http://{addr}/api/docs");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;

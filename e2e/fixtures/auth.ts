@@ -106,9 +106,42 @@ export async function dismissPwaToasts(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Force English UI for the current session. Locale-switch specs persist
+ * `users.locale` / localStorage; most other specs still use en|uk-only locators.
+ */
+export async function pinEnglishLocale(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.setItem('vulyk.locale', 'en')
+  })
+  const lang = await page.locator('html').getAttribute('lang')
+  if (lang === 'en') return
+
+  await page.evaluate(async () => {
+    const token = localStorage.getItem('vulyk.authToken')
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers.Authorization = `Bearer ${token}`
+    await fetch('/api/v1/auth/me', {
+      method: 'PATCH',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ locale: 'en' }),
+    })
+  })
+  await page.reload()
+  await expect(page.locator('.app-shell, .login-panel').first()).toBeVisible({
+    timeout: 60_000,
+  })
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await dismissPwaToasts(page)
+}
+
 export async function loginAsAdmin(page: Page): Promise<void> {
   await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD)
   await dismissPwaToasts(page)
+  await pinEnglishLocale(page)
 }
 
 export async function loginAsDemo(page: Page): Promise<void> {
@@ -125,13 +158,28 @@ export async function logout(page: Page): Promise<void> {
     name: /Sign out|Вийти|Se déconnecter|Cerrar sesión|Abmelden/i,
   })
   await expect(signOut).toBeVisible()
-  await signOut.click()
-  // auth_required → login panel immediately; open mode may keep the shell.
+  // Wait for the logout request to finish before any navigation. A premature
+  // page.goto('/login') aborts the fetch, leaves the session cookie, and the
+  // app redirects authenticated users away from /login back to the shell.
+  await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/v1/auth/logout') &&
+        r.request().method() === 'POST',
+      { timeout: 15_000 },
+    ),
+    signOut.click(),
+  ])
+  await page.evaluate(() => {
+    localStorage.removeItem('vulyk.authToken')
+  })
   const panel = page.locator('.login-panel')
-  if (!(await panel.isVisible().catch(() => false))) {
+  try {
+    await expect(panel).toBeVisible({ timeout: 10_000 })
+  } catch {
     await page.goto('/login')
+    await expect(panel).toBeVisible({ timeout: 30_000 })
   }
-  await expect(panel).toBeVisible({ timeout: 30_000 })
 }
 
 /** Create a user and assign a project role via API (admin token). */

@@ -81,16 +81,23 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 6. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.
 7. Set instance **default locale** (`en` / `uk` / `fr` / `es` / `de`) and theme under Admin settings (or `--locale` / `VULYK_DEFAULT_LOCALE` at first-run).
 
-## Backups
+## Upgrades & backups
+
+**Never run `docker compose down -v`** — `-v` deletes named volumes (Postgres data).
+
+Preferred path: [guides/upgrade.md](guides/upgrade.md) (`./scripts/install.sh upgrade|backup|restore`).
 
 ### Compose / VM Postgres
 
 ```bash
-# Logical dump
+# Via install script (gzipped SQL under ./backups/, with retention)
+./scripts/install.sh backup
+./scripts/install.sh restore ./backups/vulyk-VERSION-TIMESTAMP.sql.gz --yes
+
+# Or manual custom-format dump
 docker compose -f docker-compose.prod.yml exec -T db \
   pg_dump -U vulyk -d vulyk -Fc > "vulyk-$(date +%F).dump"
 
-# Restore into an empty database
 docker compose -f docker-compose.prod.yml exec -T db \
   pg_restore -U vulyk -d vulyk --clean --if-exists < vulyk-YYYY-MM-DD.dump
 ```
@@ -104,12 +111,12 @@ docker compose -f docker-compose.prod.yml exec db \
 
 ### Kubernetes
 
+Take a logical dump (and preferably a VolumeSnapshot) **before** `helm upgrade`. The chart runs a pre-upgrade Job (`vulyk-api migrate run`). Postgres PVCs default to `helm.sh/resource-policy: keep` so uninstall does not delete data.
+
 ```bash
 kubectl exec -n vulyk deploy/vulyk-postgresql -- \
   pg_dump -U vulyk -d vulyk -Fc > vulyk.dump
 ```
-
-Prefer VolumeSnapshots for the PVC in addition to logical dumps for large datasets.
 
 ### What to backup
 
@@ -140,9 +147,11 @@ Seeds ~100k cases (SQL when `DATABASE_URL`+`psql` available) and asserts list/se
 
 `scripts/install.sh` supports **Linux**, **macOS**, and **WSL2**. Native Windows is not supported — use WSL2. The script is written for **bash 3.2+** (macOS system bash) — avoid bash-4-only features; `./scripts/install.sh check` runs `bash -n` as a syntax self-check.
 
-Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`.
+Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`, `upgrade`, `backup`, `restore`.
 
 First-run flags: `--admin-email=`, `--admin-password=`, `--locale=en|uk|fr|es|de`, `--timezone=`, `--registration-mode=`, `--seed-demo=`, `--yes`.
+
+Upgrade flags: `--to=TAG|BRANCH`, `--no-backup`, `--yes`.
 
 If Compose started without completing setup, re-run:
 

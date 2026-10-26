@@ -12,7 +12,11 @@ export class CasesPage {
   }
 
   async createCase(title: string) {
-    await this.page.getByLabel(/New case title|Назва нового кейсу/i).fill(title)
+    await this.page
+      .getByLabel(
+        /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
+      )
+      .fill(title)
     await this.page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
     await expect(this.listPanel().getByText(title)).toBeVisible({ timeout: 30_000 })
   }

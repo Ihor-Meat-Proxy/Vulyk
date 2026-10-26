@@ -2,6 +2,10 @@
 # Auth is required by default. Override secrets via environment or a .env file.
 #
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#   # Prefer upgrades via: ./scripts/install.sh upgrade --yes
+#
+# WARNING: never run `docker compose down -v` — the -v flag deletes named volumes
+# (Postgres data). Use `docker compose down` without -v, or ./scripts/install.sh backup.
 #
 # Required secrets (set in .env.prod or the environment):
 #   POSTGRES_PASSWORD, VULYK_JWT_SECRET, VULYK_SECRETS_KEY
@@ -56,6 +60,8 @@ services:
       VULYK_REGISTRATION_MODE: ${VULYK_REGISTRATION_MODE:-disabled}
       VULYK_SEED_DEMO: ${VULYK_SEED_DEMO:-0}
       VULYK_SEED_SAMPLE: ${VULYK_SEED_SAMPLE:-1}
+      # Prod: migrations run via ./scripts/install.sh upgrade (migrate run) before API start.
+      VULYK_AUTO_MIGRATE: ${VULYK_AUTO_MIGRATE:-false}
       VULYK_BASE_URL: ${VULYK_BASE_URL:-}
       VULYK_SETUP_TOKEN: ${VULYK_SETUP_TOKEN:-}
     ports:

@@ -2,8 +2,10 @@ apiVersion: v2
 name: vulyk
 description: Vulyk open-source test management system
 type: application
+# Chart packaging version (independent of app semver).
 version: 0.2.0
-appVersion: "0.2.0"
+# Must track backend/frontend package version (see CHANGELOG.md).
+appVersion: "0.1.0"
 keywords:
   - testing
   - tms

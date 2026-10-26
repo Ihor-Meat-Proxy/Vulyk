@@ -19,6 +19,26 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: api
     spec:
+      {{- if .Values.migrate.enabled }}
+      # Fresh install (no pre-upgrade hook yet) and belt-and-suspenders after the
+      # migrate Job. Advisory lock keeps concurrent replicas safe.
+      initContainers:
+        - name: migrate
+          image: {{ .Values.image.api | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["vulyk-api"]
+          args: ["migrate", "run"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "vulyk.secretName" . }}
+                  key: DATABASE_URL
+            - name: VULYK_AUTO_MIGRATE
+              value: "false"
+            - name: RUST_LOG
+              value: {{ .Values.env.RUST_LOG | quote }}
+      {{- end }}
       containers:
         - name: api
           image: {{ .Values.image.api | quote }}
