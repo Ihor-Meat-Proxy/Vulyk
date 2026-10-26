@@ -111,20 +111,14 @@ export class AdminPage {
   }
 
   async openListsTab() {
-    await this.openTab(
-      /^Lists$|^Списки$|^Listes$|^Listas$|^Listen$/i,
-    )
+    await this.openTab('lists')
   }
 
   async openCustomFieldsTab() {
-    await this.openTab(
-      /Custom fields|Кастомні поля|Champs personnalisés|Campos personalizados|Benutzerdefinierte Felder/i,
-    )
+    await this.openTab('customFields')
   }
 
   async openExportTab() {
-    await this.openTab(
-      /Export \/ import|Експорт \/ імпорт|Export \/ import|Exportar \/ importar|Export \/ Import/i,
-    )
+    await this.openTab('config')
   }
 }

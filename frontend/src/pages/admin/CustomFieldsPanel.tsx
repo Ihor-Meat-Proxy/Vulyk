@@ -6,6 +6,7 @@ import {
   type Project,
 } from '../../api'
 import { useI18n } from '../../i18n'
+import { TestIds, testIdProps } from '../../testing'
 
 const FIELD_TYPES = [
   'text',
@@ -461,7 +462,12 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           {t('admin.lists.active')}
         </label>
         <div className="row-actions">
-          <button className="btn" type="submit" disabled={busy}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={busy}
+            {...testIdProps(TestIds.adminCustomFieldsAddButton)}
+          >
             {editingId ? t('common.save') : t('admin.customFields.create')}
           </button>
           {editingId && (

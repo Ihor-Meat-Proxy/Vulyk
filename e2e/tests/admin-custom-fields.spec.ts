@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey, API_URL } from '../fixtures/env'
 import { AdminPage } from '../pages/AdminPage'
@@ -97,17 +98,9 @@ test('admin lists, custom fields, and config export', async ({ page, request }) 
   ).toBeVisible()
 
   await adminPage.openExportTab()
-  await expect(
-    page.getByText(
-      /Export config|Експорт|Exporter la config|Exportar config|Konfiguration exportieren/i,
-    ),
-  ).toBeVisible()
+  await expect(page.getByTestId(TestIds.adminConfigExportButton)).toBeVisible()
   const downloadPromise = page.waitForEvent('download', { timeout: 25_000 })
-  await page
-    .getByRole('button', {
-      name: /Download export|Завантажити|Télécharger|Descargar|Herunterladen/i,
-    })
-    .click()
+  await page.getByTestId(TestIds.adminConfigExportButton).click()
   const download = await downloadPromise
   expect(download.suggestedFilename()).toMatch(/vulyk-config\.(json|yaml)/)
 })

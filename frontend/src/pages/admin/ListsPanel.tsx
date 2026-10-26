@@ -6,6 +6,7 @@ import {
   type OptionListItem,
 } from '../../api'
 import { useI18n } from '../../i18n'
+import { TestIds, testIdProps } from '../../testing'
 
 type Props = {
   onError: (msg: string) => void
@@ -225,7 +226,12 @@ export function ListsPanel({ onError }: Props) {
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
-          <button className="btn" type="submit" disabled={busy}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={busy}
+            {...testIdProps(TestIds.adminListsAddButton)}
+          >
             {t('admin.lists.create')}
           </button>
         </form>

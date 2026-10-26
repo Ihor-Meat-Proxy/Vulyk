@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, type ConfigImportPreview, type Project } from '../../api'
 import { useI18n } from '../../i18n'
+import { TestIds, testIdProps } from '../../testing'
 
 type Props = {
   projects: Project[]
@@ -197,7 +198,12 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             <option value="yaml">YAML</option>
           </select>
         </label>
-        <button className="btn" type="submit" disabled={busy}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy}
+          {...testIdProps(TestIds.adminConfigExportButton)}
+        >
           {t('admin.export.download')}
         </button>
       </form>
@@ -210,6 +216,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           <input
             type="file"
             accept=".json,.yaml,.yml,application/json"
+            {...testIdProps(TestIds.adminConfigImportInput)}
             onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
           />
           {fileName ? <span className="muted">{fileName}</span> : null}
@@ -240,6 +247,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             className="btn"
             disabled={busy || !bundle}
             onClick={() => void onApply()}
+            {...testIdProps(TestIds.adminConfigImportButton)}
           >
             {t('admin.export.apply')}
           </button>
