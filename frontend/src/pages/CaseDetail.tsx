@@ -25,6 +25,7 @@ import {
 } from '../caseEditShortcuts'
 import { CaseBreadcrumbs } from '../components/CaseBreadcrumbs'
 import { CaseKeyBadge } from '../components/CaseKeyBadge'
+import { CustomFieldInput } from '../components/CustomFieldInput'
 import { StatusBadge } from '../components/StatusBadge'
 import { useToast } from '../components/ToastProvider'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
@@ -143,7 +144,7 @@ export function CaseDetail({
   const [status, setStatus] = useState('draft')
   const [tagInput, setTagInput] = useState('')
   const [steps, setSteps] = useState<DraftStep[]>([])
-  const [fieldValues, setFieldValues] = useState<Record<string, string>>({})
+  const [fieldValues, setFieldValues] = useState<Record<string, unknown>>({})
   const [tab, setTab] = useState<Tab>('details')
   const [resultsPage, setResultsPage] = useState<CaseResultsPage | null>(null)
   const [resultsLoading, setResultsLoading] = useState(false)
@@ -193,10 +194,9 @@ export function CaseDetail({
     const nextStatus = data.case.status
     const nextTagInput = data.tags.map((tag) => tag.name).join(', ')
     const nextSteps = draftStepsFromApi(data.steps)
-    const vals: Record<string, string> = {}
+    const vals: Record<string, unknown> = {}
     for (const cf of data.custom_fields) {
-      vals[cf.field_id] =
-        cf.value === null || cf.value === undefined ? '' : String(cf.value)
+      vals[cf.field_id] = cf.value ?? null
     }
     setTitle(nextTitle)
     setDescription(nextDescription)
@@ -273,7 +273,7 @@ export function CaseDetail({
   const loadRelated = async (pid: string, id: string, data: TestCaseDetail) => {
     const [vers, defs, reqs, all] = await Promise.all([
       api.listVersions(pid, id),
-      api.listCustomFields(pid),
+      api.listCustomFields(pid, 'test_case'),
       api.listCaseRequirements(pid, id),
       api.listRequirements(pid),
     ])
@@ -449,9 +449,12 @@ export function CaseDetail({
         tag_names: tagNames,
         change_summary: 'edited in UI',
       })
-      const cfBody = Object.entries(fieldValues).map(([field_id, value]) => ({
-        field_id,
-        value,
+      const cfBody = fields.map((f) => ({
+        field_id: f.id,
+        value:
+          fieldValues[f.id] !== undefined
+            ? fieldValues[f.id]
+            : (f.default_value ?? null),
       }))
       if (cfBody.length) {
         await api.setCustomFields(pid, id, cfBody)
@@ -807,33 +810,71 @@ export function CaseDetail({
               <div className="cf-grid">
                 {editing
                   ? fields.map((cf, index) => (
-                      <label key={cf.id} className="cf-field">
-                        <span className="muted">{cf.name}</span>
-                        <input
-                          value={fieldValues[cf.id] ?? ''}
-                          onChange={(e) =>
+                      <div
+                        key={cf.id}
+                        style={{ display: 'contents' }}
+                        {...listItemProps(TestIds.caseDetailCustomFieldInput, {
+                          entityId: cf.id,
+                          index,
+                        })}
+                      >
+                        <CustomFieldInput
+                          field={cf}
+                          value={
+                            fieldValues[cf.id] !== undefined
+                              ? fieldValues[cf.id]
+                              : (cf.default_value ?? null)
+                          }
+                          onChange={(next) =>
                             setFieldValues((prev) => ({
                               ...prev,
-                              [cf.id]: e.target.value,
+                              [cf.id]: next,
                             }))
                           }
-                          {...listItemProps(TestIds.caseDetailCustomFieldInput, {
-                            entityId: cf.id,
-                            index,
-                          })}
                         />
-                      </label>
+                      </div>
                     ))
-                  : detail.custom_fields.map((cf) => (
-                      <label key={cf.field_id} className="cf-field">
-                        <span className="muted">{cf.name}</span>
-                        <span>
-                          {cf.value === null || cf.value === undefined
-                            ? '—'
-                            : String(cf.value)}
-                        </span>
-                      </label>
-                    ))}
+                  : fields.length > 0
+                    ? fields.map((cf) => {
+                        const stored = detail.custom_fields.find(
+                          (v) => v.field_id === cf.id,
+                        )
+                        return (
+                          <CustomFieldInput
+                            key={cf.id}
+                            field={cf}
+                            value={stored?.value ?? cf.default_value ?? null}
+                            onChange={() => undefined}
+                            readOnly
+                          />
+                        )
+                      })
+                    : detail.custom_fields.map((cf) => (
+                        <CustomFieldInput
+                          key={cf.field_id}
+                          field={{
+                            id: cf.field_id,
+                            project_id: activeProjectId,
+                            key: cf.key ?? '',
+                            name: cf.name,
+                            field_type: cf.field_type,
+                            entity: 'test_case',
+                            option_list_id: null,
+                            options: [],
+                            default_value: null,
+                            required: false,
+                            help_text: '',
+                            sort_order: 0,
+                            show_in_list: false,
+                            show_in_filters: false,
+                            active: true,
+                            scope: 'all',
+                          }}
+                          value={cf.value}
+                          onChange={() => undefined}
+                          readOnly
+                        />
+                      ))}
               </div>
             </section>
           )}

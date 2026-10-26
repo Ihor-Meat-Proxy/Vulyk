@@ -10,7 +10,7 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     CaseRequirementLink, CreateRequirement, CreateRequirementFolder, LinkCaseRequirement,
-    Requirement, RequirementFolder, UpdateRequirement,
+    Requirement, RequirementFolder, SetCustomFieldValue, UpdateRequirement,
 };
 use crate::routes::AppState;
 
@@ -28,6 +28,10 @@ pub fn router() -> Router<AppState> {
             get(get_requirement)
                 .put(update_requirement)
                 .delete(delete_requirement),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/requirements/{id}/custom-fields",
+            axum::routing::post(set_requirement_custom_fields),
         )
         .route(
             "/api/v1/projects/{project_id}/requirements:link",
@@ -179,7 +183,7 @@ pub async fn get_requirement(
         Permission::ViewProject,
     )
     .await?;
-    let row = sqlx::query_as::<_, Requirement>(&format!(
+    let mut row = sqlx::query_as::<_, Requirement>(&format!(
         r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 AND id = $2"#
     ))
     .bind(project_id)
@@ -187,6 +191,62 @@ pub async fn get_requirement(
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("requirement".into()))?;
+    row.custom_fields =
+        crate::services::custom_fields::load_requirement_values(&state.pool, id).await?;
+    Ok(Json(row))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/requirements/{id}/custom-fields",
+    tag = "requirements",
+    params(
+        ("project_id" = Uuid, Path),
+        ("id" = Uuid, Path)
+    ),
+    request_body = Vec<SetCustomFieldValue>,
+    responses((status = 200, body = Requirement)),
+    security(("bearer_auth" = []))
+)]
+pub async fn set_requirement_custom_fields(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path((project_id, id)): Path<(Uuid, Uuid)>,
+    Json(body): Json<Vec<SetCustomFieldValue>>,
+) -> AppResult<Json<Requirement>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageRequirements,
+    )
+    .await?;
+    let exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM requirements WHERE project_id = $1 AND id = $2)",
+    )
+    .bind(project_id)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await?;
+    if !exists {
+        return Err(AppError::NotFound("requirement".into()));
+    }
+    let pairs: Vec<(Uuid, serde_json::Value)> = body
+        .iter()
+        .map(|i| (i.field_id, i.value.clone()))
+        .collect();
+    crate::services::custom_fields::set_requirement_values(&state.pool, project_id, id, &pairs)
+        .await?;
+    let mut row = sqlx::query_as::<_, Requirement>(&format!(
+        r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 AND id = $2"#
+    ))
+    .bind(project_id)
+    .bind(id)
+    .fetch_one(&state.pool)
+    .await?;
+    row.custom_fields =
+        crate::services::custom_fields::load_requirement_values(&state.pool, id).await?;
     Ok(Json(row))
 }
 

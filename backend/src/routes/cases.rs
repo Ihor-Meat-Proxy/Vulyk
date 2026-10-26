@@ -262,6 +262,8 @@ pub struct ListCasesQuery {
     pub order: Option<String>,
     /// Comma-separated custom field ids (bare uuid or `cf:<uuid>`) to include in each row.
     pub cf_ids: Option<String>,
+    /// JSON object map of field_id (uuid string) → value to filter on.
+    pub cf: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -291,6 +293,7 @@ impl ListCasesQuery {
         ("sort" = Option<String>, Query, description = "Sort field (default|key|title|priority|status|automated|last_run_status|updated_at|created_at|folder|tags|sort_order|cf:<uuid>)"),
         ("order" = Option<String>, Query, description = "asc (default) or desc"),
         ("cf_ids" = Option<String>, Query, description = "Comma-separated custom field ids to include on each row"),
+        ("cf" = Option<String>, Query, description = "JSON map of custom field_id → value"),
         ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
         ("offset" = Option<i64>, Query, description = "Offset (default 0)")
     ),
@@ -321,6 +324,21 @@ pub async fn list_cases(
     let cf_ids = parse_cf_ids_param(query.cf_ids.as_deref())?;
     let cf_sort_id = parse_custom_field_column_id(&sort);
 
+    let cf_filter: Option<serde_json::Value> = match query.cf.as_deref() {
+        None | Some("") => None,
+        Some(raw) => Some(
+            serde_json::from_str(raw)
+                .map_err(|e| AppError::BadRequest(format!("invalid cf JSON: {e}")))?,
+        ),
+    };
+    if let Some(v) = &cf_filter {
+        if !v.is_object() {
+            return Err(AppError::BadRequest(
+                "cf must be a JSON object of field_id → value".into(),
+            ));
+        }
+    }
+
     // Folder filter: by default include descendants; `direct_only` scopes to that suite only.
     // `unfiled_only` returns cases with no folder (used by the tree's lazy unfiled load).
     // Must not wrap in `$2 IS NULL OR …` — that would ignore `unfiled_only` when suite_id is absent.
@@ -333,6 +351,17 @@ pub async fn list_cases(
     } else {
         "(tc.suite_id = $2 OR tc.suite_id IN (SELECT id FROM suite_tree))".to_string()
     };
+
+    // Param layout: $1..$6 filters, $7 cf JSON, $8 limit, $9 offset, $10 cf-sort field id.
+    let cf_predicate = r#"($7::jsonb IS NULL OR NOT EXISTS (
+               SELECT 1 FROM jsonb_each($7::jsonb) AS f(fid, fval)
+               WHERE NOT EXISTS (
+                 SELECT 1 FROM custom_field_values cfv
+                 WHERE cfv.case_id = tc.id
+                   AND cfv.field_id = (f.fid)::uuid
+                   AND (cfv.value = f.fval OR cfv.value @> f.fval)
+               )
+             ))"#;
 
     let total_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
@@ -355,7 +384,8 @@ pub async fn list_cases(
                tc.search_vector @@ plainto_tsquery('english', $6) OR
                tc.title ILIKE '%' || $6 || '%' OR
                tc.key ILIKE '%' || $6 || '%'
-             )"#
+             )
+             AND {cf_predicate}"#
     );
 
     let total: i64 = sqlx::query_scalar(&total_sql)
@@ -365,6 +395,7 @@ pub async fn list_cases(
         .bind(query.priority.as_deref())
         .bind(query.tag.as_deref())
         .bind(query.q.as_deref())
+        .bind(&cf_filter)
         .fetch_one(&state.pool)
         .await?;
 
@@ -372,10 +403,10 @@ pub async fn list_cases(
     let rank_prefix = fts_rank_prefix(has_q);
     let order_sql = order_by_sql(&sort, dir);
 
-    // $9 = optional custom-field id when sorting by cf:<uuid>.
+    // $10 = optional custom-field id when sorting by cf:<uuid>.
     let cf_join = if cf_sort_id.is_some() {
         "LEFT JOIN custom_field_values cf_sort \
-           ON cf_sort.case_id = tc.id AND cf_sort.field_id = $9"
+           ON cf_sort.case_id = tc.id AND cf_sort.field_id = $10"
     } else {
         ""
     };
@@ -426,11 +457,12 @@ pub async fn list_cases(
                tc.title ILIKE '%' || $6 || '%' OR
                tc.key ILIKE '%' || $6 || '%'
              )
+             AND {cf_predicate}
            GROUP BY tc.id, su.name{group_cf}
            ORDER BY
              {rank_prefix}
              {order_sql}
-           LIMIT $7 OFFSET $8"#,
+           LIMIT $8 OFFSET $9"#,
         group_cf = if cf_sort_id.is_some() {
             ", cf_sort.value"
         } else {
@@ -446,6 +478,7 @@ pub async fn list_cases(
             .bind(query.priority.as_deref())
             .bind(query.tag.as_deref())
             .bind(query.q.as_deref())
+            .bind(&cf_filter)
             .bind(limit)
             .bind(offset)
             .bind(field_id)
@@ -459,6 +492,7 @@ pub async fn list_cases(
             .bind(query.priority.as_deref())
             .bind(query.tag.as_deref())
             .bind(query.q.as_deref())
+            .bind(&cf_filter)
             .bind(limit)
             .bind(offset)
             .fetch_all(&state.pool)
@@ -477,10 +511,59 @@ pub async fn list_cases(
                 item.custom_fields = fields.clone();
             }
         }
+    } else if !items.is_empty() {
+        // No explicit cf_ids: attach fields marked show_in_list (legacy list behaviour).
+        attach_list_custom_fields(&state.pool, &mut items).await?;
     }
 
     Ok(Json(Page::new(items, total, limit, offset)))
 }
+
+async fn attach_list_custom_fields(
+    pool: &sqlx::PgPool,
+    cases: &mut [TestCaseListItem],
+) -> AppResult<()> {
+    if cases.is_empty() {
+        return Ok(());
+    }
+    use sqlx::Row;
+    let case_ids: Vec<Uuid> = cases.iter().map(|c| c.id).collect();
+    let rows = sqlx::query(
+        r#"SELECT cfv.case_id, cfd.id AS field_id, cfd.name, cfd.field_type, cfd.key,
+                  COALESCE(cfv.value, cfd.default_value, 'null'::jsonb) AS value
+           FROM custom_field_definitions cfd
+           JOIN custom_field_values cfv ON cfv.field_id = cfd.id
+           WHERE cfd.show_in_list
+             AND cfd.active
+             AND cfv.case_id = ANY($1)
+           ORDER BY cfd.sort_order, cfd.name"#,
+    )
+    .bind(&case_ids)
+    .fetch_all(pool)
+    .await?;
+
+    use std::collections::HashMap;
+    let mut by_case: HashMap<Uuid, Vec<crate::models::CustomFieldValue>> = HashMap::new();
+    for row in rows {
+        let case_id: Uuid = row.try_get("case_id")?;
+        by_case
+            .entry(case_id)
+            .or_default()
+            .push(crate::models::CustomFieldValue {
+                field_id: row.try_get("field_id")?,
+                name: row.try_get("name")?,
+                field_type: row.try_get("field_type")?,
+                key: row.try_get("key")?,
+                value: row.try_get("value")?,
+            });
+    }
+    for case in cases.iter_mut() {
+        case.custom_fields = by_case.remove(&case.id).unwrap_or_default();
+    }
+    Ok(())
+}
+
+
 
 #[utoipa::path(
     get,
@@ -920,6 +1003,33 @@ pub async fn bulk_cases(
                 }
             }
             body.case_ids.len() as i64
+        }
+        "set_custom_fields" => {
+            if body.custom_field_values.is_empty() {
+                return Err(AppError::BadRequest(
+                    "custom_field_values required".into(),
+                ));
+            }
+            // Apply outside this tx — set_case_values manages its own transaction.
+            tx.rollback().await?;
+            let pairs: Vec<(Uuid, serde_json::Value)> = body
+                .custom_field_values
+                .iter()
+                .map(|i| (i.field_id, i.value.clone()))
+                .collect();
+            for case_id in &body.case_ids {
+                crate::services::custom_fields::set_case_values(
+                    &state.pool,
+                    project_id,
+                    *case_id,
+                    &pairs,
+                )
+                .await?;
+            }
+            return Ok(Json(BulkCasesResponse {
+                affected: body.case_ids.len() as i64,
+                action: body.action,
+            }));
         }
         other => {
             return Err(AppError::BadRequest(format!("unknown action: {other}")));

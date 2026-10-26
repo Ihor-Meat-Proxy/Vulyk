@@ -144,6 +144,32 @@ export function CaseList({
   const [sort, setSort] = useState<string>('default')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const [dragColId, setDragColId] = useState<string | null>(null)
+  const [cfFilters, setCfFilters] = useState<Record<string, string>>({})
+  const [bulkFieldId, setBulkFieldId] = useState('')
+  const [bulkFieldValue, setBulkFieldValue] = useState('')
+
+  const filterFields = useMemo(
+    () => customFields.filter((f) => f.show_in_filters),
+    [customFields],
+  )
+
+  const cfQuery = useMemo(() => {
+    const out: Record<string, unknown> = {}
+    for (const [fieldId, raw] of Object.entries(cfFilters)) {
+      if (!raw.trim()) continue
+      const field = customFields.find((f) => f.id === fieldId)
+      if (!field) continue
+      if (field.field_type === 'checkbox') {
+        out[fieldId] = raw === 'true'
+      } else if (field.field_type === 'number') {
+        const n = Number(raw)
+        if (Number.isFinite(n)) out[fieldId] = n
+      } else {
+        out[fieldId] = raw
+      }
+    }
+    return out
+  }, [cfFilters, customFields])
 
   const registry = useMemo(
     () =>
@@ -182,10 +208,11 @@ export function CaseList({
       sort: sort !== 'default' ? sort : undefined,
       order: sort !== 'default' ? order : undefined,
       cfIds: cfIds.length ? cfIds : undefined,
+      cf: Object.keys(cfQuery).length ? cfQuery : undefined,
       limit: PAGE_SIZE,
       offset: pageOffset,
     }),
-    [suiteId, directOnly, deferredQuery, tag, status, sort, order, cfIds],
+    [suiteId, directOnly, deferredQuery, tag, status, sort, order, cfIds, cfQuery],
   )
 
   const persistColumns = useCallback(
@@ -291,7 +318,7 @@ export function CaseList({
     let cancelled = false
     const local = readLocalConfig(projectId)
     api
-      .listCustomFields(projectId)
+      .listCustomFields(projectId, 'test_case')
       .then((fields) => {
         if (cancelled) return
         setCustomFields(fields)
@@ -343,7 +370,7 @@ export function CaseList({
   useEffect(() => {
     setOffset(0)
     setSelected(new Set())
-  }, [projectId, suiteId, deferredQuery, tag, status, directOnly, sort, order, cfIds.join(',')])
+  }, [projectId, suiteId, deferredQuery, tag, status, directOnly, sort, order, cfIds.join(','), cfQuery])
 
   useEffect(() => {
     if (suiteId == null) setDirectOnly(false)
@@ -470,6 +497,35 @@ export function CaseList({
     })
     setSelected(new Set())
     await reloadList()
+  }
+
+  const bulkCustomField = async () => {
+    if (!projectId || selected.size === 0 || !bulkFieldId) return
+    const field = customFields.find((f) => f.id === bulkFieldId)
+    if (!field) return
+    let value: unknown = bulkFieldValue
+    if (field.field_type === 'checkbox') {
+      value = bulkFieldValue === 'true'
+    } else if (field.field_type === 'number') {
+      value = bulkFieldValue === '' ? null : Number(bulkFieldValue)
+    } else if (field.field_type === 'multi_select') {
+      value = bulkFieldValue
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    }
+    try {
+      await api.bulkCases(projectId, {
+        action: 'set_custom_fields',
+        case_ids: [...selected],
+        custom_field_values: [{ field_id: bulkFieldId, value }],
+      })
+      setSelected(new Set())
+      setBulkFieldValue('')
+      await reloadList()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
   }
 
   const onCreateFolder = async (parentId: string | null) => {
@@ -788,6 +844,68 @@ export function CaseList({
             <option value="ready">ready</option>
             <option value="deprecated">deprecated</option>
           </select>
+          {filterFields.map((f, index) =>
+            f.field_type === 'checkbox' ? (
+              <select
+                key={f.id}
+                className="filter-input"
+                value={cfFilters[f.id] ?? ''}
+                onChange={(e) =>
+                  setCfFilters((prev) => ({ ...prev, [f.id]: e.target.value }))
+                }
+                aria-label={f.name}
+                {...listItemProps(TestIds.caseListCustomFieldFilter, {
+                  entityId: f.id,
+                  index,
+                })}
+              >
+                <option value="">{f.name}</option>
+                <option value="true">yes</option>
+                <option value="false">no</option>
+              </select>
+            ) : f.field_type === 'dropdown' && Array.isArray(f.options) ? (
+              <select
+                key={f.id}
+                className="filter-input"
+                value={cfFilters[f.id] ?? ''}
+                onChange={(e) =>
+                  setCfFilters((prev) => ({ ...prev, [f.id]: e.target.value }))
+                }
+                aria-label={f.name}
+                {...listItemProps(TestIds.caseListCustomFieldFilter, {
+                  entityId: f.id,
+                  index,
+                })}
+              >
+                <option value="">{f.name}</option>
+                {(f.options as { label?: string; value?: string }[]).map(
+                  (o, i) => {
+                    const val = String(o.value ?? o.label ?? '')
+                    return (
+                      <option key={`${val}-${i}`} value={val}>
+                        {o.label ?? val}
+                      </option>
+                    )
+                  },
+                )}
+              </select>
+            ) : (
+              <input
+                key={f.id}
+                className="filter-input"
+                placeholder={f.name}
+                value={cfFilters[f.id] ?? ''}
+                onChange={(e) =>
+                  setCfFilters((prev) => ({ ...prev, [f.id]: e.target.value }))
+                }
+                aria-label={f.name}
+                {...listItemProps(TestIds.caseListCustomFieldFilter, {
+                  entityId: f.id,
+                  index,
+                })}
+              />
+            ),
+          )}
           {suiteId != null && (
             <label className="direct-only-toggle">
               <input
@@ -834,6 +952,67 @@ export function CaseList({
                 >
                   {t('cases.deprecate')}
                 </button>
+                {customFields.length > 0 && (
+                  <>
+                    <select
+                      className="filter-input"
+                      value={bulkFieldId}
+                      onChange={(e) => {
+                        const id = e.target.value
+                        setBulkFieldId(id)
+                        const ft = customFields.find((f) => f.id === id)
+                          ?.field_type
+                        setBulkFieldValue(ft === 'checkbox' ? 'true' : '')
+                      }}
+                      aria-label={t('cases.bulkCustomField')}
+                      {...testIdProps(TestIds.caseListBulkCustomFieldSelect)}
+                    >
+                      <option value="">{t('cases.bulkCustomField')}</option>
+                      {customFields.map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name}
+                        </option>
+                      ))}
+                    </select>
+                    {bulkFieldId &&
+                      (customFields.find((f) => f.id === bulkFieldId)
+                        ?.field_type === 'checkbox' ? (
+                        <select
+                          className="filter-input"
+                          value={bulkFieldValue}
+                          onChange={(e) => setBulkFieldValue(e.target.value)}
+                          {...testIdProps(
+                            TestIds.caseListBulkCustomFieldValue,
+                          )}
+                        >
+                          <option value="true">yes</option>
+                          <option value="false">no</option>
+                        </select>
+                      ) : (
+                        <input
+                          className="filter-input"
+                          placeholder={t('cases.bulkCustomValue')}
+                          value={bulkFieldValue}
+                          onChange={(e) => setBulkFieldValue(e.target.value)}
+                          {...testIdProps(
+                            TestIds.caseListBulkCustomFieldValue,
+                          )}
+                        />
+                      ))}
+                    {bulkFieldId && (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => void bulkCustomField()}
+                        {...testIdProps(
+                          TestIds.caseListBulkCustomFieldApplyButton,
+                        )}
+                      >
+                        {t('cases.bulkApply')}
+                      </button>
+                    )}
+                  </>
+                )}
               </>
             )}
             {canLlm && (

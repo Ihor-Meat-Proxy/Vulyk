@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::SetCustomFieldValue;
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct BulkCasesRequest {
     pub action: String,
@@ -18,6 +20,9 @@ pub struct BulkCasesRequest {
     pub tag_ids: Vec<Uuid>,
     #[serde(default)]
     pub tag_names: Vec<String>,
+    /// Used with action `set_custom_fields`.
+    #[serde(default)]
+    pub custom_field_values: Vec<SetCustomFieldValue>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

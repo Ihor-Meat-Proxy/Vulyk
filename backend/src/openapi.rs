@@ -253,6 +253,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::requirements::list_requirements,
         crate::routes::requirements::create_requirement,
         crate::routes::requirements::get_requirement,
+        crate::routes::requirements::set_requirement_custom_fields,
         crate::routes::requirements::update_requirement,
         crate::routes::requirements::delete_requirement,
         crate::routes::requirements::link_case,

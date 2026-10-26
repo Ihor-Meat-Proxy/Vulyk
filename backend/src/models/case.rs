@@ -23,6 +23,10 @@ pub struct TestCase {
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Populated on list when fields have `show_in_list`; empty otherwise.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[sqlx(skip)]
+    pub custom_fields: Vec<CustomFieldValue>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]

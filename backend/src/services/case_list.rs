@@ -158,11 +158,12 @@ pub async fn load_custom_fields_for_cases(
     }
 
     let rows = sqlx::query(
-        r#"SELECT cfv.case_id, cfv.field_id, cf.name, cf.field_type, cfv.value
+        r#"SELECT cfv.case_id, cfd.id AS field_id, cfd.name, cfd.field_type, cfd.key,
+                  COALESCE(cfv.value, cfd.default_value, 'null'::jsonb) AS value
            FROM custom_field_values cfv
-           INNER JOIN custom_fields cf ON cf.id = cfv.field_id
+           INNER JOIN custom_field_definitions cfd ON cfd.id = cfv.field_id
            WHERE cfv.case_id = ANY($1) AND cfv.field_id = ANY($2)
-           ORDER BY cf.sort_order, cf.name"#,
+           ORDER BY cfd.sort_order, cfd.name"#,
     )
     .bind(case_ids)
     .bind(field_ids)
@@ -175,6 +176,7 @@ pub async fn load_custom_fields_for_cases(
             field_id: row.try_get("field_id")?,
             name: row.try_get("name")?,
             field_type: row.try_get("field_type")?,
+            key: row.try_get("key")?,
             value: row.try_get("value")?,
         });
     }
