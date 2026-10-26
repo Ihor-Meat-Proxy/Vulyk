@@ -22,6 +22,8 @@ async fn spawn_app(auth_required: bool) -> (String, sqlx::PgPool) {
             jwt_ttl_hours: 12,
             session_ttl_hours: 24,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -82,7 +84,7 @@ async fn lists_custom_fields_values_and_config_roundtrip() {
     let (base, pool) = spawn_app(true).await;
     let client = reqwest::Client::new();
     let email = format!("{}@example.com", unique("cfadmin"));
-    let password = "TestPass1";
+    let password = "password12345678";
     insert_admin(&pool, &email, password).await;
     let token = login(&client, &base, &email, password).await;
     let auth =
