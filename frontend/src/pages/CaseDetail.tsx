@@ -62,7 +62,7 @@ type EditSnapshot = {
   status: string
   tagInput: string
   steps: DraftStep[]
-  fieldValues: Record<string, string>
+  fieldValues: Record<string, unknown>
 }
 
 function snapshotFromState(s: EditSnapshot): string {
