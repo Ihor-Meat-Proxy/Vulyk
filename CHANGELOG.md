@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened upgrade backups: verified temp-DB restore, config/secrets bundle,
   attachments archive, auto-rollback to previous images, downgrade guards
 - Upgrade CI asserts encrypted LLM secrets decrypt after migrate
+- Admin **Updates** tab: check GitHub Releases, release notes, optional periodic
+  check, one-click upgrade via Compose updater sidecar (manual command on K8s)
 
 ## [0.1.0] - 2026-10-26
 

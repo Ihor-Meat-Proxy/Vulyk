@@ -102,7 +102,8 @@ Helm runs `vulyk-api migrate run` as a pre-upgrade Job.
 | [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
 | [docs/admin-guide.md](docs/admin-guide.md) | Deploy, DB backups, perf smoke, Helm |
 | [docs/guides/releasing.md](docs/guides/releasing.md) | Version bump, tags, GHCR, install `--version` |
-| [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, `pg_dump` backups, migrate CLI, Helm hooks |
+| [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, backups, migrate CLI, Helm hooks |
+| [docs/guides/in-app-updates.md](docs/guides/in-app-updates.md) | Admin Updates tab + updater sidecar |
 | [docs/guides/backup.md](docs/guides/backup.md) | Application-level content backup / restore (ZIP → GitHub/GitLab/Nextcloud/Drive/local) |
 | [docs/backup-design.md](docs/backup-design.md) | Content backup architecture (Mermaid) |
 | [docs/api.md](docs/api.md) | API overview + OpenAPI link |

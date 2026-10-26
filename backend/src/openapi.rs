@@ -52,6 +52,10 @@ use crate::routes::health::{HealthResponse, ReadyResponse};
 use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSettings};
 use crate::routes::llm::ProviderKindInfo;
 use crate::routes::sample_data::{ReseedSampleDataRequest, SampleDataStatus, SampleProjectInfo};
+use crate::routes::updates::{
+    ApplyUpdateRequest, ApplyUpdateResponse, UpdateJobList, UpdateJobPublic,
+    UpdatePreferencesRequest, UpdatesCapability, UpdatesPreferences, UpdatesStatus,
+};
 use crate::sample_seed::SampleDataSummary;
 use crate::settings::{InstanceSettings, RegistrationMode};
 use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
@@ -83,6 +87,13 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::instance_settings::get_settings,
         crate::routes::instance_settings::put_settings,
         crate::routes::instance_settings::get_role_matrix,
+        crate::routes::updates::get_updates,
+        crate::routes::updates::check_updates,
+        crate::routes::updates::apply_update,
+        crate::routes::updates::list_jobs,
+        crate::routes::updates::get_job,
+        crate::routes::updates::get_prefs,
+        crate::routes::updates::put_prefs,
         crate::routes::users::list_users,
         crate::routes::users::create_user,
         crate::routes::users::get_user,
@@ -446,6 +457,14 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         UpdateSsoProviderRequest,
         InstanceSettings,
         UpdateInstanceSettings,
+        UpdatesStatus,
+        UpdatesCapability,
+        ApplyUpdateRequest,
+        ApplyUpdateResponse,
+        UpdateJobPublic,
+        UpdateJobList,
+        UpdatesPreferences,
+        UpdatePreferencesRequest,
         SampleDataStatus,
         SampleProjectInfo,
         SampleDataSummary,

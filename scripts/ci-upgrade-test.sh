@@ -55,6 +55,14 @@ trap cleanup EXIT
 
 log "Building base API at ${BASE_SHA}..."
 git archive "${BASE_SHA}" | tar -x -C "${WORKDIR}"
+# Sample seeds are include_str!'d at compile time. If HEAD fixed duplicate case
+# keys (or other seed fixtures) that prevent the base binary from booting with
+# VULYK_SEED_SAMPLE=1, compile base against HEAD's seed JSON so this job still
+# exercises migrate + data/secrets survival. Schema/migrations still come from base.
+if [[ -d "${ROOT}/backend/seed" && -d "${WORKDIR}/backend/seed" ]]; then
+  log "Overlaying HEAD backend/seed onto base workdir (seed fixture fix-forward)"
+  cp -a "${ROOT}/backend/seed/." "${WORKDIR}/backend/seed/"
+fi
 # Reuse workspace target dir for faster incremental builds when possible
 mkdir -p "${WORKDIR}/target"
 if [[ -d "${ROOT}/target" ]]; then

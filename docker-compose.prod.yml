@@ -65,6 +65,9 @@ services:
       VULYK_AUTO_MIGRATE: ${VULYK_AUTO_MIGRATE:-false}
       VULYK_BASE_URL: ${VULYK_BASE_URL:-}
       VULYK_SETUP_TOKEN: ${VULYK_SETUP_TOKEN:-}
+      VULYK_UPDATER_URL: ${VULYK_UPDATER_URL:-http://updater:9091}
+      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
+      VULYK_GITHUB_REPO: ${VULYK_GITHUB_REPO:-Ihor-Meat-Proxy/Vulyk}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:
@@ -98,6 +101,24 @@ services:
       timeout: 5s
       retries: 8
       start_period: 10s
+
+  updater:
+    profiles: ["updates"]
+    build:
+      context: ./deploy/updater
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      VULYK_ROOT: /vulyk
+      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:?set VULYK_UPDATER_TOKEN to enable updater}
+      VULYK_UPDATER_BIND: 0.0.0.0:9091
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/vulyk
+    working_dir: /vulyk
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   vulyk_pg_data:

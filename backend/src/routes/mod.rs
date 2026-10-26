@@ -28,6 +28,7 @@ pub mod sso_admin;
 pub mod suites;
 pub mod tags;
 pub mod tokens;
+pub mod updates;
 pub mod users;
 pub mod webhooks;
 
@@ -79,6 +80,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(backups::router())
         .merge(sso_admin::router())
         .merge(instance_settings::router())
+        .merge(updates::router())
         .layer(middleware::from_fn_with_state(
             state.clone(),
             bearer_middleware,

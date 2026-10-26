@@ -12,6 +12,8 @@ import {
   type RegistrationMode,
   type SampleDataStatus,
   type SsoProviderAdmin,
+  type UpdateJob,
+  type UpdatesStatus,
   type UserPublic,
 } from '../api'
 import { useAuth } from '../auth'
@@ -30,6 +32,7 @@ type Tab =
   | 'llm'
   | 'tokens'
   | 'settings'
+  | 'updates'
   | 'sso'
   | 'backups'
 
@@ -42,6 +45,7 @@ const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
   llm: TestIds.adminTabLlm,
   tokens: TestIds.adminTabTokens,
   settings: TestIds.adminTabSettings,
+  updates: TestIds.adminTabUpdates,
   sso: TestIds.adminTabSso,
   backups: TestIds.adminTabBackups,
 }
@@ -92,6 +96,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
     if (isSystemAdmin) {
       list.push({ id: 'users', label: t('admin.users') })
       list.push({ id: 'settings', label: t('admin.settings') })
+      list.push({ id: 'updates', label: t('admin.updates') })
       list.push({ id: 'sso', label: t('admin.sso') })
       list.push({ id: 'backups', label: t('admin.backups') })
     }
@@ -237,6 +242,9 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
           onChanged={load}
           onError={setError}
         />
+      )}
+      {tab === 'updates' && isSystemAdmin && (
+        <UpdatesPanel onError={setError} />
       )}
       {tab === 'sso' && isSystemAdmin && (
         <SsoPanel
@@ -1172,6 +1180,282 @@ function TokensPanel({
           Generate
         </button>
       </form>
+    </div>
+  )
+}
+
+function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
+  const { t } = useI18n()
+  const [status, setStatus] = useState<UpdatesStatus | null>(null)
+  const [jobs, setJobs] = useState<UpdateJob[]>([])
+  const [checking, setChecking] = useState(false)
+  const [applying, setApplying] = useState(false)
+  const [intervalHours, setIntervalHours] = useState(24)
+  const [activeJob, setActiveJob] = useState<UpdateJob | null>(null)
+
+  const refresh = useCallback(async () => {
+    try {
+      const [s, j] = await Promise.all([
+        api.getAdminUpdates(),
+        api.listAdminUpdateJobs(),
+      ])
+      setStatus(s)
+      setJobs(j.items)
+      setIntervalHours(s.check_interval_hours)
+      setActiveJob(s.active_job)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }, [onError])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  // Periodic check when interval > 0 and last check is stale
+  useEffect(() => {
+    if (!status || status.check_interval_hours <= 0) return
+    const last = status.last_checked_at
+      ? Date.parse(status.last_checked_at)
+      : 0
+    const due =
+      !last ||
+      Date.now() - last > status.check_interval_hours * 3600 * 1000
+    if (!due) return
+    void (async () => {
+      try {
+        const s = await api.checkAdminUpdates()
+        setStatus(s)
+        setActiveJob(s.active_job)
+      } catch {
+        // Silent periodic failure; user can click Check
+      }
+    })()
+  }, [status?.check_interval_hours, status?.last_checked_at])
+
+  // Poll active job
+  useEffect(() => {
+    if (!activeJob) return
+    if (!['pending', 'running'].includes(activeJob.status)) return
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const job = await api.getAdminUpdateJob(activeJob.id)
+          setActiveJob(job)
+          if (!['pending', 'running'].includes(job.status)) {
+            await refresh()
+          }
+        } catch {
+          /* ignore transient poll errors */
+        }
+      })()
+    }, 2000)
+    return () => window.clearInterval(id)
+  }, [activeJob, refresh])
+
+  const onCheck = async () => {
+    setChecking(true)
+    try {
+      const s = await api.checkAdminUpdates()
+      setStatus(s)
+      setActiveJob(s.active_job)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  const onApply = async () => {
+    if (!status?.latest_version) return
+    const version = status.latest_version
+    if (!window.confirm(t('admin.updates.confirm').replace('{version}', version))) {
+      return
+    }
+    setApplying(true)
+    try {
+      const res = await api.applyAdminUpdate(version)
+      setActiveJob(res.job)
+      await refresh()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  const onSaveInterval = async (e: FormEvent) => {
+    e.preventDefault()
+    try {
+      const prefs = await api.updateAdminUpdatesPreferences({
+        check_interval_hours: intervalHours,
+      })
+      setIntervalHours(prefs.check_interval_hours)
+      await refresh()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  if (!status) {
+    return (
+      <div className="panel">
+        <p className="muted" {...testIdProps(TestIds.adminLoading)}>
+          Loading…
+        </p>
+      </div>
+    )
+  }
+
+  const canApply =
+    status.capability === 'compose_updater' &&
+    status.update_available &&
+    Boolean(status.latest_version) &&
+    !applying &&
+    !(activeJob && ['pending', 'running'].includes(activeJob.status))
+
+  return (
+    <div className="panel">
+      <h3>{t('admin.updates')}</h3>
+      <p className="muted">
+        {status.update_available
+          ? t('admin.updates.available')
+          : t('admin.updates.uptoDate')}
+        {status.last_checked_at
+          ? ` · ${t('admin.updates.lastChecked')}: ${status.last_checked_at}`
+          : null}
+      </p>
+
+      <dl className="admin-updates-meta">
+        <div>
+          <dt>{t('admin.updates.current')}</dt>
+          <dd {...testIdProps(TestIds.adminUpdatesCurrentVersion)}>
+            {status.current_version}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('admin.updates.latest')}</dt>
+          <dd {...testIdProps(TestIds.adminUpdatesLatestVersion)}>
+            {status.latest_version ?? '—'}
+            {status.latest_url ? (
+              <>
+                {' '}
+                <a
+                  href={status.latest_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  {...testIdProps(TestIds.adminUpdatesReleaseLink)}
+                >
+                  GitHub
+                </a>
+              </>
+            ) : null}
+          </dd>
+        </div>
+      </dl>
+
+      <div className="row gap">
+        <button
+          type="button"
+          className="btn secondary"
+          disabled={checking}
+          onClick={() => void onCheck()}
+          {...testIdProps(TestIds.adminUpdatesCheckButton)}
+        >
+          {checking ? t('admin.updates.checking') : t('admin.updates.check')}
+        </button>
+        {status.capability === 'compose_updater' ? (
+          <button
+            type="button"
+            className="btn"
+            disabled={!canApply}
+            onClick={() => void onApply()}
+            {...testIdProps(TestIds.adminUpdatesApplyButton)}
+          >
+            {applying ? t('admin.updates.applying') : t('admin.updates.apply')}
+          </button>
+        ) : null}
+      </div>
+
+      {status.capability !== 'compose_updater' ? (
+        <div className="admin-updates-manual">
+          <h4>{t('admin.updates.manual')}</h4>
+          <p className="muted">{t('admin.updates.manualHint')}</p>
+          <pre {...testIdProps(TestIds.adminUpdatesManualCommand)}>
+            {status.manual_command}
+          </pre>
+        </div>
+      ) : null}
+
+      {status.latest_notes ? (
+        <div>
+          <h4>{t('admin.updates.notes')}</h4>
+          <pre
+            className="admin-updates-notes"
+            {...testIdProps(TestIds.adminUpdatesNotes)}
+          >
+            {status.latest_notes}
+          </pre>
+        </div>
+      ) : null}
+
+      {activeJob ? (
+        <div>
+          <h4>{t('admin.updates.progress')}</h4>
+          <p {...testIdProps(TestIds.adminUpdatesJobStatus)}>
+            {activeJob.status} — {activeJob.message} ({activeJob.progress}%)
+          </p>
+          <progress
+            max={100}
+            value={activeJob.progress}
+            {...testIdProps(TestIds.adminUpdatesProgress)}
+          />
+          <pre {...testIdProps(TestIds.adminUpdatesJobLog)}>
+            {activeJob.log_text || '(no log yet)'}
+          </pre>
+        </div>
+      ) : null}
+
+      <form className="row gap" onSubmit={(e) => void onSaveInterval(e)}>
+        <label>
+          {t('admin.updates.interval')}
+          <input
+            type="number"
+            min={0}
+            max={720}
+            value={intervalHours}
+            onChange={(e) => setIntervalHours(Number(e.target.value))}
+            {...testIdProps(TestIds.adminUpdatesIntervalInput)}
+          />
+        </label>
+        <button
+          type="submit"
+          className="btn secondary"
+          {...testIdProps(TestIds.adminUpdatesIntervalSaveButton)}
+        >
+          {t('admin.updates.intervalSave')}
+        </button>
+      </form>
+
+      <h4>{t('admin.updates.history')}</h4>
+      <ul {...testIdProps(TestIds.adminUpdatesJobList)}>
+        {jobs.length === 0 ? (
+          <li className="muted">—</li>
+        ) : (
+          jobs.map((job, index) => (
+            <li
+              key={job.id}
+              {...listItemProps(TestIds.adminUpdatesJobRow, {
+                entityId: job.id,
+                entityKey: job.target_version,
+                index,
+              })}
+            >
+              {job.target_version} · {job.status} · {job.message}
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   )
 }

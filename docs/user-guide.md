@@ -62,6 +62,18 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 - **User menu:** the gear icon opens profile actions — **My settings** (`/settings`: name, language, timezone, notifications, password, personal API tokens), **Appearance**, **Admin settings** (admins only), Help/API docs, and **Log out** (or **Sign in** when anonymous). Auth mode (**Open mode** / **Auth required**) appears as a badge inside this menu, not as top-bar text.
 - Instance default locale/theme are set under gear → **Admin settings** (or at first-run setup with `--locale`).
 
+### Admin → Updates
+
+System admins can open **Admin settings → Updates** to:
+
+1. See the **current** API version (`/health`) and the **latest** GitHub Release for this repo.
+2. Click **Check for updates** (or rely on an optional periodic interval).
+3. Read release notes when a newer version exists.
+4. On Docker Compose with the **updater sidecar** enabled (`VULYK_UPDATER_TOKEN` + Compose profile `updates`), click **Update now**. That runs the same verified-backup → migrate → health path as `./scripts/install.sh upgrade --version`, with automatic rollback on failure. Progress and logs appear on the page.
+5. On Kubernetes or installs without the sidecar, **Update now** is hidden and a **manual upgrade command** is shown instead.
+
+Details: [guides/in-app-updates.md](guides/in-app-updates.md) and [guides/upgrade.md](guides/upgrade.md#data-safety-guarantees).
+
 ## Appearance
 
 Open **Appearance** from the gear user menu (or go to `/appearance`). It is not in the left nav.
