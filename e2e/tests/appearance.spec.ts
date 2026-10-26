@@ -64,7 +64,6 @@ test.describe('Appearance & theming', () => {
     await openAppearance(page)
     await selectTheme(page, 'dark')
 
-    const { logout } = await import('../fixtures/auth')
     await logout(page)
     await expect(page.locator('html')).toHaveAttribute('data-theme-choice', 'dark')
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')

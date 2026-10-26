@@ -83,7 +83,6 @@ test('gear menu: appearance, admin for admin only, logout', async ({
     }),
   ).toBeVisible({ timeout: 15_000 })
 
-  const { logout } = await import('../fixtures/auth')
   await logout(page)
 
   await loginAs(page, viewer.email, viewer.password)
