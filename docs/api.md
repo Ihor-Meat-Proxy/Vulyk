@@ -39,11 +39,20 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 
 ## Reports endpoints
 
-- `GET …/reports/dashboard` — project dashboard
-- `GET …/reports/runs/{run_id}/summary` — run summary
-- `GET …/reports/trends` — pass/fail trends (`granularity=run|day`)
-- `GET …/reports/coverage` — requirement coverage
-- `GET …/reports/flaky` — flaky case detection
-- `GET …/reports/export?format=csv|pdf&report=dashboard|coverage|trends|flaky|run` — file export
+Permission: `view_reports` for reads; `export_reports` for export.
 
-Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
+- `GET …/reports/dashboard` — project dashboard
+- `GET …/reports/runs/{run_id}/summary` — run summary counts
+- `GET …/reports/runs/{run_id}` — run report header (source kind, env, branch/commit, pipeline, KPIs)
+- `GET …/reports/runs/{run_id}/results` — paginated case results (`status`, `folder`, `suite_id`, `priority`, `assignee`, `q`, `sort`, `limit`, `offset`); includes previous status + `newly_failing` / `fixed` / `flaky` comparison
+- `GET …/reports/runs/{run_id}/cases/{case_id}` — expandable steps + comment history for one case in the run
+- `GET …/reports/runs/{run_id}/groups` — group by `folder` or `status` with counts and pass %
+- `GET …/reports/trends` — pass/fail trends (`granularity=run|day`)
+- `GET …/reports/coverage` — requirement coverage summary
+- `GET …/reports/coverage/detail` — covered / uncovered requirements with linked cases and latest status
+- `GET …/reports/flaky` — flaky case detection
+- `GET …/reports/export?format=csv|pdf&report=dashboard|coverage|trends|flaky|run|run_results` — file export (`run_results` respects the same filters as `/results`)
+
+UI routes: `/reports`, `/reports/runs/{runId}` (deep-linkable; query `status` pre-filters), `/reports/coverage`.
+
+Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md).
