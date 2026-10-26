@@ -3129,7 +3129,7 @@
               "external_key": "e2e:projects-cases.spec.ts"
             },
             {
-              "key": "VQA-187",
+              "key": "VQA-190",
               "title": {
                 "en": "Tab in last Expected adds next step",
                 "uk": "Tab в останньому Expected додає наступний крок"
@@ -3212,7 +3212,7 @@
               ]
             },
             {
-              "key": "VQA-188",
+              "key": "VQA-191",
               "title": {
                 "en": "Ctrl or Cmd+S saves case from editor",
                 "uk": "Ctrl або Cmd+S зберігає кейс з редактора"
@@ -3295,7 +3295,7 @@
               ]
             },
             {
-              "key": "VQA-189",
+              "key": "VQA-192",
               "title": {
                 "en": "Sticky save bar stays visible while scrolling",
                 "uk": "Липка панель Save залишається видимою при прокручуванні"
