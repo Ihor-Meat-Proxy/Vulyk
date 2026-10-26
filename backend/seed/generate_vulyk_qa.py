@@ -1230,8 +1230,93 @@ def build() -> dict:
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
-                                    "Create case; open it; click Edit; Add step; fill action and expected; Save.",
-                                    "Steps visible on Details; GET case returns steps in order.",
+                                    "Open Cases and create a case with a unique title.",
+                                    "Case appears in the list with an auto-allocated PREFIX-N key.",
+                                ),
+                                step(
+                                    "Open the case detail and click Edit.",
+                                    "Editor fields and Steps section become editable; sticky Save/Cancel bar is visible.",
+                                ),
+                                step(
+                                    "Click Add step and fill Action and Expected for the new step.",
+                                    "Step fields accept text; unsaved-changes indicator appears.",
+                                ),
+                                step(
+                                    "Click Save (or use Ctrl/Cmd+S).",
+                                    "Toast confirms save; steps are visible on Details; GET case returns steps in order.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Tab in last Expected adds next step",
+                            title_uk="Tab в останньому Expected додає наступний крок",
+                            desc_en="Keyboard: Tab on last Expected with content spawns an empty step and focuses Action.",
+                            pre_en="Editable case; admin/TAE.",
+                            priority="high",
+                            tags=["regression", "e2e", "cases", "keyboard"],
+                            external_key="e2e:case-edit-keyboard.spec.ts#tab-add-step",
+                            steps=[
+                                step(
+                                    "Open a case, click Edit, ensure at least one step has Action or Expected filled.",
+                                    "Focus is in the Expected field of the last step; hint “Press Tab…” is visible.",
+                                ),
+                                step(
+                                    "Press Tab (not Shift+Tab) in that Expected field.",
+                                    "A new empty step is appended and focus moves to its Action field.",
+                                ),
+                                step(
+                                    "Press Tab again while the new last step is still empty.",
+                                    "No additional step is created; focus follows normal order.",
+                                ),
+                                step(
+                                    "In a non-last Expected field, press Tab.",
+                                    "Focus moves to the next control without adding a step.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Ctrl or Cmd+S saves case from editor",
+                            title_uk="Ctrl або Cmd+S зберігає кейс з редактора",
+                            desc_en="Scoped save shortcut: only while editor mounted; no browser save dialog; no double-save.",
+                            pre_en="Editable case; admin/TAE.",
+                            priority="high",
+                            tags=["regression", "e2e", "cases", "keyboard"],
+                            external_key="e2e:case-edit-keyboard.spec.ts#save-shortcut",
+                            steps=[
+                                step(
+                                    "Enter Edit mode and change the title or a step.",
+                                    "Unsaved-changes indicator shows; Save tooltip shows Ctrl+S or ⌘S.",
+                                ),
+                                step(
+                                    "Press Ctrl+S (Windows/Linux) or Cmd+S (macOS) while focus is in a textarea.",
+                                    "Browser save dialog does not open; case saves; success toast appears.",
+                                ),
+                                step(
+                                    "Press the save shortcut again with no further edits.",
+                                    "Toast shows “No changes”; no extra version bump.",
+                                ),
+                                step(
+                                    "Clear the title and press the save shortcut.",
+                                    "Validation error is shown; case is not saved.",
+                                ),
+                            ],
+                        ),
+                        case(
+                            "Sticky save bar stays visible while scrolling",
+                            title_uk="Липка панель Save залишається видимою при прокручуванні",
+                            desc_en="Sticky Save/Cancel bar with unsaved indicator on the case edit screen.",
+                            pre_en="Case with enough content to scroll; admin/TAE.",
+                            priority="medium",
+                            tags=["regression", "e2e", "cases", "ui"],
+                            external_key="e2e:case-edit-keyboard.spec.ts#sticky-bar",
+                            steps=[
+                                step(
+                                    "Open a long case, click Edit, and scroll to the bottom of Details.",
+                                    "Sticky Save/Cancel bar remains visible in the viewport.",
+                                ),
+                                step(
+                                    "Edit a field so the form is dirty, then attempt Back to cases.",
+                                    "Unsaved-changes confirmation appears before leaving.",
                                 ),
                             ],
                         ),
@@ -1244,8 +1329,12 @@ def build() -> dict:
                             tags=["regression", "e2e", "cases"],
                             steps=[
                                 step(
-                                    "Edit title/description; Save.",
-                                    "New title in list; version incremented on Details.",
+                                    "Open the case and click Edit.",
+                                    "Title and description fields become editable.",
+                                ),
+                                step(
+                                    "Change title and description, then Save.",
+                                    "New title appears in the list; version increments on Details.",
                                 ),
                             ],
                         ),
