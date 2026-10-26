@@ -23,7 +23,6 @@ VULYK_GHCR_WEB_IMAGE="${VULYK_GHCR_WEB_IMAGE:-}"
 # Snapshot of images before an upgrade (for auto-rollback).
 PREV_API_IMAGE=""
 PREV_WEB_IMAGE=""
-LAST_BACKUP_BUNDLE=""
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -428,7 +427,7 @@ write_setup_env() {
   touch "${env_file}"
   if [[ "${preserve_existing}" -eq 1 ]]; then
     env_add_if_missing "${env_file}" "VULYK_ADMIN_EMAIL" "${ADMIN_EMAIL}"
-    # Never fill in admin password on re-run — empty would be dangerous; skip if unset
+    # Never fill in admin password on re-run - empty would be dangerous; skip if unset
     if [[ -n "${ADMIN_PASSWORD}" ]]; then
       env_add_if_missing "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
     fi
@@ -895,7 +894,7 @@ run_full_backup() {
   [[ -s "${dump}" ]] || { rm -rf "${bundle}"; die "backup dump is empty"; }
   verify_sql_dump "${dump}"
 
-  # Config / secrets — copy only; never regenerate
+  # Config / secrets - copy only; never regenerate
   local f
   for f in .env .env.prod; do
     if [[ -f "${ROOT}/${f}" ]]; then
@@ -916,7 +915,7 @@ run_full_backup() {
   # Warn loudly if secrets key missing from active env
   if [[ -n "${COMPOSE_ENV_FILE:-}" && -f "${COMPOSE_ENV_FILE}" ]]; then
     if ! grep -qE '^VULYK_SECRETS_KEY=.' "${COMPOSE_ENV_FILE}"; then
-      warn "VULYK_SECRETS_KEY is missing or empty in ${COMPOSE_ENV_FILE} — encrypted secrets may not decrypt after restore"
+      warn "VULYK_SECRETS_KEY is missing or empty in ${COMPOSE_ENV_FILE} - encrypted secrets may not decrypt after restore"
     fi
     if ! grep -qE '^VULYK_JWT_SECRET=.' "${COMPOSE_ENV_FILE}"; then
       warn "VULYK_JWT_SECRET is missing or empty in ${COMPOSE_ENV_FILE}"
@@ -940,26 +939,27 @@ run_full_backup() {
     log "No attachments volume found (OK if using DB-stored attachments only)"
   fi
 
-  (
-    cd "${bundle}"
+  {
+    local sums_tmp
+    sums_tmp="$(mktemp)"
     if command -v sha256sum >/dev/null 2>&1; then
-      find . -type f ! -name SHA256SUMS -print0 2>/dev/null | xargs -0 sha256sum >SHA256SUMS 2>/dev/null || true
+      ( cd "${bundle}" && find . -type f -print0 2>/dev/null | xargs -0 sha256sum ) >"${sums_tmp}" 2>/dev/null || true
     elif command -v shasum >/dev/null 2>&1; then
-      find . -type f ! -name SHA256SUMS -print0 2>/dev/null | xargs -0 shasum -a 256 >SHA256SUMS 2>/dev/null || true
+      ( cd "${bundle}" && find . -type f -print0 2>/dev/null | xargs -0 shasum -a 256 ) >"${sums_tmp}" 2>/dev/null || true
     fi
-  )
+    mv "${sums_tmp}" "${bundle}/SHA256SUMS"
+  }
   cat >"${bundle}/MANIFEST.txt" <<EOF
 Vulyk backup bundle
 created_utc=${ts}
 version_label=${version_label}
 db=db.sql.gz (gzip SQL; verified via temp-DB restore)
-config=config/ (.env / .env.prod / image-state.env — never regenerate on upgrade)
+config=config/ (.env / .env.prod / image-state.env - never regenerate on upgrade)
 attachments=attachments.tar.gz (optional volume archive)
 retention=${BACKUP_RETENTION}
 EOF
   prune_old_backups
   log "Backup bundle OK: ${bundle}"
-  LAST_BACKUP_BUNDLE="${bundle}"
   printf '%s\n' "${bundle}"
 }
 
@@ -974,7 +974,7 @@ merge_env_defaults_for_upgrade() {
   local env_file="$1"
   [[ -f "${env_file}" ]] || return 0
   log "Merging additive config defaults into ${env_file} (existing values preserved)..."
-  # Safe additive keys only — never JWT/SECRETS/POSTGRES_PASSWORD/ADMIN_PASSWORD
+  # Safe additive keys only - never JWT/SECRETS/POSTGRES_PASSWORD/ADMIN_PASSWORD
   env_add_if_missing "${env_file}" "VULYK_AUTO_MIGRATE" "false"
   env_add_if_missing "${env_file}" "VULYK_JWT_TTL_HOURS" "12"
   env_add_if_missing "${env_file}" "VULYK_SESSION_TTL_HOURS" "168"
@@ -982,7 +982,7 @@ merge_env_defaults_for_upgrade() {
   env_add_if_missing "${env_file}" "WEB_PORT" "80"
   local missing=0
   if ! grep -qE '^VULYK_SECRETS_KEY=.' "${env_file}"; then
-    warn "CRITICAL: VULYK_SECRETS_KEY missing in ${env_file} — encrypted LLM/SSO tokens will not decrypt"
+    warn "CRITICAL: VULYK_SECRETS_KEY missing in ${env_file} - encrypted LLM/SSO tokens will not decrypt"
     missing=1
   fi
   if ! grep -qE '^VULYK_JWT_SECRET=.' "${env_file}"; then
@@ -1084,7 +1084,7 @@ auto_rollback_upgrade() {
   set -e
   if [[ "${rc}" -ne 0 ]]; then
     print_restore_hint "${backup_path}"
-    die "${reason}; automatic DB restore also failed — restore manually from ${backup_path}"
+    die "${reason}; automatic DB restore also failed - restore manually from ${backup_path}"
   fi
   log "Starting previous images after rollback..."
   if ! compose_cmd up -d; then
@@ -1092,7 +1092,7 @@ auto_rollback_upgrade() {
     die "${reason}; rolled back DB but failed to start previous images"
   fi
   print_restore_hint "${backup_path}"
-  die "${reason} — automatic rollback applied (previous images + DB restore). Verify /health."
+  die "${reason} - automatic rollback applied (previous images + DB restore). Verify /health."
 }
 
 confirm_or_yes() {
@@ -1181,7 +1181,7 @@ To restore from backup:
   ./scripts/install.sh restore ${backup_file:-./backups/vulyk-VERSION-TIMESTAMP}/ --yes
 
 Manual DB-only restore (legacy .sql.gz also supported):
-  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-….sql.gz} --yes
+  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-....sql.gz} --yes
 
 See docs/guides/upgrade.md (Data-safety guarantees)
 ========================================================================
@@ -1262,7 +1262,7 @@ cmd_upgrade() {
       [[ -n "${saved_api_image}" ]] && export VULYK_API_IMAGE="${saved_api_image}"
       [[ -n "${saved_web_image}" ]] && export VULYK_WEB_IMAGE="${saved_web_image}"
     fi
-    # Additive defaults only — never regenerate secrets / admin password / user settings
+    # Additive defaults only - never regenerate secrets / admin password / user settings
     merge_env_defaults_for_upgrade "${COMPOSE_ENV_FILE}"
   fi
 
@@ -1272,13 +1272,13 @@ cmd_upgrade() {
   pending_rc=$?
   set -e
   if [[ "${pending_rc}" -eq 2 ]]; then
-    die "database schema is newer than the current API binary (refusing upgrade — restore matching backup)"
+    die "database schema is newer than the current API binary (refusing upgrade - restore matching backup)"
   fi
 
   snapshot_running_images_for_rollback
 
   if [[ "${NO_BACKUP}" -eq 1 ]]; then
-    warn "Skipping backup (--no-backup) — data loss risk if migrate/health fails"
+    warn "Skipping backup (--no-backup) - data loss risk if migrate/health fails"
   else
     backup_file="$(run_full_backup "${ver}")"
   fi
@@ -1289,7 +1289,7 @@ cmd_upgrade() {
 
   if [[ -n "${RELEASE_VERSION}" ]]; then
     if [[ -n "${COMPOSE_ENV_FILE}" ]]; then
-      # Only upsert image pins — never rewrite secrets/admin via write_setup_env
+      # Only upsert image pins - never rewrite secrets/admin via write_setup_env
       persist_release_images_env "${COMPOSE_ENV_FILE}"
     fi
   elif [[ -n "${UPGRADE_TO}" ]]; then

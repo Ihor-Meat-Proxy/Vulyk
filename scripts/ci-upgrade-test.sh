@@ -175,7 +175,7 @@ from pathlib import Path
 try:
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 except ImportError:
-    # Fallback: use openssl-free pure approach via PyNaCl-less AES — install cryptography if missing
+    # Fallback: use openssl-free pure approach via PyNaCl-less AES - install cryptography if missing
     import subprocess, sys
     subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "cryptography"])
     from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -259,7 +259,7 @@ export VULYK_AUTO_MIGRATE=false
 ./target/release/vulyk-api migrate run
 ./target/release/vulyk-api version
 
-log "Starting HEAD API (auto-migrate off) — same VULYK_SECRETS_KEY must still decrypt..."
+log "Starting HEAD API (auto-migrate off) - same VULYK_SECRETS_KEY must still decrypt..."
 ./target/release/vulyk-api > /tmp/vulyk-upgrade-head.log 2>&1 &
 echo $! > /tmp/vulyk-upgrade-api.pid
 if ! wait_health; then
