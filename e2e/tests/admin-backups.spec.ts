@@ -11,6 +11,7 @@ test.describe('Admin content backups', () => {
     await admin.open()
     await page.getByTestId('admin-tab-backups').click()
     await expect(page.getByTestId('admin-backups-panel')).toBeVisible()
+
     const destName = `Local e2e ${Date.now()}`
     await page.getByTestId('admin-backups-dest-name').fill(destName)
     await page.getByTestId('admin-backups-dest-kind').selectOption('local')
@@ -18,9 +19,16 @@ test.describe('Admin content backups', () => {
       .getByTestId('admin-backups-dest-path')
       .fill('./data/content-backups-e2e')
     await page.getByTestId('admin-backups-dest-save').click()
-    await expect(page.getByText(destName)).toBeVisible({ timeout: 15000 })
 
-    await page.getByTestId('admin-backups-run-dest').selectOption({ label: destName })
+    const destRow = page
+      .getByTestId('admin-backups-destinations')
+      .getByTestId('admin-backups-dest-local')
+      .filter({ hasText: destName })
+    await expect(destRow).toBeVisible({ timeout: 15_000 })
+
+    await page
+      .getByTestId('admin-backups-run-dest')
+      .selectOption({ label: destName })
     await page.getByTestId('admin-backups-run-now').click()
 
     await expect
@@ -31,13 +39,13 @@ test.describe('Admin content backups', () => {
             .allTextContents()
           return statuses.some((s) => s.trim() === 'success')
         },
-        { timeout: 60000 },
+        { timeout: 60_000 },
       )
       .toBeTruthy()
 
     await page.getByTestId('admin-backups-restore').first().click()
     await expect(page.getByTestId('admin-backups-restore-preview')).toBeVisible({
-      timeout: 30000,
+      timeout: 30_000,
     })
   })
 })
