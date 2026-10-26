@@ -103,7 +103,7 @@ test('cases list row and bulk export download PDF', async ({ page }) => {
   await cases.open()
   await expect(
     page.locator(
-      `[data-testid="case-row-export-pdf"][data-entity-key="${caseKey}"]`,
+      `[data-testid="${TestIds.caseRowExportPdf}"][data-entity-key="${caseKey}"]`,
     ),
   ).toBeVisible({
     timeout: 30_000,
@@ -113,7 +113,7 @@ test('cases list row and bulk export download PDF', async ({ page }) => {
   expect(rowDownload.suggestedFilename()).toMatch(/\.pdf$/i)
 
   await cases.selectCase(caseKey)
-  await expect(page.getByTestId('case-list-export-pdf')).toBeVisible()
+  await expect(page.getByTestId(TestIds.caseListExportPdf)).toBeVisible()
   const bulkDownload = await cases.exportSelectedPdf()
   expect(bulkDownload.suggestedFilename()).toMatch(/\.pdf$/i)
 })
