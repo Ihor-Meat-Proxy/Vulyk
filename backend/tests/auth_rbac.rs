@@ -471,3 +471,111 @@ async fn password_policy_rejects_weak_on_create() {
         .expect("create");
     assert_eq!(weak.status().as_u16(), 400);
 }
+
+#[tokio::test]
+async fn cross_project_results_and_jobs_are_forbidden() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+    let password = "password12345678";
+
+    let admin_a = unique_email("admin-a");
+    let _ = insert_admin(&pool, &admin_a, password).await;
+    let token_a = login(&client, &base, &admin_a, password).await;
+
+    let admin_b = unique_email("admin-b");
+    let _ = insert_user(&pool, &admin_b, password, true, false).await;
+    let token_b = login(&client, &base, &admin_b, password).await;
+
+    let key = format!(
+        "I{}",
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+    );
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {token_a}"))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": "IDOR Project",
+            "description": "owned by A"
+        }))
+        .send()
+        .await
+        .expect("project")
+        .error_for_status()
+        .expect("project ok")
+        .json()
+        .await
+        .expect("project json");
+    let project_id = project["id"].as_str().expect("id");
+
+    let case: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .header("Authorization", format!("Bearer {token_a}"))
+        .json(&serde_json::json!({
+            "title": "Secret case",
+            "steps": [{ "action": "a", "expected_result": "b" }]
+        }))
+        .send()
+        .await
+        .expect("case")
+        .error_for_status()
+        .expect("case ok")
+        .json()
+        .await
+        .expect("case json");
+    let case_id = case["id"].as_str().expect("case id");
+
+    let denied = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases/{case_id}/results"
+        ))
+        .header("Authorization", format!("Bearer {token_b}"))
+        .send()
+        .await
+        .expect("results");
+    assert_eq!(
+        denied.status().as_u16(),
+        403,
+        "cross-project case results must be forbidden: {}",
+        denied.text().await.unwrap_or_default()
+    );
+
+    let denied_global = client
+        .get(format!("{base}/api/v1/cases/{case_id}/results"))
+        .header("Authorization", format!("Bearer {token_b}"))
+        .send()
+        .await
+        .expect("global results");
+    assert_eq!(denied_global.status().as_u16(), 403);
+
+    let job_id: uuid::Uuid = sqlx::query_scalar(
+        r#"INSERT INTO jobs (kind, payload, max_attempts)
+           VALUES ('ingest', $1::jsonb, 1)
+           RETURNING id"#,
+    )
+    .bind(serde_json::json!({
+        "project_id": project_id,
+        "content": "secret-ingest-payload"
+    }))
+    .fetch_one(&pool)
+    .await
+    .expect("insert job");
+
+    let denied_job = client
+        .get(format!("{base}/api/v1/jobs/{job_id}"))
+        .header("Authorization", format!("Bearer {token_b}"))
+        .send()
+        .await
+        .expect("job");
+    assert_eq!(
+        denied_job.status().as_u16(),
+        403,
+        "cross-project job must be forbidden: {}",
+        denied_job.text().await.unwrap_or_default()
+    );
+}

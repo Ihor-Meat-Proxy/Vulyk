@@ -538,12 +538,22 @@ pub async fn get_run_item(
         ("run_id" = Uuid, Path),
         ("item_id" = Uuid, Path)
     ),
-    responses((status = 200, description = "Per-case result history timeline", body = [TestResultHistoryItem]))
+    responses((status = 200, description = "Per-case result history timeline", body = [TestResultHistoryItem])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_run_item_results(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id, item_id)): Path<(Uuid, Uuid, Uuid)>,
 ) -> AppResult<Json<Vec<TestResultHistoryItem>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let _ = load_item(&state.pool, run_id, item_id).await?;
     let history = list_run_item_history(&state.pool, item_id, true).await?;
@@ -564,13 +574,23 @@ pub struct RunHistoryQuery {
         ("run_id" = Uuid, Path),
         ("case_id" = Option<Uuid>, Query)
     ),
-    responses((status = 200, description = "Run-level result history", body = [TestResultHistoryItem]))
+    responses((status = 200, description = "Run-level result history", body = [TestResultHistoryItem])),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_run_results_history_endpoint(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
     Query(query): Query<RunHistoryQuery>,
 ) -> AppResult<Json<Vec<TestResultHistoryItem>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let history = list_run_results_history(&state.pool, run_id, query.case_id).await?;
     Ok(Json(history))
