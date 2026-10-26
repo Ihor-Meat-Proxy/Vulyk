@@ -15,23 +15,26 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(bottom.getByRole('link', { name: /Cases|Кейси/i })).toBeVisible()
     await expect(bottom.getByRole('link', { name: /Runs|Прогони/i })).toBeVisible()
 
-    await page.getByRole('button', { name: /Folders|Теки|Suites|Сьюти/i }).click()
+    await page.locator('button.menu-toggle').click()
     await expect(page.locator('#suite-drawer')).toBeVisible()
-    await expect(page.getByRole('button', { name: /All cases|Усі кейси/i })).toBeVisible()
+    await expect(
+      page.locator('#suite-drawer').getByRole('button', { name: /All cases|Усі кейси/i }),
+    ).toBeVisible()
     await page.locator('#suite-drawer').getByRole('button', { name: /Close|Закрити/i }).click()
     await expect(page.locator('.drawer-backdrop')).toHaveCount(0)
 
     await expect(page.getByLabel(/New case title|Назва нового кейсу/i)).toBeVisible()
     const caseKey = `MOB-${uniqueKey('').slice(-5)}`
-    await page.getByLabel(/New case title|Назва нового кейсу/i).fill(`Mobile ${caseKey}`)
+    const mobileTitle = `Mobile ${caseKey}`
+    await page.getByLabel(/New case title|Назва нового кейсу/i).fill(mobileTitle)
     await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-    await expect(page.getByText(`Mobile ${caseKey}`)).toBeVisible({
+    await expect(page.locator('.case-list-panel').getByText(mobileTitle)).toBeVisible({
       timeout: 30_000,
     })
 
     // Avoid sticky topbar / bottom-nav intercepting the case link on short viewports.
-    const caseLink = page.locator('.content').getByRole('link', {
-      name: `Mobile ${caseKey}`,
+    const caseLink = page.locator('.case-list-panel').getByRole('link', {
+      name: mobileTitle,
     })
     await caseLink.evaluate((el) =>
       el.scrollIntoView({ block: 'center', inline: 'nearest' }),

@@ -48,9 +48,10 @@ test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', 
   const caseTitle = `History case ${caseKey}`
   await page.getByLabel(/New case title|Назва нового кейсу/i).fill(caseTitle)
   await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-  await expect(page.getByText(caseTitle)).toBeVisible({ timeout: 30_000 })
+  const listPanel = page.locator('.case-list-panel')
+  await expect(listPanel.getByText(caseTitle)).toBeVisible({ timeout: 30_000 })
 
-  await page.getByRole('link', { name: caseTitle }).click()
+  await listPanel.getByRole('link', { name: caseTitle }).click()
   await expect(page.getByRole('heading', { level: 2 })).toContainText(caseTitle)
   await page.getByRole('button', { name: 'Edit' }).click()
   await page.getByRole('button', { name: 'Add step' }).click()

@@ -33,7 +33,9 @@ test('smoke: login → case → run → junit → import → report', async ({ p
   const caseTitle = `Smoke case ${caseKey}`
   await page.getByLabel(/New case title|Назва нового кейсу/i).fill(caseTitle)
   await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-  await expect(page.getByText(caseTitle)).toBeVisible({ timeout: 30_000 })
+  await expect(page.locator('.case-list-panel').getByText(caseTitle)).toBeVisible({
+    timeout: 30_000,
+  })
 
   const nav = page.getByRole('navigation', { name: 'Primary' })
   await nav.getByRole('link', { name: /Runs|Прогони/i, exact: true }).click()
