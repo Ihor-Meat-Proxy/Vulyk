@@ -261,7 +261,6 @@ mod tests {
         assert!(!verify_password_for_login("wrong", Some(&hash)));
     }
 
-
     #[test]
     fn strength_helpers_use_min_length() {
         let p = policy(12);

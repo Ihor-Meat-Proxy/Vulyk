@@ -151,8 +151,8 @@ async fn seed_from_env(pool: &PgPool) -> AppResult<()> {
             .trim()
             .to_lowercase();
         // Default meets the 16+ policy; override via VULYK_DEMO_PASSWORD.
-        let demo_password = std::env::var("VULYK_DEMO_PASSWORD")
-            .unwrap_or_else(|_| "vulyk-demo-user-1".into());
+        let demo_password =
+            std::env::var("VULYK_DEMO_PASSWORD").unwrap_or_else(|_| "vulyk-demo-user-1".into());
         let policy = PasswordPolicy::global();
         let must_change = !policy.meets(&demo_password);
         let created = upsert_user(

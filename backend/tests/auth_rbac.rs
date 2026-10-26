@@ -313,7 +313,10 @@ async fn open_mode_still_lists_projects() {
         .expect("json");
     assert_eq!(status["auth_required"], false);
     assert!(
-        status["password_policy"]["min_length"].as_u64().unwrap_or(0) >= 12,
+        status["password_policy"]["min_length"]
+            .as_u64()
+            .unwrap_or(0)
+            >= 12,
         "password_policy should be exposed on auth status"
     );
 

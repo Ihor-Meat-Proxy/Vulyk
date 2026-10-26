@@ -101,10 +101,7 @@ impl LoginThrottle {
     fn prune_locked(&self, map: &mut HashMap<String, AttemptState>) {
         let now = Instant::now();
         map.retain(|_, state| {
-            let locked = state
-                .locked_until
-                .map(|u| u > now)
-                .unwrap_or(false);
+            let locked = state.locked_until.map(|u| u > now).unwrap_or(false);
             let in_window = state
                 .window_started
                 .map(|s| now.duration_since(s) <= FAILURE_WINDOW)

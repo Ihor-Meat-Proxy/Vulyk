@@ -240,9 +240,7 @@ pub async fn login(
 ) -> AppResult<(HeaderMap, Json<AuthResponse>)> {
     let email = normalize_email(&body.email)?;
     let client_ip = client_ip_from_headers(&headers_in);
-    state
-        .login_throttle
-        .check(&email, client_ip.as_deref())?;
+    state.login_throttle.check(&email, client_ip.as_deref())?;
 
     let user = sqlx::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM users WHERE email = $1"
@@ -273,7 +271,9 @@ pub async fn login(
         state
             .login_throttle
             .record_failure(&email, client_ip.as_deref());
-        return Err(AppError::Unauthorized("password login not available".into()));
+        return Err(AppError::Unauthorized(
+            "password login not available".into(),
+        ));
     }
 
     if !password_ok {
