@@ -341,7 +341,7 @@ async fn weak_password_login_forces_change_and_blocks_api() {
     let weak = "legacy1"; // below policy; login must still verify the hash
     let _id = insert_user(&pool, &email, weak, true, false).await;
 
-    let login: Value = client
+    let login_body: Value = client
         .post(format!("{base}/api/v1/auth/login"))
         .json(&serde_json::json!({ "email": email, "password": weak }))
         .send()
@@ -352,8 +352,8 @@ async fn weak_password_login_forces_change_and_blocks_api() {
         .json()
         .await
         .expect("login json");
-    assert_eq!(login["user"]["must_change_password"], true);
-    let token = login["token"].as_str().expect("token");
+    assert_eq!(login_body["user"]["must_change_password"], true);
+    let token = login_body["token"].as_str().expect("token");
 
     // Direct API bypass of UI must still be blocked.
     let blocked = client
