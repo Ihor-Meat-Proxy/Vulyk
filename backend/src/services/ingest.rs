@@ -60,13 +60,16 @@ pub async fn persist_results(
                             // Also try external_key match.
                             match find_case_by_external(pool, project_id, key).await? {
                                 Some(id) => row.case_id = Some(id),
-                                None => unmatched_case_keys.push(key.clone()),
+                                None => {
+                                    unmatched_case_keys.push(key.clone());
+                                    // Design: do not persist unmatched keys as orphan results.
+                                    continue;
+                                }
                             }
                         }
                     }
                 }
             }
-            // Stamp case_version at ingest time when we know the case.
             resolved.push(row);
         }
 

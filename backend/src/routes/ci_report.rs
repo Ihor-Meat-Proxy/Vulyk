@@ -1,4 +1,4 @@
-//! Project CI tokens + CI reporting run lifecycle (open → start/results → close).
+//! Project CI tokens + CI reporting run lifecycle (open -> start/results -> close).
 
 use axum::{
     extract::{Path, State},
@@ -14,9 +14,9 @@ use crate::auth::{
 use crate::error::{AppError, AppResult};
 use crate::ingest::parse_payload;
 use crate::models::{
-    BulkResultItem, BulkResultsRequest, CiRunResultsResponse, CloseCiRunRequest,
-    CreateProjectCiToken, CreateProjectCiTokenResponse, IngestRequest, OpenCiRunRequest,
-    OpenCiRunResponse, ProjectCiTokenPublic, TestRun, TEST_RUN_COLS,
+    BulkResultsRequest, CiRunResultsResponse, CloseCiRunRequest, CreateProjectCiToken,
+    CreateProjectCiTokenResponse, IngestRequest, OpenCiRunRequest, OpenCiRunResponse,
+    ProjectCiTokenPublic, TestRun, TEST_RUN_COLS,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
@@ -657,13 +657,4 @@ pub async fn close_ci_run(
     .await?;
     let _ = crate::services::campaigns::refresh_run_counters(&state.pool, run_id).await;
     Ok(Json(updated))
-}
-
-/// Helper kept for potential single-result posts (unused currently).
-#[allow(dead_code)]
-fn single_to_bulk(item: BulkResultItem) -> BulkResultsRequest {
-    BulkResultsRequest {
-        results: vec![item],
-        upsert: false,
-    }
 }

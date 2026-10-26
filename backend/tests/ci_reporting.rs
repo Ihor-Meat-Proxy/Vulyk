@@ -38,7 +38,7 @@ async fn spawn_app(auth_required: bool) -> (String, sqlx::PgPool) {
 fn unique_key(prefix: &str) -> String {
     format!(
         "{prefix}{}",
-        &uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
     )
 }
 
@@ -101,12 +101,10 @@ async fn ci_open_result_close_and_junit_key() {
         .await
         .unwrap();
     let project_id = project["id"].as_str().unwrap();
-    let case_key = format!("{key}-1");
 
-    let _case: Value = client
+    let case: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/cases"))
         .json(&json!({
-            "key": case_key,
             "title": "Login",
             "status": "ready",
         }))
@@ -118,6 +116,12 @@ async fn ci_open_result_close_and_junit_key() {
         .json()
         .await
         .unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
 
     let ext = format!("github:run:{}", uuid::Uuid::new_v4());
     let opened: Value = client
@@ -245,10 +249,7 @@ async fn ci_open_result_close_and_junit_key() {
         .await
         .unwrap();
     assert!(ingest["inserted"].as_i64().unwrap() >= 1);
-    assert!(ingest["unmatched_case_keys"]
-        .as_array()
-        .unwrap()
-        .is_empty());
+    assert!(ingest["unmatched_case_keys"].as_array().unwrap().is_empty());
 
     let closed: Value = client
         .post(format!(

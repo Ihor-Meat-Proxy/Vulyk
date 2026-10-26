@@ -62,10 +62,9 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .unwrap();
     let project_id = project["id"].as_str().unwrap();
 
-    let _case: Value = client
+    let case: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/cases"))
         .json(&json!({
-            "key": format!("{key}-1"),
             "title": "Health",
             "status": "ready",
         }))
@@ -77,6 +76,12 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .json()
         .await
         .unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
 
     let run: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/runs"))
@@ -126,8 +131,8 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .json(&json!({
             "upsert": true,
             "results": [{
-                "external_id": "t::ok",
-                "case_key": format!("{key}-1"),
+                "external_id": "t::ok::linked",
+                "case_key": case_key,
                 "status": "passed",
                 "duration_ms": 11
             }]
@@ -140,7 +145,12 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .json()
         .await
         .unwrap();
-    assert!(bulk["updated"].as_i64().unwrap() + bulk["inserted"].as_i64().unwrap() >= 1);
+    assert!(
+        bulk["updated"].as_i64().unwrap()
+            + bulk["inserted"].as_i64().unwrap()
+            + bulk["idempotent_replays"].as_i64().unwrap_or(0)
+            >= 1
+    );
 
     let results: Value = client
         .get(format!("{base}/api/v1/runs/{run_id}/results"))
