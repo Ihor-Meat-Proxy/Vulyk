@@ -89,6 +89,8 @@ CREATE INDEX custom_field_projects_project_idx ON custom_field_projects (project
 
 -- Migrate legacy per-project custom_fields into definitions + project links.
 ALTER TABLE custom_field_values RENAME TO custom_field_values_legacy;
+-- Indexes keep their names after RENAME TABLE; drop so we can recreate on the new table.
+DROP INDEX IF EXISTS custom_field_values_field_id_idx;
 
 CREATE TABLE custom_field_values (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
