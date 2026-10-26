@@ -126,12 +126,9 @@ Modes:
   upgrade         Safe upgrade: backup, pull, rebuild, migrate, health-check
   backup          Verified backup bundle under ./backups/vulyk-<version>-<timestamp>/
   restore PATH    Restore a backup bundle or legacy .sql.gz (confirmation unless --yes)
-<<<<<<< HEAD
   rollback        Roll back to a post-upgrade rollback point (typed confirmation)
-=======
   config-export   Export instance/project configuration (wraps vulyk-api config export)
   config-import   Import configuration bundle (wraps vulyk-api config import)
->>>>>>> 03e1e31 (feat(admin): seed Browsers/Automated fields, QA cases, tests, docs, CLI)
 
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
@@ -1666,11 +1663,7 @@ log "Detected OS: ${OS}"
 parse_args "$@"
 
 case "${MODE}" in
-<<<<<<< HEAD
-  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|rollback)
-=======
-  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|config-export|config-import)
->>>>>>> 03e1e31 (feat(admin): seed Browsers/Automated fields, QA cases, tests, docs, CLI)
+  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|rollback|config-export|config-import)
     ;;
   -h|--help|help)
     usage

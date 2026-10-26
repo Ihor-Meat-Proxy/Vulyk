@@ -172,8 +172,9 @@ test.describe('folder tree lazy load + numeric sort', () => {
 
     // Selecting the leaf filters the right-hand list to 220 (not a capped handful).
     await cases.selectFolder(/Leaf-0-0/)
-    await expect(cases.listPanel().locator('.muted')).toContainText('220', {
-      timeout: 20_000,
-    })
+    await expect(cases.caseCount()).toContainText(
+      '220',
+      { timeout: 20_000 },
+    )
   })
 })

@@ -86,6 +86,7 @@ export const TestIds = {
   // —— Case list ——
   caseListPanel: 'case-list-panel',
   caseListTable: 'case-list-table',
+  caseListCount: 'case-list-count',
   caseListEmpty: 'case-list-empty',
   caseListLoading: 'case-list-loading',
   caseListError: 'case-list-error',

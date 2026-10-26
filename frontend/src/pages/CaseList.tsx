@@ -923,7 +923,7 @@ export function CaseList({
             onChange={(next) => void persistColumns(next)}
             onReset={() => void resetColumns()}
           />
-          <span className="muted">
+          <span className="muted" {...testIdProps(TestIds.caseListCount)}>
             {formatNumber(total)} {t('cases.count')}
             {pending || loading ? ` · ${t('common.loading')}` : ''}
           </span>

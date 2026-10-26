@@ -8,6 +8,10 @@ export class CasesPage {
     return this.page.getByTestId(TestIds.caseListPanel)
   }
 
+  caseCount() {
+    return this.listPanel().getByTestId(TestIds.caseListCount)
+  }
+
   async open() {
     await this.page.getByTestId(TestIds.navLinkCases).click()
   }
