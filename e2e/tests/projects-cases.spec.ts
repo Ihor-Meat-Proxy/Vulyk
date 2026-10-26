@@ -83,7 +83,7 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   await cases.createCase(title2)
 
   await cases.search(projectKey)
-  await expect(page.getByText(title)).toBeVisible()
+  await expect(cases.listPanel().getByText(title)).toBeVisible()
 
   await cases.search('')
   await cases.filterStatus('ready')

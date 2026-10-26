@@ -3,6 +3,10 @@ import { expect, type Page } from '@playwright/test'
 export class CasesPage {
   constructor(readonly page: Page) {}
 
+  listPanel() {
+    return this.page.locator('.case-list-panel')
+  }
+
   async open() {
     await this.page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /Cases|Кейси/i }).click()
   }
@@ -10,7 +14,7 @@ export class CasesPage {
   async createCase(title: string) {
     await this.page.getByLabel(/New case title|Назва нового кейсу/i).fill(title)
     await this.page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-    await expect(this.page.getByText(title)).toBeVisible({ timeout: 30_000 })
+    await expect(this.listPanel().getByText(title)).toBeVisible({ timeout: 30_000 })
   }
 
   async search(query: string) {
@@ -30,13 +34,11 @@ export class CasesPage {
   }
 
   async openCaseByTitle(title: string) {
-    await this.page.getByRole('link', { name: title }).click()
+    await this.listPanel().getByRole('link', { name: title }).click()
   }
 
   folderTree() {
-    return this.page.getByRole('region', { name: /Case folders|Теки кейсів/i }).or(
-      this.page.locator('.folder-tree'),
-    )
+    return this.page.locator('.folder-tree')
   }
 
   async selectFolder(name: string | RegExp) {
