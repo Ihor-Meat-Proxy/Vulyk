@@ -31,6 +31,8 @@ pub struct CreateProjectCiTokenResponse {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct OpenCiRunRequest {
+    /// Display name (fallback for suite_name).
+    pub name: Option<String>,
     /// CI provider hint: `github`, `gitlab`, `other`.
     pub provider: Option<String>,
     /// `owner/repo` or path.
@@ -44,9 +46,16 @@ pub struct OpenCiRunRequest {
     pub external_ref: Option<String>,
     pub campaign_id: Option<Uuid>,
     pub iteration_id: Option<Uuid>,
+    /// Campaign / iteration names (auto-create when ids omitted).
+    pub campaign: Option<String>,
+    pub iteration: Option<String>,
+    pub cadence: Option<String>,
     #[serde(default)]
     #[schema(value_type = Object)]
     pub environment: Option<Value>,
+    #[serde(default)]
+    #[schema(value_type = Object)]
+    pub artifacts: Option<Value>,
     #[serde(default)]
     #[schema(value_type = Object)]
     pub meta: Option<Value>,

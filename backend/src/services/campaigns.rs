@@ -14,7 +14,7 @@ use crate::models::{
     UpdateIteration, BLOCKED, FAILED, PASSED, READY, RUNNING, SKIPPED, UNTESTABLE,
 };
 
-const RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at";
+use crate::models::TEST_RUN_COLS as RUN_COLS;
 
 pub async fn list_campaigns(pool: &PgPool, project_id: Uuid) -> AppResult<Vec<Campaign>> {
     let rows = sqlx::query_as::<_, Campaign>(

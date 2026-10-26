@@ -70,6 +70,8 @@ pub enum AuthVia {
     Jwt,
     Session,
     ApiToken { token_id: Uuid },
+    /// Project-scoped CI reporting token (`vulyk_ci_…`).
+    CiToken { token_id: Uuid, project_id: Uuid },
 }
 
 /// Retained for W9/W10 middleware consumers / extensions.
@@ -202,11 +204,16 @@ pub async fn bearer_middleware(
         Ok(user) => {
             let token_id = match user.via {
                 AuthVia::ApiToken { token_id } => Some(token_id),
+                AuthVia::CiToken { token_id, .. } => Some(token_id),
                 _ => None,
+            };
+            let user_id = match &user.via {
+                AuthVia::CiToken { .. } if user.id() == Uuid::nil() => None,
+                _ => Some(user.id()),
             };
             req.extensions_mut().insert(AuthContext {
                 token_id,
-                user_id: Some(user.id()),
+                user_id,
             });
             req.extensions_mut().insert(user);
             next.run(req).await
@@ -256,6 +263,9 @@ fn bearer_token(parts: &Parts) -> Option<String> {
 }
 
 async fn authenticate_bearer(pool: &PgPool, jwt_secret: &str, token: &str) -> AppResult<AuthUser> {
+    if token.starts_with("vulyk_ci_") {
+        return authenticate_ci_token(pool, token).await;
+    }
     if token.starts_with("vulyk_at_") || token.starts_with("vulk_") {
         return authenticate_api_token(pool, token).await;
     }
@@ -301,6 +311,45 @@ async fn authenticate_session(pool: &PgPool, raw_token: &str) -> AppResult<AuthU
     Ok(AuthUser {
         user,
         via: AuthVia::Session,
+    })
+}
+
+async fn authenticate_ci_token(pool: &PgPool, raw_token: &str) -> AppResult<AuthUser> {
+    let token_hash = hash_secret(raw_token);
+    let row = sqlx::query_as::<_, (Uuid, Uuid)>(
+        r#"SELECT id, project_id FROM project_ci_tokens
+           WHERE token_hash = $1 AND revoked_at IS NULL"#,
+    )
+    .bind(&token_hash)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::Unauthorized("invalid or revoked CI token".into()))?;
+
+    let (token_id, project_id) = row;
+    sqlx::query("UPDATE project_ci_tokens SET last_used_at = NOW() WHERE id = $1")
+        .bind(token_id)
+        .execute(pool)
+        .await?;
+
+    Ok(AuthUser {
+        user: User {
+            id: Uuid::nil(),
+            email: "ci-token@vulyk.local".into(),
+            display_name: "CI token".into(),
+            password_hash: None,
+            is_system_admin: false,
+            must_change_password: false,
+            locale: None,
+            timezone: None,
+            preferences: serde_json::json!({}),
+            disabled_at: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        },
+        via: AuthVia::CiToken {
+            token_id,
+            project_id,
+        },
     })
 }
 
@@ -413,6 +462,28 @@ pub async fn require_permission(
     match auth {
         Some(user) if user.is_system_admin() => Ok(()),
         Some(user) => {
+            // Project CI tokens: UploadResults + ExecuteRuns + ViewProject on their project only.
+            if let AuthVia::CiToken {
+                project_id: token_project,
+                ..
+            } = &user.via
+            {
+                if *token_project != project_id {
+                    return Err(AppError::Forbidden(
+                        "CI token is not scoped to this project".into(),
+                    ));
+                }
+                return match permission {
+                    Permission::UploadResults
+                    | Permission::ExecuteRuns
+                    | Permission::ViewProject => Ok(()),
+                    _ => Err(AppError::Forbidden(format!(
+                        "CI token missing permission: {}",
+                        permission.as_str()
+                    ))),
+                };
+            }
+
             let role = sqlx::query_scalar::<_, super::ProjectRole>(
                 r#"SELECT role FROM memberships
                    WHERE project_id = $1 AND user_id = $2"#,

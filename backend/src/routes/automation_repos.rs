@@ -1,4 +1,5 @@
-//! Per-project automation Git repository (connect, test, re-index).
+//! Automation Git repositories: app-level CRUD + project M2M links.
+//! Legacy singular `/projects/{id}/automation-repo` remains as a default-repo shim.
 
 use axum::{
     extract::{Path, State},
@@ -11,7 +12,7 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     AutomationRepoIndexResult, AutomationRepoPublic, AutomationRepoRow, AutomationRepoTestResult,
-    UpsertAutomationRepo,
+    CreateAutomationRepo, SetRepoProjects, UpdateAutomationRepo, UpsertAutomationRepo,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
@@ -19,6 +20,35 @@ use crate::services::automation_repo as repo_svc;
 
 pub fn router() -> Router<AppState> {
     Router::new()
+        // New app-level CRUD
+        .route(
+            "/api/v1/automation-repos",
+            get(list_repos).post(create_repo),
+        )
+        .route(
+            "/api/v1/automation-repos/{id}",
+            get(get_repo_by_id)
+                .patch(update_repo)
+                .delete(delete_repo_by_id),
+        )
+        .route(
+            "/api/v1/automation-repos/{id}/projects",
+            axum::routing::put(set_repo_projects),
+        )
+        .route(
+            "/api/v1/automation-repos/{id}/test",
+            axum::routing::post(test_repo_by_id),
+        )
+        .route(
+            "/api/v1/automation-repos/{id}/reindex",
+            axum::routing::post(reindex_repo_by_id),
+        )
+        // Project-scoped list (Generate picker)
+        .route(
+            "/api/v1/projects/{project_id}/automation-repos",
+            get(list_project_repos),
+        )
+        // Legacy singular shim (default linked repo)
         .route(
             "/api/v1/projects/{project_id}/automation-repo",
             get(get_repo).put(upsert_repo).delete(delete_repo),
@@ -33,9 +63,490 @@ pub fn router() -> Router<AppState> {
         )
 }
 
-const SELECT_COLS: &str = r#"id, project_id, provider, remote_url, branch, subpath,
+const SELECT_COLS: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
     token_ciphertext, token_nonce, index_status, last_indexed_at,
     last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
+
+async fn to_public(pool: &sqlx::PgPool, row: &AutomationRepoRow) -> AppResult<AutomationRepoPublic> {
+    let project_ids = repo_svc::project_ids_for_repo(pool, row.id).await?;
+    Ok(row.to_public(project_ids))
+}
+
+fn validate_provider(provider: &str) -> AppResult<String> {
+    let provider = provider.trim().to_lowercase();
+    if !matches!(provider.as_str(), "github" | "gitlab" | "generic") {
+        return Err(AppError::BadRequest(
+            "provider must be github, gitlab, or generic".into(),
+        ));
+    }
+    Ok(provider)
+}
+
+async fn require_manage_on_projects(
+    state: &AppState,
+    auth: &Option<crate::auth::AuthUser>,
+    project_ids: &[Uuid],
+) -> AppResult<()> {
+    if project_ids.is_empty() {
+        // Creating an unlinked repo requires system admin when auth is on.
+        if !state.auth.required {
+            return Ok(());
+        }
+        match auth {
+            Some(u) if u.is_system_admin() => Ok(()),
+            Some(_) => Err(AppError::Forbidden(
+                "system admin required to create unlinked automation repos".into(),
+            )),
+            None => Err(AppError::Unauthorized("authentication required".into())),
+        }
+    } else {
+        for pid in project_ids {
+            require_permission(
+                &state.pool,
+                auth,
+                state.auth.required,
+                *pid,
+                Permission::ManageAutomationRepo,
+            )
+            .await?;
+        }
+        Ok(())
+    }
+}
+
+async fn require_manage_linked_or_admin(
+    state: &AppState,
+    auth: &Option<crate::auth::AuthUser>,
+    repo_id: Uuid,
+) -> AppResult<()> {
+    let links = repo_svc::project_ids_for_repo(&state.pool, repo_id).await?;
+    if links.is_empty() {
+        if !state.auth.required {
+            return Ok(());
+        }
+        match auth {
+            Some(u) if u.is_system_admin() => Ok(()),
+            Some(_) => Err(AppError::Forbidden(
+                "system admin required for unlinked automation repos".into(),
+            )),
+            None => Err(AppError::Unauthorized("authentication required".into())),
+        }
+    } else {
+        // Any linked project with ManageAutomationRepo is enough; check first that works.
+        let mut last_err = None;
+        for pid in &links {
+            match require_permission(
+                &state.pool,
+                auth,
+                state.auth.required,
+                *pid,
+                Permission::ManageAutomationRepo,
+            )
+            .await
+            {
+                Ok(()) => return Ok(()),
+                Err(e) => last_err = Some(e),
+            }
+        }
+        Err(last_err.unwrap_or_else(|| {
+            AppError::Forbidden("missing permission: manage_automation_repo".into())
+        }))
+    }
+}
+
+// ── App-level CRUD ───────────────────────────────────────────────────────────
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/automation-repos",
+    tag = "automation-repo",
+    responses((status = 200, body = [AutomationRepoPublic])),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_repos(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+) -> AppResult<Json<Vec<AutomationRepoPublic>>> {
+    if state.auth.required && auth.is_none() {
+        return Err(AppError::Unauthorized("authentication required".into()));
+    }
+    let is_admin = auth.as_ref().map(|u| u.is_system_admin()).unwrap_or(false);
+    let user_id = auth.as_ref().map(|u| u.id()).filter(|id| *id != Uuid::nil());
+    let rows = repo_svc::list_repos_for_user(&state.pool, user_id, is_admin).await?;
+    let mut out = Vec::with_capacity(rows.len());
+    for row in &rows {
+        out.push(to_public(&state.pool, row).await?);
+    }
+    Ok(Json(out))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/automation-repos",
+    tag = "automation-repo",
+    request_body = CreateAutomationRepo,
+    responses((status = 200, body = AutomationRepoPublic)),
+    security(("bearer_auth" = []))
+)]
+pub async fn create_repo(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Json(body): Json<CreateAutomationRepo>,
+) -> AppResult<Json<AutomationRepoPublic>> {
+    require_manage_on_projects(&state, &auth, &body.project_ids).await?;
+    for pid in &body.project_ids {
+        ensure_project(&state.pool, *pid).await?;
+    }
+    let provider = validate_provider(&body.provider)?;
+    if body.remote_url.trim().is_empty() {
+        return Err(AppError::BadRequest("remote_url required".into()));
+    }
+    if body.name.trim().is_empty() {
+        return Err(AppError::BadRequest("name required".into()));
+    }
+    let branch = if body.branch.trim().is_empty() {
+        "main".to_string()
+    } else {
+        body.branch.trim().to_string()
+    };
+    let (ct, nonce) = match body.token.as_deref() {
+        Some("") | None => (None, None),
+        Some(tok) => {
+            let (c, n) = state.secrets.encrypt(tok)?;
+            (Some(c), Some(n))
+        }
+    };
+    let legacy_project = body.project_ids.first().copied();
+    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"INSERT INTO automation_repos
+            (name, project_id, provider, remote_url, branch, subpath, token_ciphertext, token_nonce)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING {SELECT_COLS}"#
+    ))
+    .bind(body.name.trim())
+    .bind(legacy_project)
+    .bind(&provider)
+    .bind(body.remote_url.trim())
+    .bind(&branch)
+    .bind(body.subpath.trim())
+    .bind(ct)
+    .bind(nonce)
+    .fetch_one(&state.pool)
+    .await?;
+
+    if !body.project_ids.is_empty() {
+        repo_svc::set_project_links(&state.pool, row.id, &body.project_ids, legacy_project).await?;
+    }
+    Ok(Json(to_public(&state.pool, &row).await?))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/automation-repos/{id}",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = AutomationRepoPublic)),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_repo_by_id(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AutomationRepoPublic>> {
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    let links = repo_svc::project_ids_for_repo(&state.pool, id).await?;
+    if links.is_empty() {
+        if state.auth.required {
+            match &auth {
+                Some(u) if u.is_system_admin() => {}
+                Some(_) => {
+                    return Err(AppError::Forbidden("not allowed to view this repo".into()))
+                }
+                None => return Err(AppError::Unauthorized("authentication required".into())),
+            }
+        }
+    } else {
+        let mut ok = false;
+        for pid in &links {
+            if require_permission(
+                &state.pool,
+                &auth,
+                state.auth.required,
+                *pid,
+                Permission::ViewProject,
+            )
+            .await
+            .is_ok()
+            {
+                ok = true;
+                break;
+            }
+        }
+        if !ok {
+            return Err(AppError::Forbidden("not allowed to view this repo".into()));
+        }
+    }
+    Ok(Json(to_public(&state.pool, &row).await?))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/v1/automation-repos/{id}",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    request_body = UpdateAutomationRepo,
+    responses((status = 200, body = AutomationRepoPublic)),
+    security(("bearer_auth" = []))
+)]
+pub async fn update_repo(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+    Json(body): Json<UpdateAutomationRepo>,
+) -> AppResult<Json<AutomationRepoPublic>> {
+    require_manage_linked_or_admin(&state, &auth, id).await?;
+    let existing = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+
+    let provider = if let Some(ref p) = body.provider {
+        validate_provider(p)?
+    } else {
+        existing.provider.clone()
+    };
+    let name = body
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(existing.name.as_str())
+        .to_string();
+    let remote_url = body
+        .remote_url
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(existing.remote_url.as_str())
+        .to_string();
+    let branch = body
+        .branch
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(existing.branch.as_str())
+        .to_string();
+    let subpath = body
+        .subpath
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or(existing.subpath.as_str())
+        .to_string();
+
+    let (ct, nonce) = match body.token.as_deref() {
+        Some("") => (None, None),
+        Some(tok) => {
+            let (c, n) = state.secrets.encrypt(tok)?;
+            (Some(c), Some(n))
+        }
+        None => (
+            existing.token_ciphertext.clone(),
+            existing.token_nonce.clone(),
+        ),
+    };
+
+    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"UPDATE automation_repos SET
+             name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
+             token_ciphertext = $7, token_nonce = $8, updated_at = NOW()
+           WHERE id = $1
+           RETURNING {SELECT_COLS}"#
+    ))
+    .bind(id)
+    .bind(&name)
+    .bind(&provider)
+    .bind(&remote_url)
+    .bind(&branch)
+    .bind(&subpath)
+    .bind(ct)
+    .bind(nonce)
+    .fetch_one(&state.pool)
+    .await?;
+
+    if let Some(project_ids) = body.project_ids {
+        require_manage_on_projects(&state, &auth, &project_ids).await?;
+        for pid in &project_ids {
+            ensure_project(&state.pool, *pid).await?;
+        }
+        // Also need manage on currently linked projects being removed.
+        let current = repo_svc::project_ids_for_repo(&state.pool, id).await?;
+        require_manage_on_projects(&state, &auth, &current).await?;
+        repo_svc::set_project_links(&state.pool, id, &project_ids, None).await?;
+    }
+
+    Ok(Json(to_public(&state.pool, &row).await?))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/automation-repos/{id}",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 204, description = "Deleted")),
+    security(("bearer_auth" = []))
+)]
+pub async fn delete_repo_by_id(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<crate::routes::tokens::StatusNoContent> {
+    require_manage_linked_or_admin(&state, &auth, id).await?;
+    let res = sqlx::query("DELETE FROM automation_repos WHERE id = $1")
+        .bind(id)
+        .execute(&state.pool)
+        .await?;
+    if res.rows_affected() == 0 {
+        return Err(AppError::NotFound("automation repo".into()));
+    }
+    let dir = repo_svc::repo_workdir(id);
+    let _ = std::fs::remove_dir_all(dir);
+    Ok(crate::routes::tokens::StatusNoContent)
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/automation-repos/{id}/projects",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    request_body = SetRepoProjects,
+    responses((status = 200, body = AutomationRepoPublic)),
+    security(("bearer_auth" = []))
+)]
+pub async fn set_repo_projects(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+    Json(body): Json<SetRepoProjects>,
+) -> AppResult<Json<AutomationRepoPublic>> {
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    let current = repo_svc::project_ids_for_repo(&state.pool, id).await?;
+    require_manage_on_projects(&state, &auth, &current).await?;
+    require_manage_on_projects(&state, &auth, &body.project_ids).await?;
+    for pid in &body.project_ids {
+        ensure_project(&state.pool, *pid).await?;
+    }
+    repo_svc::set_project_links(
+        &state.pool,
+        id,
+        &body.project_ids,
+        body.default_project_id,
+    )
+    .await?;
+    Ok(Json(to_public(&state.pool, &row).await?))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/automation-repos/{id}/test",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = AutomationRepoTestResult)),
+    security(("bearer_auth" = []))
+)]
+pub async fn test_repo_by_id(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AutomationRepoTestResult>> {
+    require_manage_linked_or_admin(&state, &auth, id).await?;
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    let token = decrypt_token(&state, &row)?;
+    let (ok, message, commit_sha) =
+        repo_svc::test_connection(&row.remote_url, &row.branch, token.as_deref())?;
+    Ok(Json(AutomationRepoTestResult {
+        ok,
+        message,
+        commit_sha,
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/automation-repos/{id}/reindex",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = AutomationRepoIndexResult)),
+    security(("bearer_auth" = []))
+)]
+pub async fn reindex_repo_by_id(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AutomationRepoIndexResult>> {
+    require_manage_linked_or_admin(&state, &auth, id).await?;
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    repo_svc::mark_indexing(&state.pool, row.id).await?;
+    let token = decrypt_token(&state, &row)?;
+    match sync_and_index(&state, &row, token.as_deref()).await {
+        Ok((sha, files, chunks)) => Ok(Json(AutomationRepoIndexResult {
+            status: "ready".into(),
+            commit_sha: Some(sha),
+            file_count: files,
+            chunk_count: chunks,
+            error: None,
+        })),
+        Err(e) => {
+            let msg = e.to_string();
+            let _ = repo_svc::mark_index_error(&state.pool, row.id, &msg).await;
+            Ok(Json(AutomationRepoIndexResult {
+                status: "error".into(),
+                commit_sha: None,
+                file_count: 0,
+                chunk_count: 0,
+                error: Some(msg),
+            }))
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/automation-repos",
+    tag = "automation-repo",
+    params(("project_id" = Uuid, Path)),
+    responses((status = 200, body = [AutomationRepoPublic])),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_project_repos(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+) -> AppResult<Json<Vec<AutomationRepoPublic>>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    let rows = repo_svc::load_repos_for_project(&state.pool, project_id).await?;
+    let mut out = Vec::with_capacity(rows.len());
+    for row in &rows {
+        out.push(to_public(&state.pool, row).await?);
+    }
+    Ok(Json(out))
+}
+
+// ── Legacy singular shim ─────────────────────────────────────────────────────
 
 #[utoipa::path(
     get,
@@ -62,7 +573,7 @@ pub async fn get_repo(
     let row = repo_svc::load_repo_for_project(&state.pool, project_id)
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
-    Ok(Json(row.to_public()))
+    Ok(Json(to_public(&state.pool, &row).await?))
 }
 
 #[utoipa::path(
@@ -90,12 +601,7 @@ pub async fn upsert_repo(
     .await?;
     ensure_project(&state.pool, project_id).await?;
 
-    let provider = body.provider.trim().to_lowercase();
-    if !matches!(provider.as_str(), "github" | "gitlab" | "generic") {
-        return Err(AppError::BadRequest(
-            "provider must be github, gitlab, or generic".into(),
-        ));
-    }
+    let provider = validate_provider(&body.provider)?;
     if body.remote_url.trim().is_empty() {
         return Err(AppError::BadRequest("remote_url required".into()));
     }
@@ -104,6 +610,21 @@ pub async fn upsert_repo(
     } else {
         body.branch.trim().to_string()
     };
+    let name = body
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| {
+            body.remote_url
+                .trim()
+                .trim_end_matches('/')
+                .rsplit('/')
+                .next()
+                .unwrap_or("Automation repo")
+                .to_string()
+        });
 
     let existing = repo_svc::load_repo_for_project(&state.pool, project_id).await?;
     let (ct, nonce) = match body.token.as_deref() {
@@ -118,31 +639,56 @@ pub async fn upsert_repo(
         },
     };
 
-    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
-        r#"INSERT INTO automation_repos
-            (project_id, provider, remote_url, branch, subpath, token_ciphertext, token_nonce)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (project_id) DO UPDATE SET
-             provider = EXCLUDED.provider,
-             remote_url = EXCLUDED.remote_url,
-             branch = EXCLUDED.branch,
-             subpath = EXCLUDED.subpath,
-             token_ciphertext = EXCLUDED.token_ciphertext,
-             token_nonce = EXCLUDED.token_nonce,
-             updated_at = NOW()
-           RETURNING {SELECT_COLS}"#
-    ))
-    .bind(project_id)
-    .bind(&provider)
-    .bind(body.remote_url.trim())
-    .bind(&branch)
-    .bind(body.subpath.trim())
-    .bind(ct)
-    .bind(nonce)
-    .fetch_one(&state.pool)
-    .await?;
+    let row = if let Some(ex) = existing {
+        sqlx::query_as::<_, AutomationRepoRow>(&format!(
+            r#"UPDATE automation_repos SET
+                 name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
+                 token_ciphertext = $7, token_nonce = $8, project_id = $9, updated_at = NOW()
+               WHERE id = $1
+               RETURNING {SELECT_COLS}"#
+        ))
+        .bind(ex.id)
+        .bind(&name)
+        .bind(&provider)
+        .bind(body.remote_url.trim())
+        .bind(&branch)
+        .bind(body.subpath.trim())
+        .bind(ct)
+        .bind(nonce)
+        .bind(project_id)
+        .fetch_one(&state.pool)
+        .await?
+    } else {
+        let created = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+            r#"INSERT INTO automation_repos
+                (name, project_id, provider, remote_url, branch, subpath, token_ciphertext, token_nonce)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING {SELECT_COLS}"#
+        ))
+        .bind(&name)
+        .bind(project_id)
+        .bind(&provider)
+        .bind(body.remote_url.trim())
+        .bind(&branch)
+        .bind(body.subpath.trim())
+        .bind(ct)
+        .bind(nonce)
+        .fetch_one(&state.pool)
+        .await?;
+        repo_svc::set_project_links(&state.pool, created.id, &[project_id], Some(project_id))
+            .await?;
+        created
+    };
 
-    Ok(Json(row.to_public()))
+    // Ensure junction link exists for updated legacy rows.
+    let links = repo_svc::project_ids_for_repo(&state.pool, row.id).await?;
+    if !links.contains(&project_id) {
+        let mut ids = links;
+        ids.push(project_id);
+        repo_svc::set_project_links(&state.pool, row.id, &ids, Some(project_id)).await?;
+    }
+
+    Ok(Json(to_public(&state.pool, &row).await?))
 }
 
 #[utoipa::path(
@@ -166,12 +712,22 @@ pub async fn delete_repo(
         Permission::ManageAutomationRepo,
     )
     .await?;
-    sqlx::query("DELETE FROM automation_repos WHERE project_id = $1")
-        .bind(project_id)
-        .execute(&state.pool)
-        .await?;
-    let dir = repo_svc::repo_workdir(project_id);
-    let _ = std::fs::remove_dir_all(dir);
+    let row = repo_svc::load_repo_for_project(&state.pool, project_id).await?;
+    if let Some(row) = row {
+        // Unlink this project; delete the repo if it has no remaining links.
+        let mut links = repo_svc::project_ids_for_repo(&state.pool, row.id).await?;
+        links.retain(|p| *p != project_id);
+        if links.is_empty() {
+            sqlx::query("DELETE FROM automation_repos WHERE id = $1")
+                .bind(row.id)
+                .execute(&state.pool)
+                .await?;
+            let dir = repo_svc::repo_workdir(row.id);
+            let _ = std::fs::remove_dir_all(dir);
+        } else {
+            repo_svc::set_project_links(&state.pool, row.id, &links, None).await?;
+        }
+    }
     Ok(crate::routes::tokens::StatusNoContent)
 }
 
@@ -262,8 +818,8 @@ async fn sync_and_index(
     row: &AutomationRepoRow,
     token: Option<&str>,
 ) -> AppResult<(String, i32, i32)> {
-    let sha = repo_svc::sync_repo(row.project_id, &row.remote_url, &row.branch, token)?;
-    let files = repo_svc::index_workdir(row.project_id, &row.subpath)?;
+    let sha = repo_svc::sync_repo(row.id, &row.remote_url, &row.branch, token)?;
+    let files = repo_svc::index_workdir(row.id, &row.subpath)?;
     let (fc, cc) = repo_svc::persist_index(&state.pool, row.id, &files, &sha).await?;
     Ok((sha, fc, cc))
 }

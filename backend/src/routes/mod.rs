@@ -6,6 +6,7 @@ pub mod campaigns;
 pub mod cases;
 pub mod chat_propose;
 pub mod ci;
+pub mod ci_report;
 pub mod custom_fields;
 pub mod health;
 pub mod imports;
@@ -64,6 +65,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(ingest::router())
         .merge(jobs::router())
         .merge(ci::router())
+        .merge(ci_report::router())
         .merge(llm::router())
         .merge(chat_propose::router())
         .merge(automation_repos::router())

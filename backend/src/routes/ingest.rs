@@ -70,6 +70,7 @@ pub async fn bulk_results(
             updated: 0,
             unmatched_case_keys: vec![],
             job_id: Some(job.id),
+            idempotent_replays: 0,
         }));
     }
 
