@@ -128,7 +128,9 @@ test.describe('sample project seed', () => {
     // Sole folder UI is the Cases SquashTM tree — not a sidebar Folders section.
     await expect(page.locator('.sidebar .suite-block')).toHaveCount(0)
     await expect(
-      page.getByRole('region', { name: /Case folders|Теки кейсів/i }),
+      page.getByRole('region', {
+        name: /Case folders|Теки кейсів|Dossiers de cas|Carpetas de casos|Fallordner/i,
+      }),
     ).toBeVisible({ timeout: 30_000 })
     await expect(
       page.locator('.folder-tree').getByTestId('folder-all-cases'),

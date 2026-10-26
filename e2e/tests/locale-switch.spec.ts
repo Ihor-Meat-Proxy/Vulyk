@@ -13,6 +13,15 @@ test.beforeAll(async ({ request }) => {
   await ensureAdminSession(request)
 })
 
+test.afterAll(async ({ request }) => {
+  // Undo users.locale mutations so later specs see English chrome.
+  const admin = await ensureAdminSession(request)
+  await request.patch(`${API_URL}/api/v1/auth/me`, {
+    headers: { Authorization: `Bearer ${admin.token}` },
+    data: { locale: 'en' },
+  })
+})
+
 test('globe menu lists native names and switches each locale', async ({
   page,
 }) => {
@@ -151,4 +160,9 @@ test('API errors still display under non-English locale', async ({ page }) => {
   // Login chrome remains French (localStorage) while error text may be English from API.
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
   await expect(page.locator('.brand-tag')).toContainText(/Connexion|Sign in/i)
+
+  // Restore English for subsequent specs (loginAsAdmin pins, but clear localStorage too).
+  await openLanguageMenu(page)
+  await page.getByRole('menuitemradio', { name: 'English' }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })

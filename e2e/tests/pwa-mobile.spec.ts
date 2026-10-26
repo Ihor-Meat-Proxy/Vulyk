@@ -13,7 +13,11 @@ test.describe('PWA + mobile Chromium viewport', () => {
     const bottom = page.getByRole('navigation', { name: 'Mobile primary' })
     await expect(bottom).toBeVisible()
     await expect(bottom.getByRole('link', { name: /Cases|Кейси/i })).toBeVisible()
-    await expect(bottom.getByRole('link', { name: /Runs|Прогони/i })).toBeVisible()
+    await expect(
+      bottom.getByRole('link', {
+        name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
+      }),
+    ).toBeVisible()
 
     // App sidebar no longer lists folders — only Menu for primary nav.
     await page.locator('button.menu-toggle').click()
@@ -41,10 +45,18 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await folderDrawer.getByTestId('folder-all-cases').click()
     await expect(page.locator('.case-tree-backdrop')).toHaveCount(0)
 
-    await expect(page.getByLabel(/New case title|Назва нового кейсу/i)).toBeVisible()
+    await expect(
+      page.getByLabel(
+        /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
+      ),
+    ).toBeVisible()
     const caseKey = `MOB-${uniqueKey('').slice(-5)}`
     const mobileTitle = `Mobile ${caseKey}`
-    await page.getByLabel(/New case title|Назва нового кейсу/i).fill(mobileTitle)
+    await page
+      .getByLabel(
+        /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
+      )
+      .fill(mobileTitle)
     await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
     await expect(page.locator('.case-list-panel').getByText(mobileTitle)).toBeVisible({
       timeout: 30_000,
@@ -61,7 +73,11 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(page.getByText(caseKey).first()).toBeVisible()
     await expect(page.getByRole('link', { name: /Back to cases/i })).toBeVisible()
 
-    await bottom.getByRole('link', { name: /Runs|Прогони/i }).click()
+    await bottom
+      .getByRole('link', {
+        name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
+      })
+      .click()
     await expect(page.getByRole('heading', { name: /Start a run/i })).toBeVisible()
 
     await expect(bottom.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(0)

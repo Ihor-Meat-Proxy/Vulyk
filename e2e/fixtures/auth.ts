@@ -106,9 +106,42 @@ export async function dismissPwaToasts(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Force English UI for the current session. Locale-switch specs persist
+ * `users.locale` / localStorage; most other specs still use en|uk-only locators.
+ */
+export async function pinEnglishLocale(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    localStorage.setItem('vulyk.locale', 'en')
+  })
+  const lang = await page.locator('html').getAttribute('lang')
+  if (lang === 'en') return
+
+  await page.evaluate(async () => {
+    const token = localStorage.getItem('vulyk.authToken')
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers.Authorization = `Bearer ${token}`
+    await fetch('/api/v1/auth/me', {
+      method: 'PATCH',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify({ locale: 'en' }),
+    })
+  })
+  await page.reload()
+  await expect(page.locator('.app-shell, .login-panel').first()).toBeVisible({
+    timeout: 60_000,
+  })
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await dismissPwaToasts(page)
+}
+
 export async function loginAsAdmin(page: Page): Promise<void> {
   await loginAs(page, ADMIN_EMAIL, ADMIN_PASSWORD)
   await dismissPwaToasts(page)
+  await pinEnglishLocale(page)
 }
 
 export async function loginAsDemo(page: Page): Promise<void> {

@@ -7,7 +7,10 @@ export class RunsPage {
   async open() {
     await this.page
       .getByRole('navigation', { name: 'Primary' })
-      .getByRole('link', { name: /Runs|Прогони/i, exact: true })
+      .getByRole('link', {
+        name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
+        exact: true,
+      })
       .click()
     await expect(
       this.page.getByRole('heading', { name: 'Start a run', exact: true }),
