@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { createProject, createSuite } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
+import { CasesPage } from '../pages/CasesPage'
 
 test.describe.configure({ mode: 'serial' })
 
