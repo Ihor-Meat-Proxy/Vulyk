@@ -11,11 +11,14 @@ type Props = {
 
 const STATUS_I18N: Record<string, string> = {
   untested: 'status.untested',
+  ready: 'status.ready',
+  running: 'status.running',
   passed: 'status.passed',
   failed: 'status.failed',
   blocked: 'status.blocked',
   skipped: 'status.skipped',
   retest: 'status.retest',
+  untestable: 'status.untestable',
 }
 
 export function statusLabelKey(status: string): string {

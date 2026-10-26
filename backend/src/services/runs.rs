@@ -6,8 +6,9 @@ use crate::models::{RunItem, RunItemView, RunProgress, TestRun};
 
 pub async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> AppResult<TestRun> {
     let run = sqlx::query_as::<_, TestRun>(
-        r#"SELECT id, project_id, plan_id, name, description, status,
-                  source, external_ref, meta,
+        r#"SELECT id, project_id, plan_id, iteration_id, name, description, status,
+                  source, external_ref, meta, created_by_name, environment, artifacts,
+                  pass_count, fail_count, skip_count, blocked_count, duration_ms,
                   started_at, finished_at, created_at, updated_at
            FROM test_runs WHERE project_id = $1 AND id = $2"#,
     )

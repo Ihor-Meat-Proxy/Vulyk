@@ -11,6 +11,7 @@ pub struct TestRun {
     pub id: Uuid,
     pub project_id: Uuid,
     pub plan_id: Option<Uuid>,
+    pub iteration_id: Option<Uuid>,
     pub name: String,
     pub description: String,
     pub status: String,
@@ -18,6 +19,16 @@ pub struct TestRun {
     pub external_ref: Option<String>,
     #[schema(value_type = Object)]
     pub meta: Value,
+    pub created_by_name: Option<String>,
+    #[schema(value_type = Object)]
+    pub environment: Value,
+    #[schema(value_type = Object)]
+    pub artifacts: Value,
+    pub pass_count: i32,
+    pub fail_count: i32,
+    pub skip_count: i32,
+    pub blocked_count: i32,
+    pub duration_ms: Option<i64>,
     pub started_at: Option<DateTime<Utc>>,
     pub finished_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
@@ -296,7 +307,7 @@ pub struct BulkResultsResponse {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct IngestRequest {
-    /// `junit` or `vulyk_json`
+    /// `junit`, `vulyk_json`, `playwright_json`, or `pytest_json`
     pub format: String,
     /// Raw payload (XML or JSON text). Prefer multipart/file via CLI for large bodies.
     pub content: String,
@@ -305,6 +316,14 @@ pub struct IngestRequest {
     pub async_mode: bool,
     #[serde(default = "default_ingest_source")]
     pub source: String,
+    /// Optional CI actor / bot display name (stored on the run when provided).
+    pub created_by_name: Option<String>,
+    #[serde(default)]
+    #[schema(value_type = Object)]
+    pub environment: Option<Value>,
+    #[serde(default)]
+    #[schema(value_type = Object)]
+    pub artifacts: Option<Value>,
 }
 
 fn default_ingest_source() -> String {

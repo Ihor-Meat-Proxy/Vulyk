@@ -156,6 +156,23 @@ pub async fn ingest(
         }));
     }
 
+    if body.created_by_name.is_some() || body.environment.is_some() || body.artifacts.is_some() {
+        sqlx::query(
+            r#"UPDATE test_runs SET
+                 created_by_name = COALESCE($2, created_by_name),
+                 environment = COALESCE($3, environment),
+                 artifacts = COALESCE($4, artifacts),
+                 updated_at = NOW()
+               WHERE id = $1"#,
+        )
+        .bind(id)
+        .bind(&body.created_by_name)
+        .bind(&body.environment)
+        .bind(&body.artifacts)
+        .execute(&state.pool)
+        .await?;
+    }
+
     let report =
         ingest_svc::persist_results(&state.pool, id, project_id, &parsed.results, &source, true)
             .await?;

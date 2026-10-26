@@ -122,6 +122,9 @@ export function Appearance() {
               'Skipped',
               'Retest',
               'Untested',
+              'Ready',
+              'Running',
+              'Untestable',
             ] as const
           ).map((s) => (
             <StatusBadge key={s} status={s} />

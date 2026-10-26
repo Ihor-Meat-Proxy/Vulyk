@@ -44,6 +44,9 @@ describe('theme token contrast', () => {
         ['blocked', t.statusBlockedSolid],
         ['skipped', t.statusSkippedSolid],
         ['retest', t.statusRetestSolid],
+        ['ready', t.statusReadySolid],
+        ['running', t.statusRunningSolid],
+        ['untestable', t.statusUntestableSolid],
       ] as const) {
         const ratio = contrastRatio(solid, t.bg)
         const min =

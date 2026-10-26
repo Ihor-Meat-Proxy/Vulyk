@@ -46,6 +46,18 @@ export type ThemeTokens = {
   statusUntestedFg: string
   statusUntestedBg: string
   statusUntestedBorder: string
+  /** Ready — sky blue */
+  statusReadyFg: string
+  statusReadyBg: string
+  statusReadySolid: string
+  /** Running — blue */
+  statusRunningFg: string
+  statusRunningBg: string
+  statusRunningSolid: string
+  /** Untestable — slate / dashed */
+  statusUntestableFg: string
+  statusUntestableBg: string
+  statusUntestableSolid: string
   codeBg: string
   codeInk: string
   surfaceInput: string
@@ -95,6 +107,15 @@ export const THEME_TOKENS: Record<ThemeId, ThemeTokens> = {
     statusUntestedFg: '#57606A',
     statusUntestedBg: 'transparent',
     statusUntestedBorder: '#8B949E',
+    statusReadyFg: '#0A5A8A',
+    statusReadyBg: '#D6EBF8',
+    statusReadySolid: '#1A7BB5',
+    statusRunningFg: '#005285',
+    statusRunningBg: '#D0E4F2',
+    statusRunningSolid: '#0072B2',
+    statusUntestableFg: '#4A5560',
+    statusUntestableBg: '#E2E6EA',
+    statusUntestableSolid: '#5A6270',
     codeBg: '#24292F',
     codeInk: '#E6EDF3',
     surfaceInput: '#EEF0F3',
@@ -130,6 +151,15 @@ export const THEME_TOKENS: Record<ThemeId, ThemeTokens> = {
     statusUntestedFg: '#A8ADB4',
     statusUntestedBg: 'transparent',
     statusUntestedBorder: '#6E7681',
+    statusReadyFg: '#8FCBE8',
+    statusReadyBg: '#1A2E3A',
+    statusReadySolid: '#56B4E9',
+    statusRunningFg: '#7AB8DC',
+    statusRunningBg: '#152838',
+    statusRunningSolid: '#0072B2',
+    statusUntestableFg: '#B0B4BA',
+    statusUntestableBg: '#2A2D32',
+    statusUntestableSolid: '#8A8A8A',
     codeBg: '#0D0F12',
     codeInk: '#E6E6E6',
     surfaceInput: '#1A1D21',
@@ -165,6 +195,15 @@ export const THEME_TOKENS: Record<ThemeId, ThemeTokens> = {
     statusUntestedFg: '#FFFFFF',
     statusUntestedBg: 'transparent',
     statusUntestedBorder: '#FFFFFF',
+    statusReadyFg: '#7AD0FF',
+    statusReadyBg: '#002438',
+    statusReadySolid: '#7AD0FF',
+    statusRunningFg: '#66B8FF',
+    statusRunningBg: '#001A30',
+    statusRunningSolid: '#66B8FF',
+    statusUntestableFg: '#E0E0E0',
+    statusUntestableBg: '#1A1A1A',
+    statusUntestableSolid: '#C0C0C0',
     codeBg: '#000000',
     codeInk: '#FFFFFF',
     surfaceInput: '#0A0A0A',
@@ -200,6 +239,15 @@ export const THEME_TOKENS: Record<ThemeId, ThemeTokens> = {
     statusUntestedFg: '#B8A890',
     statusUntestedBg: 'transparent',
     statusUntestedBorder: '#6E6458',
+    statusReadyFg: '#7AB0C8',
+    statusReadyBg: '#1E2A30',
+    statusReadySolid: '#4A90B0',
+    statusRunningFg: '#6A9CBC',
+    statusRunningBg: '#1A2630',
+    statusRunningSolid: '#3A7090',
+    statusUntestableFg: '#B0A898',
+    statusUntestableBg: '#2A2620',
+    statusUntestableSolid: '#8A8070',
     codeBg: '#120F0C',
     codeInk: '#E8DCC8',
     surfaceInput: '#241E18',
@@ -222,6 +270,9 @@ export const CONTRAST_PAIRS: Array<{
   { fg: 'statusSkippedFg', bg: 'statusSkippedBg', label: 'skipped badge' },
   { fg: 'statusRetestFg', bg: 'statusRetestBg', label: 'retest badge' },
   { fg: 'statusUntestedFg', bg: 'bg', label: 'untested label' },
+  { fg: 'statusReadyFg', bg: 'statusReadyBg', label: 'ready badge' },
+  { fg: 'statusRunningFg', bg: 'statusRunningBg', label: 'running badge' },
+  { fg: 'statusUntestableFg', bg: 'statusUntestableBg', label: 'untestable badge' },
   { fg: 'codeInk', bg: 'codeBg', label: 'code block' },
 ]
 
@@ -321,6 +372,15 @@ export function tokensToCssVars(tokens: ThemeTokens): Record<string, string> {
     '--status-untested-fg': tokens.statusUntestedFg,
     '--status-untested-bg': tokens.statusUntestedBg,
     '--status-untested-border': tokens.statusUntestedBorder,
+    '--status-ready-fg': tokens.statusReadyFg,
+    '--status-ready-bg': tokens.statusReadyBg,
+    '--status-ready': tokens.statusReadySolid,
+    '--status-running-fg': tokens.statusRunningFg,
+    '--status-running-bg': tokens.statusRunningBg,
+    '--status-running': tokens.statusRunningSolid,
+    '--status-untestable-fg': tokens.statusUntestableFg,
+    '--status-untestable-bg': tokens.statusUntestableBg,
+    '--status-untestable': tokens.statusUntestableSolid,
     '--code-bg': tokens.codeBg,
     '--code-ink': tokens.codeInk,
     '--surface-input': tokens.surfaceInput,
