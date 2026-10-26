@@ -92,6 +92,18 @@ export class CasesPage {
       .click()
   }
 
+  async exportSelectedPdf() {
+    const downloadPromise = this.page.waitForEvent('download')
+    await this.page.getByTestId('case-list-export-pdf').click()
+    return downloadPromise
+  }
+
+  async exportRowPdf(key: string) {
+    const downloadPromise = this.page.waitForEvent('download')
+    await this.page.getByTestId(`case-list-row-export-${key}`).click()
+    return downloadPromise
+  }
+
   async openCaseByTitle(title: string) {
     await this.listPanel()
       .getByTestId(TestIds.caseRowTitle)
@@ -101,6 +113,16 @@ export class CasesPage {
 
   async backToCases() {
     await this.page.getByTestId('case-detail-back').click()
+  }
+
+  exportDetailButton() {
+    return this.page.getByTestId('case-detail-export-pdf')
+  }
+
+  async exportDetailPdf() {
+    const downloadPromise = this.page.waitForEvent('download')
+    await this.exportDetailButton().click()
+    return downloadPromise
   }
 
   folderTree() {

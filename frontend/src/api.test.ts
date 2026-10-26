@@ -9,6 +9,8 @@ describe('api client', () => {
   it('exposes case depth and run helpers', () => {
     expect(typeof api.listCases).toBe('function')
     expect(typeof api.bulkCases).toBe('function')
+    expect(typeof api.downloadCasePdf).toBe('function')
+    expect(typeof api.exportCases).toBe('function')
     expect(typeof api.listVersions).toBe('function')
     expect(typeof api.createRun).toBe('function')
     expect(typeof api.getRunItem).toBe('function')

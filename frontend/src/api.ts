@@ -1845,6 +1845,75 @@ export const api = {
       `/api/v1/projects/${projectId}/cases/bulk`,
       { method: 'POST', body: JSON.stringify(body) },
     ),
+  downloadCasePdf: async (
+    projectId: string,
+    idOrKey: string,
+    opts: { results?: number; locale?: string } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    qs.set('results', String(opts.results ?? 5))
+    if (opts.locale) qs.set('locale', opts.locale)
+    const token = getStoredToken()
+    const headers: Record<string, string> = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+    if (opts.locale) headers['Accept-Language'] = opts.locale
+    const res = await fetch(
+      `${API_BASE}/api/v1/projects/${projectId}/cases/${encodeURIComponent(idOrKey)}/export.pdf?${qs}`,
+      { headers, credentials: 'include' },
+    )
+    if (!res.ok) {
+      throw new Error((await res.text()) || res.statusText)
+    }
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') ?? ''
+    const match = /filename="?([^"]+)"?/.exec(disposition)
+    const filename = match?.[1] ?? `${idOrKey}.pdf`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+  exportCases: async (
+    projectId: string,
+    body: { case_ids: string[]; results?: number; locale?: string },
+  ) => {
+    const token = getStoredToken()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers.Authorization = `Bearer ${token}`
+    if (body.locale) headers['Accept-Language'] = body.locale
+    const res = await fetch(
+      `${API_BASE}/api/v1/projects/${projectId}/cases/export`,
+      {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          case_ids: body.case_ids,
+          results: body.results ?? 5,
+          locale: body.locale,
+        }),
+      },
+    )
+    if (!res.ok) {
+      throw new Error((await res.text()) || res.statusText)
+    }
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') ?? ''
+    const match = /filename="?([^"]+)"?/.exec(disposition)
+    const multi = body.case_ids.length > 1
+    const filename =
+      match?.[1] ?? (multi ? 'vulyk-cases-export.zip' : 'case.pdf')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
   listVersions: (projectId: string, caseId: string) =>
     request<CaseVersionSummary[]>(
       `/api/v1/projects/${projectId}/cases/${caseId}/versions`,
