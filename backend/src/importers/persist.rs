@@ -93,7 +93,9 @@ pub async fn persist_cases(
             Err(sqlx::Error::Database(err)) if err.constraint().is_some() => {
                 tx.rollback().await.ok();
                 skipped += 1;
-                warnings.push(format!("row {idx}: insert conflict for allocated key {key}, skipped"));
+                warnings.push(format!(
+                    "row {idx}: insert conflict for allocated key {key}, skipped"
+                ));
                 continue;
             }
             Err(e) => return Err(e.into()),

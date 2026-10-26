@@ -37,7 +37,7 @@ async fn spawn_app() -> String {
 fn uniq(prefix: &str) -> String {
     format!(
         "{prefix}{}",
-        &uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
     )
 }
 
@@ -364,7 +364,9 @@ async fn folder_nesting_move_and_delete_options() {
         .unwrap();
 
     let after: Value = client
-        .get(format!("{base}/api/v1/projects/{project_id}/cases/{case_id}"))
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases/{case_id}"
+        ))
         .send()
         .await
         .unwrap()
@@ -397,7 +399,10 @@ async fn prefix_editable_only_before_cases_exist() {
         .unwrap();
     let project_id = project["id"].as_str().unwrap();
 
-    let wanted = format!("Z{}", &uuid::Uuid::new_v4().simple().to_string()[..3].to_uppercase());
+    let wanted = format!(
+        "Z{}",
+        uuid::Uuid::new_v4().simple().to_string()[..3].to_uppercase()
+    );
     let updated: Value = client
         .put(format!("{base}/api/v1/projects/{project_id}"))
         .json(&serde_json::json!({ "case_key_prefix": wanted }))

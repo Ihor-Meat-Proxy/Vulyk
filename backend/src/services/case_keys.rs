@@ -55,9 +55,8 @@ pub fn derive_prefix_from_name(name: &str) -> String {
         }
         significant.push(letters.clone());
         if let Some(ch) = letters.chars().next() {
-            for upper in ch.to_uppercase() {
+            if let Some(upper) = ch.to_uppercase().next() {
                 initials.push(upper);
-                break;
             }
         }
     }
@@ -118,8 +117,7 @@ pub async fn allocate_case_key(
     .fetch_optional(&mut **tx)
     .await?;
 
-    let (prefix, number) =
-        row.ok_or_else(|| AppError::NotFound("project".into()))?;
+    let (prefix, number) = row.ok_or_else(|| AppError::NotFound("project".into()))?;
     let key = format!("{prefix}-{number}");
     Ok((key, number))
 }
@@ -223,7 +221,8 @@ fn regex_is_valid_prefix(s: &str) -> bool {
     if rest.is_empty() || rest.len() > 7 {
         return false;
     }
-    rest.into_iter().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+    rest.into_iter()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
 }
 
 #[cfg(test)]

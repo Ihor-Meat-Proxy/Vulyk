@@ -15,17 +15,16 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(bottom.getByRole('link', { name: /Cases|Кейси/i })).toBeVisible()
     await expect(bottom.getByRole('link', { name: /Runs|Прогони/i })).toBeVisible()
 
-    await page.getByRole('button', { name: /Suites|Сьюти|Suites/i }).click()
+    await page.getByRole('button', { name: /Folders|Теки|Suites|Сьюти/i }).click()
     await expect(page.locator('#suite-drawer')).toBeVisible()
     await expect(page.getByRole('button', { name: /All cases|Усі кейси/i })).toBeVisible()
     await page.locator('#suite-drawer').getByRole('button', { name: /Close|Закрити/i }).click()
     await expect(page.locator('.drawer-backdrop')).toHaveCount(0)
 
-    await expect(page.getByLabel('New case key')).toBeVisible()
+    await expect(page.getByLabel(/New case title|Назва нового кейсу/i)).toBeVisible()
     const caseKey = `MOB-${uniqueKey('').slice(-5)}`
-    await page.getByLabel('New case key').fill(caseKey)
-    await page.getByLabel('New case title').fill(`Mobile ${caseKey}`)
-    await page.getByRole('button', { name: 'Create case' }).click()
+    await page.getByLabel(/New case title|Назва нового кейсу/i).fill(`Mobile ${caseKey}`)
+    await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
     await expect(page.getByText(`Mobile ${caseKey}`)).toBeVisible({
       timeout: 30_000,
     })
