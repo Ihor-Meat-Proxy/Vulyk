@@ -7,6 +7,7 @@ import {
 } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { CasesPage } from '../pages/CasesPage'
 
 test.describe.configure({ mode: 'serial' })
@@ -100,7 +101,11 @@ test('cases list row and bulk export download PDF', async ({ page }) => {
 
   const cases = new CasesPage(page)
   await cases.open()
-  await expect(page.getByTestId(`case-list-row-export-${caseKey}`)).toBeVisible({
+  await expect(
+    page.locator(
+      `[data-testid="case-row-export-pdf"][data-entity-key="${caseKey}"]`,
+    ),
+  ).toBeVisible({
     timeout: 30_000,
   })
 

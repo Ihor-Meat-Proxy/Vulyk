@@ -640,7 +640,6 @@ export function CaseDetail({
             <button
               type="button"
               className="btn secondary"
-              data-testid="case-detail-export-pdf"
               disabled={exporting}
               onClick={() => {
                 if (!projectId || !caseId) return
@@ -655,6 +654,7 @@ export function CaseDetail({
                   )
                   .finally(() => setExporting(false))
               }}
+              {...testIdProps(TestIds.caseDetailExportPdf)}
             >
               {exporting ? t('cases.exporting') : t('cases.exportPdf')}
             </button>

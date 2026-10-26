@@ -852,9 +852,9 @@ export function CaseList({
               <button
                 type="button"
                 className="btn secondary"
-                data-testid="case-list-export-pdf"
                 disabled={exporting}
                 onClick={() => void exportSelected()}
+                {...testIdProps(TestIds.caseListExportPdf)}
               >
                 {exporting ? t('cases.exporting') : t('cases.exportPdfBulk')}
               </button>
@@ -982,10 +982,14 @@ export function CaseList({
                       <button
                         type="button"
                         className="btn secondary btn-compact"
-                        data-testid={`case-list-row-export-${c.key}`}
                         disabled={exporting}
                         aria-label={`${t('cases.exportPdf')} ${c.key}`}
                         onClick={() => void exportOne(c.id)}
+                        {...listItemProps(TestIds.caseRowExportPdf, {
+                          entityId: c.id,
+                          entityKey: c.key,
+                          index,
+                        })}
                       >
                         PDF
                       </button>

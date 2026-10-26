@@ -98,6 +98,7 @@ export const TestIds = {
   caseListMarkReadyButton: 'case-list-mark-ready-button',
   caseListDeprecateButton: 'case-list-deprecate-button',
   caseListGenerateButton: 'case-list-generate-button',
+  caseListExportPdf: 'case-list-export-pdf',
   caseListClearSelectionButton: 'case-list-clear-selection-button',
   caseListLoadMoreButton: 'case-list-load-more-button',
   caseListFoldersToggle: 'case-list-folders-toggle',
@@ -137,6 +138,7 @@ export const TestIds = {
   caseRowFolder: 'case-row-folder',
   caseRowTags: 'case-row-tags',
   caseRowCustomField: 'case-row-custom-field',
+  caseRowExportPdf: 'case-row-export-pdf',
 
   // —— Folder tree ——
   folderTree: 'folder-tree',
@@ -175,6 +177,7 @@ export const TestIds = {
   appToasts: 'app-toasts',
   appToast: 'app-toast',
   caseDetailActions: 'case-detail-actions',
+  caseDetailExportPdf: 'case-detail-export-pdf',
   caseDetailEditButton: 'case-detail-edit-button',
   caseDetailSaveButton: 'case-detail-save-button',
   caseDetailCancelButton: 'case-detail-cancel-button',
