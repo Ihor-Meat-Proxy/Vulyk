@@ -673,7 +673,7 @@ async fn perf_shape_10x10x200_recursive_counts_and_lazy_pages() {
         )
         .bind(project_uuid)
         .bind(format!("Root-{i}"))
-        .bind(i as i32)
+        .bind(i)
         .fetch_one(&pool)
         .await
         .unwrap();
@@ -682,7 +682,7 @@ async fn perf_shape_10x10x200_recursive_counts_and_lazy_pages() {
 
     let mut leaf_ids = Vec::with_capacity(100);
     for (ri, root_id) in root_ids.iter().enumerate() {
-        for j in 0..10 {
+        for j in 0..10i32 {
             let id: uuid::Uuid = sqlx::query_scalar(
                 r#"INSERT INTO suites (project_id, parent_id, name, sort_order)
                    VALUES ($1, $2, $3, $4) RETURNING id"#,
@@ -690,7 +690,7 @@ async fn perf_shape_10x10x200_recursive_counts_and_lazy_pages() {
             .bind(project_uuid)
             .bind(root_id)
             .bind(format!("Leaf-{ri}-{j}"))
-            .bind(j as i32)
+            .bind(j)
             .fetch_one(&pool)
             .await
             .unwrap();
