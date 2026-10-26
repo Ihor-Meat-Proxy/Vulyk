@@ -150,6 +150,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "qa-coverage-hardening",
         include_str!("../seed/vulyk-qa.d/qa-coverage-hardening.json"),
     ),
+    (
+        "lists-custom-fields-config",
+        include_str!("../seed/vulyk-qa.d/lists-custom-fields-config.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
