@@ -157,17 +157,16 @@ test('API errors still display under non-English locale', async ({ page }) => {
   await chooseLocale(page, 'Français')
   await logout(page)
 
-  await page.locator('.login-panel input[type="email"]').fill('nobody@example.com')
-  await page.locator('.login-panel input[type="password"]').fill('wrong-password-99')
-  await page.locator('.login-panel button[type="submit"]').click()
-  await expect(page.locator('.login-panel .error')).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('.login-panel .error')).not.toHaveText('')
+  await page.getByTestId(TestIds.loginEmailInput).fill('nobody@example.com')
+  await page.getByTestId(TestIds.loginPasswordInput).fill('wrong-password-99')
+  await page.getByTestId(TestIds.loginSubmitButton).click()
+  await expect(page.getByTestId(TestIds.loginError)).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId(TestIds.loginError)).not.toHaveText('')
   // Login chrome remains French (localStorage) while error text may be English from API.
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
   await expect(page.locator('.brand-tag')).toContainText(/Connexion|Sign in/i)
 
   // Restore English for subsequent specs (loginAsAdmin pins, but clear localStorage too).
-  await openLanguageMenu(page)
-  await page.getByRole('menuitemradio', { name: 'English' }).click()
+  await chooseLocale(page, 'English')
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
