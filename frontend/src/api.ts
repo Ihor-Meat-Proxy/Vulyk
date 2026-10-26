@@ -598,7 +598,7 @@ export type CompleteSetupRequest = {
   default_timezone?: string
   default_theme?: string
   registration_mode?: RegistrationMode
-  /** Seed Kyiv concert sample project (default true). */
+  /** Seed sample projects: Kyiv concert + Vulyk QA (default true). */
   seed_sample?: boolean
 }
 
@@ -737,6 +737,88 @@ export type GeneratedCaseDraft = {
   priority: string
 }
 
+export type ChatResponseKind =
+  | 'answer'
+  | 'clarify'
+  | 'propose_cases'
+  | 'propose_requirements'
+
+export type ProposedCaseDraft = {
+  title: string
+  description: string
+  precondition: string
+  priority: string
+  tags: string[]
+  steps: { action: string; expected_result: string; data?: string }[]
+}
+
+export type ProposedRequirementDraft = {
+  title: string
+  description: string
+  acceptance_criteria: string
+}
+
+export type ProposedLinkDraft = {
+  case_index: number
+  requirement_index: number
+}
+
+export type ChatPlacement = {
+  project_id: string
+  folder_id: string | null
+  folder_path: string
+  new_folder_name: string | null
+  reason: string
+}
+
+export type ChatProposal = {
+  placement: ChatPlacement
+  cases: ProposedCaseDraft[]
+  requirements: ProposedRequirementDraft[]
+  links: ProposedLinkDraft[]
+}
+
+export type ChatProposeResponse = {
+  provider: string
+  model: string
+  kind: ChatResponseKind
+  answer?: string
+  clarify_question?: string
+  proposal?: ChatProposal
+  confirmation_prompt?: string
+}
+
+export type ChatCreationEvent = {
+  id: string
+  project_id: string
+  provider: string
+  model: string
+  kind: string
+  entity_id: string | null
+  entity_key: string | null
+  summary: string
+  created_at: string
+}
+
+export type ChatConfirmResponse = {
+  cases: TestCaseDetail[]
+  requirements: Requirement[]
+  created_folder_id: string | null
+  links_created: number
+  events: ChatCreationEvent[]
+}
+
+export type RequirementFolder = {
+  id: string
+  project_id: string
+  parent_id: string | null
+  name: string
+  sort_order: number
+  requirement_count: number
+  created_at: string
+  updated_at: string
+}
+
 export type ContextFileRef = {
   path: string
   language: string
@@ -798,10 +880,12 @@ export type CiDispatch = {
 export type Requirement = {
   id: string
   project_id: string
+  folder_id?: string | null
   external_key: string | null
   external_id: string | null
   title: string
   description: string
+  acceptance_criteria?: string
   source: string
   url: string
   created_at: string
@@ -1554,6 +1638,43 @@ export const api = {
     request<{ provider: string; model: string; answer: string }>(
       `/api/v1/projects/${projectId}/llm/ask`,
       { method: 'POST', body: JSON.stringify({ question }) },
+    ),
+  chatPropose: (
+    projectId: string,
+    body: {
+      message: string
+      history?: { role: string; content: string }[]
+      config_id?: string
+    },
+  ) =>
+    request<ChatProposeResponse>(
+      `/api/v1/projects/${projectId}/llm/chat`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  chatConfirm: (
+    projectId: string,
+    body: {
+      proposal: ChatProposal
+      config_id?: string
+      provider?: string
+      model?: string
+    },
+  ) =>
+    request<ChatConfirmResponse>(
+      `/api/v1/projects/${projectId}/llm/chat/confirm`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  listRequirementFolders: (projectId: string) =>
+    request<RequirementFolder[]>(
+      `/api/v1/projects/${projectId}/requirement-folders`,
+    ),
+  createRequirementFolder: (
+    projectId: string,
+    body: { name: string; parent_id?: string | null; sort_order?: number },
+  ) =>
+    request<RequirementFolder>(
+      `/api/v1/projects/${projectId}/requirement-folders`,
+      { method: 'POST', body: JSON.stringify(body) },
     ),
 
   getAutomationRepo: (projectId: string) =>

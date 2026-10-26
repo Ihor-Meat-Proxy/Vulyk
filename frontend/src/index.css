@@ -684,6 +684,74 @@ select.locale-select {
   flex: 1;
 }
 
+.chat-model {
+  max-width: 28rem;
+  margin-top: 0.5rem;
+}
+
+.chat-proposal {
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  background: color-mix(in srgb, var(--bg-elevated) 88%, var(--accent-soft));
+  animation: rise 260ms ease-out;
+  margin-bottom: 0.75rem;
+}
+
+.chat-proposal h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.chat-placement-reason {
+  font-size: 0.9rem;
+  color: var(--ink-muted);
+  margin: 0.25rem 0 0.75rem;
+}
+
+.chat-proposal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.75rem;
+}
+
+.chat-draft-item {
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.chat-draft-item h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.chat-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chat-step {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .chat-step {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chat-proposal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+}
+
 .code-block {
   font-family: var(--font-mono);
   font-size: 0.85rem;

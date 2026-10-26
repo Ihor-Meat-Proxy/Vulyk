@@ -13,7 +13,7 @@ Complete Vulyk setup by creating the first system admin, instance name, locale/t
 | Registration | `VULYK_REGISTRATION_MODE` / `--registration-mode` | `open` \| `invite` \| `disabled` |
 | Instance name | `VULYK_INSTANCE_NAME` / `--instance-name` | |
 | Demo users | `VULYK_SEED_DEMO` | `1` seeds `user@vulyk.local` / `user` |
-| Sample project | `VULYK_SEED_SAMPLE` / `--seed-sample` | Default `1` — seeds **Kyiv Open-Air Concert 2026** (suites, ~35 cases, 2 runs). Set `0` to skip. Wizard checkbox defaults on. |
+| Sample projects | `VULYK_SEED_SAMPLE` / `--seed-sample` | Default `1` — seeds **Kyiv Open-Air Concert 2026** (`KC-*`, ~35 cases) and **Vulyk QA** (`VQA-*`, ~130+ product self-tests). Set `0` to skip. Wizard checkbox defaults on. Not seeded in prod unless enabled. |
 | Base URL | `VULYK_BASE_URL` / `--base-url` | Required for SSO callbacks |
 | Setup token | `VULYK_SETUP_TOKEN` / `--setup-token` | One-time; see below |
 

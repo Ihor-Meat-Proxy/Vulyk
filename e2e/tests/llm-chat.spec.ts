@@ -49,12 +49,14 @@ test('chat shows provider/model; project key optional; global default resolves',
     .click()
   await expect(page.getByRole('heading', { name: /Chat with your tests/i })).toBeVisible()
 
-  await page.getByPlaceholder(/Ask about this project/i).fill('Which cases cover login?')
-  await page.getByRole('button', { name: /^Ask$/i }).click()
+  await page
+    .getByPlaceholder(/Ask about this project|Запитайте про тести/i)
+    .fill('Which cases cover login?')
+  await page.getByRole('button', { name: /^Ask$|^Запитати$/i }).click()
 
   const meta = page.locator('.chat-meta').last()
   await expect(meta).toBeVisible({ timeout: 20_000 })
-  await expect(meta).toContainText(/Answered by mock\s*\/\s*mock-1/i)
+  await expect(meta).toContainText(/Answered by mock\s*\/\s*mock-1|Відповів mock\s*\/\s*mock-1/i)
 
   // Admin UI: optional key + global LLM checkbox present.
   const adminUi = new AdminPage(page)

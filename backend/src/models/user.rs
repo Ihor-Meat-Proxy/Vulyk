@@ -168,7 +168,7 @@ pub struct CompleteSetupRequest {
     pub default_timezone: Option<String>,
     pub default_theme: Option<String>,
     pub registration_mode: Option<RegistrationMode>,
-    /// Seed the Kyiv concert sample project (default true).
+    /// Seed sample projects: Kyiv concert + Vulyk QA (default true).
     #[serde(default = "default_true")]
     pub seed_sample: bool,
 }

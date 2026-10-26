@@ -30,7 +30,9 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Reports (W8) | `/api/v1/projects/{id}/reports/*` |
 | Requirements / ALM | `/requirements`, `/integrations`, `/defects` |
 | Importers | `/api/v1/importers`, `/imports` |
-| LLM | `/api/v1/projects/{id}/llm/*` |
+| LLM | `/api/v1/projects/{id}/llm/*` (incl. `chat`, `chat/confirm`) |
+| Chat tools | `GET /api/v1/llm/chat-tools` |
+| Requirement folders | `/api/v1/projects/{id}/requirement-folders` |
 | Tokens | `/api/v1/tokens` |
 
 ## Reports endpoints

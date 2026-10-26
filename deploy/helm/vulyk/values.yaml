@@ -35,7 +35,7 @@ setup:
   timezone: UTC
   registrationMode: disabled
   seedDemo: false
-  # Seed Kyiv Open-Air Concert 2026 sample project (suites/cases/runs)
+  # Seed sample projects: Kyiv Open-Air Concert 2026 + Vulyk QA (suites/cases/runs)
   seedSample: true
   instanceName: Vulyk
   baseUrl: ""
