@@ -125,7 +125,10 @@ const VULYK_QA_BASE: &str = include_str!("../seed/vulyk-qa.json");
 /// Feature-scoped overlays merged into Vulyk QA. Prefer these over appending
 /// hardcoded `VQA-NNN` keys to the shared base file from parallel PRs.
 /// Register every `backend/seed/vulyk-qa.d/*.json` file here (see that dir's README).
-const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[];
+const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[(
+    "case-list-columns",
+    include_str!("../seed/vulyk-qa.d/case-list-columns.json"),
+)];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 struct Localized {

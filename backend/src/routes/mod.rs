@@ -18,6 +18,7 @@ pub mod jobs;
 pub mod llm;
 pub mod memberships;
 pub mod plans;
+pub mod project_preferences;
 pub mod projects;
 pub mod reports;
 pub mod requirements;
@@ -55,6 +56,7 @@ pub fn app_router(state: AppState) -> Router {
     // stay open for probes / providers / first-run wizard.
     let protected = Router::new()
         .merge(projects::router())
+        .merge(project_preferences::router())
         .merge(suites::router())
         .merge(cases::router())
         .merge(tags::router())

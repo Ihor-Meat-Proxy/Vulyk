@@ -3275,6 +3275,10 @@ def build() -> dict:
     )
     suites.append(single_action)
 
+    # List-columns cases live in backend/seed/vulyk-qa.d/case-list-columns.json
+    # (registered in sample_seed.rs VULYK_QA_FRAGMENTS) so keys allocate above
+    # the base file without colliding with parallel PRs.
+
     requirements = [
         {
             "external_key": "VQA-REQ-01",

@@ -15,6 +15,12 @@ describe('api client', () => {
     expect(typeof api.createResult).toBe('function')
   })
 
+  it('exposes case list column preference helpers', () => {
+    expect(typeof api.getCaseListColumns).toBe('function')
+    expect(typeof api.putCaseListColumns).toBe('function')
+    expect(typeof api.resetCaseListColumns).toBe('function')
+  })
+
   it('exposes setup, auth, and admin helpers', () => {
     expect(typeof api.completeSetup).toBe('function')
     expect(typeof api.setupStatus).toBe('function')

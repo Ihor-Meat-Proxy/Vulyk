@@ -1006,6 +1006,116 @@ select.project-select {
   background: color-mix(in srgb, var(--accent-soft) 45%, transparent);
 }
 
+.case-list-head,
+.case-list-row {
+  min-width: max-content;
+  width: 100%;
+}
+
+.case-col-head {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  cursor: grab;
+}
+
+.case-col-head:active {
+  cursor: grabbing;
+}
+
+.case-col-sort {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.case-col-head.is-sorted .case-col-sort {
+  color: var(--ink);
+}
+
+.case-col-settings {
+  position: relative;
+}
+
+.case-col-settings-panel {
+  /* Anchor to the left of the toggle so the panel stays inside the list
+     column (opening leftward overlaps the folder tree and steals clicks). */
+  position: absolute;
+  left: 0;
+  right: auto;
+  top: calc(100% + 0.35rem);
+  z-index: 20;
+  min-width: 18rem;
+  max-width: min(24rem, 92vw);
+  max-height: 70vh;
+  overflow: auto;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: var(--bg-elevated);
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--ink) 12%, transparent);
+  animation: rise 180ms ease-out;
+}
+
+.case-col-settings-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+}
+
+.case-col-settings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.case-col-settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.case-col-settings-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.case-col-settings-move {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.btn-icon {
+  min-width: 2rem;
+  padding-inline: 0.35rem;
+}
+
+.case-col-reset {
+  margin-top: 0.65rem;
+  width: 100%;
+}
+
+.case-tags-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
 .case-virtual {
   border: 1px solid var(--line);
   border-radius: 0.55rem;
@@ -2557,14 +2667,18 @@ button.trend-seg.clickable:focus-visible {
     bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   }
 
-  .table-head,
-  .table-row {
+  .table-head:not(.case-list-head),
+  .table-row:not(.case-list-row) {
     grid-template-columns: 2rem 5.5rem 1fr;
   }
 
-  .table-head > :nth-child(n + 4),
-  .table-row > :nth-child(n + 4) {
+  .table-head:not(.case-list-head) > :nth-child(n + 4),
+  .table-row:not(.case-list-row) > :nth-child(n + 4) {
     display: none;
+  }
+
+  .case-list-panel {
+    overflow-x: auto;
   }
 
   .case-detail .detail-actions {

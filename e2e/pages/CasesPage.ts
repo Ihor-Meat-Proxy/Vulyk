@@ -43,6 +43,55 @@ export class CasesPage {
     await this.page.getByTestId(TestIds.caseListMarkReadyButton).click()
   }
 
+  columnsButton() {
+    return this.page.getByTestId(TestIds.caseListColumnsButton)
+  }
+
+  columnsDialog() {
+    return this.page.getByTestId(TestIds.caseListColumnsMenu)
+  }
+
+  async openColumnsSettings() {
+    await this.columnsButton().click()
+    await expect(this.columnsDialog()).toBeVisible()
+  }
+
+  caseListHead() {
+    return this.page.getByTestId(TestIds.caseListHead)
+  }
+
+  async toggleColumn(label: RegExp | string, checked: boolean) {
+    const row = this.columnsDialog()
+      .getByTestId(TestIds.caseListColumnItem)
+      .filter({ hasText: label })
+    const box = row.getByTestId(TestIds.caseListColumnItemCheckbox)
+    if (checked) await box.check()
+    else await box.uncheck()
+  }
+
+  async moveColumn(label: RegExp | string, direction: 'left' | 'right') {
+    const row = this.columnsDialog()
+      .getByTestId(TestIds.caseListColumnItem)
+      .filter({ hasText: label })
+    const btn =
+      direction === 'left'
+        ? row.getByTestId(TestIds.caseListColumnItemMoveLeft)
+        : row.getByTestId(TestIds.caseListColumnItemMoveRight)
+    await btn.click()
+  }
+
+  async resetColumns() {
+    await this.columnsDialog()
+      .getByTestId(TestIds.caseListColumnsResetButton)
+      .click()
+  }
+
+  async sortByColumn(label: RegExp | string) {
+    await this.caseListHead()
+      .getByRole('button', { name: new RegExp(String(label), 'i') })
+      .click()
+  }
+
   async openCaseByTitle(title: string) {
     await this.listPanel()
       .getByTestId(TestIds.caseRowTitle)

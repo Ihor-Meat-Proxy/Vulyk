@@ -16,8 +16,9 @@ This note documents the Case / Plan / Run surface delivered after the Phase 1 fo
 | Pagination | `?limit=&offset=` → `{ items, total, limit, offset }` (default 50, max 500) |
 | Bulk ops | `POST .../cases/bulk` — `delete`, `set_status`, `set_priority`, `move_suite`, `add_tags`, `remove_tags`, `set_tags` |
 | Virtualised list | Frontend `VirtualList` + incremental “Load more” pages |
+| Customizable columns | Cases table: drag headers or Columns menu (←/→) to reorder; hide/show (Title always on). Extra columns: Automated (`external_key`), Last run (`test_results`), Updated/Created, Folder, Tags, plus `cf:<uuid>` custom-field columns via the column registry. Server-side `?sort=&order=` (whitelist + `cf:<uuid>`) with indexes; list rows enrich `automated`, `last_run_status`, `folder_name`, `tag_names`, optional `cf_ids`. Prefs: `GET/PUT/DELETE .../preferences/case-list-columns` per user/project (localStorage fallback). Reset to default in UI. |
 
-Migrations: `003_20261025140000_case_repository_depth.sql`, `20261026150000_case_keys_and_folders.sql`.
+Migrations: `003_20261025140000_case_repository_depth.sql`, `20261026150000_case_keys_and_folders.sql`, `20261026230000_case_list_columns.sql`.
 
 ## W3 — Plans, runs, results
 

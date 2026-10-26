@@ -9,12 +9,17 @@ use uuid::Uuid;
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    BulkCasesRequest, BulkCasesResponse, CaseResultsPage, CaseVersion, CaseVersionSummary,
-    CreateCase, Page, PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
+    parse_custom_field_column_id, BulkCasesRequest, BulkCasesResponse, CaseResultsPage,
+    CaseVersion, CaseVersionSummary, CreateCase, Page, PageQuery, SetCustomFieldValue, TestCase,
+    TestCaseDetail, TestCaseListItem, UpdateCase,
 };
 use crate::routes::AppState;
 use crate::services::case_keys::{
     allocate_case_key, find_case_by_key, is_key_retired, retire_case_key,
+};
+use crate::services::case_list::{
+    fts_rank_prefix, load_custom_fields_for_cases, normalize_sort_field, order_by_sql,
+    parse_cf_ids_param, parse_sort_direction, row_to_list_item,
 };
 use crate::services::cases::{
     add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
@@ -77,6 +82,14 @@ pub struct ListCasesQuery {
     pub tag: Option<String>,
     pub status: Option<String>,
     pub priority: Option<String>,
+    /// Sort field: `default`, `key`, `title`, `priority`, `status`, `automated`,
+    /// `last_run_status`, `updated_at`, `created_at`, `folder`, `tags`, `sort_order`,
+    /// or `cf:<uuid>` for a custom field.
+    pub sort: Option<String>,
+    /// `asc` (default) or `desc`.
+    pub order: Option<String>,
+    /// Comma-separated custom field ids (bare uuid or `cf:<uuid>`) to include in each row.
+    pub cf_ids: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
 }
@@ -103,10 +116,13 @@ impl ListCasesQuery {
         ("tag" = Option<String>, Query, description = "Filter by tag name"),
         ("status" = Option<String>, Query, description = "Filter by status"),
         ("priority" = Option<String>, Query, description = "Filter by priority"),
+        ("sort" = Option<String>, Query, description = "Sort field (default|key|title|priority|status|automated|last_run_status|updated_at|created_at|folder|tags|sort_order|cf:<uuid>)"),
+        ("order" = Option<String>, Query, description = "asc (default) or desc"),
+        ("cf_ids" = Option<String>, Query, description = "Comma-separated custom field ids to include on each row"),
         ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
         ("offset" = Option<i64>, Query, description = "Offset (default 0)")
     ),
-    responses((status = 200, description = "Paginated cases", body = Page<TestCase>)),
+    responses((status = 200, description = "Paginated cases", body = Page<TestCaseListItem>)),
     security(("bearer_auth" = []))
 )]
 pub async fn list_cases(
@@ -114,7 +130,7 @@ pub async fn list_cases(
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListCasesQuery>,
-) -> AppResult<Json<Page<TestCase>>> {
+) -> AppResult<Json<Page<TestCaseListItem>>> {
     require_permission(
         &state.pool,
         &auth,
@@ -127,6 +143,11 @@ pub async fn list_cases(
     let page = query.page();
     let limit = page.limit();
     let offset = page.offset();
+
+    let sort = normalize_sort_field(query.sort.as_deref())?;
+    let dir = parse_sort_direction(query.order.as_deref());
+    let cf_ids = parse_cf_ids_param(query.cf_ids.as_deref())?;
+    let cf_sort_id = parse_custom_field_column_id(&sort);
 
     // Folder filter: by default include descendants; `direct_only` scopes to that suite only.
     // `unfiled_only` returns cases with no folder (used by the tree's lazy unfiled load).
@@ -175,7 +196,23 @@ pub async fn list_cases(
         .fetch_one(&state.pool)
         .await?;
 
-    // Numeric PREFIX-N ordering (PLTK-2 before PLTK-10), then key as tie-breaker.
+    let has_q = query.q.as_deref().is_some_and(|q| !q.is_empty());
+    let rank_prefix = fts_rank_prefix(has_q);
+    let order_sql = order_by_sql(&sort, dir);
+
+    // $9 = optional custom-field id when sorting by cf:<uuid>.
+    let cf_join = if cf_sort_id.is_some() {
+        "LEFT JOIN custom_field_values cf_sort \
+           ON cf_sort.case_id = tc.id AND cf_sort.field_id = $9"
+    } else {
+        ""
+    };
+    let cf_sort_select = if cf_sort_id.is_some() {
+        ", cf_sort.value #>> '{}' AS cf_sort_value"
+    } else {
+        ", NULL::text AS cf_sort_value"
+    };
+
     let list_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
              SELECT id FROM suites WHERE id = $2
@@ -184,10 +221,28 @@ pub async fn list_cases(
              INNER JOIN suite_tree st ON s.parent_id = st.id
            )
            SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
-                  tc.precondition, tc.priority, tc.status, tc.version, tc.external_key, tc.sort_order, tc.created_at, tc.updated_at
+                  tc.precondition, tc.priority, tc.status, tc.version, tc.external_key,
+                  tc.sort_order, tc.created_at, tc.updated_at,
+                  (tc.external_key IS NOT NULL) AS automated,
+                  su.name AS folder_name,
+                  (
+                    SELECT tr.status FROM test_results tr
+                    WHERE tr.case_id = tc.id
+                    ORDER BY tr.executed_at DESC NULLS LAST, tr.created_at DESC
+                    LIMIT 1
+                  ) AS last_run_status,
+                  (
+                    SELECT string_agg(tg2.name, ', ' ORDER BY tg2.name)
+                    FROM case_tags ct2
+                    INNER JOIN tags tg2 ON tg2.id = ct2.tag_id
+                    WHERE ct2.case_id = tc.id
+                  ) AS tag_names
+                  {cf_sort_select}
            FROM test_cases tc
+           LEFT JOIN suites su ON su.id = tc.suite_id
            LEFT JOIN case_tags ct ON ct.case_id = tc.id
            LEFT JOIN tags tg ON tg.id = ct.tag_id
+           {cf_join}
            WHERE tc.project_id = $1
              AND ({suite_predicate})
              AND ($3::text IS NULL OR tc.status = $3)
@@ -199,34 +254,60 @@ pub async fn list_cases(
                tc.title ILIKE '%' || $6 || '%' OR
                tc.key ILIKE '%' || $6 || '%'
              )
-           GROUP BY tc.id
+           GROUP BY tc.id, su.name{group_cf}
            ORDER BY
-             CASE WHEN $6::text IS NOT NULL
-               THEN ts_rank(tc.search_vector, plainto_tsquery('english', $6))
-               ELSE 0 END DESC,
-             tc.sort_order,
-             CASE
-               WHEN tc.key ~ '^[A-Z][A-Z0-9]*-[0-9]+$'
-               THEN (regexp_match(tc.key, '-([0-9]+)$'))[1]::bigint
-               ELSE NULL
-             END ASC NULLS LAST,
-             tc.key
-           LIMIT $7 OFFSET $8"#
+             {rank_prefix}
+             {order_sql}
+           LIMIT $7 OFFSET $8"#,
+        group_cf = if cf_sort_id.is_some() {
+            ", cf_sort.value"
+        } else {
+            ""
+        }
     );
 
-    let cases = sqlx::query_as::<_, TestCase>(&list_sql)
-        .bind(project_id)
-        .bind(query.suite_id)
-        .bind(query.status.as_deref())
-        .bind(query.priority.as_deref())
-        .bind(query.tag.as_deref())
-        .bind(query.q.as_deref())
-        .bind(limit)
-        .bind(offset)
-        .fetch_all(&state.pool)
-        .await?;
+    let rows = if let Some(field_id) = cf_sort_id {
+        sqlx::query(&list_sql)
+            .bind(project_id)
+            .bind(query.suite_id)
+            .bind(query.status.as_deref())
+            .bind(query.priority.as_deref())
+            .bind(query.tag.as_deref())
+            .bind(query.q.as_deref())
+            .bind(limit)
+            .bind(offset)
+            .bind(field_id)
+            .fetch_all(&state.pool)
+            .await?
+    } else {
+        sqlx::query(&list_sql)
+            .bind(project_id)
+            .bind(query.suite_id)
+            .bind(query.status.as_deref())
+            .bind(query.priority.as_deref())
+            .bind(query.tag.as_deref())
+            .bind(query.q.as_deref())
+            .bind(limit)
+            .bind(offset)
+            .fetch_all(&state.pool)
+            .await?
+    };
+    let mut items: Vec<TestCaseListItem> = rows
+        .iter()
+        .map(row_to_list_item)
+        .collect::<AppResult<_>>()?;
 
-    Ok(Json(Page::new(cases, total, limit, offset)))
+    if !cf_ids.is_empty() && !items.is_empty() {
+        let case_ids: Vec<Uuid> = items.iter().map(|c| c.id).collect();
+        let by_case = load_custom_fields_for_cases(&state.pool, &case_ids, &cf_ids).await?;
+        for item in &mut items {
+            if let Some(fields) = by_case.get(&item.id) {
+                item.custom_fields = fields.clone();
+            }
+        }
+    }
+
+    Ok(Json(Page::new(items, total, limit, offset)))
 }
 
 #[utoipa::path(
@@ -239,7 +320,7 @@ pub async fn list_cases(
         ("limit" = Option<i64>, Query),
         ("offset" = Option<i64>, Query)
     ),
-    responses((status = 200, description = "FTS search results", body = Page<TestCase>)),
+    responses((status = 200, description = "FTS search results", body = Page<TestCaseListItem>)),
     security(("bearer_auth" = []))
 )]
 pub async fn search_cases(
@@ -247,7 +328,7 @@ pub async fn search_cases(
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Query(query): Query<ListCasesQuery>,
-) -> AppResult<Json<Page<TestCase>>> {
+) -> AppResult<Json<Page<TestCaseListItem>>> {
     require_permission(
         &state.pool,
         &auth,

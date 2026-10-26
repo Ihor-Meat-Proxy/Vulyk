@@ -103,6 +103,13 @@ export type TestCase = {
   sort_order?: number
   created_at: string
   updated_at: string
+  /** Present on list responses: linked via external_key. */
+  automated?: boolean
+  /** Latest test_results.status for the case. */
+  last_run_status?: string | null
+  folder_name?: string | null
+  tag_names?: string[]
+  custom_fields?: CustomFieldValue[]
 }
 
 export type TestStep = {
@@ -586,8 +593,25 @@ export type ListCasesParams = {
   tag?: string
   status?: string
   priority?: string
+  /** Server-side sort field (key, title, automated, last_run_status, cf:<uuid>, …). */
+  sort?: string
+  /** asc | desc */
+  order?: 'asc' | 'desc'
+  /** Custom field ids to include on each list row. */
+  cfIds?: string[]
   limit?: number
   offset?: number
+}
+
+export type CaseListColumnPref = {
+  id: string
+  visible: boolean
+}
+
+export type CaseListColumnsConfig = {
+  columns: CaseListColumnPref[]
+  sort?: string | null
+  order?: 'asc' | 'desc' | null
 }
 
 export type UserPreferences = {
@@ -1772,12 +1796,29 @@ export const api = {
     if (params.tag) qs.set('tag', params.tag)
     if (params.status) qs.set('status', params.status)
     if (params.priority) qs.set('priority', params.priority)
+    if (params.sort) qs.set('sort', params.sort)
+    if (params.order) qs.set('order', params.order)
+    if (params.cfIds?.length) qs.set('cf_ids', params.cfIds.join(','))
     qs.set('limit', String(params.limit ?? 100))
     qs.set('offset', String(params.offset ?? 0))
     return request<Page<TestCase>>(
       `/api/v1/projects/${projectId}/cases?${qs.toString()}`,
     )
   },
+  getCaseListColumns: (projectId: string) =>
+    request<CaseListColumnsConfig>(
+      `/api/v1/projects/${projectId}/preferences/case-list-columns`,
+    ),
+  putCaseListColumns: (projectId: string, body: CaseListColumnsConfig) =>
+    request<CaseListColumnsConfig>(
+      `/api/v1/projects/${projectId}/preferences/case-list-columns`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  resetCaseListColumns: (projectId: string) =>
+    request<CaseListColumnsConfig>(
+      `/api/v1/projects/${projectId}/preferences/case-list-columns`,
+      { method: 'DELETE' },
+    ),
   getCase: (projectId: string, caseId: string) =>
     request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`),
   /** Resolve a case by human-readable key (PREFIX-N), case-insensitive. */

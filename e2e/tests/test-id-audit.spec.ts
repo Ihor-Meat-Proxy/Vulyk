@@ -78,6 +78,12 @@ async function collectTestAttrIssues(page: Page): Promise<string[]> {
         'automated-suite-row',
         'case-detail-step',
         'case-list-column-item',
+        'case-list-column-item-checkbox',
+        'case-list-column-item-move-left',
+        'case-list-column-item-move-right',
+        'case-list-col-sort',
+        'case-list-col-custom-field',
+        'case-row-custom-field',
         'header-language-item',
         'login-sso-button',
       ])
