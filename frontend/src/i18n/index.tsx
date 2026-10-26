@@ -121,7 +121,7 @@ const en: Dict = {
   'cases.colStatus': 'Status',
   'cases.loadMore': 'Load more',
   'setup.seedSample':
-    'Seed sample project “Kyiv Open-Air Concert 2026” (nested folders, cases, two runs)',
+    'Seed sample projects “Kyiv Open-Air Concert 2026” and “Vulyk QA” (folders, cases, runs)',
   'appearance.title': 'Appearance',
   'appearance.subtitle':
     'Choose a theme, text size, density, and motion preferences. Saved to your account and applied instantly.',
@@ -307,7 +307,7 @@ const uk: Dict = {
   'admin.automationTest': 'Перевірити зʼєднання',
   'admin.automationReindex': 'Переіндексувати',
   'setup.seedSample':
-    'Створити зразок «Київський open-air концерт 2026» (вкладені теки, кейси, два прогони)',
+    'Створити зразки «Київський open-air концерт 2026» і «Vulyk QA» (теки, кейси, прогони)',
   'appearance.title': 'Вигляд',
   'appearance.subtitle':
     'Оберіть тему, розмір тексту, щільність і рух. Зберігається в обліковому записі й застосовується миттєво.',

@@ -367,7 +367,7 @@ export type CompleteSetupRequest = {
   default_timezone?: string
   default_theme?: string
   registration_mode?: RegistrationMode
-  /** Seed Kyiv concert sample project (default true). */
+  /** Seed sample projects: Kyiv concert + Vulyk QA (default true). */
   seed_sample?: boolean
 }
 

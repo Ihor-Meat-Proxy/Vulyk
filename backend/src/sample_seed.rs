@@ -1,6 +1,7 @@
-//! Idempotent sample project seed (Kyiv Open-Air Concert 2026).
+//! Idempotent sample project seeds (Kyiv Open-Air Concert 2026 + Vulyk QA).
 //!
 //! Opt out with `VULYK_SEED_SAMPLE=0`. Default: seed when setup completes.
+//! Not seeded in prod unless `VULYK_SEED_SAMPLE` is enabled (compose/wizard default on).
 
 use std::collections::HashMap;
 
@@ -11,8 +12,14 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::normalize_result_status;
 
-const SAMPLE_JSON: &str = include_str!("../seed/kyiv-concert-2026.json");
-const SAMPLE_PROJECT_KEY: &str = "KYIV_CONCERT_2026";
+/// Embedded sample seed files: (project key, JSON).
+const SAMPLE_SEEDS: &[(&str, &str)] = &[
+    (
+        "KYIV_CONCERT_2026",
+        include_str!("../seed/kyiv-concert-2026.json"),
+    ),
+    ("VULYK_QA", include_str!("../seed/vulyk-qa.json")),
+];
 
 #[derive(Debug, Default, Deserialize, Clone)]
 struct Localized {
@@ -74,6 +81,9 @@ struct SeedCase {
     tags: Vec<String>,
     #[serde(default)]
     steps: Vec<SeedStep>,
+    /// Optional link to Playwright spec or other external id (e.g. `e2e:auth.spec.ts`).
+    #[serde(default)]
+    external_key: Option<String>,
 }
 
 fn default_priority() -> String {
@@ -140,26 +150,51 @@ pub fn sample_seed_enabled() -> bool {
     }
 }
 
-/// Seed the sample project if missing. Idempotent by project key.
+/// Seed all sample projects that are missing. Idempotent by each project key.
+/// Returns the id of the first sample that already existed or was just created
+/// (Kyiv concert), for backward-compatible callers.
 pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Option<Uuid>> {
     if !sample_seed_enabled() {
-        tracing::info!("VULYK_SEED_SAMPLE disabled; skipping sample project");
+        tracing::info!("VULYK_SEED_SAMPLE disabled; skipping sample projects");
         return Ok(None);
     }
 
+    let mut first_id: Option<Uuid> = None;
+    for (project_key, json) in SAMPLE_SEEDS {
+        let id = seed_one_sample(pool, locale, project_key, json).await?;
+        if first_id.is_none() {
+            first_id = id;
+        }
+    }
+    Ok(first_id)
+}
+
+async fn seed_one_sample(
+    pool: &PgPool,
+    locale: &str,
+    project_key: &str,
+    json: &str,
+) -> AppResult<Option<Uuid>> {
     let existing: Option<Uuid> = sqlx::query_scalar("SELECT id FROM projects WHERE key = $1")
-        .bind(SAMPLE_PROJECT_KEY)
+        .bind(project_key)
         .fetch_optional(pool)
         .await?;
     if let Some(id) = existing {
-        tracing::info!("Sample project {SAMPLE_PROJECT_KEY} already present ({id})");
+        tracing::info!("Sample project {project_key} already present ({id})");
         return Ok(Some(id));
     }
 
-    let seed: SeedFile = serde_json::from_str(SAMPLE_JSON)
-        .map_err(|e| AppError::Internal(format!("sample seed JSON: {e}")))?;
+    let seed: SeedFile = serde_json::from_str(json)
+        .map_err(|e| AppError::Internal(format!("sample seed JSON ({project_key}): {e}")))?;
 
-    let project_id = insert_project(pool, &seed.project, locale).await?;
+    if seed.project.key.trim().to_uppercase() != project_key {
+        return Err(AppError::Internal(format!(
+            "sample seed key mismatch: file declares {} but registry expects {project_key}",
+            seed.project.key
+        )));
+    }
+
+    let project_id = insert_project(pool, &seed.project, locale, json).await?;
     let mut case_ids: HashMap<String, Uuid> = HashMap::new();
 
     for (idx, suite) in seed.suites.iter().enumerate() {
@@ -252,19 +287,24 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
     .await?;
 
     tracing::info!(
-        "Seeded sample project {SAMPLE_PROJECT_KEY} with {} cases",
+        "Seeded sample project {project_key} with {} cases",
         case_ids.len()
     );
     Ok(Some(project_id))
 }
 
-async fn insert_project(pool: &PgPool, project: &SeedProject, locale: &str) -> AppResult<Uuid> {
+async fn insert_project(
+    pool: &PgPool,
+    project: &SeedProject,
+    locale: &str,
+    json: &str,
+) -> AppResult<Uuid> {
     use crate::services::case_keys::{derive_prefix_from_name, unique_prefix};
 
     let name = project.name.pick(locale);
-    // Prefer prefix inferred from seeded case keys (KC-001 → KC) so sample stays stable;
-    // otherwise derive initials from the display name (Kyiv Open-Air Concert → KOC).
-    let preferred = seed_preferred_prefix().unwrap_or_else(|| derive_prefix_from_name(name));
+    // Prefer prefix inferred from seeded case keys (VQA-001 → VQA, KC-001 → KC);
+    // otherwise derive initials from the display name.
+    let preferred = seed_preferred_prefix(json).unwrap_or_else(|| derive_prefix_from_name(name));
     let prefix = unique_prefix(pool, &preferred, None).await?;
 
     let id: Uuid = sqlx::query_scalar(
@@ -281,9 +321,8 @@ async fn insert_project(pool: &PgPool, project: &SeedProject, locale: &str) -> A
     Ok(id)
 }
 
-fn seed_preferred_prefix() -> Option<String> {
-    // Peek at first case key in the embedded JSON without full parse cost beyond serde.
-    let seed: SeedFile = serde_json::from_str(SAMPLE_JSON).ok()?;
+fn seed_preferred_prefix(json: &str) -> Option<String> {
+    let seed: SeedFile = serde_json::from_str(json).ok()?;
     for suite in &seed.suites {
         if let Some(p) = find_prefix_in_suite(suite) {
             return Some(p);
@@ -358,10 +397,16 @@ async fn insert_case(
     case: &SeedCase,
     locale: &str,
 ) -> AppResult<Uuid> {
+    let external_key = case
+        .external_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+
     let case_id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_cases
-           (project_id, suite_id, key, title, description, precondition, priority, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           (project_id, suite_id, key, title, description, precondition, priority, status, external_key)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING id"#,
     )
     .bind(project_id)
@@ -372,6 +417,7 @@ async fn insert_case(
     .bind(case.precondition.pick(locale))
     .bind(&case.priority)
     .bind(&case.status)
+    .bind(external_key)
     .fetch_one(pool)
     .await?;
 
@@ -487,7 +533,6 @@ async fn insert_run(
                 },
             }]
         } else {
-            // Can't move out of result.history without clone — rebuild
             result
                 .history
                 .iter()
@@ -509,9 +554,6 @@ async fn insert_run(
 
         for (hi, hist) in history.iter().enumerate() {
             let hist_status = normalize_result_status(&hist.status);
-            if hist_status == "Untested" && hi == 0 && history.len() > 1 {
-                // Skip pure queue markers if later entries exist — still insert for history demos
-            }
             let when =
                 chrono::Utc::now() - chrono::Duration::minutes(100 - (sort as i64) - (hi as i64));
             sqlx::query(
@@ -532,4 +574,117 @@ async fn insert_run(
     }
 
     Ok(())
+}
+
+/// Parse helpers for unit tests (no DB).
+#[cfg(test)]
+mod seed_file_tests {
+    use super::*;
+    use std::collections::HashSet;
+
+    fn parse_all() -> Vec<(&'static str, SeedFile)> {
+        SAMPLE_SEEDS
+            .iter()
+            .map(|(key, json)| {
+                let seed: SeedFile = serde_json::from_str(json).unwrap_or_else(|e| {
+                    panic!("parse {key}: {e}");
+                });
+                (*key, seed)
+            })
+            .collect()
+    }
+
+    fn walk_cases<'a>(suite: &'a SeedSuite, out: &mut Vec<&'a SeedCase>) {
+        for c in &suite.cases {
+            out.push(c);
+        }
+        for ch in &suite.children {
+            walk_cases(ch, out);
+        }
+    }
+
+    #[test]
+    fn all_sample_seeds_parse_and_keys_unique() {
+        for (key, seed) in parse_all() {
+            assert_eq!(seed.project.key, key);
+            let mut cases = Vec::new();
+            for s in &seed.suites {
+                walk_cases(s, &mut cases);
+            }
+            let mut seen = HashSet::new();
+            for c in &cases {
+                assert!(
+                    seen.insert(c.key.as_str()),
+                    "duplicate case key {} in {key}",
+                    c.key
+                );
+                assert!(!c.steps.is_empty(), "case {} in {key} has no steps", c.key);
+                for step in &c.steps {
+                    assert!(
+                        !step.expected_result.en.trim().is_empty(),
+                        "case {} in {key} has empty expected_result",
+                        c.key
+                    );
+                }
+            }
+            if key == "VULYK_QA" {
+                assert!(
+                    (120..=200).contains(&cases.len()),
+                    "Vulyk QA expected 120–200 cases, got {}",
+                    cases.len()
+                );
+                assert_eq!(
+                    seed_preferred_prefix(SAMPLE_SEEDS[1].1).as_deref(),
+                    Some("VQA")
+                );
+            }
+            if key == "KYIV_CONCERT_2026" {
+                assert!(cases.len() >= 25, "Kyiv sample too small");
+                assert_eq!(
+                    seed_preferred_prefix(SAMPLE_SEEDS[0].1).as_deref(),
+                    Some("KC")
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn vulyk_qa_has_area_folders_and_planned_drafts() {
+        let (_, seed) = parse_all()
+            .into_iter()
+            .find(|(k, _)| *k == "VULYK_QA")
+            .expect("VULYK_QA");
+        let top: Vec<_> = seed.suites.iter().map(|s| s.name.en.as_str()).collect();
+        assert!(top.iter().any(|n| n.contains("Setup")));
+        assert!(top.iter().any(|n| n.contains("Authentication")));
+        assert!(top.iter().any(|n| n.contains("RBAC")));
+        assert!(top.iter().any(|n| n.contains("Folders")));
+        assert!(top.iter().any(|n| n.contains("Import")));
+        assert!(top.iter().any(|n| n.contains("LLM")));
+        assert!(top.iter().any(|n| n.contains("MCP")));
+        assert!(top.iter().any(|n| n.contains("Appearance")));
+        assert!(top.iter().any(|n| n.contains("PWA")));
+        assert!(top.iter().any(|n| n.contains("Performance")));
+
+        let mut cases = Vec::new();
+        for s in &seed.suites {
+            walk_cases(s, &mut cases);
+        }
+        let drafts: Vec<_> = cases.iter().filter(|c| c.status == "draft").collect();
+        assert!(!drafts.is_empty(), "expected draft/planned cases");
+        for d in &drafts {
+            assert!(
+                d.tags.iter().any(|t| t == "planned"),
+                "draft {} missing planned tag",
+                d.key
+            );
+        }
+        let with_ext = cases.iter().filter(|c| c.external_key.is_some()).count();
+        assert!(
+            with_ext >= 20,
+            "expected Playwright external_key links, got {with_ext}"
+        );
+        assert!(!seed.requirements.is_empty());
+        assert_eq!(seed.runs.len(), 2);
+    }
 }
