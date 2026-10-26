@@ -14,6 +14,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Upgrade CI asserts encrypted LLM secrets decrypt after migrate
 - Admin **Updates** tab: check GitHub Releases, release notes, optional periodic
   check, one-click upgrade via Compose updater sidecar (manual command on K8s)
+- Post-upgrade **rollback points** (`./version-backups/`, default 7 days) and
+  last-N **version snapshots** (default 3); `install.sh rollback --confirm=ROLLBACK`;
+  Admin Roll back button, backup list/download; prune/expiry never deletes
+  in-progress or current-version points; audit_events on rollback
 
 ## [0.1.0] - 2026-10-26
 

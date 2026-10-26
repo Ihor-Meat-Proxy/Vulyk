@@ -53,8 +53,10 @@ use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSetting
 use crate::routes::llm::ProviderKindInfo;
 use crate::routes::sample_data::{ReseedSampleDataRequest, SampleDataStatus, SampleProjectInfo};
 use crate::routes::updates::{
-    ApplyUpdateRequest, ApplyUpdateResponse, UpdateJobList, UpdateJobPublic,
-    UpdatePreferencesRequest, UpdatesCapability, UpdatesPreferences, UpdatesStatus,
+    ApplyRollbackRequest, ApplyUpdateRequest, ApplyUpdateResponse, RollbackPointInfo,
+    UpdateJobList, UpdateJobPublic, UpdatePreferencesRequest, UpdatesCapability,
+    UpdatesPreferences, UpdatesStatus, VersionBackupInfo, VersionBackupList,
+    VersionBackupRetention,
 };
 use crate::sample_seed::SampleDataSummary;
 use crate::settings::{InstanceSettings, RegistrationMode};
@@ -90,8 +92,11 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::updates::get_updates,
         crate::routes::updates::check_updates,
         crate::routes::updates::apply_update,
+        crate::routes::updates::apply_rollback,
         crate::routes::updates::list_jobs,
         crate::routes::updates::get_job,
+        crate::routes::updates::list_version_backups,
+        crate::routes::updates::download_version_backup,
         crate::routes::updates::get_prefs,
         crate::routes::updates::put_prefs,
         crate::routes::users::list_users,
@@ -460,11 +465,16 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         UpdatesStatus,
         UpdatesCapability,
         ApplyUpdateRequest,
+        ApplyRollbackRequest,
         ApplyUpdateResponse,
         UpdateJobPublic,
         UpdateJobList,
         UpdatesPreferences,
         UpdatePreferencesRequest,
+        VersionBackupInfo,
+        VersionBackupList,
+        VersionBackupRetention,
+        RollbackPointInfo,
         SampleDataStatus,
         SampleProjectInfo,
         SampleDataSummary,

@@ -21,8 +21,17 @@ pub fn router() -> Router<AppState> {
         .route("/api/v1/admin/updates", get(get_updates))
         .route("/api/v1/admin/updates/check", post(check_updates))
         .route("/api/v1/admin/updates/apply", post(apply_update))
+        .route("/api/v1/admin/updates/rollback", post(apply_rollback))
         .route("/api/v1/admin/updates/jobs", get(list_jobs))
         .route("/api/v1/admin/updates/jobs/{job_id}", get(get_job))
+        .route(
+            "/api/v1/admin/updates/version-backups",
+            get(list_version_backups),
+        )
+        .route(
+            "/api/v1/admin/updates/version-backups/{backup_id}/download",
+            get(download_version_backup),
+        )
         .route(
             "/api/v1/admin/updates/preferences",
             get(get_prefs).put(put_prefs),
@@ -37,6 +46,43 @@ pub enum UpdatesCapability {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
+pub struct VersionBackupInfo {
+    pub id: String,
+    pub version: Option<String>,
+    pub from_version: Option<String>,
+    pub to_version: Option<String>,
+    pub roles: Vec<String>,
+    pub created_at: Option<String>,
+    pub expires_at: Option<String>,
+    pub size_bytes: i64,
+    pub in_progress: bool,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct RollbackPointInfo {
+    pub id: String,
+    pub version: String,
+    pub from_version: Option<String>,
+    pub to_version: Option<String>,
+    pub expires_at: Option<String>,
+    pub created_at: Option<String>,
+    pub size_bytes: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VersionBackupRetention {
+    pub rollback_days: i64,
+    pub version_count: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct VersionBackupList {
+    pub items: Vec<VersionBackupInfo>,
+    pub rollback: Option<RollbackPointInfo>,
+    pub retention: VersionBackupRetention,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UpdatesStatus {
     pub current_version: &'static str,
     pub latest_version: Option<String>,
@@ -47,8 +93,12 @@ pub struct UpdatesStatus {
     pub check_interval_hours: i64,
     pub capability: UpdatesCapability,
     pub manual_command: String,
+    pub rollback_command: String,
     pub github_repo: String,
     pub active_job: Option<UpdateJobPublic>,
+    pub rollback: Option<RollbackPointInfo>,
+    pub version_backups: Vec<VersionBackupInfo>,
+    pub retention: VersionBackupRetention,
 }
 
 #[derive(Debug, Serialize, ToSchema, FromRow)]
@@ -72,6 +122,14 @@ pub struct UpdateJobList {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct ApplyUpdateRequest {
     pub version: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ApplyRollbackRequest {
+    /// Must be the literal string `ROLLBACK`.
+    pub confirm: String,
+    /// Optional explicit target version; defaults to the active rollback point.
+    pub version: Option<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -125,6 +183,180 @@ fn manual_command(version: &str) -> String {
                 "# Compose:\n./scripts/install.sh upgrade --yes --version {ver}\n\n# Helm:\nhelm upgrade vulyk deploy/helm/vulyk --namespace vulyk \\\n  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:{ver} \\\n  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:{ver}"
             )
         }
+    }
+}
+
+fn rollback_command(version: Option<&str>) -> String {
+    match version {
+        Some(v) if !v.is_empty() => {
+            format!("./scripts/install.sh rollback --version {v} --confirm=ROLLBACK")
+        }
+        _ => "./scripts/install.sh rollback --confirm=ROLLBACK".into(),
+    }
+}
+
+fn default_retention() -> VersionBackupRetention {
+    let days = std::env::var("VULYK_ROLLBACK_RETENTION_DAYS")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(7);
+    let count = std::env::var("VULYK_VERSION_BACKUP_COUNT")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(3);
+    VersionBackupRetention {
+        rollback_days: days,
+        version_count: count,
+    }
+}
+
+async fn write_audit(
+    pool: &sqlx::PgPool,
+    actor: Option<Uuid>,
+    action: &str,
+    resource_type: &str,
+    resource_id: &str,
+    details: serde_json::Value,
+) -> AppResult<()> {
+    sqlx::query(
+        r#"INSERT INTO audit_events (actor_user_id, action, resource_type, resource_id, details)
+           VALUES ($1, $2, $3, $4, $5)"#,
+    )
+    .bind(actor)
+    .bind(action)
+    .bind(resource_type)
+    .bind(resource_id)
+    .bind(details)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+async fn fetch_version_backups_from_sidecar(
+    current_version: &str,
+) -> AppResult<Option<VersionBackupList>> {
+    let (Some(base), Some(token)) = (updater_url(), updater_token()) else {
+        return Ok(None);
+    };
+    let client = reqwest::Client::new();
+    let url = format!(
+        "{}/v1/version-backups?current_version={}",
+        base.trim_end_matches('/'),
+        urlencoding_loose(current_version)
+    );
+    let resp = client
+        .get(&url)
+        .header("X-Vulyk-Updater-Token", token)
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("updater unreachable: {e}")))?;
+    if !resp.status().is_success() {
+        return Ok(None);
+    }
+    let payload: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("updater backups json: {e}")))?;
+    Ok(Some(parse_version_backup_list(&payload)))
+}
+
+fn urlencoding_loose(s: &str) -> String {
+    s.replace(' ', "%20")
+}
+
+fn parse_version_backup_list(payload: &serde_json::Value) -> VersionBackupList {
+    let retention = VersionBackupRetention {
+        rollback_days: payload
+            .pointer("/retention/rollback_days")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(default_retention().rollback_days),
+        version_count: payload
+            .pointer("/retention/version_count")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(default_retention().version_count),
+    };
+    let items = payload
+        .get("items")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|it| {
+                    Some(VersionBackupInfo {
+                        id: it.get("id")?.as_str()?.to_string(),
+                        version: it
+                            .get("version")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        from_version: it
+                            .get("from_version")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        to_version: it
+                            .get("to_version")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        roles: it
+                            .get("roles")
+                            .and_then(|v| v.as_array())
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|x| x.as_str().map(str::to_string))
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        created_at: it
+                            .get("created_at")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        expires_at: it
+                            .get("expires_at")
+                            .and_then(|v| v.as_str())
+                            .map(str::to_string),
+                        size_bytes: it.get("size_bytes").and_then(|v| v.as_i64()).unwrap_or(0),
+                        in_progress: it
+                            .get("in_progress")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(false),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let rollback = payload.get("rollback").and_then(|rb| {
+        if rb.is_null() {
+            return None;
+        }
+        Some(RollbackPointInfo {
+            id: rb.get("id")?.as_str()?.to_string(),
+            version: rb
+                .get("version")
+                .or_else(|| rb.get("from_version"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            from_version: rb
+                .get("from_version")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            to_version: rb
+                .get("to_version")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            expires_at: rb
+                .get("expires_at")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            created_at: rb
+                .get("created_at")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            size_bytes: rb.get("size_bytes").and_then(|v| v.as_i64()).unwrap_or(0),
+        })
+    });
+    VersionBackupList {
+        items,
+        rollback,
+        retention,
     }
 }
 
@@ -241,6 +473,17 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
         .map(|l| semver_gt(l, current))
         .unwrap_or(false);
     let target = latest_clean.clone().unwrap_or_else(|| current.to_string());
+    let backups = fetch_version_backups_from_sidecar(current)
+        .await?
+        .unwrap_or_else(|| VersionBackupList {
+            items: vec![],
+            rollback: None,
+            retention: default_retention(),
+        });
+    let rb_ver = backups
+        .rollback
+        .as_ref()
+        .map(|r| r.version.as_str());
     Ok(UpdatesStatus {
         current_version: current,
         latest_version: latest_clean,
@@ -251,8 +494,12 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
         check_interval_hours: interval,
         capability: capability(),
         manual_command: manual_command(&target),
+        rollback_command: rollback_command(rb_ver),
         github_repo: github_repo(),
         active_job: active_job(&state.pool).await?,
+        rollback: backups.rollback,
+        version_backups: backups.items,
+        retention: backups.retention,
     })
 }
 
@@ -550,4 +797,209 @@ pub async fn put_prefs(
     Ok(Json(UpdatesPreferences {
         check_interval_hours: prefs_interval(&state.pool).await?,
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/updates/version-backups",
+    tag = "admin",
+    responses((status = 200, body = VersionBackupList)),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_version_backups(
+    State(_state): State<AppState>,
+    RequireSystemAdmin(_admin): RequireSystemAdmin,
+) -> AppResult<Json<VersionBackupList>> {
+    let current = db::crate_version();
+    let list = fetch_version_backups_from_sidecar(current)
+        .await?
+        .unwrap_or_else(|| VersionBackupList {
+            items: vec![],
+            rollback: None,
+            retention: default_retention(),
+        });
+    Ok(Json(list))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/updates/version-backups/{backup_id}/download",
+    tag = "admin",
+    params(("backup_id" = String, Path)),
+    responses((status = 200, description = "gzip tarball of the version backup bundle")),
+    security(("bearer_auth" = []))
+)]
+pub async fn download_version_backup(
+    State(_state): State<AppState>,
+    RequireSystemAdmin(_admin): RequireSystemAdmin,
+    Path(backup_id): Path<String>,
+) -> AppResult<axum::response::Response> {
+    if !backup_id
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+        || !backup_id.starts_with("vb-")
+    {
+        return Err(AppError::BadRequest("invalid backup id".into()));
+    }
+    let (Some(base), Some(token)) = (updater_url(), updater_token()) else {
+        return Err(AppError::BadRequest(
+            "version backup download requires the Compose updater sidecar".into(),
+        ));
+    };
+    let client = reqwest::Client::new();
+    let url = format!(
+        "{}/v1/version-backups/{backup_id}/download",
+        base.trim_end_matches('/')
+    );
+    let resp = client
+        .get(&url)
+        .header("X-Vulyk-Updater-Token", token)
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("updater unreachable: {e}")))?;
+    if resp.status() == reqwest::StatusCode::NOT_FOUND {
+        return Err(AppError::NotFound("version backup".into()));
+    }
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AppError::BadRequest(format!(
+            "updater download failed ({status}): {text}"
+        )));
+    }
+    let bytes = resp
+        .bytes()
+        .await
+        .map_err(|e| AppError::Internal(format!("download body: {e}")))?;
+    let mut response = axum::response::Response::new(axum::body::Body::from(bytes));
+    *response.status_mut() = axum::http::StatusCode::OK;
+    response.headers_mut().insert(
+        axum::http::header::CONTENT_TYPE,
+        axum::http::HeaderValue::from_static("application/gzip"),
+    );
+    response.headers_mut().insert(
+        axum::http::header::CONTENT_DISPOSITION,
+        axum::http::HeaderValue::from_str(&format!("attachment; filename=\"{backup_id}.tar.gz\""))
+            .unwrap_or_else(|_| {
+                axum::http::HeaderValue::from_static("attachment; filename=\"backup.tar.gz\"")
+            }),
+    );
+    Ok(response)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/updates/rollback",
+    tag = "admin",
+    request_body = ApplyRollbackRequest,
+    responses((status = 202, body = ApplyUpdateResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn apply_rollback(
+    State(state): State<AppState>,
+    RequireSystemAdmin(admin): RequireSystemAdmin,
+    Json(body): Json<ApplyRollbackRequest>,
+) -> AppResult<(axum::http::StatusCode, Json<ApplyUpdateResponse>)> {
+    if body.confirm != "ROLLBACK" {
+        return Err(AppError::BadRequest(
+            "confirm must be the literal string ROLLBACK (data created after the upgrade will be lost)"
+                .into(),
+        ));
+    }
+    if matches!(capability(), UpdatesCapability::ManualOnly) {
+        return Err(AppError::BadRequest(
+            "one-click rollback unavailable; use the rollback command shown in Admin → Updates"
+                .into(),
+        ));
+    }
+    if let Some(job) = active_job(&state.pool).await? {
+        return Err(AppError::Conflict(format!(
+            "update/rollback already in progress ({})",
+            job.id
+        )));
+    }
+    let version = body
+        .version
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(normalize_version)
+        .transpose()?;
+    let base = updater_url().expect("checked");
+    let token = updater_token().expect("checked");
+    let client = reqwest::Client::new();
+    let mut payload = serde_json::json!({ "confirm": "ROLLBACK" });
+    if let Some(ref v) = version {
+        payload["version"] = serde_json::Value::String(v.clone());
+    }
+    let resp = client
+        .post(format!("{}/v1/rollback", base.trim_end_matches('/')))
+        .header("X-Vulyk-Updater-Token", token)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("updater unreachable: {e}")))?;
+    if resp.status() == reqwest::StatusCode::CONFLICT {
+        return Err(AppError::Conflict(
+            "updater reports a job already running".into(),
+        ));
+    }
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        return Err(AppError::BadRequest(format!(
+            "updater rejected rollback ({status}): {text}"
+        )));
+    }
+    let payload: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("updater response: {e}")))?;
+    let job_id = payload
+        .get("job_id")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::BadRequest("updater missing job_id".into()))?;
+    let id = Uuid::parse_str(job_id)
+        .map_err(|_| AppError::BadRequest("updater job_id not a uuid".into()))?;
+    let target = version
+        .clone()
+        .unwrap_or_else(|| "active-rollback".to_string());
+    sqlx::query(
+        r#"INSERT INTO update_jobs
+            (id, target_version, status, progress, message, log_text, started_by)
+           VALUES ($1, $2, 'pending', 0, 'rollback queued', '', $3)"#,
+    )
+    .bind(id)
+    .bind(&target)
+    .bind(admin.id())
+    .execute(&state.pool)
+    .await?;
+
+    write_audit(
+        &state.pool,
+        Some(admin.id()),
+        "instance.rollback",
+        "update_job",
+        &id.to_string(),
+        serde_json::json!({
+            "target_version": target,
+            "confirm": "ROLLBACK",
+        }),
+    )
+    .await?;
+
+    let pool = state.pool.clone();
+    let base = base.clone();
+    let token = updater_token().unwrap();
+    tokio::spawn(async move {
+        if let Err(e) = poll_sidecar_job(pool, base, token, id).await {
+            tracing::warn!(error = %e, job_id = %id, "rollback job poller ended with error");
+        }
+    });
+
+    let job = load_job(&state.pool, id).await?;
+    Ok((
+        axum::http::StatusCode::ACCEPTED,
+        Json(ApplyUpdateResponse { job }),
+    ))
 }

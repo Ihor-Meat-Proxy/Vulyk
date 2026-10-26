@@ -257,6 +257,25 @@ Path("/tmp/vulyk-upgrade-entity-counts-before.json").write_text(json.dumps(snap)
 print("entity snapshot", snap)
 PY
 
+log "Saving pre-upgrade DB dump for rollback assertion..."
+need_cmd pg_dump
+pg_dump "${DATABASE_URL}" --no-owner --no-acl | gzip -c > /tmp/vulyk-pre-upgrade.sql.gz
+[[ -s /tmp/vulyk-pre-upgrade.sql.gz ]] || die "pre-upgrade dump empty"
+printf '%s\n' "VULYK_SECRETS_KEY=${VULYK_SECRETS_KEY}" "VULYK_JWT_SECRET=${VULYK_JWT_SECRET}" \
+  > /tmp/vulyk-pre-upgrade.env
+# Register as a version-backup rollback point (filesystem only; prune unit-tested separately)
+export VULYK_VERSION_BACKUP_DIR="${WORKDIR}/version-backups"
+mkdir -p "${VULYK_VERSION_BACKUP_DIR}/src-bundle/config"
+cp /tmp/vulyk-pre-upgrade.sql.gz "${VULYK_VERSION_BACKUP_DIR}/src-bundle/db.sql.gz"
+cp /tmp/vulyk-pre-upgrade.env "${VULYK_VERSION_BACKUP_DIR}/src-bundle/config/.env"
+python3 "${ROOT}/scripts/version_backups.py" register \
+  --source "${VULYK_VERSION_BACKUP_DIR}/src-bundle" \
+  --version "$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("version","0.0.0"))' "${BASE_HEALTH}")" \
+  --from-version "$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("version","0.0.0"))' "${BASE_HEALTH}")" \
+  --to-version "head" \
+  --rollback >/tmp/vulyk-vb-register.json
+python3 "${ROOT}/scripts/test-version-backups.py" -q
+
 stop_api
 log "Building HEAD API..."
 cargo build -p vulyk-api --release
@@ -360,4 +379,111 @@ print("ok encrypted secret decrypts with preserved VULYK_SECRETS_KEY")
 print("upgrade data integrity OK")
 PY
 
-log "Upgrade CI test passed"
+log "Simulating post-upgrade mutation then rollback to pre-upgrade dump..."
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
+  "INSERT INTO system_settings (key, value) VALUES ('upgrade_ci_post_marker', '\"should-vanish-on-rollback\"'::jsonb)
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;" >/dev/null
+MARKER_BEFORE="$(psql "${DATABASE_URL}" -Atc "SELECT value::text FROM system_settings WHERE key='upgrade_ci_post_marker'" || true)"
+[[ -n "${MARKER_BEFORE}" ]] || die "failed to insert post-upgrade marker"
+
+stop_api
+log "Restoring pre-upgrade dump (rollback)..."
+# Drop and recreate public schema then restore (mirrors install.sh restore_db_from_dump)
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
+  "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
+gzip -dc /tmp/vulyk-pre-upgrade.sql.gz | psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -q
+
+# Config snapshot must still match preserved secrets key
+grep -q "VULYK_SECRETS_KEY=${VULYK_SECRETS_KEY}" /tmp/vulyk-pre-upgrade.env \
+  || die "pre-upgrade env snapshot missing secrets key"
+
+log "Re-starting HEAD API against rolled-back DB (migrations already applied on dump may be older)..."
+# Dump is from base schema; run migrate again so HEAD can serve, then assert data rows.
+export VULYK_AUTO_MIGRATE=false
+./target/release/vulyk-api migrate run
+./target/release/vulyk-api > /tmp/vulyk-upgrade-rollback.log 2>&1 &
+echo $! > /tmp/vulyk-upgrade-api.pid
+if ! wait_health; then
+  cat /tmp/vulyk-upgrade-rollback.log >&2 || true
+  die "API failed after rollback restore"
+fi
+
+python3 - <<'PY'
+import json, os, urllib.request, sys, subprocess, hashlib
+from pathlib import Path
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:
+    import subprocess as sp
+    sp.check_call([sys.executable, "-m", "pip", "install", "-q", "cryptography"])
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+api = os.environ["VULYK_API_URL"]
+db_url = os.environ["DATABASE_URL"]
+secrets_key = os.environ.get("VULYK_SECRETS_KEY", "upgrade-ci-secrets")
+key = hashlib.sha256(secrets_key.encode()).digest()
+plain_expected = Path("/tmp/vulyk-upgrade-secret-plain.txt").read_text()
+before_keys = [k for k in open("/tmp/vulyk-upgrade-project-keys.txt").read().splitlines() if k]
+before_counts = json.load(open("/tmp/vulyk-upgrade-case-counts-before.json"))
+before_entities = json.load(open("/tmp/vulyk-upgrade-entity-counts-before.json"))
+
+marker = subprocess.check_output(
+    ["psql", db_url, "-Atc", "SELECT value::text FROM system_settings WHERE key='upgrade_ci_post_marker'"],
+    text=True,
+).strip()
+if marker:
+    print("post-upgrade marker survived rollback:", marker, file=sys.stderr)
+    sys.exit(1)
+print("ok post-upgrade marker removed by rollback")
+
+after = json.load(urllib.request.urlopen(f"{api}/api/v1/projects"))
+items = after["items"] if isinstance(after, dict) else after
+after_keys = sorted(p["key"] for p in items)
+missing = [k for k in before_keys if k not in after_keys]
+if missing:
+    print("missing projects after rollback:", missing, file=sys.stderr)
+    sys.exit(1)
+for p in items:
+    url = f"{api}/api/v1/projects/{p['id']}/cases?limit=1&offset=0"
+    with urllib.request.urlopen(url) as r:
+        body = json.load(r)
+    total = body.get("total", len(body.get("items", [])))
+    prev = before_counts.get(p["key"])
+    if prev is not None and total != prev:
+        print(f"case count mismatch after rollback for {p['key']}: {prev} -> {total}", file=sys.stderr)
+        sys.exit(1)
+for label, q in [
+    ("requirements", "SELECT COUNT(*) FROM requirements"),
+    ("test_runs", "SELECT COUNT(*) FROM test_runs"),
+    ("system_settings", "SELECT COUNT(*) FROM system_settings"),
+    ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
+    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+]:
+    prev = before_entities.get(label, -1)
+    if prev < 0:
+        continue
+    now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    if now != prev:
+        print(f"{label} count mismatch after rollback: {prev} -> {now}", file=sys.stderr)
+        sys.exit(1)
+    print(f"ok rollback {label}: {now}")
+
+cfg_id = Path("/tmp/vulyk-upgrade-llm-config-id.txt").read_text().strip()
+row = subprocess.check_output(
+    ["psql", db_url, "-Atc",
+     f"SELECT encode(api_key_ciphertext,'hex') || ',' || encode(api_key_nonce,'hex') FROM llm_configs WHERE id = '{cfg_id}'::uuid"],
+    text=True,
+).strip()
+hex_ct, hex_nonce = row.split(",", 1)
+plain = AESGCM(key).decrypt(bytes.fromhex(hex_nonce), bytes.fromhex(hex_ct), None).decode()
+if plain != plain_expected:
+    print("secret decrypt mismatch after rollback", file=sys.stderr)
+    sys.exit(1)
+print("ok rollback restored pre-upgrade data + encrypted secret")
+PY
+
+# Active rollback point still listed
+python3 "${ROOT}/scripts/version_backups.py" active-rollback --current-version head \
+  | python3 -c 'import json,sys; m=json.load(sys.stdin); assert m and m.get("roles"), m; print("ok active rollback point", m.get("_id") or m.get("id"))'
+
+log "Upgrade + rollback CI test passed"

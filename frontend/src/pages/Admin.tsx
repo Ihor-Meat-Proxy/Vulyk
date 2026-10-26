@@ -22,6 +22,7 @@ import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
+import { getStoredToken } from '../token'
 import { BackupsPanel } from './admin/BackupsPanel'
 
 type Tab =
@@ -1190,6 +1191,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [checking, setChecking] = useState(false)
   const [applying, setApplying] = useState(false)
+  const [rollingBack, setRollingBack] = useState(false)
   const [intervalHours, setIntervalHours] = useState(24)
   const [activeJob, setActiveJob] = useState<UpdateJob | null>(null)
 
@@ -1284,6 +1286,63 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     }
   }
 
+  const onRollback = async () => {
+    if (!status?.rollback) return
+    const version = status.rollback.version
+    const typed = window.prompt(
+      t('admin.updates.rollbackPrompt').replace('{version}', version),
+      '',
+    )
+    if (typed !== 'ROLLBACK') {
+      if (typed !== null) {
+        onError(t('admin.updates.rollbackConfirm'))
+      }
+      return
+    }
+    setRollingBack(true)
+    try {
+      const res = await api.applyAdminRollback({
+        confirm: 'ROLLBACK',
+        version,
+      })
+      setActiveJob(res.job)
+      await refresh()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setRollingBack(false)
+    }
+  }
+
+  const formatBytes = (n: number) => {
+    if (n < 1024) return `${n} B`
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
+    return `${(n / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const onDownloadBackup = async (backupId: string) => {
+    try {
+      const url = api.downloadAdminVersionBackupUrl(backupId)
+      const token = getStoredToken()
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+      })
+      if (!res.ok) {
+        throw new Error(`download failed (${res.status})`)
+      }
+      const blob = await res.blob()
+      const objectUrl = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = objectUrl
+      a.download = `${backupId}.tar.gz`
+      a.click()
+      URL.revokeObjectURL(objectUrl)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
   const onSaveInterval = async (e: FormEvent) => {
     e.preventDefault()
     try {
@@ -1307,12 +1366,22 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     )
   }
 
+  const jobBusy = Boolean(
+    activeJob && ['pending', 'running'].includes(activeJob.status),
+  )
   const canApply =
     status.capability === 'compose_updater' &&
     status.update_available &&
     Boolean(status.latest_version) &&
     !applying &&
-    !(activeJob && ['pending', 'running'].includes(activeJob.status))
+    !rollingBack &&
+    !jobBusy
+  const canRollback =
+    status.capability === 'compose_updater' &&
+    Boolean(status.rollback) &&
+    !applying &&
+    !rollingBack &&
+    !jobBusy
 
   return (
     <div className="panel">
@@ -1375,7 +1444,35 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
             {applying ? t('admin.updates.applying') : t('admin.updates.apply')}
           </button>
         ) : null}
+        {status.capability === 'compose_updater' && status.rollback ? (
+          <button
+            type="button"
+            className="btn secondary"
+            disabled={!canRollback}
+            onClick={() => void onRollback()}
+            {...testIdProps(TestIds.adminUpdatesRollbackButton)}
+          >
+            {rollingBack
+              ? t('admin.updates.rollingBack')
+              : t('admin.updates.rollback').replace(
+                  '{version}',
+                  status.rollback.version,
+                )}
+          </button>
+        ) : null}
       </div>
+
+      {status.rollback ? (
+        <p
+          className="muted"
+          {...testIdProps(TestIds.adminUpdatesRollbackExpiry)}
+        >
+          {t('admin.updates.rollbackExpiry').replace(
+            '{date}',
+            status.rollback.expires_at ?? '—',
+          )}
+        </p>
+      ) : null}
 
       {status.capability !== 'compose_updater' ? (
         <div className="admin-updates-manual">
@@ -1383,6 +1480,11 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           <p className="muted">{t('admin.updates.manualHint')}</p>
           <pre {...testIdProps(TestIds.adminUpdatesManualCommand)}>
             {status.manual_command}
+          </pre>
+          <h4>{t('admin.updates.rollbackManual')}</h4>
+          <p className="muted">{t('admin.updates.rollbackManualHint')}</p>
+          <pre {...testIdProps(TestIds.adminUpdatesRollbackCommand)}>
+            {status.rollback_command}
           </pre>
         </div>
       ) : null}
@@ -1436,6 +1538,70 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           {t('admin.updates.intervalSave')}
         </button>
       </form>
+
+      <h4>{t('admin.updates.backups')}</h4>
+      <p className="muted">
+        {t('admin.updates.backupsHint')
+          .replace('{count}', String(status.retention.version_count))
+          .replace('{days}', String(status.retention.rollback_days))}
+      </p>
+      <table
+        className="table"
+        {...testIdProps(TestIds.adminUpdatesBackupList)}
+      >
+        <thead>
+          <tr>
+            <th>{t('admin.updates.backupVersion')}</th>
+            <th>{t('admin.updates.backupDate')}</th>
+            <th>{t('admin.updates.backupSize')}</th>
+            <th>{t('admin.updates.backupExpiry')}</th>
+            <th>{t('admin.updates.backupRoles')}</th>
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {(status.version_backups ?? []).length === 0 ? (
+            <tr>
+              <td colSpan={6} className="muted">
+                —
+              </td>
+            </tr>
+          ) : (
+            status.version_backups.map((b, index) => (
+              <tr
+                key={b.id}
+                {...listItemProps(TestIds.adminUpdatesBackupRow, {
+                  entityId: b.id,
+                  entityKey: b.version ?? b.id,
+                  index,
+                })}
+              >
+                <td>{b.version ?? '—'}</td>
+                <td>{b.created_at ?? '—'}</td>
+                <td>{formatBytes(b.size_bytes)}</td>
+                <td>{b.expires_at ?? '—'}</td>
+                <td>{(b.roles ?? []).join(', ') || '—'}</td>
+                <td>
+                  {status.capability === 'compose_updater' ? (
+                    <button
+                      type="button"
+                      className="btn secondary"
+                      onClick={() => void onDownloadBackup(b.id)}
+                      {...listItemProps(TestIds.adminUpdatesBackupDownload, {
+                        entityId: b.id,
+                        entityKey: b.version ?? b.id,
+                        index,
+                      })}
+                    >
+                      {t('admin.updates.backupDownload')}
+                    </button>
+                  ) : null}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
 
       <h4>{t('admin.updates.history')}</h4>
       <ul {...testIdProps(TestIds.adminUpdatesJobList)}>

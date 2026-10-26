@@ -7,11 +7,11 @@ The flow reuses the same data-safety guarantees as
 
 ## Capabilities by environment
 
-| Environment | Check for updates | Update now |
-|-------------|-------------------|------------|
-| Compose + `updater` service | Yes (GitHub Releases) | Yes (sidecar) |
-| Kubernetes / Helm | Yes | No — show manual `helm upgrade` / install command |
-| Source-only / no sidecar | Yes | No — show `./scripts/install.sh upgrade --yes --version X` |
+| Environment | Check for updates | Update now | Roll back / version backups |
+|-------------|-------------------|------------|------------------------------|
+| Compose + `updater` service | Yes (GitHub Releases) | Yes (sidecar) | Yes (typed `ROLLBACK`) |
+| Kubernetes / Helm | Yes | No — show manual `helm upgrade` / install command | Manual `install.sh rollback` / restore |
+| Source-only / no sidecar | Yes | No — show `./scripts/install.sh upgrade --yes --version X` | Show `install.sh rollback --confirm=ROLLBACK` |
 
 The API **never** mounts the Docker socket. Only the updater sidecar does, and it
 accepts commands solely over an internal network with a shared bearer token.
@@ -24,27 +24,36 @@ flowchart TD
     A[Updates tab]
     A --> B[Check for updates]
     A --> C[Update now]
+    A --> R[Roll back to vX]
+    A --> VB[Version backup list / download]
   end
   subgraph api [vulyk-api]
     D[GET /admin/updates]
     E[POST /admin/updates/check]
     F[POST /admin/updates/apply]
+    Fr[POST /admin/updates/rollback]
     G[GET /admin/updates/jobs/id]
+    H2[GET version-backups]
   end
   subgraph side [updater sidecar]
     H[Auth: X-Vulyk-Updater-Token]
     I[install.sh upgrade --version]
+    Ir[install.sh rollback --confirm=ROLLBACK]
     J[Verified backup + migrate + health]
     K[Auto-rollback on failure]
+    V[version-backups registry]
   end
-  L[(Postgres update_jobs)]
+  L[(Postgres update_jobs + audit_events)]
   M[GitHub Releases API]
   B --> E --> M
   C --> F --> H --> I --> J
+  R --> Fr --> H --> Ir
+  VB --> H2 --> V
   J -->|fail| K
+  J -->|ok| V
   F --> L
+  Fr --> L
   G --> L
-  I -.->|logs/progress| L
 ```
 
 ## Operator setup (Compose)

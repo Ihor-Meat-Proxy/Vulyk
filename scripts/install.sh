@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install / bootstrap Vulyk on Linux, macOS, or WSL2.
 # Verified modes: compose | prod | dev | setup | check | helm-template | perf-smoke
-#                 upgrade | backup | restore
+#                 upgrade | backup | restore | rollback
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,6 +9,10 @@ cd "${ROOT}"
 
 BACKUP_DIR="${ROOT}/backups"
 BACKUP_RETENTION="${VULYK_BACKUP_RETENTION:-10}"
+# Version / rollback points (separate from ./backups and content backups from #30).
+VERSION_BACKUP_DIR="${VULYK_VERSION_BACKUP_DIR:-${ROOT}/version-backups}"
+ROLLBACK_RETENTION_DAYS="${VULYK_ROLLBACK_RETENTION_DAYS:-7}"
+VERSION_BACKUP_COUNT="${VULYK_VERSION_BACKUP_COUNT:-3}"
 # Minimum free disk (MB) before upgrade/backup. Override with VULYK_MIN_FREE_MB.
 MIN_FREE_MB="${VULYK_MIN_FREE_MB:-2048}"
 UPGRADE_TO=""
@@ -16,6 +20,7 @@ RELEASE_VERSION=""
 NO_BACKUP=0
 ALLOW_DOWNGRADE=0
 RESTORE_FILE=""
+ROLLBACK_CONFIRM="${VULYK_ROLLBACK_CONFIRM:-}"
 # Override via env or --version (GHCR). Default owner derived from git remote when possible.
 VULYK_GHCR_OWNER="${VULYK_GHCR_OWNER:-}"
 VULYK_GHCR_API_IMAGE="${VULYK_GHCR_API_IMAGE:-}"
@@ -23,6 +28,7 @@ VULYK_GHCR_WEB_IMAGE="${VULYK_GHCR_WEB_IMAGE:-}"
 # Snapshot of images before an upgrade (for auto-rollback).
 PREV_API_IMAGE=""
 PREV_WEB_IMAGE=""
+VERSION_BACKUPS_PY="${ROOT}/scripts/version_backups.py"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -88,6 +94,7 @@ Modes:
   upgrade         Safe upgrade: backup, pull, rebuild, migrate, health-check
   backup          Verified backup bundle under ./backups/vulyk-<version>-<timestamp>/
   restore PATH    Restore a backup bundle or legacy .sql.gz (confirmation unless --yes)
+  rollback        Roll back to a post-upgrade rollback point (typed confirmation)
 
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
@@ -101,16 +108,18 @@ First-run options (compose / prod / dev / setup):
   --yes, -y                Non-interactive (use flags/env; skip prompts)
 
 Upgrade / backup / release options:
-  --version=X.Y.Z          Use published GHCR images for this semver (compose/prod/upgrade)
+  --version=X.Y.Z          Use published GHCR images for this semver (compose/prod/upgrade/rollback)
   --to=TAG|BRANCH          Checkout tag or branch and rebuild from source (upgrade)
   --no-backup              Skip automatic backup bundle (upgrade only; NOT recommended)
   --allow-downgrade        Permit target version < current (still refuses schema-newer DB;
                            prefer restore-from-backup instead)
+  --confirm=ROLLBACK       Typed confirmation for rollback (or VULYK_ROLLBACK_CONFIRM)
 
 Environment equivalents:
   VULYK_ADMIN_EMAIL, VULYK_ADMIN_PASSWORD, VULYK_DEFAULT_LOCALE,
   VULYK_DEFAULT_TIMEZONE, VULYK_REGISTRATION_MODE, VULYK_INSTANCE_NAME,
   VULYK_SEED_DEMO, VULYK_BASE_URL, VULYK_BACKUP_RETENTION,
+  VULYK_VERSION_BACKUP_DIR, VULYK_ROLLBACK_RETENTION_DAYS, VULYK_VERSION_BACKUP_COUNT,
   VULYK_GHCR_OWNER, VULYK_GHCR_API_IMAGE, VULYK_GHCR_WEB_IMAGE
 
 Written into .env (compose/dev) or .env.prod (prod). Defaults:
@@ -132,6 +141,8 @@ Upgrade (keeps the named Postgres volume; never runs docker compose down -v):
   ./scripts/install.sh upgrade --yes --to=v0.2.0       # git checkout + source build
   ./scripts/install.sh backup
   ./scripts/install.sh restore ./backups/vulyk-0.1.0-20260101T120000Z.sql.gz
+  ./scripts/install.sh rollback --confirm=ROLLBACK
+  ./scripts/install.sh rollback --version 0.1.0 --confirm=ROLLBACK
 
 WARNING: never run 'docker compose down -v' on a data you care about -
 the -v flag deletes named volumes (Postgres data).
@@ -217,6 +228,14 @@ parse_args() {
         ;;
       --allow-downgrade)
         ALLOW_DOWNGRADE=1
+        ;;
+      --confirm=*)
+        ROLLBACK_CONFIRM="${arg#*=}"
+        ;;
+      --confirm)
+        [[ $# -gt 0 ]] || die "--confirm requires a value (ROLLBACK)"
+        ROLLBACK_CONFIRM="$1"
+        shift
         ;;
       --*=*)
         die "unknown option: $arg (try --help)"
@@ -1188,6 +1207,200 @@ See docs/guides/upgrade.md (Data-safety guarantees)
 EOF
 }
 
+version_backups_cmd() {
+  export VULYK_VERSION_BACKUP_DIR="${VERSION_BACKUP_DIR}"
+  export VULYK_ROLLBACK_RETENTION_DAYS="${ROLLBACK_RETENTION_DAYS}"
+  export VULYK_VERSION_BACKUP_COUNT="${VERSION_BACKUP_COUNT}"
+  export VULYK_ROOT="${ROOT}"
+  python3 "${VERSION_BACKUPS_PY}" "$@"
+}
+
+# After a successful upgrade: register pre-upgrade bundle as rollback (N days)
+# + version retention snapshot, then prune.
+register_post_upgrade_version_backups() {
+  local pre_bundle="$1" from_ver="$2" to_ver="$3"
+  [[ -n "${pre_bundle}" && -d "${pre_bundle}" ]] || return 0
+  mkdir -p "${VERSION_BACKUP_DIR}"
+  local api_img web_img
+  api_img="${PREV_API_IMAGE:-${VULYK_API_IMAGE:-}}"
+  web_img="${PREV_WEB_IMAGE:-${VULYK_WEB_IMAGE:-}}"
+  if [[ -f "${pre_bundle}/config/image-state.env" ]]; then
+    local pinned_api pinned_web
+    pinned_api="$(grep -E '^VULYK_API_IMAGE=' "${pre_bundle}/config/image-state.env" | head -n1 | cut -d= -f2- || true)"
+    pinned_web="$(grep -E '^VULYK_WEB_IMAGE=' "${pre_bundle}/config/image-state.env" | head -n1 | cut -d= -f2- || true)"
+    [[ -n "${pinned_api}" ]] && api_img="${pinned_api}"
+    [[ -n "${pinned_web}" ]] && web_img="${pinned_web}"
+  fi
+  log "Registering version backup + ${ROLLBACK_RETENTION_DAYS}-day rollback point for ${from_ver}..."
+  version_backups_cmd register \
+    --source "${pre_bundle}" \
+    --version "${from_ver}" \
+    --from-version "${from_ver}" \
+    --to-version "${to_ver}" \
+    --api-image "${api_img}" \
+    --web-image "${web_img}" \
+    --rollback >/tmp/vulyk-vb-register.json || warn "version-backup register failed"
+  version_backups_cmd prune --current-version "${to_ver}" >/tmp/vulyk-vb-prune.json || true
+  if [[ -f /tmp/vulyk-vb-register.json ]]; then
+    log "Rollback point kept under ${VERSION_BACKUP_DIR}/ (see Admin → Updates or install.sh rollback)"
+  fi
+}
+
+require_rollback_confirmation() {
+  local target_ver="$1"
+  cat <<EOF >&2
+
+************************************************************************
+ROLLBACK WARNING
+************************************************************************
+Rolling back to v${target_ver} restores the pre-upgrade database, config
+snapshot, and previous images.
+
+  Data created AFTER the upgrade will be LOST.
+
+Type ROLLBACK to continue (or pass --confirm=ROLLBACK / VULYK_ROLLBACK_CONFIRM).
+************************************************************************
+EOF
+  local got="${ROLLBACK_CONFIRM}"
+  if [[ -z "${got}" ]]; then
+    if [[ ! -t 0 ]]; then
+      die "rollback requires --confirm=ROLLBACK (non-interactive)"
+    fi
+    printf 'Confirm: ' >&2
+    read -r got || true
+  fi
+  if [[ "${got}" != "ROLLBACK" ]]; then
+    die "aborted (expected typed confirmation ROLLBACK)"
+  fi
+}
+
+cmd_rollback() {
+  local cur target_ver bundle_id bundle_path meta_json api_img web_img fresh_backup
+  resolve_compose
+  [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for rollback"
+  need_cmd curl
+  need_cmd gzip
+  need_cmd docker
+  need_cmd python3
+  [[ -f "${VERSION_BACKUPS_PY}" ]] || die "missing ${VERSION_BACKUPS_PY}"
+
+  detect_compose_files
+  if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    # shellcheck source=/dev/null
+    source "${COMPOSE_ENV_FILE}"
+    set +a
+  fi
+
+  cur="$(api_reported_version)"
+  [[ -n "${cur}" ]] || cur="$(current_git_version)"
+  log "Current version: ${cur}"
+
+  # Optional prune of expired points first (skips in-progress)
+  version_backups_cmd prune --current-version "${cur}" >/tmp/vulyk-vb-prune.json || true
+
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    meta_json="$(version_backups_cmd list --current-version "${cur}")"
+    bundle_id="$(
+      printf '%s' "${meta_json}" | python3 -c '
+import json,sys
+want=sys.argv[1].lstrip("v")
+data=json.load(sys.stdin)
+for it in data.get("items",[]):
+    ver=(it.get("version") or it.get("from_version") or "").lstrip("v")
+    if ver==want and "rollback" in (it.get("roles") or []):
+        print(it["id"]); raise SystemExit
+for it in data.get("items",[]):
+    ver=(it.get("version") or "").lstrip("v")
+    if ver==want:
+        print(it["id"]); raise SystemExit
+raise SystemExit(1)
+' "${RELEASE_VERSION}"
+    )" || die "no version backup / rollback point for ${RELEASE_VERSION}"
+  else
+    meta_json="$(version_backups_cmd active-rollback --current-version "${cur}")"
+    [[ -n "${meta_json}" && "${meta_json}" != "null" ]] || die "no active rollback point (expired or missing)"
+    bundle_id="$(printf '%s' "${meta_json}" | python3 -c 'import json,sys; m=json.load(sys.stdin); print(m.get("_id") or m.get("id") or "")')"
+  fi
+  [[ -n "${bundle_id}" ]] || die "rollback bundle id missing"
+  meta_json="$(version_backups_cmd find --id "${bundle_id}")"
+  [[ -n "${meta_json}" && "${meta_json}" != "null" ]] || die "bundle not found: ${bundle_id}"
+  bundle_path="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["_path"])' <<<"${meta_json}")"
+  target_ver="$(python3 -c 'import json,sys; m=json.load(sys.stdin); print(m.get("version") or m.get("from_version") or "")' <<<"${meta_json}")"
+  api_img="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("api_image") or "")' <<<"${meta_json}")"
+  web_img="$(python3 -c 'import json,sys; print(json.load(sys.stdin).get("web_image") or "")' <<<"${meta_json}")"
+  [[ -d "${bundle_path}" && -f "${bundle_path}/db.sql.gz" ]] || die "invalid rollback bundle: ${bundle_path}"
+
+  require_rollback_confirmation "${target_ver}"
+
+  version_backups_cmd set-in-progress --id "${bundle_id}" --value true >/dev/null
+  trap 'version_backups_cmd set-in-progress --id "'"${bundle_id}"'" --value false >/dev/null 2>&1 || true' EXIT
+
+  log "Taking fresh backup of current state before rollback..."
+  compose_cmd up -d db
+  wait_for_db
+  fresh_backup="$(run_full_backup "${cur}-pre-rollback")"
+
+  if [[ -n "${api_img}" ]]; then
+    export VULYK_API_IMAGE="${api_img}"
+    if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+      env_upsert "${COMPOSE_ENV_FILE}" "VULYK_API_IMAGE" "${api_img}"
+    fi
+  fi
+  if [[ -n "${web_img}" ]]; then
+    export VULYK_WEB_IMAGE="${web_img}"
+    if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+      env_upsert "${COMPOSE_ENV_FILE}" "VULYK_WEB_IMAGE" "${web_img}"
+    fi
+  fi
+
+  log "Restoring database from rollback point ${bundle_path}..."
+  restore_db_from_dump "${bundle_path}"
+
+  # Restore missing env files from rollback config (do not overwrite existing)
+  if [[ -d "${bundle_path}/config" ]]; then
+    local cfg
+    for cfg in .env .env.prod; do
+      if [[ -f "${bundle_path}/config/${cfg}" && ! -f "${ROOT}/${cfg}" ]]; then
+        cp -p "${bundle_path}/config/${cfg}" "${ROOT}/${cfg}"
+        chmod 600 "${ROOT}/${cfg}" 2>/dev/null || true
+        log "Restored missing ${cfg} from rollback point"
+      fi
+    done
+  fi
+
+  log "Starting rolled-back stack..."
+  compose_cmd up -d
+
+  local health_url
+  health_url="${VULYK_API_URL:-http://127.0.0.1:8080}/health"
+  if [[ -n "${API_PORT:-}" ]]; then
+    health_url="http://127.0.0.1:${API_PORT}/health"
+  fi
+  local _
+  for _ in $(seq 1 90); do
+    if curl -fsS "${health_url}" >/dev/null 2>&1; then
+      local new_ver
+      new_ver="$(api_reported_version)"
+      log "Rollback complete. Health OK (version=${new_ver:-unknown})"
+      log "Pre-rollback safety backup: ${fresh_backup}"
+      # Append a local audit marker (API also writes audit_events when triggered in-app)
+      mkdir -p "${VERSION_BACKUP_DIR}"
+      printf '%s\n' "{\"action\":\"rollback\",\"to\":\"${target_ver}\",\"from\":\"${cur}\",\"bundle\":\"${bundle_id}\",\"at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" \
+        >>"${VERSION_BACKUP_DIR}/audit.log"
+      version_backups_cmd set-in-progress --id "${bundle_id}" --value false >/dev/null || true
+      trap - EXIT
+      version_backups_cmd prune --current-version "${new_ver:-${target_ver}}" >/dev/null || true
+      return 0
+    fi
+    sleep 2
+  done
+  version_backups_cmd set-in-progress --id "${bundle_id}" --value false >/dev/null || true
+  trap - EXIT
+  die "rollback health check failed; current-state backup at ${fresh_backup}"
+}
+
 cmd_upgrade() {
   local backup_file="" ver free_mb pending_rc=0 target_label="" cmp=0
 
@@ -1366,12 +1579,17 @@ cmd_upgrade() {
       fi
       if [[ -n "${backup_file}" ]]; then
         log "Backup kept at: ${backup_file}"
+        register_post_upgrade_version_backups \
+          "${backup_file}" \
+          "${ver}" \
+          "${new_ver:-${RELEASE_VERSION:-unknown}}"
       fi
       cat <<EOF
 
 Next:
   curl -fsS ${health_url}
   ./scripts/install.sh backup     # optional extra backup after upgrade
+  ./scripts/install.sh rollback --confirm=ROLLBACK   # within ${ROLLBACK_RETENTION_DAYS} days
 
 WARNING: do not run 'docker compose down -v' - that deletes Postgres data.
 Config (.env / secrets / admin password) was NOT regenerated.
@@ -1392,7 +1610,7 @@ log "Detected OS: ${OS}"
 parse_args "$@"
 
 case "${MODE}" in
-  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore)
+  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|rollback)
     ;;
   -h|--help|help)
     usage
@@ -1406,9 +1624,9 @@ esac
 # Fail fast on bad --version before Docker/toolchain work
 if [[ -n "${RELEASE_VERSION}" ]]; then
   case "${MODE}" in
-    compose|prod|upgrade) ;;
+    compose|prod|upgrade|rollback) ;;
     *)
-      die "--version is only supported for compose, prod, and upgrade modes"
+      die "--version is only supported for compose, prod, upgrade, and rollback modes"
       ;;
   esac
   RELEASE_VERSION="$(normalize_release_version "${RELEASE_VERSION}")"
@@ -1426,6 +1644,11 @@ fi
 
 if [[ "${MODE}" == "upgrade" ]]; then
   cmd_upgrade
+  exit 0
+fi
+
+if [[ "${MODE}" == "rollback" ]]; then
+  cmd_rollback
   exit 0
 fi
 
