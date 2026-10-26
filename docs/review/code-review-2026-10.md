@@ -38,7 +38,7 @@ and “last executed” UX.
 **Fix:** Preserve `existing.executed_at` when `body.status` is omitted; only
 clear/set it when status is explicitly provided.
 
-**Fixed:** see PR “fix(runs): preserve run-item executed_at when status omitted”.
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42
 
 ### 2. **bug** — Stale `running` jobs never reclaimed
 
