@@ -657,6 +657,7 @@ impl Modify for SecurityAddon {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use utoipa::OpenApi;
 
     #[test]
     fn openapi_info_version_matches_crate() {
@@ -666,5 +667,11 @@ mod tests {
             env!("CARGO_PKG_VERSION"),
             "OpenAPI info.version must stay aligned with CARGO_PKG_VERSION / VERSION"
         );
+    }
+
+    #[test]
+    fn openapi_doc_builds_without_stack_overflow() {
+        let doc = ApiDoc::openapi();
+        assert!(!doc.paths.paths.is_empty());
     }
 }

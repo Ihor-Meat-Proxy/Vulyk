@@ -103,7 +103,9 @@ pub struct ConfigProject {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ConfigFolder {
     pub name: String,
+    /// Nested folders (recursive). Schema uses Object to avoid OpenAPI recursion blow-up.
     #[serde(default)]
+    #[schema(value_type = Vec<Object>)]
     pub children: Vec<ConfigFolder>,
 }
 
