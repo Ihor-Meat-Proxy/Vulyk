@@ -11,8 +11,9 @@ Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Hel
 ```bash
 ./scripts/install.sh compose --yes
 # or: docker compose up --build
-# first-run setup pass: ./scripts/install.sh setup --yes
 ```
+
+`./scripts/install.sh compose --yes` builds, starts, and runs first-time setup automatically on a fresh database. `./scripts/install.sh setup --yes` runs only the setup step (admin password, app language, timezone) on an already running install — e.g. after plain `docker compose up --build`. `--yes` means non-interactive (flags/env vars like `VULYK_ADMIN_PASSWORD`, or defaults).
 
 | Service | URL |
 |---------|-----|
