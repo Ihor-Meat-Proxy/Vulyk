@@ -137,12 +137,14 @@ pub async fn update_user(
     };
     let locale = body.locale.or(existing.locale);
     let timezone = body.timezone.or(existing.timezone);
+    let password_changed = body.password.is_some();
     let password_hash = if let Some(password) = body.password {
         state.password_policy.validate(&password)?;
         Some(hash_password_async(password).await?)
     } else {
         existing.password_hash
     };
+    let becoming_disabled = matches!(body.disabled, Some(true));
 
     let user = sqlx::query_as::<_, User>(&format!(
         r#"UPDATE users
@@ -167,6 +169,13 @@ pub async fn update_user(
     .bind(preferences_value)
     .fetch_one(&state.pool)
     .await?;
+
+    if password_changed || becoming_disabled {
+        sqlx::query("DELETE FROM sessions WHERE user_id = $1")
+            .bind(id)
+            .execute(&state.pool)
+            .await?;
+    }
 
     Ok(Json(UserPublic::from(user)))
 }

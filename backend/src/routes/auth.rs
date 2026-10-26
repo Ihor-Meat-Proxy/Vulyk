@@ -457,6 +457,12 @@ pub async fn change_password(
     .execute(&state.pool)
     .await?;
 
+    // Invalidate existing sessions so a stolen cookie cannot outlive the password change.
+    sqlx::query("DELETE FROM sessions WHERE user_id = $1")
+        .bind(auth.id())
+        .execute(&state.pool)
+        .await?;
+
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -564,9 +570,7 @@ pub async fn sso_callback(
     }
 
     let (headers, _) = issue_auth_response(&state, user).await?;
-    let dest = redirect_to
-        .filter(|s| s.starts_with('/') || s.starts_with(&base))
-        .unwrap_or_else(|| format!("{}/", base.trim_end_matches('/')));
+    let dest = safe_post_login_redirect(redirect_to.as_deref(), &base);
 
     Ok((headers, Redirect::temporary(&dest)))
 }
@@ -597,12 +601,15 @@ async fn issue_auth_response(
     .execute(&state.pool)
     .await?;
 
-    let cookie = Cookie::build((session_cookie_name(), session_token))
+    let mut cookie = Cookie::build((session_cookie_name(), session_token))
         .http_only(true)
         .path("/")
         .same_site(SameSite::Lax)
-        .max_age(time::Duration::hours(state.auth.session_ttl_hours))
-        .build();
+        .max_age(time::Duration::hours(state.auth.session_ttl_hours));
+    if session_cookie_secure() {
+        cookie = cookie.secure(true);
+    }
+    let cookie = cookie.build();
 
     let mut headers = HeaderMap::new();
     headers.insert(
@@ -622,6 +629,47 @@ async fn issue_auth_response(
     ))
 }
 
+/// Allow only same-origin absolute URLs under `base`, or relative paths that
+/// cannot be protocol-relative (`//evil`) or scheme-bearing.
+pub(crate) fn safe_post_login_redirect(redirect_to: Option<&str>, base: &str) -> String {
+    let fallback = format!("{}/", base.trim_end_matches('/'));
+    let Some(raw) = redirect_to.map(str::trim).filter(|s| !s.is_empty()) else {
+        return fallback;
+    };
+    if raw.contains('\\') || raw.contains('\n') || raw.contains('\r') {
+        return fallback;
+    }
+    // Relative path: must start with a single `/` then a non-slash (blocks `//host`).
+    if raw.starts_with('/') {
+        if raw.starts_with("//") {
+            return fallback;
+        }
+        if raw.contains("://") {
+            return fallback;
+        }
+        return raw.to_string();
+    }
+    // Absolute URL must stay under the configured base (prefix + path boundary).
+    let base_trim = base.trim_end_matches('/');
+    if raw == base_trim || raw == format!("{base_trim}/") {
+        return format!("{base_trim}/");
+    }
+    if let Some(rest) = raw.strip_prefix(base_trim) {
+        if rest.starts_with('/') {
+            return raw.to_string();
+        }
+    }
+    fallback
+}
+
+fn session_cookie_secure() -> bool {
+    if let Ok(v) = std::env::var("VULYK_COOKIE_SECURE") {
+        return matches!(v.to_lowercase().as_str(), "1" | "true" | "yes");
+    }
+    let base = std::env::var("VULYK_BASE_URL").unwrap_or_default();
+    base.starts_with("https://")
+}
+
 fn normalize_email(email: &str) -> AppResult<String> {
     let email = email.trim().to_lowercase();
     if !email.contains('@') || email.len() < 3 {
@@ -634,4 +682,34 @@ fn normalize_email(email: &str) -> AppResult<String> {
 #[allow(dead_code)]
 pub fn auth_user_public(auth: &AuthUser) -> UserPublic {
     UserPublic::from(auth.user.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::safe_post_login_redirect;
+
+    #[test]
+    fn rejects_protocol_relative_redirect() {
+        let base = "https://app.example.com";
+        assert_eq!(
+            safe_post_login_redirect(Some("//evil.example/phish"), base),
+            "https://app.example.com/"
+        );
+        assert_eq!(
+            safe_post_login_redirect(Some("/projects"), base),
+            "/projects"
+        );
+        assert_eq!(
+            safe_post_login_redirect(Some("https://app.example.com/cases"), base),
+            "https://app.example.com/cases"
+        );
+        assert_eq!(
+            safe_post_login_redirect(Some("https://evil.example/"), base),
+            "https://app.example.com/"
+        );
+        assert_eq!(
+            safe_post_login_redirect(Some("https://app.example.com.evil/"), base),
+            "https://app.example.com/"
+        );
+    }
 }

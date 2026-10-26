@@ -29,14 +29,27 @@ pub struct AuthConfig {
     pub session_ttl_hours: i64,
 }
 
+const INSECURE_JWT_DEFAULT: &str = "vulyk-dev-jwt-secret-change-me";
+
 impl AuthConfig {
     pub fn from_env() -> Self {
-        Self {
-            required: require_auth_enabled(),
-            jwt_secret: std::env::var("VULYK_JWT_SECRET").unwrap_or_else(|_| {
+        let required = require_auth_enabled();
+        let jwt_secret = match std::env::var("VULYK_JWT_SECRET") {
+            Ok(s) if !s.is_empty() && s != INSECURE_JWT_DEFAULT => s,
+            Ok(_) | Err(_) if required => {
+                panic!(
+                    "VULYK_JWT_SECRET must be set to a non-default value when auth is required \
+                     (VULYK_AUTH_REQUIRED / VULYK_REQUIRE_AUTH)"
+                );
+            }
+            _ => {
                 tracing::warn!("VULYK_JWT_SECRET unset; using insecure default for local/dev");
-                "vulyk-dev-jwt-secret-change-me".into()
-            }),
+                INSECURE_JWT_DEFAULT.into()
+            }
+        };
+        Self {
+            required,
+            jwt_secret,
             jwt_ttl_hours: std::env::var("VULYK_JWT_TTL_HOURS")
                 .ok()
                 .and_then(|v| v.parse().ok())
