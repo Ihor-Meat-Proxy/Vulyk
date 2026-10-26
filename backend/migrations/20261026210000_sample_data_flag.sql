@@ -46,3 +46,19 @@ SET is_sample = TRUE
 FROM projects p
 WHERE c.project_id = p.id
   AND p.is_sample = TRUE;
+
+-- Rename legacy demo markers so lists show Sample CI / Sample nightly.
+UPDATE test_runs
+SET created_by_name = 'Sample CI'
+WHERE is_sample = TRUE
+  AND created_by_name = 'WALL-E-rror';
+
+UPDATE test_runs
+SET name = regexp_replace(name, '^CI #', 'Sample nightly #')
+WHERE is_sample = TRUE
+  AND name ~ '^CI #[0-9]+';
+
+UPDATE test_runs
+SET name = regexp_replace(name, ' — wall-e ', ' — ', 'i')
+WHERE is_sample = TRUE
+  AND name ILIKE '%wall-e%';

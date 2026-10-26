@@ -228,15 +228,27 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
         "expected sample nightly suites, got {nightly}"
     );
 
-    let wall_e: i64 = sqlx::query_scalar(
+    let sample_ci: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*)::bigint FROM test_runs
-           WHERE created_by_name = 'WALL-E-rror'"#,
+           WHERE is_sample = TRUE AND created_by_name = 'Sample CI'"#,
+    )
+    .fetch_one(&pool)
+    .await
+    .expect("sample-ci");
+    assert!(
+        sample_ci >= 10,
+        "expected Sample CI creator on sample nightlies, got {sample_ci}"
+    );
+
+    let wall_e_sample: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*)::bigint FROM test_runs
+           WHERE is_sample = TRUE AND created_by_name = 'WALL-E-rror'"#,
     )
     .fetch_one(&pool)
     .await
     .expect("wall-e");
     assert_eq!(
-        wall_e, 0,
-        "legacy WALL-E-rror creator should not be re-seeded"
+        wall_e_sample, 0,
+        "legacy WALL-E-rror creator should not appear on is_sample runs"
     );
 }

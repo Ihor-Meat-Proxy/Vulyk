@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import { apiJson, loginApi } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { ADMIN_EMAIL, ADMIN_PASSWORD } from '../fixtures/env'
+import { AdminPage } from '../pages/AdminPage'
 
 test.describe('status badges & sample data', () => {
   test.beforeAll(async ({ request }) => {
@@ -52,7 +53,6 @@ test.describe('status badges & sample data', () => {
     await loginAsAdmin(page)
     await page.goto('/runs')
     const badges = page.getByTestId('runs-list-status-badge')
-    // Page may be empty if route is plans/runs vs CI runs — fall back to sample project switch.
     const projectSelect = page.getByLabel(/project/i)
     if (await projectSelect.count()) {
       const options = await projectSelect.locator('option').allTextContents()
@@ -73,7 +73,10 @@ test.describe('status badges & sample data', () => {
     expect(text.length).toBeGreaterThan(0)
   })
 
-  test('Admin sample data section remove is gated and listed', async ({ page, request }) => {
+  test('Admin sample data section is visible under Settings', async ({
+    page,
+    request,
+  }) => {
     const { token } = await loginApi(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     const status = await apiJson<{ present: boolean }>(
       request,
@@ -84,15 +87,13 @@ test.describe('status badges & sample data', () => {
     expect(status.present).toBe(true)
 
     await loginAsAdmin(page)
-    await page.goto('/admin')
-    // Settings tab
-    const settingsTab = page.getByRole('button', { name: /settings|налашт|paramètres|ajustes|einstellungen/i })
-    if (await settingsTab.count()) {
-      await settingsTab.first().click()
-    }
+    const admin = new AdminPage(page)
+    await admin.open()
+    await admin.openSettingsTab()
     const section = page.getByTestId('admin-sample-data-section')
     await expect(section).toBeVisible({ timeout: 15_000 })
     await expect(page.getByTestId('admin-sample-data-remove-button')).toBeVisible()
     await expect(page.getByTestId('admin-sample-data-reseed-button')).toBeVisible()
+    await expect(page.getByTestId('admin-sample-data-present')).toBeVisible()
   })
 })
