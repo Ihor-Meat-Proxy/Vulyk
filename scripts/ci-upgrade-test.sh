@@ -361,7 +361,7 @@ for label, q in [
         print(f"{label} count dropped: {prev} -> {now}", file=sys.stderr)
         sys.exit(1)
 
-# custom_fields → custom_field_definitions (migration may rename/move rows)
+# custom_fields -> custom_field_definitions (migration may rename/move rows)
 prev_cf = before_entities.get("custom_fields", -1)
 if prev_cf >= 0:
     try:
@@ -381,7 +381,7 @@ if prev_cf >= 0:
             file=sys.stderr,
         )
         sys.exit(1)
-    print(f"ok custom_fields→definitions: {prev_cf} -> {now_defs}")
+    print(f"ok custom_fields->definitions: {prev_cf} -> {now_defs}")
     print(f"ok {label}: {now} (before={prev})")
 
 cfg_id = Path("/tmp/vulyk-upgrade-llm-config-id.txt").read_text().strip()

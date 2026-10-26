@@ -449,12 +449,12 @@ export function CaseDetail({
         tag_names: tagNames,
         change_summary: 'edited in UI',
       })
-      const cfBody = fields.map((f) => ({
-        field_id: f.id,
-        value:
-          fieldValues[f.id] !== undefined
-            ? fieldValues[f.id]
-            : (f.default_value ?? null),
+      // Only persist values the editor touched / loaded into state. Sending every
+      // definition with defaults fails when required fields have null defaults and
+      // also marks the form dirty relative to an empty fieldValues baseline.
+      const cfBody = Object.entries(fieldValues).map(([field_id, value]) => ({
+        field_id,
+        value,
       }))
       if (cfBody.length) {
         await api.setCustomFields(pid, id, cfBody)
