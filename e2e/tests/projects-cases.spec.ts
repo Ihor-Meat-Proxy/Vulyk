@@ -48,17 +48,14 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   const idx = options.findIndex((o) => o.includes(projectKey))
   if (idx >= 0) await select.selectOption({ index: idx })
 
-  // Suite drawer / tree shows Smoke
-  await expect(page.getByRole('button', { name: 'Smoke' })).toBeVisible({
-    timeout: 20_000,
-  })
-
   const cases = new CasesPage(page)
   await cases.open()
 
-  // Folder tree panel is present (SquashTM-style)
+  // Folder tree panel is present (SquashTM-style); Smoke appears there (and may also be in the nav drawer)
   await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
-  await expect(cases.folderTree().getByText('Smoke')).toBeVisible()
+  await expect(cases.folderTree().getByText('Smoke')).toBeVisible({
+    timeout: 20_000,
+  })
 
   const title = `CRUD case ${projectKey}`
   await cases.createCase(title)

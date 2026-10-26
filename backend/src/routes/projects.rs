@@ -13,7 +13,8 @@ use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
 use crate::services::case_keys::{unique_prefix, unique_prefix_for_name, validate_prefix};
 
-const PROJECT_COLS: &str = "id, key, name, description, case_key_prefix, next_case_number, created_at, updated_at";
+const PROJECT_COLS: &str =
+    "id, key, name, description, case_key_prefix, next_case_number, created_at, updated_at";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -44,14 +45,14 @@ pub async fn list_projects(
                 .await?
             }
             Some(user) => {
-                sqlx::query_as::<_, Project>(&format!(
+                sqlx::query_as::<_, Project>(
                     r#"SELECT p.id, p.key, p.name, p.description, p.case_key_prefix,
                               p.next_case_number, p.created_at, p.updated_at
                        FROM projects p
                        INNER JOIN memberships m ON m.project_id = p.id
                        WHERE m.user_id = $1
-                       ORDER BY p.key"#
-                ))
+                       ORDER BY p.key"#,
+                )
                 .bind(user.id())
                 .fetch_all(&state.pool)
                 .await?
@@ -61,11 +62,9 @@ pub async fn list_projects(
             }
         }
     } else {
-        sqlx::query_as::<_, Project>(&format!(
-            "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
-        ))
-        .fetch_all(&state.pool)
-        .await?
+        sqlx::query_as::<_, Project>(&format!("SELECT {PROJECT_COLS} FROM projects ORDER BY key"))
+            .fetch_all(&state.pool)
+            .await?
     };
     Ok(Json(projects))
 }
@@ -206,12 +205,11 @@ pub async fn update_project(
     let description = body.description.unwrap_or(existing.description);
 
     let case_key_prefix = if let Some(raw) = body.case_key_prefix {
-        let case_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*)::bigint FROM test_cases WHERE project_id = $1",
-        )
-        .bind(id)
-        .fetch_one(&state.pool)
-        .await?;
+        let case_count: i64 =
+            sqlx::query_scalar("SELECT COUNT(*)::bigint FROM test_cases WHERE project_id = $1")
+                .bind(id)
+                .fetch_one(&state.pool)
+                .await?;
         let tombstone_count: i64 = sqlx::query_scalar(
             "SELECT COUNT(*)::bigint FROM case_key_tombstones WHERE project_id = $1",
         )

@@ -465,13 +465,12 @@ pub async fn delete_case(
     )
     .await?;
     let mut tx = state.pool.begin().await?;
-    let key: Option<String> = sqlx::query_scalar(
-        "SELECT key FROM test_cases WHERE project_id = $1 AND id = $2",
-    )
-    .bind(project_id)
-    .bind(case_id)
-    .fetch_optional(&mut *tx)
-    .await?;
+    let key: Option<String> =
+        sqlx::query_scalar("SELECT key FROM test_cases WHERE project_id = $1 AND id = $2")
+            .bind(project_id)
+            .bind(case_id)
+            .fetch_optional(&mut *tx)
+            .await?;
     let Some(key) = key else {
         return Err(AppError::NotFound("case".into()));
     };
@@ -522,13 +521,12 @@ pub async fn bulk_cases(
     let action = body.action.as_str();
     let affected = match action {
         "delete" => {
-            let keys: Vec<(String,)> = sqlx::query_as(
-                "SELECT key FROM test_cases WHERE project_id = $1 AND id = ANY($2)",
-            )
-            .bind(project_id)
-            .bind(&body.case_ids)
-            .fetch_all(&mut *tx)
-            .await?;
+            let keys: Vec<(String,)> =
+                sqlx::query_as("SELECT key FROM test_cases WHERE project_id = $1 AND id = ANY($2)")
+                    .bind(project_id)
+                    .bind(&body.case_ids)
+                    .fetch_all(&mut *tx)
+                    .await?;
             for (key,) in &keys {
                 retire_case_key(&mut tx, project_id, key).await?;
             }

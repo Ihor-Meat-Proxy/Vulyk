@@ -113,7 +113,7 @@ pub async fn create_suite(
         }
     }
 
-    let suite = sqlx::query_as::<_, Suite>(&format!(
+    let suite = sqlx::query_as::<_, Suite>(
         r#"WITH inserted AS (
              INSERT INTO suites (project_id, parent_id, name, sort_order)
              VALUES ($1, $2, $3, $4)
@@ -121,8 +121,8 @@ pub async fn create_suite(
            )
            SELECT i.id, i.project_id, i.parent_id, i.name, i.sort_order,
                   i.created_at, i.updated_at, 0::bigint AS case_count
-           FROM inserted i"#
-    ))
+           FROM inserted i"#,
+    )
     .bind(project_id)
     .bind(body.parent_id)
     .bind(body.name.trim())
