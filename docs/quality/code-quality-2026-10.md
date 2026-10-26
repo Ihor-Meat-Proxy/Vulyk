@@ -154,13 +154,13 @@ flowchart LR
 
 Track landing of mechanical P0/P1 fixes in focused PRs (rebase on latest `main` before merge; never hardcode `VQA-*` seed keys; use `TestIds`).
 
-| Theme | Status |
-|-------|--------|
-| This report (`docs/quality/code-quality-2026-10.md`) | This PR |
-| Report download headers + PDF expect removal | Planned sibling PR |
-| Ingest batch denorm updates + warn | Planned sibling PR |
-| CaseDetail/Chat stable keys + effect fix | Planned sibling PR |
-| Argon2 spawn_blocking | Planned sibling PR |
+| Theme | PR |
+|-------|-----|
+| This report (`docs/quality/code-quality-2026-10.md`) | [#41](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/41) |
+| Report download headers + PDF expect removal | [#47](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/47) |
+| Ingest batch denorm updates + warn | [#52](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/52) |
+| CaseDetail/Chat stable keys + effect fix | [#53](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/53) |
+| Argon2 spawn_blocking | [#55](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/55) |
 
 ## References
 
