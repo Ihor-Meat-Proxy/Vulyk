@@ -256,7 +256,8 @@ pub async fn requirement_coverage(
         if row.linked_cases > 0 {
             covered += 1;
         }
-        let coverage_percent = if row.linked_cases == 0 { 0.0 } else { 100.0 };
+        let coverage_percent =
+            requirement_link_coverage_percent(row.linked_cases, row.cases_with_results);
         let decided = row.cases_passed + row.cases_failed;
         let pass_percent = if decided == 0 {
             0.0
@@ -652,6 +653,15 @@ pub fn dashboard_pdf_lines(dash: &ProjectDashboard) -> Vec<String> {
     lines
 }
 
+/// Per-requirement coverage: share of linked cases that have ≥1 result.
+pub fn requirement_link_coverage_percent(linked_cases: i64, cases_with_results: i64) -> f64 {
+    if linked_cases <= 0 {
+        0.0
+    } else {
+        (cases_with_results as f64) / (linked_cases as f64) * 100.0
+    }
+}
+
 fn csv_escape(s: &str) -> String {
     if s.contains(',') || s.contains('"') || s.contains('\n') {
         format!("\"{}\"", s.replace('"', "\"\""))
@@ -670,4 +680,19 @@ fn pdf_escape(s: &str) -> String {
             _ => "?".to_string(),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::requirement_link_coverage_percent;
+
+    #[test]
+    fn link_coverage_percent_is_proportional() {
+        assert_eq!(requirement_link_coverage_percent(0, 0), 0.0);
+        assert_eq!(requirement_link_coverage_percent(4, 0), 0.0);
+        assert_eq!(requirement_link_coverage_percent(4, 2), 50.0);
+        assert_eq!(requirement_link_coverage_percent(4, 4), 100.0);
+        // Must not collapse any non-zero link count to a binary 100%.
+        assert!(requirement_link_coverage_percent(10, 1) < 100.0);
+    }
 }
