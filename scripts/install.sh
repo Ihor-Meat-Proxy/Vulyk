@@ -71,7 +71,7 @@ Modes:
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
   --admin-password=PASSWORD
-  --locale=en|uk
+  --locale=en|uk|fr|es|de
   --timezone=TZ            e.g. UTC, Europe/Kyiv
   --registration-mode=MODE open | invite | disabled
   --instance-name=NAME
@@ -227,8 +227,8 @@ prompt_secret_confirm() {
 
 validate_locale() {
   case "$1" in
-    en|uk) return 0 ;;
-    *) die "locale must be en or uk (got: $1)" ;;
+    en|uk|fr|es|de) return 0 ;;
+    *) die "locale must be en, uk, fr, es, or de (got: $1)" ;;
   esac
 }
 
@@ -293,7 +293,7 @@ collect_setup_options() {
       fi
     fi
   fi
-  DEFAULT_LOCALE="$(prompt_default "Locale (en/uk)" "${DEFAULT_LOCALE:-${def_locale}}")"
+  DEFAULT_LOCALE="$(prompt_default "Locale (en/uk/fr/es/de)" "${DEFAULT_LOCALE:-${def_locale}}")"
   DEFAULT_TIMEZONE="$(prompt_default "Timezone" "${DEFAULT_TIMEZONE:-${def_tz}}")"
   REGISTRATION_MODE="$(prompt_default "Registration mode (open/invite/disabled)" "${REGISTRATION_MODE:-${def_reg}}")"
   INSTANCE_NAME="$(prompt_default "Instance name" "${INSTANCE_NAME:-${def_name}}")"

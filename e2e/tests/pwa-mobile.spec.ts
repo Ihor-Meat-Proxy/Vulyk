@@ -64,8 +64,19 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await bottom.getByRole('link', { name: /Runs|Прогони/i }).click()
     await expect(page.getByRole('heading', { name: /Start a run/i })).toBeVisible()
 
-    await bottom.getByRole('link', { name: /Admin|Адмін/i }).click()
-    await expect(page.getByRole('heading', { name: /Admin|Адмін/i })).toBeVisible()
+    await expect(bottom.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(0)
+
+    await page
+      .getByRole('button', {
+        name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
+      })
+      .click()
+    await page
+      .getByRole('menuitem', {
+        name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
+      })
+      .click()
+    await expect(page.getByRole('heading', { name: /Admin|Адмін|Administration/i })).toBeVisible()
     await expect(page.getByRole('tablist')).toBeVisible()
   })
 

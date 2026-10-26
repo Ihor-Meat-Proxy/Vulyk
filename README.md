@@ -29,7 +29,7 @@ Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Hel
 | Admin | `admin@vulyk.local` | `admin` (must change on first login) |
 | Demo | `user@vulyk.local` | `user` |
 
-Env vars: see [`.env.example`](.env.example) and [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md).
+Env vars: see [`.env.example`](.env.example) and [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md). UI languages: **en**, **uk**, **fr**, **es**, **de** (`--locale` / `VULYK_DEFAULT_LOCALE`; switch anytime via the header globe menu).
 
 ### Production Compose (auth required)
 

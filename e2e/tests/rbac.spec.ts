@@ -95,6 +95,16 @@ test('admin sees admin nav and can list users', async ({ page, request }) => {
     page
       .getByRole('navigation', { name: 'Primary' })
       .getByRole('link', { name: /Admin|Адмін/i }),
+  ).toHaveCount(0)
+  await page
+    .getByRole('button', {
+      name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
+    })
+    .click()
+  await expect(
+    page.getByRole('menuitem', {
+      name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
+    }),
   ).toBeVisible()
   expect(ADMIN_EMAIL).toBeTruthy()
   expect(ADMIN_PASSWORD.length).toBeGreaterThanOrEqual(8)

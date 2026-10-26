@@ -476,17 +476,21 @@ def build() -> dict:
                     "Admin",
                     cases=[
                         case(
-                            "Admin sees Admin nav and users list",
-                            title_uk="Admin бачить навігацію Admin і список користувачів",
-                            desc_en="System/project admin can open Admin and list users.",
-                            pre_en=f"Signed in as system admin. {ADMIN}.",
+                            "Admin opens Admin settings from gear user menu",
+                            title_uk="Admin відкриває адмін-налаштування з меню шестерні",
+                            desc_en="System/project admin opens Admin via gear menu (not left nav).",
+                            pre_en=f"Signed in as system admin. {ADMIN}. Appearance/Admin are not in Primary left nav.",
                             priority="critical",
-                            tags=["smoke", "regression", "e2e", "rbac"],
-                            external_key="e2e:rbac.spec.ts",
+                            tags=["smoke", "regression", "e2e", "rbac", "header"],
+                            external_key="e2e:header-menu.spec.ts",
                             steps=[
                                 step(
-                                    "Click Primary nav link Admin.",
-                                    "Admin page loads; users list is visible.",
+                                    "Confirm Primary left nav has no Admin or Appearance links.",
+                                    "Cases/Runs/… present; Admin and Appearance absent from sidebar.",
+                                ),
+                                step(
+                                    "Open gear User menu (aria-label User menu / Мої…); choose Admin settings.",
+                                    "Admin page loads; users list is visible. Menu header shows avatar initials + name/email.",
                                 ),
                             ],
                         ),
@@ -2001,30 +2005,106 @@ def build() -> dict:
             "17. i18n",
             cases=[
                 case(
-                    "Switch UI locale to Ukrainian",
-                    title_uk="Перемкнути локаль UI на українську",
-                    desc_en="Locale select updates nav labels to UK.",
-                    pre_en="Signed-in user.",
-                    priority="high",
-                    tags=["regression", "e2e", "i18n"],
+                    "Globe language menu lists native names with checkmark",
+                    title_uk="Меню мови (глобус) показує рідні назви з галочкою",
+                    desc_en="Compact globe button opens accessible language menu.",
+                    pre_en="Signed-in user. Header shows globe icon (aria-label Language), not a Language label+select.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "i18n", "header", "a11y"],
+                    external_key="e2e:locale-switch.spec.ts",
                     steps=[
                         step(
-                            "Change locale to uk via locale control.",
-                            "Primary nav shows Кейси / Прогони / Звіти (as applicable); html lang reflects uk.",
+                            "Click globe Language button; inspect menu.",
+                            "Menu lists English, Українська, Français, Español, Deutsch; current locale has checkmark; Escape closes; keyboard arrows move focus.",
                         ),
                     ],
                 ),
                 case(
-                    "Switch UI locale back to English",
-                    title_uk="Повернути локаль UI на англійську",
-                    desc_en="EN labels restore.",
-                    pre_en="UI currently uk.",
-                    priority="medium",
-                    tags=["regression", "i18n"],
+                    "Switch UI locale to Ukrainian via globe menu",
+                    title_uk="Перемкнути локаль UI на українську через меню глобуса",
+                    desc_en="Choosing Українська updates nav labels and persists.",
+                    pre_en="Signed-in user.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
                     steps=[
                         step(
-                            "Select locale en.",
-                            "Nav shows Cases / Runs / Reports.",
+                            "Open globe menu; choose Українська.",
+                            "Primary nav shows Кейси / Прогони / Звіти (as applicable); html[lang]=uk; preference stored for user / localStorage when anonymous.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Switch UI locale to French via globe menu",
+                    title_uk="Перемкнути локаль UI на французьку через меню глобуса",
+                    desc_en="Français labels use QA terms (cas de test, exécution de test).",
+                    pre_en="Signed-in user.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Open globe menu; choose Français.",
+                            "Nav shows Cas de test / Exécutions de test / Rapports; html[lang]=fr.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Switch UI locale to Spanish via globe menu",
+                    title_uk="Перемкнути локаль UI на іспанську через меню глобуса",
+                    desc_en="Español labels use QA terms (casos de prueba, ejecuciones de pruebas).",
+                    pre_en="Signed-in user.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Open globe menu; choose Español.",
+                            "Nav shows Casos de prueba / Ejecuciones de pruebas / Informes; html[lang]=es.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Switch UI locale to German via globe menu",
+                    title_uk="Перемкнути локаль UI на німецьку через меню глобуса",
+                    desc_en="Deutsch labels use QA terms (Testfälle, Testläufe).",
+                    pre_en="Signed-in user.",
+                    priority="high",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Open globe menu; choose Deutsch.",
+                            "Nav shows Testfälle / Testläufe / Berichte; html[lang]=de.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Switch UI locale back to English via globe menu",
+                    title_uk="Повернути локаль UI на англійську через меню глобуса",
+                    desc_en="EN labels restore.",
+                    pre_en="UI currently non-English.",
+                    priority="medium",
+                    tags=["regression", "e2e", "i18n"],
+                    external_key="e2e:locale-switch.spec.ts",
+                    steps=[
+                        step(
+                            "Open globe menu; choose English.",
+                            "Nav shows Cases / Runs / Reports; html[lang]=en.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Install/setup accepts fr es de locales",
+                    title_uk="Setup приймає локалі fr, es, de",
+                    desc_en="--locale / wizard / Admin Settings offer en uk fr es de.",
+                    pre_en="Setup CLI, install.sh, or web wizard available.",
+                    priority="medium",
+                    tags=["regression", "i18n", "setup"],
+                    steps=[
+                        step(
+                            "Run setup with --locale=fr (or select Français in wizard/Admin Settings).",
+                            "default_locale persisted as fr; UI defaults to French for new sessions until user overrides.",
                         ),
                     ],
                 ),
@@ -2032,27 +2112,136 @@ def build() -> dict:
                     "Instance default locale from setup applies to new sessions",
                     title_uk="Локаль інстансу з setup застосовується до нових сесій",
                     desc_en="default_locale setting.",
-                    pre_en="Admin can set default locale.",
+                    pre_en="Admin can set default locale via gear → Admin settings.",
                     priority="low",
                     tags=["regression", "i18n", "setup"],
                     steps=[
                         step(
                             "Set default locale uk in Admin Settings; open fresh browser profile login.",
-                            "Default strings prefer UK until user overrides.",
+                            "Default strings prefer UK until user overrides via globe menu.",
                         ),
                     ],
                 ),
                 case(
                     "Bilingual sample content picks locale",
                     title_uk="Двомовний sample-контент обирає локаль",
-                    desc_en="Seeded Vulyk QA / Kyiv names follow instance locale at seed time.",
+                    desc_en="Seeded Vulyk QA / Kyiv names follow instance locale at seed time (fr/es/de fall back to EN when not translated).",
                     pre_en="Re-seed or inspect existing; locale was en at seed.",
                     priority="low",
                     tags=["regression", "i18n", "setup"],
                     steps=[
                         step(
                             "Inspect seeded project/suite names.",
-                            "EN locale seed stores English names; UK locale seed stores Ukrainian names.",
+                            "EN locale seed stores English names; UK locale seed stores Ukrainian names; fr/es/de use translated fields when present else EN.",
+                        ),
+                    ],
+                ),
+            ],
+        ),
+        # ── 17b Header user menu & settings ─────────────────────────────
+        suite(
+            "17b. Header & settings",
+            "17b. Шапка та налаштування",
+            cases=[
+                case(
+                    "Gear user menu shows profile header and core items",
+                    title_uk="Меню шестерні показує профіль і основні пункти",
+                    desc_en="Gear opens accessible user menu beside the globe.",
+                    pre_en="Signed-in user.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "header", "a11y"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "Click gear User menu button.",
+                            "Menu shows avatar/initials, display name, email; items include My settings, Appearance, Help/API docs, Log out; mode badge (Open mode or Auth required) visible.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Gear menu Admin settings only for admins",
+                    title_uk="Пункт Admin settings лише для адмінів",
+                    desc_en="Viewer/non-admin does not see Admin settings; admin does.",
+                    pre_en="Compare admin vs viewer session on same project.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "rbac", "header"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "As viewer, open gear menu.",
+                            "Admin settings item absent.",
+                        ),
+                        step(
+                            "As admin, open gear menu.",
+                            "Admin settings item present and navigates to /admin.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Appearance opens from gear menu not left nav",
+                    title_uk="Вигляд відкривається з меню шестерні, не з лівої навігації",
+                    desc_en="Appearance removed from Primary sidebar; reachable via gear.",
+                    pre_en="Signed-in user.",
+                    priority="high",
+                    tags=["regression", "e2e", "appearance", "header"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "Confirm Appearance absent from Primary left nav; open gear → Appearance.",
+                            "/appearance loads with theme controls.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Log out from gear menu; Sign in when anonymous",
+                    title_uk="Вихід з меню шестерні; Увійти для аноніма",
+                    desc_en="Authenticated users see Log out; open-mode anonymous sees Sign in.",
+                    pre_en="Auth may be open locally.",
+                    priority="high",
+                    tags=["regression", "e2e", "header", "auth"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "While signed in, open gear → Log out.",
+                            "Session ends; login panel or Sign in affordance appears as configured.",
+                        ),
+                        step(
+                            "In open mode without session, open gear menu.",
+                            "Shows Sign in (not Log out); mode badge Open mode.",
+                        ),
+                    ],
+                ),
+                case(
+                    "My settings page edits profile language timezone password tokens",
+                    title_uk="Сторінка Мої налаштування: профіль, мова, TZ, пароль, токени",
+                    desc_en="/settings covers name, email (readonly), language, timezone, notifications, password, own API tokens.",
+                    pre_en="Signed-in user with manage_api_tokens (or admin) for token section.",
+                    priority="high",
+                    tags=["regression", "e2e", "settings", "header"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "Gear → My settings; change display name and timezone; save.",
+                            "Success notice; values persist after reload.",
+                        ),
+                        step(
+                            "Toggle notification prefs; change password with valid strength; create/revoke personal API token when permitted.",
+                            "Prefs saved; password update succeeds; token secret shown once then listed/revocable.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Open-mode badge lives in gear menu not topbar text",
+                    title_uk="Бейдж Open mode у меню шестерні, не текстом у topbar",
+                    desc_en="Header stays clean; mode shown as badge inside user menu.",
+                    pre_en="Instance with auth_required=false (compose default).",
+                    priority="medium",
+                    tags=["regression", "e2e", "header"],
+                    external_key="e2e:header-menu.spec.ts",
+                    steps=[
+                        step(
+                            "Inspect topbar; open gear menu.",
+                            "No standalone 'Open mode' text in topbar actions; mode-badge inside menu shows Open mode.",
                         ),
                     ],
                 ),
@@ -2067,7 +2256,7 @@ def build() -> dict:
                     "Apply Light, Dark, High contrast, and Sepia themes",
                     title_uk="Застосувати теми Light, Dark, High contrast і Sepia",
                     desc_en="Appearance page theme choices persist on html data-theme.",
-                    pre_en="Open /appearance.",
+                    pre_en="Open /appearance via gear User menu → Appearance (not left nav).",
                     priority="critical",
                     tags=["smoke", "regression", "e2e", "appearance"],
                     external_key="e2e:appearance.spec.ts",
@@ -2082,7 +2271,7 @@ def build() -> dict:
                     "System theme follows prefers-color-scheme",
                     title_uk="Системна тема слідує prefers-color-scheme",
                     desc_en="System option.",
-                    pre_en="Appearance System selected.",
+                    pre_en="Appearance System selected (gear → Appearance).",
                     priority="medium",
                     tags=["regression", "appearance"],
                     steps=[
@@ -2096,7 +2285,7 @@ def build() -> dict:
                     "Font scale and density controls",
                     title_uk="Масштаб шрифту і щільність",
                     desc_en="Font size steps and Comfortable/Compact.",
-                    pre_en="/appearance.",
+                    pre_en="/appearance via gear menu.",
                     priority="medium",
                     tags=["regression", "e2e", "appearance"],
                     external_key="e2e:appearance.spec.ts",
@@ -2126,7 +2315,7 @@ def build() -> dict:
                     "Reduced motion preference honoured",
                     title_uk="Повага до reduced motion",
                     desc_en="Appearance reduced motion setting.",
-                    pre_en="/appearance.",
+                    pre_en="/appearance via gear menu.",
                     priority="low",
                     tags=["regression", "appearance", "a11y"],
                     steps=[
@@ -2144,17 +2333,21 @@ def build() -> dict:
             "19. PWA і мобільний",
             cases=[
                 case(
-                    "Mobile bottom nav Cases/Runs/Reports/Admin",
-                    title_uk="Мобільна нижня навігація Cases/Runs/Reports/Admin",
-                    desc_en="Narrow viewport shows Mobile primary nav.",
+                    "Mobile bottom nav Cases/Runs/Reports; Admin via gear",
+                    title_uk="Мобільна нижня навігація Cases/Runs/Reports; Admin через шестерню",
+                    desc_en="Narrow viewport shows Mobile primary nav without Admin; Admin/Appearance via gear.",
                     pre_en="Chromium mobile viewport; signed in.",
                     priority="critical",
-                    tags=["smoke", "regression", "e2e", "mobile", "pwa"],
+                    tags=["smoke", "regression", "e2e", "mobile", "pwa", "header"],
                     external_key="e2e:pwa-mobile.spec.ts",
                     steps=[
                         step(
                             "Set viewport to mobile; locate navigation name Mobile primary.",
-                            "Bottom nav links for Cases, Runs, Reports (Admin if permitted) work.",
+                            "Bottom nav links for Cases, Runs, Reports work; Admin not in bottom nav.",
+                        ),
+                        step(
+                            "Open gear User menu on mobile header.",
+                            "Menu usable; Appearance and Admin settings (if permitted) reachable; globe language menu also works.",
                         ),
                     ],
                 ),
@@ -2652,8 +2845,8 @@ def build() -> dict:
             "key": "VULYK_QA",
             "name": L("Vulyk QA", "Vulyk QA"),
             "description": L(
-                "Pre-seeded QA project covering Vulyk's own product surfaces: setup, auth, RBAC, projects, cases, runs, import, LLM, MCP, i18n, appearance, PWA, and performance. Case keys use prefix VQA. Linked to Playwright specs via external_key where covered.",
-                "Попередньо засіяний QA-проєкт, що покриває функціональність самого Vulyk: setup, auth, RBAC, проєкти, кейси, прогони, імпорт, LLM, MCP, i18n, вигляд, PWA та продуктивність. Ключі з префіксом VQA. Прив'язка до Playwright через external_key.",
+                "Pre-seeded QA project covering Vulyk's own product surfaces: setup, auth, RBAC, projects, cases, runs, import, LLM, MCP, i18n (en/uk/fr/es/de via globe menu), header user menu/settings, appearance, PWA, and performance. Case keys use prefix VQA. Linked to Playwright specs via external_key where covered.",
+                "Попередньо засіяний QA-проєкт, що покриває функціональність самого Vulyk: setup, auth, RBAC, проєкти, кейси, прогони, імпорт, LLM, MCP, i18n (en/uk/fr/es/de через меню-глобус), меню користувача/налаштування, вигляд, PWA та продуктивність. Ключі з префіксом VQA. Прив'язка до Playwright через external_key.",
             ),
         },
         "suites": suites,

@@ -41,6 +41,15 @@ pub struct UserPreferences {
     /// `None` = follow `prefers-reduced-motion`; `Some(true/false)` overrides.
     #[serde(default)]
     pub reduced_motion: Option<bool>,
+    /// Email notification preference.
+    #[serde(default = "default_true")]
+    pub notify_email: bool,
+    /// In-app notification preference.
+    #[serde(default = "default_true")]
+    pub notify_in_app: bool,
+    /// Notify on test-run status updates.
+    #[serde(default = "default_true")]
+    pub notify_run_updates: bool,
 }
 
 fn default_theme() -> String {
@@ -55,6 +64,10 @@ fn default_density() -> String {
     DENSITY_COMFORTABLE.to_string()
 }
 
+fn default_true() -> bool {
+    true
+}
+
 impl Default for UserPreferences {
     fn default() -> Self {
         Self {
@@ -62,6 +75,9 @@ impl Default for UserPreferences {
             font_size: default_font_size(),
             density: default_density(),
             reduced_motion: None,
+            notify_email: true,
+            notify_in_app: true,
+            notify_run_updates: true,
         }
     }
 }
@@ -109,6 +125,15 @@ impl UserPreferences {
         if let Some(rm) = &patch.reduced_motion {
             self.reduced_motion = *rm;
         }
+        if let Some(v) = patch.notify_email {
+            self.notify_email = v;
+        }
+        if let Some(v) = patch.notify_in_app {
+            self.notify_in_app = v;
+        }
+        if let Some(v) = patch.notify_run_updates {
+            self.notify_run_updates = v;
+        }
         Ok(())
     }
 }
@@ -121,6 +146,9 @@ pub struct UpdatePreferences {
     /// Pass `null` explicitly to clear override and follow system again.
     #[serde(default, deserialize_with = "deserialize_optional_bool")]
     pub reduced_motion: Option<Option<bool>>,
+    pub notify_email: Option<bool>,
+    pub notify_in_app: Option<bool>,
+    pub notify_run_updates: Option<bool>,
 }
 
 fn deserialize_optional_bool<'de, D>(deserializer: D) -> Result<Option<Option<bool>>, D::Error>
@@ -175,6 +203,7 @@ mod tests {
             font_size: Some(112),
             density: Some("compact".into()),
             reduced_motion: Some(Some(true)),
+            ..Default::default()
         })
         .unwrap();
         assert_eq!(p.theme, THEME_HIGH_CONTRAST);

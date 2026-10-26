@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, type RegistrationMode } from '../api'
 import { useAuth } from '../auth'
-import { useI18n } from '../i18n'
+import { LOCALES, normalizeLocale, useI18n, type Locale } from '../i18n'
 import { browserTimeZone } from '../timezone'
 
 function passwordLooksStrong(password: string): boolean {
@@ -24,8 +24,8 @@ export function SetupWizard() {
   const [baseUrl, setBaseUrl] = useState(
     typeof window !== 'undefined' ? window.location.origin : '',
   )
-  const [locale, setLocale] = useState<'en' | 'uk'>(
-    status?.default_locale === 'uk' ? 'uk' : 'en',
+  const [locale, setLocale] = useState<Locale>(
+    () => normalizeLocale(status?.default_locale) ?? 'en',
   )
   const [timezone, setTimezone] = useState(
     () => status?.default_timezone || browserTimeZone(),
@@ -152,10 +152,14 @@ export function SetupWizard() {
           <span>{t('setup.locale')}</span>
           <select
             value={locale}
-            onChange={(e) => setLocale(e.target.value as 'en' | 'uk')}
+            aria-label={t('setup.locale')}
+            onChange={(e) => setLocale(e.target.value as Locale)}
           >
-            <option value="en">English</option>
-            <option value="uk">Українська</option>
+            {LOCALES.map((meta) => (
+              <option key={meta.code} value={meta.code}>
+                {meta.nativeName}
+              </option>
+            ))}
           </select>
         </label>
         <label className="field">

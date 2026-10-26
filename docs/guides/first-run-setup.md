@@ -8,7 +8,7 @@ Complete Vulyk setup by creating the first system admin, instance name, locale/t
 |---------|------------|--------|
 | Admin email | `VULYK_ADMIN_EMAIL` / `--admin-email` | Default local: `admin@vulyk.local` |
 | Admin password | `VULYK_ADMIN_PASSWORD` / `--admin-password` | Env seed accepts short `admin` (forces change). CLI requires ≥8 chars + letter + digit |
-| Locale | `VULYK_DEFAULT_LOCALE` / `--locale` | `en` or `uk` |
+| Locale | `VULYK_DEFAULT_LOCALE` / `--locale` | `en`, `uk`, `fr`, `es`, or `de` |
 | Timezone | `VULYK_DEFAULT_TIMEZONE` / `--timezone` | e.g. `UTC`, `Europe/Kyiv` |
 | Registration | `VULYK_REGISTRATION_MODE` / `--registration-mode` | `open` \| `invite` \| `disabled` |
 | Instance name | `VULYK_INSTANCE_NAME` / `--instance-name` | |

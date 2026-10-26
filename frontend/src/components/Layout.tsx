@@ -1,11 +1,13 @@
 import { useEffect, useId, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { Project } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
-import { useI18n, type Locale } from '../i18n'
+import { useI18n } from '../i18n'
 import { BottomNav } from './BottomNav'
+import { LanguageMenu } from './LanguageMenu'
 import { PwaToasts } from './PwaToasts'
+import { UserMenu } from './UserMenu'
 
 type Props = {
   projects: Project[]
@@ -13,9 +15,14 @@ type Props = {
   onSelectProject: (id: string) => void
 }
 
+function docsUrl(): string {
+  const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
+  return `${base.replace(/\/$/, '')}/api/docs`
+}
+
 export function Layout({ projects, project, onSelectProject }: Props) {
-  const { user, logout, status } = useAuth()
-  const { t, locale, setLocale } = useI18n()
+  const { user, status } = useAuth()
+  const { t } = useI18n()
   const { can } = useProjectPermissions(project?.id ?? null)
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -83,10 +90,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             {t('nav.cases')}
           </NavLink>
           {can('manage_requirements') || can('view_project') ? (
-            <NavLink
-              to="/requirements"
-              onClick={() => setDrawerOpen(false)}
-            >
+            <NavLink to="/requirements" onClick={() => setDrawerOpen(false)}>
               {t('nav.requirements')}
             </NavLink>
           ) : null}
@@ -121,14 +125,6 @@ export function Layout({ projects, project, onSelectProject }: Props) {
               {t('nav.reports')}
             </NavLink>
           ) : null}
-          {showAdmin ? (
-            <NavLink to="/admin" onClick={() => setDrawerOpen(false)}>
-              {t('nav.admin')}
-            </NavLink>
-          ) : null}
-          <NavLink to="/appearance" onClick={() => setDrawerOpen(false)}>
-            {t('nav.appearance')}
-          </NavLink>
         </nav>
       </aside>
 
@@ -147,22 +143,8 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             <h1>{project ? project.name : status?.instance_name || 'Vulyk'}</h1>
           </div>
           <div className="topbar-actions">
-            <label>
-              <span className="muted" style={{ marginRight: '0.5rem' }}>
-                {t('nav.locale')}
-              </span>
-              <select
-                className="locale-select"
-                value={locale}
-                aria-label={t('nav.locale')}
-                onChange={(e) => void setLocale(e.target.value as Locale)}
-              >
-                <option value="en">EN</option>
-                <option value="uk">UK</option>
-              </select>
-            </label>
-            <label>
-              <span className="muted" style={{ marginRight: '0.5rem' }}>
+            <label className="project-field">
+              <span className="muted project-field-label">
                 {t('nav.project')}
               </span>
               <select
@@ -180,36 +162,16 @@ export function Layout({ projects, project, onSelectProject }: Props) {
                 ))}
               </select>
             </label>
-            {user ? (
-              <div className="user-chip">
-                <Link className="appearance-link" to="/appearance">
-                  {t('nav.appearance')}
-                </Link>
-                <span>{user.display_name}</span>
-                <button
-                  type="button"
-                  className="btn secondary"
-                  onClick={() => void logout()}
-                >
-                  {t('nav.signOut')}
-                </button>
-              </div>
-            ) : (
-              <>
-                <Link className="appearance-link desktop-only" to="/appearance">
-                  {t('nav.appearance')}
-                </Link>
-                {status && !status.auth_required ? (
-                  <span className="muted">{t('nav.openMode')}</span>
-                ) : null}
-              </>
-            )}
+            <div className="topbar-icons">
+              <LanguageMenu />
+              <UserMenu showAdmin={showAdmin} docsUrl={docsUrl()} />
+            </div>
           </div>
         </header>
         <main className="content">
           <Outlet />
         </main>
-        <BottomNav showAdmin={showAdmin} showReports={can('view_reports')} />
+        <BottomNav showReports={can('view_reports')} />
       </div>
     </div>
   )

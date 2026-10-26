@@ -42,7 +42,7 @@ Seeded users with the well-known local password `admin`, or with `VULYK_ADMIN_MU
 | `VULYK_ADMIN_MUST_CHANGE` | `false` | Force password change after seed |
 | `VULYK_SEED_DEMO` | `0` | Seed demo user `user@vulyk.local` / `user` |
 | `VULYK_INSTANCE_NAME` | `Vulyk` | Instance display name |
-| `VULYK_DEFAULT_LOCALE` | `en` | Default locale (`en` / `uk`) |
+| `VULYK_DEFAULT_LOCALE` | `en` | Default locale (`en` / `uk` / `fr` / `es` / `de`) |
 | `VULYK_DEFAULT_TIMEZONE` | `UTC` | Default timezone |
 | `VULYK_REGISTRATION_MODE` | `disabled` | `open` \| `invite` \| `disabled` |
 | `VULYK_BASE_URL` | (empty) | Public API/UI base URL (SSO callbacks) |

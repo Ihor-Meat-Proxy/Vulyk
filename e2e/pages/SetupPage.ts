@@ -22,7 +22,7 @@ export class SetupPage {
     email: string
     password: string
     displayName?: string
-    locale?: 'en' | 'uk'
+    locale?: 'en' | 'uk' | 'fr' | 'es' | 'de'
     timezone?: string
     registrationMode?: 'open' | 'invite' | 'disabled'
   }) {

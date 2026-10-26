@@ -1103,9 +1103,16 @@ function SettingsPanel({
         </label>
         <label className="field">
           <span>{t('setup.locale')}</span>
-          <select value={locale} onChange={(e) => setLocale(e.target.value)}>
+          <select
+            value={locale}
+            aria-label={t('setup.locale')}
+            onChange={(e) => setLocale(e.target.value)}
+          >
             <option value="en">English</option>
             <option value="uk">Українська</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
           </select>
         </label>
         <label className="field">

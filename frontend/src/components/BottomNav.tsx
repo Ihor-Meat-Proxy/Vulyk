@@ -2,13 +2,12 @@ import { NavLink } from 'react-router-dom'
 import { useI18n } from '../i18n'
 
 type Props = {
-  showAdmin?: boolean
   showReports?: boolean
 }
 
 type NavItem = { to: string; end: boolean; label: string }
 
-export function BottomNav({ showAdmin = true, showReports = true }: Props) {
+export function BottomNav({ showReports = true }: Props) {
   const { t } = useI18n()
   const items: NavItem[] = [
     { to: '/', end: true, label: t('nav.cases') },
@@ -17,9 +16,6 @@ export function BottomNav({ showAdmin = true, showReports = true }: Props) {
   ]
   if (showReports) {
     items.push({ to: '/reports', end: false, label: t('nav.reports') })
-  }
-  if (showAdmin) {
-    items.push({ to: '/admin', end: false, label: t('nav.admin') })
   }
 
   return (

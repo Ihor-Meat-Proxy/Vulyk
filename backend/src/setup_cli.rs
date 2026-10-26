@@ -37,7 +37,7 @@ pub struct SetupArgs {
     #[arg(long, env = "VULYK_BASE_URL")]
     pub base_url: Option<String>,
 
-    /// Default locale (e.g. en)
+    /// Default locale: en | uk | fr | es | de
     #[arg(long, env = "VULYK_DEFAULT_LOCALE")]
     pub locale: Option<String>,
 
