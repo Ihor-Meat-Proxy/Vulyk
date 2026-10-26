@@ -68,7 +68,7 @@ stored `DEMO-1` lands in `unmatched_case_keys` and drops the result.
 **Fix:** Normalize with `normalize_case_key` / `upper(key) = $2` before lookup
 (same as `find_case_by_key`).
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49
 
 ### 4. **bug** — Bulk PDF export has no `case_ids` cap
 
@@ -353,7 +353,7 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 | --- | --- | --- |
 | P0 | #1 run-item `executed_at` | [#42](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42) **merged** |
 | P0 | #2 stale job reclaim | [#46](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46) |
-| P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) |
+| P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) **merged** |
 | P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
 | P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) |
 | P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) |
