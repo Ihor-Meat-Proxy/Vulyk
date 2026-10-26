@@ -1408,10 +1408,7 @@ mod seed_file_tests {
             .iter()
             .find(|c| c.title.en == "Auto-keyed case")
             .expect("auto case");
-        assert_eq!(
-            auto.key,
-            format!("VQA-{}", max_before + empty_before + 1)
-        );
+        assert_eq!(auto.key, format!("VQA-{}", max_before + empty_before + 1));
         let mut seen = HashSet::new();
         for c in &cases {
             assert!(seen.insert(c.key.as_str()), "dup {}", c.key);

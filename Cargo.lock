@@ -2672,7 +2672,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a8b1a1a2ebf674015cc02edccce75287f1a0130d394307b36743c2f5d504b47"
 dependencies = [
  "indexmap",
- "itoa",
+ "itoa 1.0.18",
  "ryu",
  "serde",
  "unsafe-libyaml",
