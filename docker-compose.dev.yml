@@ -8,7 +8,7 @@
 #
 # Suggested .env defaults for DX (also written by install.sh):
 #   VULYK_ADMIN_EMAIL=admin@vulyk.local
-#   VULYK_ADMIN_PASSWORD=admin
+#   VULYK_ADMIN_PASSWORD=<random from install.sh / .env>
 #   VULYK_SEED_DEMO=1
 #   VULYK_REGISTRATION_MODE=open
 #   VULYK_DEFAULT_LOCALE=en

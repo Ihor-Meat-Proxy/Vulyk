@@ -4,7 +4,6 @@ use axum::{
     Json, Router,
 };
 
-use crate::auth::validate_password_strength;
 use crate::error::{AppError, AppResult};
 use crate::models::{CompleteSetupRequest, SetupStatus};
 use crate::routes::AppState;
@@ -50,7 +49,7 @@ pub async fn setup_complete(
     if !email.contains('@') {
         return Err(AppError::BadRequest("valid email is required".into()));
     }
-    validate_password_strength(&body.password)?;
+    state.password_policy.validate(&body.password)?;
     let display_name = body.display_name.trim();
     if display_name.is_empty() {
         return Err(AppError::BadRequest("display_name is required".into()));

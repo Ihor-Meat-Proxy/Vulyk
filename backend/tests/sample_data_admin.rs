@@ -22,6 +22,8 @@ async fn spawn_app(auth_required: bool) -> (String, sqlx::PgPool) {
             jwt_ttl_hours: 12,
             session_ttl_hours: 24,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -99,7 +101,7 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
 
     let admin_email = unique_email("sample-admin");
     let user_email = unique_email("sample-user");
-    let password = "password123";
+    let password = "password12345678";
     insert_admin(&pool, &admin_email, password).await;
     insert_user(&pool, &user_email, password).await;
     let admin_token = login(&client, &base, &admin_email, password).await;

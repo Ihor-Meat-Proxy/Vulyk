@@ -2,7 +2,13 @@ import { useState, type FormEvent } from 'react'
 import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
 import { LanguageMenu } from '../components/LanguageMenu'
+import { PasswordRequirements } from '../components/PasswordRequirements'
 import { useI18n } from '../i18n'
+import {
+  DEFAULT_PASSWORD_POLICY,
+  passwordFieldMinLength,
+  passwordMeetsPolicy,
+} from '../passwordPolicy'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
 export function Login() {
@@ -20,6 +26,11 @@ export function Login() {
   const canRegister = !isBootstrap && registrationMode === 'open'
   const showRegister = mode === 'register' && canRegister
   const ssoProviders = (status?.sso_providers ?? []).filter((p) => p.enabled)
+  const settingPassword = isBootstrap || showRegister
+  const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
+  const minLength = passwordFieldMinLength(settingPassword, policy)
+  const submitDisabled =
+    busy || (settingPassword && !passwordMeetsPolicy(password, policy))
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -97,12 +108,15 @@ export function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            {...(minLength != null ? { minLength } : {})}
             autoComplete={
-              isBootstrap || showRegister ? 'new-password' : 'current-password'
+              settingPassword ? 'new-password' : 'current-password'
             }
             {...testIdProps(TestIds.loginPasswordInput)}
           />
+          {settingPassword && (
+            <PasswordRequirements password={password} policy={policy} />
+          )}
         </label>
         {error && (
           <p className="error" {...testIdProps(TestIds.loginError)}>
@@ -112,7 +126,7 @@ export function Login() {
         <button
           className="btn"
           type="submit"
-          disabled={busy}
+          disabled={submitDisabled}
           {...testIdProps(TestIds.loginSubmitButton)}
         >
           {busy

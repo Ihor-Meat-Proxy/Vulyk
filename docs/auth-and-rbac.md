@@ -24,9 +24,15 @@ Bearer auth accepts **JWT**, **session secrets** (`vulyk_s_…`), or **API token
 
 Password hashes use **Argon2id**. Session and API token secrets are stored as **SHA-256** hashes.
 
+### Password policy
+
+Single shared server policy (`VULYK_PASSWORD_MIN_LENGTH`, default **16**, floor **12**; letter + digit required) used by setup CLI, install.sh-provided passwords, bootstrap/register, user create/admin reset, change-password, and SSO local-password fallback. Clear `400` validation errors on reject. The same policy is published on `GET /api/v1/auth/status` as `password_policy` so the UI never drifts.
+
+**Login** only verifies the Argon2 hash (any existing length). After a successful login, if the plaintext no longer meets policy, the API sets `must_change_password=true`. Until the password is changed, **all other API routes are blocked server-side** (403 `password_change_required`); only status/me/change-password/logout remain allowed. Login attempts are rate-limited with exponential backoff.
+
 ### Force password change
 
-Seeded users with the well-known local password `admin`, or with `VULYK_ADMIN_MUST_CHANGE=1`, get `must_change_password=true`. The UI/API require `POST /api/v1/auth/change-password` before other privileged actions. CLI/wizard passwords must be ≥8 characters with a letter and a digit; the env-seed path allows the short local default for DX.
+Seeded admins with `VULYK_ADMIN_MUST_CHANGE=1` (set by `install.sh` when it generates a password), or any password below policy, get `must_change_password=true`. Existing short/legacy passwords can still sign in, then must change to a policy-compliant password.
 
 ### Environment
 
@@ -39,8 +45,10 @@ Seeded users with the well-known local password `admin`, or with `VULYK_ADMIN_MU
 | `VULYK_ADMIN_EMAIL` | `admin@vulyk.local` | Seeded / setup admin email |
 | `VULYK_ADMIN_PASSWORD` | (unset) | When set, seeds admin and completes setup |
 | `VULYK_ADMIN_DISPLAY_NAME` | `Administrator` | Admin display name |
-| `VULYK_ADMIN_MUST_CHANGE` | `false` | Force password change after seed |
-| `VULYK_SEED_DEMO` | `0` | Seed demo user `user@vulyk.local` / `user` |
+| `VULYK_ADMIN_MUST_CHANGE` | `false` | Force password change after seed (install.sh sets for generated passwords) |
+| `VULYK_PASSWORD_MIN_LENGTH` | `16` | Shared min length (floor 12) |
+| `VULYK_SEED_DEMO` | `0` | Seed demo user `user@vulyk.local` |
+| `VULYK_DEMO_PASSWORD` | `vulyk-demo-user-1` | Demo user password (must meet policy) |
 | `VULYK_INSTANCE_NAME` | `Vulyk` | Instance display name |
 | `VULYK_DEFAULT_LOCALE` | `en` | Instance default locale (`en` / `uk` / `fr` / `es` / `de`); users override via globe menu (`users.locale` + `localStorage`) |
 | `VULYK_DEFAULT_TIMEZONE` | `UTC` | Default timezone |

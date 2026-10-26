@@ -22,6 +22,8 @@ async fn spawn_app(auth_required: bool) -> (String, sqlx::PgPool) {
             jwt_ttl_hours: 12,
             session_ttl_hours: 24,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -39,19 +41,32 @@ fn unique_email(prefix: &str) -> String {
     format!("{prefix}+{}@example.com", uuid::Uuid::new_v4().simple())
 }
 
-async fn insert_admin(pool: &sqlx::PgPool, email: &str, password: &str) -> uuid::Uuid {
+async fn insert_user(
+    pool: &sqlx::PgPool,
+    email: &str,
+    password: &str,
+    is_admin: bool,
+    must_change: bool,
+) -> uuid::Uuid {
     let hash = hash_password(password).expect("hash");
     sqlx::query_scalar(
-        r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
-           VALUES ($1, $2, $3, TRUE)
+        r#"INSERT INTO users (
+               email, display_name, password_hash, is_system_admin, must_change_password
+           ) VALUES ($1, $2, $3, $4, $5)
            RETURNING id"#,
     )
     .bind(email)
-    .bind("Test Admin")
+    .bind("Test User")
     .bind(hash)
+    .bind(is_admin)
+    .bind(must_change)
     .fetch_one(pool)
     .await
-    .expect("insert admin")
+    .expect("insert user")
+}
+
+async fn insert_admin(pool: &sqlx::PgPool, email: &str, password: &str) -> uuid::Uuid {
+    insert_user(pool, email, password, true, false).await
 }
 
 async fn login(client: &reqwest::Client, base: &str, email: &str, password: &str) -> String {
@@ -93,7 +108,7 @@ async fn bootstrap_login_token_and_rbac() {
     assert_eq!(status["auth_required"], true);
 
     let email = unique_email("admin");
-    let password = "password123";
+    let password = "password12345678";
 
     let user_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM users")
         .fetch_one(&pool)
@@ -297,6 +312,13 @@ async fn open_mode_still_lists_projects() {
         .await
         .expect("json");
     assert_eq!(status["auth_required"], false);
+    assert!(
+        status["password_policy"]["min_length"]
+            .as_u64()
+            .unwrap_or(0)
+            >= 12,
+        "password_policy should be exposed on auth status"
+    );
 
     let projects = client
         .get(format!("{base}/api/v1/projects"))
@@ -304,4 +326,112 @@ async fn open_mode_still_lists_projects() {
         .await
         .expect("projects");
     assert!(projects.status().is_success());
+}
+
+#[tokio::test]
+async fn weak_password_login_forces_change_and_blocks_api() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+    let email = unique_email("legacy");
+    let weak = "legacy1"; // below policy; login must still verify the hash
+    let _id = insert_user(&pool, &email, weak, true, false).await;
+
+    let login_body: Value = client
+        .post(format!("{base}/api/v1/auth/login"))
+        .json(&serde_json::json!({ "email": email, "password": weak }))
+        .send()
+        .await
+        .expect("login")
+        .error_for_status()
+        .expect("login ok")
+        .json()
+        .await
+        .expect("login json");
+    assert_eq!(login_body["user"]["must_change_password"], true);
+    let token = login_body["token"].as_str().expect("token");
+
+    // Direct API bypass of UI must still be blocked.
+    let blocked = client
+        .get(format!("{base}/api/v1/users"))
+        .header("Authorization", format!("Bearer {token}"))
+        .send()
+        .await
+        .expect("users");
+    assert_eq!(blocked.status().as_u16(), 403);
+
+    let me_ok = client
+        .get(format!("{base}/api/v1/auth/me"))
+        .header("Authorization", format!("Bearer {token}"))
+        .send()
+        .await
+        .expect("me");
+    assert!(me_ok.status().is_success());
+
+    // Reject new password that is still too short.
+    let bad_change = client
+        .post(format!("{base}/api/v1/auth/change-password"))
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&serde_json::json!({ "new_password": "short1" }))
+        .send()
+        .await
+        .expect("bad change");
+    let bad_status = bad_change.status().as_u16();
+    let bad_body = bad_change.text().await.unwrap_or_default();
+    assert_eq!(
+        bad_status, 400,
+        "weak change-password should be rejected: {bad_body}"
+    );
+
+    let strong = "brand-new-password1";
+    let changed = client
+        .post(format!("{base}/api/v1/auth/change-password"))
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&serde_json::json!({ "new_password": strong }))
+        .send()
+        .await
+        .expect("change");
+    assert_eq!(changed.status().as_u16(), 204);
+
+    let relogin = login(&client, &base, &email, strong).await;
+    let allowed = client
+        .get(format!("{base}/api/v1/users"))
+        .header("Authorization", format!("Bearer {relogin}"))
+        .send()
+        .await
+        .expect("users after change");
+    assert!(allowed.status().is_success());
+}
+
+#[tokio::test]
+async fn password_policy_rejects_weak_on_create() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+    let admin_email = unique_email("poladmin");
+    let admin_password = "password12345678";
+    let _ = insert_admin(&pool, &admin_email, admin_password).await;
+    let token = login(&client, &base, &admin_email, admin_password).await;
+
+    let weak = client
+        .post(format!("{base}/api/v1/users"))
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&serde_json::json!({
+            "email": unique_email("weak"),
+            "password": "short1",
+            "display_name": "Weak",
+            "is_system_admin": false
+        }))
+        .send()
+        .await
+        .expect("create");
+    assert_eq!(weak.status().as_u16(), 400);
 }

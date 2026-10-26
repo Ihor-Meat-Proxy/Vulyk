@@ -633,6 +633,12 @@ export type SsoProviderPublic = {
   enabled: boolean
 }
 
+export type PasswordPolicyPublic = {
+  min_length: number
+  require_letter: boolean
+  require_digit: boolean
+}
+
 export type AuthStatus = {
   auth_required: boolean
   bootstrap_available: boolean
@@ -645,6 +651,7 @@ export type AuthStatus = {
   authenticated: boolean
   user: UserPublic | null
   sso_providers: SsoProviderPublic[]
+  password_policy: PasswordPolicyPublic
 }
 
 export type SetupStatus = {

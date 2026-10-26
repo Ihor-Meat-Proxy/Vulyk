@@ -9,7 +9,12 @@ import {
   type ProjectRole,
 } from '../api'
 import { useAuth } from '../auth'
+import { PasswordRequirements } from '../components/PasswordRequirements'
 import { LOCALES, useI18n, type Locale } from '../i18n'
+import {
+  DEFAULT_PASSWORD_POLICY,
+  passwordMeetsPolicy,
+} from '../passwordPolicy'
 import { can } from '../permissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
@@ -35,11 +40,6 @@ function readNotify(prefs: {
   }
 }
 
-function passwordLooksStrong(password: string): boolean {
-  if (password.length < 8) return false
-  return /[a-zA-Z]/.test(password) && /\d/.test(password)
-}
-
 type RepoFormState = {
   id: string | null
   name: string
@@ -63,8 +63,10 @@ const emptyRepoForm = (): RepoFormState => ({
 })
 
 export function Settings() {
-  const { user, refreshStatus, changePassword: changePasswordAuth } = useAuth()
+  const { user, status, refreshStatus, changePassword: changePasswordAuth } =
+    useAuth()
   const { t, locale, setLocale } = useI18n()
+  const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [displayName, setDisplayName] = useState(user?.display_name ?? '')
   const [timezone, setTimezone] = useState(
     user?.timezone || browserTimeZone(),
@@ -583,13 +585,11 @@ export function Settings() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={policy.min_length}
             autoComplete="new-password"
             {...testIdProps(TestIds.settingsNewPasswordInput)}
           />
-          <span className="muted" style={{ fontSize: '0.85rem' }}>
-            {t('setup.passwordHint')}
-          </span>
+          <PasswordRequirements password={newPassword} policy={policy} />
         </label>
         <label className="field">
           <span>{t('password.confirm')}</span>
@@ -598,7 +598,7 @@ export function Settings() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={policy.min_length}
             autoComplete="new-password"
             {...testIdProps(TestIds.settingsConfirmPasswordInput)}
           />
@@ -606,7 +606,7 @@ export function Settings() {
         <button
           className="btn"
           type="submit"
-          disabled={busy || !passwordLooksStrong(newPassword)}
+          disabled={busy || !passwordMeetsPolicy(newPassword, policy)}
           {...testIdProps(TestIds.settingsChangePasswordButton)}
         >
           {t('settings.passwordLink')}

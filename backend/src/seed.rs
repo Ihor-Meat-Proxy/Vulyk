@@ -3,7 +3,7 @@
 use rand::RngCore;
 use sqlx::PgPool;
 
-use crate::auth::{hash_password, hash_secret};
+use crate::auth::{hash_password, hash_secret, PasswordPolicy};
 use crate::error::AppResult;
 use crate::settings::{self, InstanceSettings, RegistrationMode};
 
@@ -81,8 +81,10 @@ async fn seed_from_env(pool: &PgPool) -> AppResult<()> {
 
     // When admin password is provided via env, seed/skip wizard (headless/k8s/compose).
     if let Some(password) = admin_password.filter(|p| !p.is_empty()) {
-        // Force change for the well-known default; custom env passwords skip the gate.
-        let must_change = password == "admin"
+        let policy = PasswordPolicy::global();
+        // Force change when password is below policy, or when install.sh marks the
+        // generated first-run secret (VULYK_ADMIN_MUST_CHANGE=1).
+        let must_change = !policy.meets(&password)
             || matches!(
                 std::env::var("VULYK_ADMIN_MUST_CHANGE")
                     .unwrap_or_default()
@@ -148,13 +150,24 @@ async fn seed_from_env(pool: &PgPool) -> AppResult<()> {
             .unwrap_or_else(|_| "user@vulyk.local".into())
             .trim()
             .to_lowercase();
-        let demo_password = std::env::var("VULYK_DEMO_PASSWORD").unwrap_or_else(|_| "user".into());
-        let created =
-            upsert_user(pool, &demo_email, "Demo User", &demo_password, false, false).await?;
+        // Default meets the 16+ policy; override via VULYK_DEMO_PASSWORD.
+        let demo_password =
+            std::env::var("VULYK_DEMO_PASSWORD").unwrap_or_else(|_| "vulyk-demo-user-1".into());
+        let policy = PasswordPolicy::global();
+        let must_change = !policy.meets(&demo_password);
+        let created = upsert_user(
+            pool,
+            &demo_email,
+            "Demo User",
+            &demo_password,
+            false,
+            must_change,
+        )
+        .await?;
         if created {
             tracing::warn!(
                 "Seeded demo user {demo_email} (intended role: Test Automation Engineer on \
-                 project membership). Change the default password."
+                 project membership). Password is in VULYK_DEMO_PASSWORD / .env."
             );
         }
     }
@@ -258,7 +271,23 @@ pub async fn complete_setup_with_options(
     }
 
     let email = admin_email.trim().to_lowercase();
-    upsert_user(pool, &email, display_name, admin_password, true, false).await?;
+    let must_change = !PasswordPolicy::global().meets(admin_password)
+        || matches!(
+            std::env::var("VULYK_ADMIN_MUST_CHANGE")
+                .unwrap_or_default()
+                .to_lowercase()
+                .as_str(),
+            "1" | "true" | "yes"
+        );
+    upsert_user(
+        pool,
+        &email,
+        display_name,
+        admin_password,
+        true,
+        must_change,
+    )
+    .await?;
 
     let mut s = settings.clone();
     s.setup_completed = true;

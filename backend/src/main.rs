@@ -112,6 +112,8 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
         pool,
         secrets,
         auth: AuthConfig::from_env(),
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let cors = CorsLayer::new()
         .allow_origin(Any)

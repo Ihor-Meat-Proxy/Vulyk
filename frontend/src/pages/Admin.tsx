@@ -17,9 +17,11 @@ import {
   type UserPublic,
 } from '../api'
 import { useAuth } from '../auth'
+import { PasswordRequirements } from '../components/PasswordRequirements'
 import { SampleBadge } from '../components/SampleBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { DEFAULT_PASSWORD_POLICY } from '../passwordPolicy'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { getStoredToken } from '../token'
@@ -272,6 +274,8 @@ function UsersPanel({
   onCreated: () => void
   onError: (msg: string) => void
 }) {
+  const { status } = useAuth()
+  const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [email, setEmail] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
@@ -363,10 +367,11 @@ function UsersPanel({
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            minLength={8}
+            minLength={policy.min_length}
             required
             {...testIdProps(TestIds.adminUserPasswordInput)}
           />
+          <PasswordRequirements password={password} policy={policy} />
         </label>
         <label className="check">
           <input

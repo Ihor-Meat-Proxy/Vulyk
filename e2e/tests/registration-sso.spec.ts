@@ -38,7 +38,7 @@ test('registration open flow creates an account', async ({ page, request }) => {
   await expect(
     page.getByRole('button', { name: /Create an account/i }),
   ).toBeVisible()
-  await login.register(email, 'reg-pass-12345', 'Registered User')
+  await login.register(email, 'reg-pass-12345678', 'Registered User')
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 })
 
@@ -65,7 +65,7 @@ test('registration disabled hides create-account (when not forced open)', async 
   const denied = await request.post(`${API_URL}/api/v1/auth/register`, {
     data: {
       email: `disabled-${uniqueKey('').toLowerCase()}@vulyk.local`,
-      password: 'disabled-pass-1',
+      password: 'disabled-pass-123',
       display_name: 'Nope',
     },
   })

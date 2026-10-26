@@ -1,20 +1,19 @@
 import { useState, type FormEvent } from 'react'
 import { api, type RegistrationMode } from '../api'
 import { useAuth } from '../auth'
+import { PasswordRequirements } from '../components/PasswordRequirements'
 import { LOCALES, normalizeLocale, useI18n, type Locale } from '../i18n'
+import {
+  DEFAULT_PASSWORD_POLICY,
+  passwordMeetsPolicy,
+} from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
-
-function passwordLooksStrong(password: string): boolean {
-  if (password.length < 8) return false
-  const hasLetter = /[a-zA-Z]/.test(password)
-  const hasDigit = /\d/.test(password)
-  return hasLetter && hasDigit
-}
 
 export function SetupWizard() {
   const { refreshStatus, status } = useAuth()
   const { t } = useI18n()
+  const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [setupToken, setSetupToken] = useState('')
   const [email, setEmail] = useState('admin@vulyk.local')
   const [password, setPassword] = useState('')
@@ -129,18 +128,11 @@ export function SetupWizard() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={policy.min_length}
             autoComplete="new-password"
             {...testIdProps(TestIds.setupPasswordInput)}
           />
-          <span className="muted" style={{ fontSize: '0.85rem' }}>
-            {t('setup.passwordHint')}
-            {password && !passwordLooksStrong(password)
-              ? ' — weak'
-              : password
-                ? ' — ok'
-                : ''}
-          </span>
+          <PasswordRequirements password={password} policy={policy} />
         </label>
         <label className="field">
           <span>{t('setup.instanceName')}</span>
@@ -216,7 +208,7 @@ export function SetupWizard() {
         <button
           className="btn"
           type="submit"
-          disabled={busy || !passwordLooksStrong(password)}
+          disabled={busy || !passwordMeetsPolicy(password, policy)}
           {...testIdProps(TestIds.setupSubmitButton)}
         >
           {busy ? t('login.working') : t('setup.submit')}

@@ -111,5 +111,5 @@ test('admin sees admin nav and can list users', async ({ page, request }) => {
     }),
   ).toBeVisible()
   expect(ADMIN_EMAIL).toBeTruthy()
-  expect(ADMIN_PASSWORD.length).toBeGreaterThanOrEqual(8)
+  expect(ADMIN_PASSWORD.length).toBeGreaterThanOrEqual(16)
 })

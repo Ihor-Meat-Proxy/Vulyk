@@ -127,6 +127,8 @@ pub struct AuthStatus {
     pub authenticated: bool,
     pub user: Option<UserPublic>,
     pub sso_providers: Vec<SsoProviderPublic>,
+    /// Shared password policy so the UI never drifts from server-side rules.
+    pub password_policy: crate::auth::PasswordPolicyPublic,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]

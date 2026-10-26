@@ -131,7 +131,15 @@ impl FromRequestParts<AppState> for RequireAuth {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        resolve_auth(parts, state).await.map(Self)
+        let user = resolve_auth(parts, state).await?;
+        let method = parts.method.as_str();
+        let path = parts.uri.path();
+        if user.must_change_password() && !password_change_allowed_path(method, path) {
+            return Err(AppError::Forbidden(
+                "password change required before accessing this resource".into(),
+            ));
+        }
+        Ok(Self(user))
     }
 }
 
@@ -152,12 +160,50 @@ impl FromRequestParts<AppState> for RequireSystemAdmin {
     }
 }
 
+/// Paths a user with `must_change_password` may still call (method-agnostic match
+/// uses the request method separately where needed).
+pub fn password_change_allowed_path(method: &str, path: &str) -> bool {
+    let path = path.split('?').next().unwrap_or(path);
+    matches!(
+        (method, path),
+        ("GET", "/api/v1/auth/status")
+            | ("GET", "/api/v1/auth/me")
+            | ("POST", "/api/v1/auth/change-password")
+            | ("POST", "/api/v1/auth/logout")
+            | ("GET", "/health")
+            | ("GET", "/api/health")
+    ) || path.starts_with("/api/docs")
+}
+
+fn forbid_must_change_password() -> Response {
+    (
+        StatusCode::FORBIDDEN,
+        Json(json!({
+            "error": {
+                "code": "password_change_required",
+                "message": "password change required before accessing this resource"
+            }
+        })),
+    )
+        .into_response()
+}
+
+fn block_if_must_change(user: &AuthUser, method: &str, path: &str) -> Option<Response> {
+    if user.must_change_password() && !password_change_allowed_path(method, path) {
+        Some(forbid_must_change_password())
+    } else {
+        None
+    }
+}
+
 /// Layer used by `routes::app_router`. Accepts JWT, session, or API token.
 pub async fn bearer_middleware(
     State(state): State<AppState>,
     mut req: Request<Body>,
     next: Next,
 ) -> Response {
+    let method = req.method().as_str().to_string();
+    let path = req.uri().path().to_string();
     let header = req
         .headers()
         .get(AUTHORIZATION)
@@ -170,6 +216,9 @@ pub async fn bearer_middleware(
         if let Some(cookie) = jar.get(SESSION_COOKIE) {
             match authenticate_session(&state.pool, cookie.value()).await {
                 Ok(user) => {
+                    if let Some(resp) = block_if_must_change(&user, &method, &path) {
+                        return resp;
+                    }
                     req.extensions_mut().insert(AuthContext {
                         token_id: None,
                         user_id: Some(user.id()),
@@ -207,6 +256,9 @@ pub async fn bearer_middleware(
 
     match authenticate_bearer(&state.pool, &state.auth.jwt_secret, token).await {
         Ok(user) => {
+            if let Some(resp) = block_if_must_change(&user, &method, &path) {
+                return resp;
+            }
             let token_id = match user.via {
                 AuthVia::ApiToken { token_id } => Some(token_id),
                 AuthVia::CiToken { token_id, .. } => Some(token_id),

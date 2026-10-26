@@ -26,8 +26,10 @@ Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Hel
 
 | Account | Email | Password |
 |---------|-------|----------|
-| Admin | `admin@vulyk.local` | `admin` (must change on first login) |
-| Demo | `user@vulyk.local` | `user` |
+| Admin | `admin@vulyk.local` | Random ≥16 chars in `.env` as `VULYK_ADMIN_PASSWORD` (forced change on first login when generated) |
+| Demo | `user@vulyk.local` | `VULYK_DEMO_PASSWORD` in `.env` (default `vulyk-demo-user-1`) |
+
+`./scripts/install.sh` generates a ~24-character admin password when none is provided (never a short `admin` default) and stores it in `.env` without printing the value. Password policy: `VULYK_PASSWORD_MIN_LENGTH` (default **16**, floor **12**), enforced server-side; the UI loads the same policy from `/api/v1/auth/status`.
 
 Env vars: see [`.env.example`](.env.example) and [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md). UI languages: **en**, **uk**, **fr**, **es**, **de** (`--locale` / `VULYK_DEFAULT_LOCALE`; switch anytime via the header globe menu).
 
@@ -59,7 +61,7 @@ cd frontend && npm install && npm run dev
 ./scripts/install.sh helm-template
 helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namespace \
   --set secrets.create=true \
-  --set setup.adminPassword=change-me-admin1
+  --set setup.adminPassword=change-me-admin12
 ```
 
 Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it deploy/…-api -- vulyk-api setup`.

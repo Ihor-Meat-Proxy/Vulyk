@@ -1,15 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth'
+import { PasswordRequirements } from '../components/PasswordRequirements'
 import { useI18n } from '../i18n'
+import {
+  DEFAULT_PASSWORD_POLICY,
+  passwordMeetsPolicy,
+} from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
 
-function passwordLooksStrong(password: string): boolean {
-  if (password.length < 8) return false
-  return /[a-zA-Z]/.test(password) && /\d/.test(password)
-}
-
 export function ChangePassword() {
-  const { user, changePassword, logout } = useAuth()
+  const { user, status, changePassword, logout } = useAuth()
   const { t } = useI18n()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -17,7 +17,9 @@ export function ChangePassword() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
+  const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const requireCurrent = Boolean(user && !user.must_change_password)
+  const forced = Boolean(user?.must_change_password)
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -42,7 +44,10 @@ export function ChangePassword() {
   }
 
   return (
-    <div className="login-shell">
+    <div
+      className="login-shell"
+      {...testIdProps(TestIds.changePasswordShell)}
+    >
       <form
         className="login-panel"
         onSubmit={(e) => void onSubmit(e)}
@@ -52,10 +57,18 @@ export function ChangePassword() {
           <span className="brand-mark">Vulyk</span>
           <span className="brand-tag">{t('password.title')}</span>
         </div>
-        <p className="muted">{t('password.subtitle')}</p>
-        {(requireCurrent || user?.must_change_password) && (
+        <p
+          className="muted"
+          {...testIdProps(TestIds.changePasswordSubtitle)}
+        >
+          {forced ? t('password.forcedSubtitle') : t('password.subtitle')}
+        </p>
+        {(requireCurrent || forced) && (
           <label className="field">
-            <span>{t('password.current')}</span>
+            <span>
+              {t('password.current')}
+              {forced ? ` (${t('password.currentOptional')})` : ''}
+            </span>
             <input
               type="password"
               value={currentPassword}
@@ -73,13 +86,11 @@ export function ChangePassword() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
-            minLength={8}
+            minLength={policy.min_length}
             autoComplete="new-password"
             {...testIdProps(TestIds.changePasswordNewInput)}
           />
-          <span className="muted" style={{ fontSize: '0.85rem' }}>
-            {t('setup.passwordHint')}
-          </span>
+          <PasswordRequirements password={newPassword} policy={policy} />
         </label>
         <label className="field">
           <span>{t('password.confirm')}</span>
@@ -88,7 +99,7 @@ export function ChangePassword() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             required
-            minLength={8}
+            minLength={policy.min_length}
             autoComplete="new-password"
             {...testIdProps(TestIds.changePasswordConfirmInput)}
           />
@@ -101,7 +112,7 @@ export function ChangePassword() {
         <button
           className="btn"
           type="submit"
-          disabled={busy || !passwordLooksStrong(newPassword)}
+          disabled={busy || !passwordMeetsPolicy(newPassword, policy)}
           {...testIdProps(TestIds.changePasswordSubmitButton)}
         >
           {busy ? t('login.working') : t('password.submit')}

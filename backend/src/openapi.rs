@@ -484,6 +484,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         RoleMatrixResponse,
         AuthResponse,
         AuthStatus,
+        crate::auth::PasswordPolicyPublic,
         CreateUserRequest,
         UpdateUserRequest,
         ProjectRole,

@@ -50,6 +50,11 @@ const emptyStatus = (): AuthStatus => ({
   authenticated: false,
   user: null,
   sso_providers: [],
+  password_policy: {
+    min_length: 16,
+    require_letter: true,
+    require_digit: true,
+  },
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {

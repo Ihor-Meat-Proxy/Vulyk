@@ -22,6 +22,8 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
             jwt_ttl_hours: 12,
             session_ttl_hours: 24,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -72,7 +74,7 @@ async fn updates_status_requires_admin_and_reports_manual() {
         "updates-admin+{}@example.com",
         uuid::Uuid::new_v4().simple()
     );
-    insert_admin(&pool, &email, "admin-password-1").await;
+    insert_admin(&pool, &email, "admin-password-16").await;
     let client = reqwest::Client::new();
 
     let anon = client
@@ -85,7 +87,7 @@ async fn updates_status_requires_admin_and_reports_manual() {
         "anonymous must not read updates"
     );
 
-    let token = login(&client, &base, &email, "admin-password-1").await;
+    let token = login(&client, &base, &email, "admin-password-16").await;
     let res = client
         .get(format!("{base}/api/v1/admin/updates"))
         .bearer_auth(&token)
@@ -161,9 +163,9 @@ async fn updates_preferences_roundtrip() {
         "updates-prefs+{}@example.com",
         uuid::Uuid::new_v4().simple()
     );
-    insert_admin(&pool, &email, "admin-password-1").await;
+    insert_admin(&pool, &email, "admin-password-16").await;
     let client = reqwest::Client::new();
-    let token = login(&client, &base, &email, "admin-password-1").await;
+    let token = login(&client, &base, &email, "admin-password-16").await;
 
     let put = client
         .put(format!("{base}/api/v1/admin/updates/preferences"))

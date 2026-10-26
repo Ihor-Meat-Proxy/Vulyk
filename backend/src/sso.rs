@@ -11,7 +11,7 @@ use sqlx::PgPool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::auth::{hash_password, ProjectRole};
+use crate::auth::{generate_password, hash_password, PasswordPolicy, ProjectRole};
 use crate::crypto::SecretsKey;
 use crate::error::{AppError, AppResult};
 use crate::models::{SsoProviderPublic, User};
@@ -1066,12 +1066,8 @@ async fn link_or_provision(
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| email.clone());
 
-    // Random unusable password hash (SSO-only account).
-    let random_pw = {
-        let mut buf = [0u8; 32];
-        rand::thread_rng().fill_bytes(&mut buf);
-        hex::encode(buf)
-    };
+    // Random unusable local password that still meets the shared policy.
+    let random_pw = generate_password(&PasswordPolicy::global());
     let password_hash = hash_password(&random_pw)?;
     // default_role / group_role_mapping applied when assigning project memberships later.
     let _assigned_role = role_from_groups(provider, &identity.groups);
