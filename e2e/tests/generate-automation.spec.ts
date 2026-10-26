@@ -99,10 +99,11 @@ test('Cases page bulk action opens Generate with selection', async ({
     name: `Bulk Gen ${key}`,
   })
   const suite = await createSuite(request, admin.token, project.id, 'Smoke')
-  await createCase(request, admin.token, project.id, {
+  const created = await createCase(request, admin.token, project.id, {
     title: `Bulk case ${key}`,
     suite_id: suite.id,
   })
+  const caseKey = created.case.key
 
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
@@ -112,7 +113,10 @@ test('Cases page bulk action opens Generate with selection', async ({
 
   const cases = new CasesPage(page)
   await cases.open()
-  await cases.selectCase(`Bulk case ${key}`)
+  await expect(cases.listPanel().getByText(`Bulk case ${key}`)).toBeVisible({
+    timeout: 30_000,
+  })
+  await cases.selectCase(caseKey)
   await page
     .getByRole('button', {
       name: /Generate automation|Згенерувати автоматизацію/i,
