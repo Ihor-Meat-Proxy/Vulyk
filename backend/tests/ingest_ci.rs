@@ -187,6 +187,16 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .await
         .unwrap();
     let cfg_id = cfg["id"].as_str().unwrap();
+    assert_eq!(cfg["has_token"], true);
+    assert_eq!(cfg["has_webhook_secret"], true);
+    assert!(
+        cfg["config"].get("trigger_token").is_none(),
+        "CI create response must not echo trigger_token: {cfg}"
+    );
+    assert!(
+        cfg.get("webhook_secret").is_none() || cfg["webhook_secret"].is_null(),
+        "CI create response must not echo webhook_secret: {cfg}"
+    );
 
     // Seed a dispatch row as if previously triggered.
     let dispatch: Value = client
