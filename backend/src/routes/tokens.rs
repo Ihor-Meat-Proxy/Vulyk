@@ -59,15 +59,28 @@ pub async fn list_tokens(
 ) -> AppResult<Json<Vec<ApiTokenPublic>>> {
     ensure_can_manage_api_tokens(&state, &auth).await?;
     let rows = if let Some(user) = auth.filter(|u| u.id() != Uuid::nil()) {
-        sqlx::query_as::<_, ApiTokenPublic>(
-            r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
-               FROM api_tokens
-               WHERE user_id = $1 OR user_id IS NULL
-               ORDER BY created_at DESC"#,
-        )
-        .bind(user.id())
-        .fetch_all(&state.pool)
-        .await?
+        if user.is_system_admin() {
+            // Admins may list unbound legacy tokens so they can revoke them.
+            sqlx::query_as::<_, ApiTokenPublic>(
+                r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
+                   FROM api_tokens
+                   WHERE user_id = $1 OR user_id IS NULL
+                   ORDER BY created_at DESC"#,
+            )
+            .bind(user.id())
+            .fetch_all(&state.pool)
+            .await?
+        } else {
+            sqlx::query_as::<_, ApiTokenPublic>(
+                r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
+                   FROM api_tokens
+                   WHERE user_id = $1
+                   ORDER BY created_at DESC"#,
+            )
+            .bind(user.id())
+            .fetch_all(&state.pool)
+            .await?
+        }
     } else {
         // Open mode (auth not required): list all tokens.
         sqlx::query_as::<_, ApiTokenPublic>(
@@ -97,12 +110,19 @@ pub async fn create_token(
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
-    let (secret, prefix) = generate_api_token();
-    let hash = hash_secret(&secret);
+    // Tokens must be bound to a real user — unbound (headless) tokens are rejected
+    // at authentication time and must not be created.
     let user_id = auth
         .as_ref()
         .filter(|u| u.id() != Uuid::nil())
-        .map(|u| u.id());
+        .map(|u| u.id())
+        .ok_or_else(|| {
+            AppError::Unauthorized(
+                "authentication required to create an API token bound to a user".into(),
+            )
+        })?;
+    let (secret, prefix) = generate_api_token();
+    let hash = hash_secret(&secret);
 
     let row = sqlx::query_as::<_, ApiTokenPublic>(
         r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id)
@@ -134,15 +154,24 @@ pub async fn revoke_token(
 ) -> AppResult<StatusNoContent> {
     ensure_can_manage_api_tokens(&state, &auth).await?;
     let res = if let Some(user) = auth.filter(|u| u.id() != Uuid::nil()) {
-        sqlx::query(
-            r#"UPDATE api_tokens SET revoked_at = NOW()
-               WHERE id = $1 AND revoked_at IS NULL
-                 AND (user_id = $2 OR user_id IS NULL)"#,
-        )
-        .bind(id)
-        .bind(user.id())
-        .execute(&state.pool)
-        .await?
+        // Only system admins may revoke unbound legacy tokens.
+        let q = if user.is_system_admin() {
+            sqlx::query(
+                r#"UPDATE api_tokens SET revoked_at = NOW()
+                   WHERE id = $1 AND revoked_at IS NULL
+                     AND (user_id = $2 OR user_id IS NULL)"#,
+            )
+            .bind(id)
+            .bind(user.id())
+        } else {
+            sqlx::query(
+                r#"UPDATE api_tokens SET revoked_at = NOW()
+                   WHERE id = $1 AND revoked_at IS NULL AND user_id = $2"#,
+            )
+            .bind(id)
+            .bind(user.id())
+        };
+        q.execute(&state.pool).await?
     } else {
         sqlx::query(
             r#"UPDATE api_tokens SET revoked_at = NOW()

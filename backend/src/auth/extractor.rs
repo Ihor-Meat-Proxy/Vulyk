@@ -427,31 +427,17 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
         .execute(pool)
         .await?;
 
-    // Legacy W9/W10 tokens may have no user_id — synthesize a system principal.
-    if let Some(user_id) = user_id {
-        let user = load_active_user(pool, user_id).await?;
-        return Ok(AuthUser {
-            user,
-            via: AuthVia::ApiToken { token_id },
-        });
-    }
+    // Reject legacy headless tokens (null user_id). They previously synthesized a
+    // system-admin principal and bypassed RBAC — that is no longer allowed.
+    let user_id = user_id.ok_or_else(|| {
+        AppError::Unauthorized(
+            "API token is not bound to a user; revoke it and create a new personal token".into(),
+        )
+    })?;
 
-    // Headless token: treat as system admin for MCP until rebound to a user.
+    let user = load_active_user(pool, user_id).await?;
     Ok(AuthUser {
-        user: User {
-            id: Uuid::nil(),
-            email: "api-token@vulyk.local".into(),
-            display_name: "API token".into(),
-            password_hash: None,
-            is_system_admin: true,
-            must_change_password: false,
-            locale: None,
-            timezone: None,
-            preferences: serde_json::json!({}),
-            disabled_at: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
-        },
+        user,
         via: AuthVia::ApiToken { token_id },
     })
 }
