@@ -16,7 +16,7 @@ use crate::ingest::parse_payload;
 use crate::models::{
     BulkResultItem, BulkResultsRequest, CiRunResultsResponse, CloseCiRunRequest,
     CreateProjectCiToken, CreateProjectCiTokenResponse, IngestRequest, OpenCiRunRequest,
-    OpenCiRunResponse, ProjectCiTokenPublic, TEST_RUN_COLS, TestRun,
+    OpenCiRunResponse, ProjectCiTokenPublic, TestRun, TEST_RUN_COLS,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
@@ -278,13 +278,13 @@ pub async fn open_ci_run(
     let suite_name = body
         .suite_name
         .as_deref()
+        .or(body.name.as_deref())
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string);
-    let name = suite_name
-        .clone()
-        .unwrap_or_else(|| "CI run".to_string());
+    let name = suite_name.clone().unwrap_or_else(|| "CI run".to_string());
     let environment = body.environment.unwrap_or_else(|| json!({}));
+    let artifacts = body.artifacts.unwrap_or_else(|| json!([]));
     let meta = body.meta.unwrap_or_else(|| json!({}));
     let started_at: Option<chrono::DateTime<chrono::Utc>> = if body.start {
         Some(chrono::Utc::now())
@@ -292,33 +292,67 @@ pub async fn open_ci_run(
         None
     };
 
-    if let Some(iteration_id) = body.iteration_id {
-        let exists: Option<(Uuid,)> = sqlx::query_as(
-            r#"SELECT id FROM iterations WHERE id = $1 AND project_id = $2"#,
-        )
-        .bind(iteration_id)
-        .bind(project_id)
-        .fetch_optional(&state.pool)
-        .await?;
+    let mut iteration_id = body.iteration_id;
+    if let Some(iid) = iteration_id {
+        let exists: Option<(Uuid,)> =
+            sqlx::query_as(r#"SELECT id FROM iterations WHERE id = $1 AND project_id = $2"#)
+                .bind(iid)
+                .bind(project_id)
+                .fetch_optional(&state.pool)
+                .await?;
         if exists.is_none() {
             return Err(AppError::BadRequest(
                 "iteration_id does not belong to this project".into(),
             ));
         }
+    } else if body.campaign_id.is_some() || body.campaign.is_some() || body.iteration.is_some() {
+        let campaign = if let Some(cid) = body.campaign_id {
+            crate::services::campaigns::get_campaign(&state.pool, project_id, cid).await?
+        } else {
+            let campaign_name = body
+                .campaign
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .unwrap_or("CI");
+            crate::services::campaigns::find_or_create_campaign(
+                &state.pool,
+                project_id,
+                campaign_name,
+                None,
+            )
+            .await?
+        };
+        let iteration_name = body
+            .iteration
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .unwrap_or("Pipeline");
+        let iteration = crate::services::campaigns::find_or_create_iteration(
+            &state.pool,
+            project_id,
+            campaign.id,
+            iteration_name,
+            "",
+            body.cadence.as_deref().unwrap_or("on-push"),
+        )
+        .await?;
+        iteration_id = Some(iteration.id);
     }
 
     let run = match sqlx::query_as::<_, TestRun>(&format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
-              meta, created_by_name, environment, started_at,
+              meta, created_by_name, environment, artifacts, started_at,
               suite_name, ci_provider, ci_repo, ci_branch, ci_commit,
               pipeline_url, job_url, lifecycle)
-           VALUES ($1, $2, $3, '', $4, $5, $6, $7, $8, $9, $10,
-                   $11, $12, $13, $14, $15, $16, $17, 'ci')
+           VALUES ($1, $2, $3, '', $4, $5, $6, $7, $8, $9, $10, $11,
+                   $12, $13, $14, $15, $16, $17, $18, 'ci')
            RETURNING {TEST_RUN_COLS}"#
     ))
     .bind(project_id)
-    .bind(body.iteration_id)
+    .bind(iteration_id)
     .bind(&name)
     .bind(status)
     .bind(&source)
@@ -326,6 +360,7 @@ pub async fn open_ci_run(
     .bind(&meta)
     .bind(&body.created_by_name)
     .bind(&environment)
+    .bind(&artifacts)
     .bind(started_at)
     .bind(&suite_name)
     .bind(&provider)
@@ -538,9 +573,15 @@ pub async fn ingest_ci_run(
         .await?;
     }
 
-    let report =
-        ingest_svc::persist_results(&state.pool, run_id, project_id, &parsed.results, &source, true)
-            .await?;
+    let report = ingest_svc::persist_results(
+        &state.pool,
+        run_id,
+        project_id,
+        &parsed.results,
+        &source,
+        true,
+    )
+    .await?;
     let updated = load_ci_run(&state.pool, project_id, run_id).await?;
     Ok(Json(CiRunResultsResponse {
         run_id,

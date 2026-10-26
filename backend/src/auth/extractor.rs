@@ -69,9 +69,14 @@ pub struct AuthUser {
 pub enum AuthVia {
     Jwt,
     Session,
-    ApiToken { token_id: Uuid },
+    ApiToken {
+        token_id: Uuid,
+    },
     /// Project-scoped CI reporting token (`vulyk_ci_…`).
-    CiToken { token_id: Uuid, project_id: Uuid },
+    CiToken {
+        token_id: Uuid,
+        project_id: Uuid,
+    },
 }
 
 /// Retained for W9/W10 middleware consumers / extensions.
@@ -211,10 +216,8 @@ pub async fn bearer_middleware(
                 AuthVia::CiToken { .. } if user.id() == Uuid::nil() => None,
                 _ => Some(user.id()),
             };
-            req.extensions_mut().insert(AuthContext {
-                token_id,
-                user_id,
-            });
+            req.extensions_mut()
+                .insert(AuthContext { token_id, user_id });
             req.extensions_mut().insert(user);
             next.run(req).await
         }

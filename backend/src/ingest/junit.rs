@@ -168,7 +168,10 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
             // First matching property wins; comma-separated → take first.
             let first = v.split(',').next().unwrap_or(v).trim();
             // Strip TestRail-style C prefix if present; keep Vulyk PREFIX-N as-is.
-            let cleaned = first.strip_prefix('C').filter(|s| s.chars().all(|c| c.is_ascii_digit())).unwrap_or(first);
+            let cleaned = first
+                .strip_prefix('C')
+                .filter(|s| s.chars().all(|c| c.is_ascii_digit()))
+                .unwrap_or(first);
             c.property_key = Some(cleaned.to_string());
         }
     }

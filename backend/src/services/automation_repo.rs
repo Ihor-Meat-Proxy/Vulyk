@@ -717,13 +717,11 @@ pub async fn set_project_links(
     }
 
     // Keep legacy project_id column pointing at the default (or first) link.
-    sqlx::query(
-        r#"UPDATE automation_repos SET project_id = $2, updated_at = NOW() WHERE id = $1"#,
-    )
-    .bind(repo_id)
-    .bind(default_id)
-    .execute(&mut *tx)
-    .await?;
+    sqlx::query(r#"UPDATE automation_repos SET project_id = $2, updated_at = NOW() WHERE id = $1"#)
+        .bind(repo_id)
+        .bind(default_id)
+        .execute(&mut *tx)
+        .await?;
 
     tx.commit().await?;
     Ok(())

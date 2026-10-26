@@ -67,7 +67,10 @@ const SELECT_COLS: &str = r#"id, name, project_id, provider, remote_url, branch,
     token_ciphertext, token_nonce, index_status, last_indexed_at,
     last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
 
-async fn to_public(pool: &sqlx::PgPool, row: &AutomationRepoRow) -> AppResult<AutomationRepoPublic> {
+async fn to_public(
+    pool: &sqlx::PgPool,
+    row: &AutomationRepoRow,
+) -> AppResult<AutomationRepoPublic> {
     let project_ids = repo_svc::project_ids_for_repo(pool, row.id).await?;
     Ok(row.to_public(project_ids))
 }
@@ -171,7 +174,10 @@ pub async fn list_repos(
         return Err(AppError::Unauthorized("authentication required".into()));
     }
     let is_admin = auth.as_ref().map(|u| u.is_system_admin()).unwrap_or(false);
-    let user_id = auth.as_ref().map(|u| u.id()).filter(|id| *id != Uuid::nil());
+    let user_id = auth
+        .as_ref()
+        .map(|u| u.id())
+        .filter(|id| *id != Uuid::nil());
     let rows = repo_svc::list_repos_for_user(&state.pool, user_id, is_admin).await?;
     let mut out = Vec::with_capacity(rows.len());
     for row in &rows {
@@ -261,9 +267,7 @@ pub async fn get_repo_by_id(
         if state.auth.required {
             match &auth {
                 Some(u) if u.is_system_admin() => {}
-                Some(_) => {
-                    return Err(AppError::Forbidden("not allowed to view this repo".into()))
-                }
+                Some(_) => return Err(AppError::Forbidden("not allowed to view this repo".into())),
                 None => return Err(AppError::Unauthorized("authentication required".into())),
             }
         }
@@ -438,13 +442,8 @@ pub async fn set_repo_projects(
     for pid in &body.project_ids {
         ensure_project(&state.pool, *pid).await?;
     }
-    repo_svc::set_project_links(
-        &state.pool,
-        id,
-        &body.project_ids,
-        body.default_project_id,
-    )
-    .await?;
+    repo_svc::set_project_links(&state.pool, id, &body.project_ids, body.default_project_id)
+        .await?;
     Ok(Json(to_public(&state.pool, &row).await?))
 }
 
