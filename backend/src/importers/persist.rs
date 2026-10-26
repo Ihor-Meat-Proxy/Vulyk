@@ -3,8 +3,10 @@ use uuid::Uuid;
 
 use crate::error::AppResult;
 use crate::models::{ImportCaseDraft, ImportReport};
+use crate::services::case_keys::allocate_case_key;
 
 /// Persist preview drafts into suites + cases + steps for a project.
+/// Case keys are always allocated from the project counter; original keys are stored as external_key.
 pub async fn persist_cases(
     pool: &PgPool,
     project_id: Uuid,
@@ -51,21 +53,24 @@ pub async fn persist_cases(
             None
         };
 
-        let key = draft
-            .key
+        let external_key = draft
+            .external_id
             .clone()
-            .filter(|k| !k.trim().is_empty())
-            .unwrap_or_else(|| format!("IMP-{}", uuid::Uuid::new_v4().simple()));
+            .or_else(|| draft.key.clone())
+            .filter(|k| !k.trim().is_empty());
+
+        let mut tx = pool.begin().await?;
+        let (key, _) = allocate_case_key(&mut tx, project_id).await?;
 
         let inserted: Result<(Uuid,), sqlx::Error> = sqlx::query_as(
             r#"INSERT INTO test_cases
-               (project_id, suite_id, key, title, description, precondition, priority, status)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               (project_id, suite_id, key, title, description, precondition, priority, status, external_key)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                RETURNING id"#,
         )
         .bind(project_id)
         .bind(suite_id)
-        .bind(key.trim())
+        .bind(&key)
         .bind(draft.title.trim())
         .bind(&draft.description)
         .bind(&draft.precondition)
@@ -79,14 +84,16 @@ pub async fn persist_cases(
         } else {
             draft.status.as_str()
         })
-        .fetch_one(pool)
+        .bind(external_key.as_deref())
+        .fetch_one(&mut *tx)
         .await;
 
         let case_id = match inserted {
             Ok((id,)) => id,
             Err(sqlx::Error::Database(err)) if err.constraint().is_some() => {
+                tx.rollback().await.ok();
                 skipped += 1;
-                warnings.push(format!("row {idx}: key conflict for {key}, skipped"));
+                warnings.push(format!("row {idx}: insert conflict for allocated key {key}, skipped"));
                 continue;
             }
             Err(e) => return Err(e.into()),
@@ -102,10 +109,11 @@ pub async fn persist_cases(
             .bind(&step.action)
             .bind(&step.expected_result)
             .bind(&step.data)
-            .execute(pool)
+            .execute(&mut *tx)
             .await?;
         }
 
+        tx.commit().await?;
         created_cases += 1;
         case_ids.push(case_id);
     }

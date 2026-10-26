@@ -27,7 +27,8 @@ use crate::models::{
     TestResultHistoryItem, TestRun, TestRunDetail, TestStep, TrendPoint, TrendsQuery, UpdateCase,
     UpdateCiConfig, UpdateCustomField, UpdateIntegration, UpdateLlmConfig, UpdateMeRequest,
     UpdateMembership, UpdatePlan, UpdatePreferences, UpdateProject, UpdateRequirement, UpdateRun,
-    UpdateRunItem, UpdateSuite, UpdateTag, UpdateUserRequest, UpsertIntegrationSetting,
+    DeleteSuiteQuery, UpdateRunItem, UpdateSuite, UpdateTag, UpdateUserRequest,
+    UpsertIntegrationSetting,
     UpsertMembership, UserPreferences, UserPublic, WebhookAck,
 };
 use crate::routes::health::{HealthResponse, ReadyResponse};
@@ -193,6 +194,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         Suite,
         CreateSuite,
         UpdateSuite,
+        DeleteSuiteQuery,
         TestCase,
         TestStep,
         TestCaseDetail,

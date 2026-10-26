@@ -49,6 +49,8 @@ export type Project = {
   key: string
   name: string
   description: string
+  case_key_prefix: string
+  next_case_number: number
   created_at: string
   updated_at: string
 }
@@ -59,6 +61,9 @@ export type Suite = {
   parent_id: string | null
   name: string
   sort_order: number
+  case_count?: number
+  created_at?: string
+  updated_at?: string
 }
 
 export type TestCase = {
@@ -72,6 +77,8 @@ export type TestCase = {
   priority: string
   status: string
   version: number
+  external_key?: string | null
+  sort_order?: number
   created_at: string
   updated_at: string
 }
@@ -826,13 +833,61 @@ export const api = {
     }),
 
   listProjects: () => request<Project[]>('/api/v1/projects'),
-  createProject: (body: { key: string; name: string; description?: string }) =>
+  createProject: (body: {
+    key: string
+    name: string
+    description?: string
+    case_key_prefix?: string
+  }) =>
     request<Project>('/api/v1/projects', {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateProject: (
+    projectId: string,
+    body: {
+      name?: string
+      description?: string
+      case_key_prefix?: string
+    },
+  ) =>
+    request<Project>(`/api/v1/projects/${projectId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   listSuites: (projectId: string) =>
     request<Suite[]>(`/api/v1/projects/${projectId}/suites`),
+  createSuite: (
+    projectId: string,
+    body: { name: string; parent_id?: string | null; sort_order?: number },
+  ) =>
+    request<Suite>(`/api/v1/projects/${projectId}/suites`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateSuite: (
+    projectId: string,
+    suiteId: string,
+    body: {
+      name?: string
+      parent_id?: string | null
+      clear_parent?: boolean
+      sort_order?: number
+    },
+  ) =>
+    request<Suite>(`/api/v1/projects/${projectId}/suites/${suiteId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteSuite: (
+    projectId: string,
+    suiteId: string,
+    onNonempty: 'move_to_parent' | 'delete_cases' = 'move_to_parent',
+  ) =>
+    request<void>(
+      `/api/v1/projects/${projectId}/suites/${suiteId}?on_nonempty=${onNonempty}`,
+      { method: 'DELETE' },
+    ),
   listCases: (projectId: string, params: ListCasesParams = {}) => {
     const qs = new URLSearchParams()
     if (params.suiteId) qs.set('suite_id', params.suiteId)

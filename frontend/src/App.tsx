@@ -73,7 +73,6 @@ export default function App() {
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
         body: JSON.stringify({
-          key: 'DEMO-1',
           title: 'Health endpoint responds',
           suite_id: suite.id,
           description: 'Verify API liveness.',
@@ -128,24 +127,21 @@ export default function App() {
     }
   }, [activeProjectId])
 
-  useEffect(() => {
+  const refreshSuites = useCallback(async () => {
     if (!activeProjectId) {
       setSuites([])
       return
     }
-    let cancelled = false
-    api
-      .listSuites(activeProjectId)
-      .then((data) => {
-        if (!cancelled) setSuites(data)
-      })
-      .catch(() => {
-        if (!cancelled) setSuites([])
-      })
-    return () => {
-      cancelled = true
+    try {
+      setSuites(await api.listSuites(activeProjectId))
+    } catch {
+      setSuites([])
     }
   }, [activeProjectId])
+
+  useEffect(() => {
+    void refreshSuites()
+  }, [refreshSuites])
 
   const onSelectProject = (id: string) => {
     setProjectId(id)
@@ -199,6 +195,11 @@ export default function App() {
               <CaseList
                 projectId={activeProjectId}
                 suiteId={selectedSuiteId}
+                suites={suites}
+                onSelectSuite={setSelectedSuiteId}
+                onSuitesChanged={() => {
+                  void refreshSuites()
+                }}
               />
             }
           />

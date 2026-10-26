@@ -56,9 +56,18 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   const cases = new CasesPage(page)
   await cases.open()
 
-  const caseKey = `${projectKey}-C1`
-  const title = `CRUD case ${caseKey}`
-  await cases.createCase(caseKey, title)
+  // Folder tree panel is present (SquashTM-style)
+  await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
+  await expect(cases.folderTree().getByText('Smoke')).toBeVisible()
+
+  const title = `CRUD case ${projectKey}`
+  await cases.createCase(title)
+
+  // Auto-allocated key appears in the list (PREFIX-N)
+  const keyBadge = page.locator('.table-row .badge').first()
+  await expect(keyBadge).toBeVisible({ timeout: 20_000 })
+  const allocatedKey = (await keyBadge.textContent())?.trim() ?? ''
+  expect(allocatedKey).toMatch(/^[A-Z][A-Z0-9]+-\d+$/)
 
   // Open detail and add a step
   await cases.openCaseByTitle(title)
@@ -73,31 +82,39 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   await page.getByRole('link', { name: /Back to cases/i }).click()
 
   // Second case for bulk/filter
-  const caseKey2 = `${projectKey}-C2`
-  await cases.createCase(caseKey2, `Filter me ${caseKey2}`)
+  const title2 = `Filter me ${projectKey}`
+  await cases.createCase(title2)
 
-  await cases.search(caseKey)
+  await cases.search(projectKey)
   await expect(page.getByText(title)).toBeVisible()
 
   await cases.search('')
-  await cases.filterStatus('draft')
-  // Newly created cases are typically draft
+  await cases.filterStatus('ready')
   await expect(page.locator('.table-row').first()).toBeVisible({ timeout: 20_000 })
 
   await cases.filterStatus('')
-  await cases.selectCase(caseKey2)
+  const secondKey = (
+    await page.locator('.table-row').filter({ hasText: title2 }).locator('.badge').textContent()
+  )?.trim()
+  expect(secondKey).toBeTruthy()
+  await cases.selectCase(secondKey!)
   await cases.bulkMarkReady()
   await expect(page.locator(`.status-pill.status-ready`).first()).toBeVisible({
     timeout: 20_000,
   })
 
-  // API bulk still works for isolation
+  // Nested folder create + filter
+  await cases.createFolder(`Nested ${projectKey}`)
+  await expect(cases.folderTree().getByText(`Nested ${projectKey}`)).toBeVisible({
+    timeout: 20_000,
+  })
+
+  // API create still works; key is allocated server-side
   const listed = await createCase(request, adminToken, projectId, {
-    key: `${projectKey}-API`,
     title: `API case ${projectKey}`,
     priority: 'low',
     status: 'ready',
     steps: [],
   })
-  expect(listed).toBeTruthy()
+  expect(listed.case.key).toMatch(/^[A-Z][A-Z0-9]+-\d+$/)
 })

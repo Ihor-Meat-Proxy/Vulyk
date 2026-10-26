@@ -1,6 +1,6 @@
 # Vulyk user guide
 
-Vulyk is a test management system: organize cases into suites, plan and execute runs, ingest CI results, link requirements, and review dashboards.
+Vulyk is a test management system: organize cases into nested folders, plan and execute runs, ingest CI results, link requirements, and review dashboards.
 
 ## Sign in
 
@@ -14,9 +14,10 @@ When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the 
 ## Projects & cases
 
 - Use the project switcher in the top bar.
-- **Cases** lists cases with FTS search, tag/status filters, and bulk status updates.
-- **Create case** from the toolbar (key + title). Open a case for steps, tags, custom fields, and version history.
-- **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV.
+- **Cases** shows a SquashTM-style **folder tree** on the left (nested folders + cases with priority bar and status icon) and the filtered list on the right. Selecting a folder filters the list (including subfolders).
+- **Create case** needs only a title — keys are allocated automatically as `PREFIX-N` (prefix from project name initials, e.g. *Kyiv Open-Air Concert 2026* → `KOC`). Admins may edit the prefix before any cases exist. Deleted numbers are never reused.
+- Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
+- **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
 
 ## Plans & runs
 

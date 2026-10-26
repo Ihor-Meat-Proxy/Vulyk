@@ -7,6 +7,47 @@ import { useI18n, type Locale } from '../i18n'
 import { BottomNav } from './BottomNav'
 import { PwaToasts } from './PwaToasts'
 
+function SidebarFolder({
+  suite,
+  suites,
+  depth,
+  selectedSuiteId,
+  onSelect,
+}: {
+  suite: Suite
+  suites: Suite[]
+  depth: number
+  selectedSuiteId: string | null
+  onSelect: (id: string | null) => void
+}) {
+  const children = suites
+    .filter((s) => s.parent_id === suite.id)
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+  return (
+    <>
+      <button
+        type="button"
+        className={selectedSuiteId === suite.id ? 'active' : undefined}
+        style={{ paddingLeft: `${0.55 + depth * 0.75}rem` }}
+        onClick={() => onSelect(suite.id)}
+      >
+        {suite.name}
+        {typeof suite.case_count === 'number' ? ` (${suite.case_count})` : ''}
+      </button>
+      {children.map((child) => (
+        <SidebarFolder
+          key={child.id}
+          suite={child}
+          suites={suites}
+          depth={depth + 1}
+          selectedSuiteId={selectedSuiteId}
+          onSelect={onSelect}
+        />
+      ))}
+    </>
+  )
+}
+
 type Props = {
   projects: Project[]
   project: Project | null
@@ -119,7 +160,7 @@ export function Layout({
             className="muted"
             style={{ marginBottom: '0.5rem', fontSize: '0.8rem' }}
           >
-            {t('nav.suites')}
+            {t('nav.folders')}
           </div>
           <div className="suite-tree">
             <button
@@ -129,22 +170,25 @@ export function Layout({
             >
               {t('nav.allCases')}
             </button>
-            {suites.map((suite) => (
-              <button
-                key={suite.id}
-                type="button"
-                className={selectedSuiteId === suite.id ? 'active' : undefined}
-                onClick={() => selectSuite(suite.id)}
-              >
-                {suite.name}
-              </button>
-            ))}
+            {suites
+              .filter((s) => !s.parent_id)
+              .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+              .map((suite) => (
+                <SidebarFolder
+                  key={suite.id}
+                  suite={suite}
+                  suites={suites}
+                  depth={0}
+                  selectedSuiteId={selectedSuiteId}
+                  onSelect={selectSuite}
+                />
+              ))}
             {project && suites.length === 0 && (
               <p
                 className="muted"
                 style={{ margin: '0.35rem 0.55rem', fontSize: '0.85rem' }}
               >
-                No suites yet
+                {t('folders.empty')}
               </p>
             )}
           </div>
