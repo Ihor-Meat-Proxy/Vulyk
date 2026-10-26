@@ -1,0 +1,135 @@
+name: Report results to Vulyk
+description: >
+  Open a Vulyk CI run, upload JUnit/JSON results by case key, and close the run
+  (including when the job failed). Use with if: always().
+branding:
+  icon: upload-cloud
+  color: green
+inputs:
+  api-url:
+    description: Vulyk API base URL
+    required: true
+  api-token:
+    description: Project CI token (vulyk_ci_…) or personal API token
+    required: true
+  project-key:
+    description: Vulyk project key (e.g. KOC)
+    required: false
+  project-id:
+    description: Vulyk project UUID (alternative to project-key)
+    required: false
+  file:
+    description: Path to JUnit XML or JSON results
+    required: true
+  format:
+    description: auto | junit | vulyk_json | playwright_json | pytest_json
+    required: false
+    default: auto
+  suite-name:
+    description: Suite / run display name
+    required: false
+    default: ${{ github.workflow }} #${{ github.run_number }}
+  campaign:
+    description: Optional campaign name for Executions tree
+    required: false
+    default: ''
+  iteration:
+    description: Optional iteration name
+    required: false
+    default: ''
+  open-run:
+    description: Open a CI run before upload
+    required: false
+    default: 'true'
+  close:
+    description: Close the run after upload
+    required: false
+    default: 'true'
+  cancelled:
+    description: Mark close as cancelled
+    required: false
+    default: 'false'
+  run-id:
+    description: Existing run id (skips open when set)
+    required: false
+    default: ''
+  async:
+    description: Force async ingest
+    required: false
+    default: 'false'
+outputs:
+  run-id:
+    description: Vulyk run UUID
+    value: ${{ steps.upload.outputs.run-id }}
+runs:
+  using: composite
+  steps:
+    - name: Report to Vulyk
+      id: upload
+      shell: bash
+      env:
+        VULYK_API_URL: ${{ inputs.api-url }}
+        VULYK_API_TOKEN: ${{ inputs.api-token }}
+        VULYK_PROJECT_ID: ${{ inputs.project-id }}
+        VULYK_PROJECT_KEY: ${{ inputs.project-key }}
+        VULYK_RUN_ID: ${{ inputs.run-id }}
+        VULYK_RUN_NAME: ${{ inputs.suite-name }}
+        VULYK_CAMPAIGN: ${{ inputs.campaign }}
+        VULYK_ITERATION: ${{ inputs.iteration }}
+        VULYK_EXTERNAL_REF: github:${{ github.repository }}:${{ github.run_id }}:${{ github.run_attempt }}
+      run: |
+        set -euo pipefail
+        ROOT="${{ github.action_path }}/../../.."
+        # When used from this monorepo: scripts at repo root.
+        # When used via uses: org/Vulyk/.github/actions/vulyk-report@ref, action_path
+        # is .github/actions/vulyk-report — go up to checkout root for scripts.
+        if [ -f "${{ github.workspace }}/scripts/vulyk-upload.sh" ]; then
+          SCRIPT="${{ github.workspace }}/scripts/vulyk-upload.sh"
+        elif [ -f "$ROOT/scripts/vulyk-upload.sh" ]; then
+          SCRIPT="$ROOT/scripts/vulyk-upload.sh"
+        else
+          SCRIPT=/tmp/vulyk-upload.sh
+          curl -fsSL -o "$SCRIPT" \
+            "https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh"
+        fi
+        chmod +x "$SCRIPT"
+
+        PIPELINE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        COMMON=(
+          --provider github
+          --repo "${GITHUB_REPOSITORY}"
+          --branch "${GITHUB_REF_NAME}"
+          --commit "${GITHUB_SHA}"
+          --pipeline-url "${PIPELINE_URL}"
+          --external-ref "${VULYK_EXTERNAL_REF}"
+        )
+        if [ -n "${VULYK_CAMPAIGN:-}" ]; then COMMON+=(--campaign "${VULYK_CAMPAIGN}"); fi
+        if [ -n "${VULYK_ITERATION:-}" ]; then COMMON+=(--iteration "${VULYK_ITERATION}"); fi
+
+        if [ "${{ inputs.open-run }}" = "true" ] && [ -z "${VULYK_RUN_ID:-}" ]; then
+          OUT="$("$SCRIPT" --open-run --suite-name "${VULYK_RUN_NAME}" "${COMMON[@]}")"
+          echo "$OUT"
+          VULYK_RUN_ID="$(printf '%s' "$OUT" | python3 -c 'import json,sys
+try:
+  d=json.load(sys.stdin)
+  print(d.get("id") or d.get("run_id") or "")
+except Exception:
+  print("")')"
+          if [ -z "${VULYK_RUN_ID}" ]; then
+            echo "error: could not parse run id from open-run" >&2
+            exit 1
+          fi
+          export VULYK_RUN_ID
+        fi
+
+        UPLOAD_ARGS=(--file "${{ inputs.file }}" --format "${{ inputs.format }}" --run-id "${VULYK_RUN_ID}")
+        if [ "${{ inputs.async }}" = "true" ]; then UPLOAD_ARGS+=(--async); fi
+        "$SCRIPT" "${UPLOAD_ARGS[@]}"
+
+        if [ "${{ inputs.close }}" = "true" ]; then
+          CLOSE_ARGS=(--close-run --run-id "${VULYK_RUN_ID}")
+          if [ "${{ inputs.cancelled }}" = "true" ]; then CLOSE_ARGS+=(--cancelled); fi
+          "$SCRIPT" "${CLOSE_ARGS[@]}"
+        fi
+
+        echo "run-id=${VULYK_RUN_ID}" >> "$GITHUB_OUTPUT"

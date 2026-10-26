@@ -22,6 +22,16 @@ pub fn generate_api_token() -> (String, String) {
     (full, prefix)
 }
 
+/// Project-scoped CI reporting token (`vulyk_ci_…`).
+/// Returns `(full_token, prefix)` — full token shown once; only hash+prefix are stored.
+pub fn generate_ci_token() -> (String, String) {
+    let mut bytes = [0u8; 32];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    let full = format!("vulyk_ci_{}", hex::encode(bytes));
+    let prefix = token_prefix(&full);
+    (full, prefix)
+}
+
 pub fn token_prefix(token: &str) -> String {
     token.chars().take(16).collect()
 }

@@ -1,0 +1,75 @@
+# GitLab CI template: open → upload → close Vulyk CI runs.
+#
+# Usage in your .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/ci/gitlab-ci-vulyk.yml'
+#
+#   variables:
+#     VULYK_API_URL: "https://vulyk.example.com"
+#     VULYK_PROJECT_KEY: "KOC"
+#     VULYK_RESULTS_FILE: "report.xml"
+#     # VULYK_API_TOKEN set as masked CI/CD variable (project CI token)
+#
+#   report-vulyk:
+#     extends: .vulyk_report
+#     needs: ["test"]
+#     when: always
+#
+# Optional: VULYK_FORMAT, VULYK_SUITE_NAME, VULYK_CAMPAIGN, VULYK_ITERATION,
+# VULYK_ASYNC, VULYK_UPLOAD_SCRIPT_URL
+
+.vulyk_report:
+  image: python:3.12-alpine
+  stage: .post
+  script:
+    - apk add --no-cache curl bash
+    - |
+      set -euo pipefail
+      FILE="${VULYK_RESULTS_FILE:-junit.xml}"
+      if [ ! -f "$FILE" ]; then
+        echo "Results file not found: $FILE" >&2
+        exit 1
+      fi
+      if [ -f scripts/vulyk-upload.sh ]; then
+        SCRIPT=scripts/vulyk-upload.sh
+      else
+        SCRIPT=/tmp/vulyk-upload.sh
+        curl -fsSL -o "$SCRIPT" \
+          "${VULYK_UPLOAD_SCRIPT_URL:-https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh}"
+      fi
+      chmod +x "$SCRIPT"
+
+      PIPELINE_URL="${CI_PIPELINE_URL:-${CI_PROJECT_URL}/-/pipelines/${CI_PIPELINE_ID}}"
+      JOB_URL="${CI_JOB_URL:-}"
+      EXTERNAL_REF="gitlab:${CI_PROJECT_PATH}:${CI_PIPELINE_ID}:${CI_JOB_ID}"
+      SUITE="${VULYK_SUITE_NAME:-GitLab ${CI_PIPELINE_ID} / ${CI_JOB_NAME}}"
+
+      OPEN_ARGS=(
+        --open-run
+        --suite-name "$SUITE"
+        --provider gitlab
+        --repo "${CI_PROJECT_PATH}"
+        --branch "${CI_COMMIT_REF_NAME}"
+        --commit "${CI_COMMIT_SHA}"
+        --pipeline-url "$PIPELINE_URL"
+        --external-ref "$EXTERNAL_REF"
+      )
+      if [ -n "${JOB_URL}" ]; then OPEN_ARGS+=(--job-url "$JOB_URL"); fi
+      if [ -n "${VULYK_CAMPAIGN:-}" ]; then OPEN_ARGS+=(--campaign "$VULYK_CAMPAIGN"); fi
+      if [ -n "${VULYK_ITERATION:-}" ]; then OPEN_ARGS+=(--iteration "$VULYK_ITERATION"); fi
+
+      OPEN_OUT="$("$SCRIPT" "${OPEN_ARGS[@]}")"
+      echo "$OPEN_OUT"
+      RUN_ID="$(printf '%s' "$OPEN_OUT" | python3 -c 'import json,sys
+d=json.load(sys.stdin)
+print(d.get("id") or d.get("run_id") or "")')"
+      export VULYK_RUN_ID="$RUN_ID"
+
+      UPLOAD_ARGS=(--file "$FILE" --format "${VULYK_FORMAT:-auto}" --run-id "$RUN_ID")
+      if [ "${VULYK_ASYNC:-false}" = "true" ]; then UPLOAD_ARGS+=(--async); fi
+      "$SCRIPT" "${UPLOAD_ARGS[@]}"
+
+      "$SCRIPT" --close-run --run-id "$RUN_ID"
+  rules:
+    - when: always

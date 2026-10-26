@@ -1,5 +1,7 @@
 name: Upload results to Vulyk
-description: Upload JUnit XML or Vulyk JSON test results to a Vulyk run (CI reporter).
+description: >
+  Upload JUnit XML or Vulyk JSON to a Vulyk run. For full open→upload→close
+  lifecycle prefer .github/actions/vulyk-report.
 branding:
   icon: upload-cloud
   color: green
@@ -8,14 +10,14 @@ inputs:
     description: Vulyk API base URL (e.g. https://vulyk.example.com)
     required: true
   api-token:
-    description: Bearer token (optional while Phase 1 auth is open)
+    description: Bearer token (project CI token or personal API token)
     required: false
     default: ""
   file:
     description: Path to JUnit XML or Vulyk JSON results
     required: true
   format:
-    description: auto | junit | vulyk_json
+    description: auto | junit | vulyk_json | playwright_json | pytest_json
     required: false
     default: auto
   project-key:
