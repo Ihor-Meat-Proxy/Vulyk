@@ -3071,12 +3071,54 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Create case; open it; click Edit; Add step; fill action and expected; Save.",
-                    "uk": "Create case; open it; click Edit; Add step; fill action and expected; Save."
+                    "en": "Open Cases and create a case with a unique title.",
+                    "uk": "Open Cases and create a case with a unique title."
                   },
                   "expected_result": {
-                    "en": "Steps visible on Details; GET case returns steps in order.",
-                    "uk": "Steps visible on Details; GET case returns steps in order."
+                    "en": "Case appears in the list with an auto-allocated PREFIX-N key.",
+                    "uk": "Case appears in the list with an auto-allocated PREFIX-N key."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Open the case detail and click Edit.",
+                    "uk": "Open the case detail and click Edit."
+                  },
+                  "expected_result": {
+                    "en": "Editor fields and Steps section become editable; sticky Save/Cancel bar is visible.",
+                    "uk": "Editor fields and Steps section become editable; sticky Save/Cancel bar is visible."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Click Add step and fill Action and Expected for the new step.",
+                    "uk": "Click Add step and fill Action and Expected for the new step."
+                  },
+                  "expected_result": {
+                    "en": "Step fields accept text; unsaved-changes indicator appears.",
+                    "uk": "Step fields accept text; unsaved-changes indicator appears."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Click Save (or use Ctrl/Cmd+S).",
+                    "uk": "Click Save (or use Ctrl/Cmd+S)."
+                  },
+                  "expected_result": {
+                    "en": "Toast confirms save; steps are visible on Details; GET case returns steps in order.",
+                    "uk": "Toast confirms save; steps are visible on Details; GET case returns steps in order."
                   },
                   "data": {
                     "en": "",
@@ -3085,6 +3127,227 @@
                 }
               ],
               "external_key": "e2e:projects-cases.spec.ts"
+            },
+            {
+              "key": "VQA-187",
+              "title": {
+                "en": "Tab in last Expected adds next step",
+                "uk": "Tab в останньому Expected додає наступний крок"
+              },
+              "description": {
+                "en": "Tab in last Expected adds next step",
+                "uk": "Tab in last Expected adds next step"
+              },
+              "precondition": {
+                "en": "Editable case; admin/TAE.",
+                "uk": "Editable case; admin/TAE."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "regression",
+                "e2e",
+                "cases",
+                "keyboard"
+              ],
+              "case_type": "functional",
+              "external_key": "e2e:case-edit-keyboard.spec.ts#tab-add-step",
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open a case, click Edit, ensure at least one step has Action or Expected filled.",
+                    "uk": "Open a case, click Edit, ensure at least one step has Action or Expected filled."
+                  },
+                  "expected_result": {
+                    "en": "Focus is in the Expected field of the last step; hint “Press Tab…” is visible.",
+                    "uk": "Focus is in the Expected field of the last step; hint “Press Tab…” is visible."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Press Tab (not Shift+Tab) in that Expected field.",
+                    "uk": "Press Tab (not Shift+Tab) in that Expected field."
+                  },
+                  "expected_result": {
+                    "en": "A new empty step is appended and focus moves to its Action field.",
+                    "uk": "A new empty step is appended and focus moves to its Action field."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Press Tab again while the new last step is still empty.",
+                    "uk": "Press Tab again while the new last step is still empty."
+                  },
+                  "expected_result": {
+                    "en": "No additional step is created; focus follows normal order.",
+                    "uk": "No additional step is created; focus follows normal order."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "In a non-last Expected field, press Tab.",
+                    "uk": "In a non-last Expected field, press Tab."
+                  },
+                  "expected_result": {
+                    "en": "Focus moves to the next control without adding a step.",
+                    "uk": "Focus moves to the next control without adding a step."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
+            },
+            {
+              "key": "VQA-188",
+              "title": {
+                "en": "Ctrl or Cmd+S saves case from editor",
+                "uk": "Ctrl або Cmd+S зберігає кейс з редактора"
+              },
+              "description": {
+                "en": "Ctrl or Cmd+S saves case from editor",
+                "uk": "Ctrl or Cmd+S saves case from editor"
+              },
+              "precondition": {
+                "en": "Editable case; admin/TAE.",
+                "uk": "Editable case; admin/TAE."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "regression",
+                "e2e",
+                "cases",
+                "keyboard"
+              ],
+              "case_type": "functional",
+              "external_key": "e2e:case-edit-keyboard.spec.ts#save-shortcut",
+              "steps": [
+                {
+                  "action": {
+                    "en": "Enter Edit mode and change the title or a step.",
+                    "uk": "Enter Edit mode and change the title or a step."
+                  },
+                  "expected_result": {
+                    "en": "Unsaved-changes indicator shows; Save tooltip shows Ctrl+S or ⌘S.",
+                    "uk": "Unsaved-changes indicator shows; Save tooltip shows Ctrl+S or ⌘S."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Press Ctrl+S (Windows/Linux) or Cmd+S (macOS) while focus is in a textarea.",
+                    "uk": "Press Ctrl+S (Windows/Linux) or Cmd+S (macOS) while focus is in a textarea."
+                  },
+                  "expected_result": {
+                    "en": "Browser save dialog does not open; case saves; success toast appears.",
+                    "uk": "Browser save dialog does not open; case saves; success toast appears."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Press the save shortcut again with no further edits.",
+                    "uk": "Press the save shortcut again with no further edits."
+                  },
+                  "expected_result": {
+                    "en": "Toast shows “No changes”; no extra version bump.",
+                    "uk": "Toast shows “No changes”; no extra version bump."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Clear the title and press the save shortcut.",
+                    "uk": "Clear the title and press the save shortcut."
+                  },
+                  "expected_result": {
+                    "en": "Validation error is shown; case is not saved.",
+                    "uk": "Validation error is shown; case is not saved."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
+            },
+            {
+              "key": "VQA-189",
+              "title": {
+                "en": "Sticky save bar stays visible while scrolling",
+                "uk": "Липка панель Save залишається видимою при прокручуванні"
+              },
+              "description": {
+                "en": "Sticky save bar stays visible while scrolling",
+                "uk": "Sticky save bar stays visible while scrolling"
+              },
+              "precondition": {
+                "en": "Editable case; admin/TAE.",
+                "uk": "Editable case; admin/TAE."
+              },
+              "priority": "medium",
+              "status": "ready",
+              "tags": [
+                "regression",
+                "e2e",
+                "cases",
+                "ui"
+              ],
+              "case_type": "functional",
+              "external_key": "e2e:case-edit-keyboard.spec.ts#sticky-bar",
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open a long case, click Edit, and scroll to the bottom of Details.",
+                    "uk": "Open a long case, click Edit, and scroll to the bottom of Details."
+                  },
+                  "expected_result": {
+                    "en": "Sticky Save/Cancel bar remains visible in the viewport.",
+                    "uk": "Sticky Save/Cancel bar remains visible in the viewport."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Edit a field so the form is dirty, then attempt Back to cases.",
+                    "uk": "Edit a field so the form is dirty, then attempt Back to cases."
+                  },
+                  "expected_result": {
+                    "en": "Unsaved-changes confirmation appears before leaving.",
+                    "uk": "Unsaved-changes confirmation appears before leaving."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
               "key": "VQA-062",
@@ -3112,12 +3375,26 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Edit title/description; Save.",
-                    "uk": "Edit title/description; Save."
+                    "en": "Open the case and click Edit.",
+                    "uk": "Open the case and click Edit."
                   },
                   "expected_result": {
-                    "en": "New title in list; version incremented on Details.",
-                    "uk": "New title in list; version incremented on Details."
+                    "en": "Title and description fields become editable.",
+                    "uk": "Title and description fields become editable."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Change title and description, then Save.",
+                    "uk": "Change title and description, then Save."
+                  },
+                  "expected_result": {
+                    "en": "New title appears in the list; version increments on Details.",
+                    "uk": "New title appears in the list; version increments on Details."
                   },
                   "data": {
                     "en": "",

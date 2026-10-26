@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ApiError,
@@ -12,13 +19,20 @@ import {
   type TestCaseDetail,
 } from '../api'
 import { useAuth } from '../auth'
+import {
+  shouldModEnterAddStep,
+  shouldTabAddStep,
+} from '../caseEditShortcuts'
 import { CaseBreadcrumbs } from '../components/CaseBreadcrumbs'
 import { CaseKeyBadge } from '../components/CaseKeyBadge'
 import { StatusBadge } from '../components/StatusBadge'
+import { useToast } from '../components/ToastProvider'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
+import { useCaseEditorSaveShortcut } from '../hooks/useCaseEditorSaveShortcut'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { casePath, isCaseUuid } from '../lib/caseUrls'
+import { isApplePlatform, modKeyLabel } from '../platform'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
@@ -38,6 +52,25 @@ type DraftStep = {
 }
 
 type Tab = 'details' | 'history' | 'executions'
+
+type EditSnapshot = {
+  title: string
+  description: string
+  precondition: string
+  priority: string
+  status: string
+  tagInput: string
+  steps: DraftStep[]
+  fieldValues: Record<string, string>
+}
+
+function snapshotFromState(s: EditSnapshot): string {
+  return JSON.stringify(s)
+}
+
+function emptyStep(): DraftStep {
+  return { action: '', expected_result: '', data: '' }
+}
 
 function Sparkline({ statuses }: { statuses: string[] }) {
   if (statuses.length === 0) return null
@@ -124,35 +157,124 @@ export function CaseDetail({
   const [execLoading, setExecLoading] = useState(false)
   const [execOffset, setExecOffset] = useState(0)
   const execLimit = 25
+  const [baseline, setBaseline] = useState('')
+  const [stepHintVisible, setStepHintVisible] = useState(false)
+  const editorRef = useRef<HTMLDivElement | null>(null)
+  const actionRefs = useRef<(HTMLTextAreaElement | null)[]>([])
+  const { toast } = useToast()
+  const apple = isApplePlatform()
+  const mod = modKeyLabel(apple)
+  const saveShortcutLabel = apple ? '⌘S' : 'Ctrl+S'
+  const addStepShortcutLabel = apple ? '⌘Enter' : 'Ctrl+Enter'
+
+
+  const currentSnapshot = (): EditSnapshot => ({
+    title,
+    description,
+    precondition,
+    priority,
+    status,
+    tagInput,
+    steps,
+    fieldValues,
+  })
+
+  const dirty =
+    editing && baseline !== '' && snapshotFromState(currentSnapshot()) !== baseline
+
+  const captureBaseline = (snap: EditSnapshot) => {
+    setBaseline(snapshotFromState(snap))
+  }
 
   const applyDetail = (data: TestCaseDetail) => {
     setDetail(data)
-    setTitle(data.case.title)
-    setDescription(data.case.description)
-    setPrecondition(data.case.precondition)
-    setPriority(data.case.priority)
-    setStatus(data.case.status)
-    setTagInput(data.tags.map((t) => t.name).join(', '))
-    setSteps(
-      data.steps.map((s) => ({
-        action: s.action,
-        expected_result: s.expected_result,
-        data: s.data,
-      })),
-    )
+    const nextTitle = data.case.title
+    const nextDescription = data.case.description
+    const nextPrecondition = data.case.precondition
+    const nextPriority = data.case.priority
+    const nextStatus = data.case.status
+    const nextTagInput = data.tags.map((tag) => tag.name).join(', ')
+    const nextSteps = data.steps.map((s) => ({
+      action: s.action,
+      expected_result: s.expected_result,
+      data: s.data,
+    }))
     const vals: Record<string, string> = {}
     for (const cf of data.custom_fields) {
       vals[cf.field_id] =
         cf.value === null || cf.value === undefined ? '' : String(cf.value)
     }
+    setTitle(nextTitle)
+    setDescription(nextDescription)
+    setPrecondition(nextPrecondition)
+    setPriority(nextPriority)
+    setStatus(nextStatus)
+    setTagInput(nextTagInput)
+    setSteps(nextSteps)
     setFieldValues(vals)
+    captureBaseline({
+      title: nextTitle,
+      description: nextDescription,
+      precondition: nextPrecondition,
+      priority: nextPriority,
+      status: nextStatus,
+      tagInput: nextTagInput,
+      steps: nextSteps,
+      fieldValues: vals,
+    })
+  }
+
+  const startEditing = () => {
+    captureBaseline(currentSnapshot())
+    setEditing(true)
+    setError(null)
+  }
+
+  const discardEditing = () => {
+    if (detail) applyDetail(detail)
+    setEditing(false)
+    setError(null)
+    setStepHintVisible(false)
+  }
+
+  const confirmDiscard = () => {
+    if (!dirty) {
+      discardEditing()
+      return
+    }
+    if (window.confirm(t('cases.unsavedConfirm'))) {
+      discardEditing()
+    }
+  }
+
+  const focusAction = (index: number) => {
+    requestAnimationFrame(() => {
+      actionRefs.current[index]?.focus()
+    })
+  }
+
+  const addStepAt = (afterIndex?: number) => {
+    setSteps((prev) => {
+      const next = [...prev]
+      const insertAt =
+        afterIndex === undefined
+          ? next.length
+          : Math.min(afterIndex + 1, next.length)
+      next.splice(insertAt, 0, emptyStep())
+      focusAction(insertAt)
+      return next
+    })
   }
 
   const goBack = useCallback(() => {
+    if (editing && dirty) {
+      if (!window.confirm(t('cases.unsavedConfirm'))) return
+    }
     onBackToList(detail?.case.suite_id ?? null)
-  }, [detail?.case.suite_id, onBackToList])
+  }, [detail?.case.suite_id, onBackToList, editing, dirty, t])
 
-  useBackspaceNavigate(goBack, !loading && !deleted)
+  // Backspace-to-parent: never while editing (inputs already guarded; avoid leaving dirty editor)
+  useBackspaceNavigate(goBack, !loading && !deleted && !editing)
 
   const loadRelated = async (pid: string, id: string, data: TestCaseDetail) => {
     const [vers, defs, reqs, all] = await Promise.all([
@@ -299,11 +421,25 @@ export function CaseDetail({
     const pid = detail?.case.project_id ?? projectId
     const id = detail?.case.id
     if (!pid || !id) return
+    if (saving) return
+
+    if (!title.trim()) {
+      const validationError = t('cases.validationTitle')
+      setError(validationError)
+      toast(validationError)
+      return
+    }
+
+    if (!dirty) {
+      toast(t('cases.noChanges'))
+      return
+    }
+
     setSaving(true)
     try {
       const tagNames = tagInput
         .split(',')
-        .map((t) => t.trim())
+        .map((tag) => tag.trim())
         .filter(Boolean)
       await api.updateCase(pid, id, {
         title,
@@ -325,10 +461,79 @@ export function CaseDetail({
       await reload()
       setEditing(false)
       setError(null)
+      setStepHintVisible(false)
+      toast(t('cases.saved'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      toast(message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const onSaveEvent = useEffectEvent(() => {
+    void save()
+  })
+
+  useCaseEditorSaveShortcut({
+    enabled: editing,
+    saving,
+    editorRef,
+    onSave: onSaveEvent,
+  })
+
+  useEffect(() => {
+    if (!editing || !dirty) return
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    const onDocumentClick = (e: MouseEvent) => {
+      const anchor = (e.target as Element | null)?.closest?.('a[href]')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('#') || href.startsWith('mailto:')) return
+      if (/^https?:\/\//i.test(href) && !href.startsWith(window.location.origin)) {
+        return
+      }
+      if (!window.confirm(t('cases.unsavedConfirm'))) {
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    document.addEventListener('click', onDocumentClick, true)
+    return () => {
+      window.removeEventListener('beforeunload', onBeforeUnload)
+      document.removeEventListener('click', onDocumentClick, true)
+    }
+  }, [editing, dirty, t])
+
+  const onStepKeyDown = (
+    e: ReactKeyboardEvent<HTMLTextAreaElement>,
+    idx: number,
+    field: 'action' | 'expected',
+  ) => {
+    const step = steps[idx]
+    if (!step) return
+
+    if (
+      shouldTabAddStep(e, {
+        stepIndex: idx,
+        stepsLength: steps.length,
+        step,
+        field,
+      })
+    ) {
+      e.preventDefault()
+      addStepAt(idx)
+      return
+    }
+
+    if (shouldModEnterAddStep(e.nativeEvent, apple)) {
+      e.preventDefault()
+      addStepAt(idx)
     }
   }
 
@@ -378,9 +583,14 @@ export function CaseDetail({
   const { case: c, tags } = detail
   const summary = resultsPage?.summary
   const activeProjectId = c.project_id
+  const saveBtnTitle = t('cases.saveShortcutHint', { shortcut: saveShortcutLabel })
 
   return (
-    <div className="panel case-detail" {...testIdProps(TestIds.caseDetailPage)}>
+    <div
+      className={`panel case-detail${editing ? ' case-detail-editing' : ''}`}
+      ref={editorRef}
+      {...testIdProps(TestIds.caseDetailPage)}
+    >
       <CaseBreadcrumbs
         projectName={projectName}
         suites={suites}
@@ -423,38 +633,21 @@ export function CaseDetail({
             <span {...testIdProps(TestIds.caseDetailTitleText)}>{c.title}</span>
           )}
         </h2>
-        <div className="detail-actions">
+        <div className="detail-actions" {...testIdProps(TestIds.caseDetailActions)}>
           {canEdit && !editing ? (
             <button
               type="button"
               className="btn"
-              onClick={() => setEditing(true)}
+              onClick={startEditing}
               {...testIdProps(TestIds.caseDetailEditButton)}
             >
-              Edit
+              {t('cases.edit')}
             </button>
           ) : null}
           {canEdit && editing ? (
-            <>
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => setEditing(false)}
-                disabled={saving}
-                {...testIdProps(TestIds.caseDetailCancelButton)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={() => void save()}
-                disabled={saving}
-                {...testIdProps(TestIds.caseDetailSaveButton)}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </>
+            <span className="sr-only" {...testIdProps(TestIds.caseDetailEditing)}>
+              {dirty ? t('cases.unsavedChanges') : t('cases.noUnsavedChanges')}
+            </span>
           ) : null}
         </div>
       </div>
@@ -624,92 +817,132 @@ export function CaseDetail({
             </section>
           )}
 
-          <section {...testIdProps(TestIds.caseDetailSteps)}>
+          <section
+            {...testIdProps(TestIds.caseDetailSteps)}
+            aria-label={t('cases.steps')}
+          >
             <div className="detail-header">
-              <h3>Steps</h3>
+              <h3>{t('cases.steps')}</h3>
               {editing && (
                 <button
                   type="button"
                   className="btn secondary"
-                  onClick={() =>
-                    setSteps((prev) => [
-                      ...prev,
-                      { action: '', expected_result: '', data: '' },
-                    ])
-                  }
+                  onClick={() => addStepAt()}
+                  aria-keyshortcuts={apple ? 'Meta+Enter' : 'Control+Enter'}
                   {...testIdProps(TestIds.caseDetailAddStepButton)}
                 >
-                  Add step
+                  {t('cases.addStep')}
                 </button>
               )}
             </div>
             {steps.length === 0 ? (
-              <p className="muted">No steps defined.</p>
+              <p className="muted">{t('cases.noSteps')}</p>
             ) : (
               <div className="steps">
-                {steps.map((step, idx) => (
-                  <div
-                    className="step"
-                    key={idx}
-                    {...listItemProps(TestIds.caseDetailStep, {
-                      entityId: String(idx),
-                      index: idx,
-                    })}
-                  >
-                    <div className="step-num">{idx + 1}</div>
-                    <div>
-                      <div className="muted" style={{ fontSize: '0.78rem' }}>
-                        Action
+                {steps.map((step, idx) => {
+                  const isLast = idx === steps.length - 1
+                  return (
+                    <div
+                      className="step"
+                      key={idx}
+                      {...listItemProps(TestIds.caseDetailStep, {
+                        entityId: String(idx),
+                        index: idx,
+                      })}
+                    >
+                      <div className="step-num">{idx + 1}</div>
+                      <div>
+                        <div className="muted" style={{ fontSize: '0.78rem' }}>
+                          {t('cases.stepAction')}
+                        </div>
+                        {editing ? (
+                          <textarea
+                            className="area"
+                            rows={2}
+                            value={step.action}
+                            ref={(el) => {
+                              actionRefs.current[idx] = el
+                            }}
+                            onChange={(e) => {
+                              const next = [...steps]
+                              next[idx] = { ...step, action: e.target.value }
+                              setSteps(next)
+                            }}
+                            onKeyDown={(e) => onStepKeyDown(e, idx, 'action')}
+                            onFocus={() => setStepHintVisible(isLast)}
+                            onBlur={() => setStepHintVisible(false)}
+                            aria-label={t('cases.stepActionN', { n: idx + 1 })}
+                            {...testIdProps(TestIds.caseDetailStepAction)}
+                          />
+                        ) : (
+                          <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
+                        )}
                       </div>
-                      {editing ? (
-                        <textarea
-                          className="area"
-                          rows={2}
-                          value={step.action}
-                          onChange={(e) => {
-                            const next = [...steps]
-                            next[idx] = { ...step, action: e.target.value }
-                            setSteps(next)
-                          }}
-                          {...testIdProps(TestIds.caseDetailStepAction)}
-                        />
-                      ) : (
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
-                      )}
-                    </div>
-                    <div>
-                      <div className="muted" style={{ fontSize: '0.78rem' }}>
-                        Expected
+                      <div>
+                        <div className="muted" style={{ fontSize: '0.78rem' }}>
+                          {t('cases.stepExpected')}
+                        </div>
+                        {editing ? (
+                          <textarea
+                            className="area"
+                            rows={2}
+                            value={step.expected_result}
+                            onChange={(e) => {
+                              const next = [...steps]
+                              next[idx] = {
+                                ...step,
+                                expected_result: e.target.value,
+                              }
+                              setSteps(next)
+                            }}
+                            onKeyDown={(e) => onStepKeyDown(e, idx, 'expected')}
+                            onFocus={() => setStepHintVisible(isLast)}
+                            onBlur={() => setStepHintVisible(false)}
+                            aria-label={t('cases.stepExpectedN', { n: idx + 1 })}
+                            aria-describedby={
+                              isLast && stepHintVisible
+                                ? 'case-detail-step-hint'
+                                : undefined
+                            }
+                            {...testIdProps(TestIds.caseDetailStepExpected)}
+                          />
+                        ) : (
+                          <div style={{ whiteSpace: 'pre-wrap' }}>
+                            {step.expected_result}
+                          </div>
+                        )}
+                        {editing && (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            style={{ marginTop: '0.35rem' }}
+                            onClick={() =>
+                              setSteps((prev) => prev.filter((_, i) => i !== idx))
+                            }
+                            {...testIdProps(TestIds.caseDetailStepRemove)}
+                          >
+                            {t('cases.removeStep')}
+                          </button>
+                        )}
+                        {editing && isLast && stepHintVisible && (
+                          <p
+                            id="case-detail-step-hint"
+                            className="step-shortcut-hint"
+                            {...testIdProps(TestIds.caseDetailStepHint)}
+                          >
+                            {t('cases.tabAddStepHint', { mod })}
+                            <span className="sr-only">
+                              {' '}
+                              {t('cases.modEnterAddStepHint', {
+                                shortcut: addStepShortcutLabel,
+                              })}
+                            </span>
+                          </p>
+                        )}
                       </div>
-                      {editing ? (
-                        <textarea
-                          className="area"
-                          rows={2}
-                          value={step.expected_result}
-                          onChange={(e) => {
-                            const next = [...steps]
-                            next[idx] = { ...step, expected_result: e.target.value }
-                            setSteps(next)
-                          }}
-                          {...testIdProps(TestIds.caseDetailStepExpected)}
-                        />
-                      ) : (
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
-                      )}
-                      {editing && (
-                        <button
-                          type="button"
-                          className="btn secondary"
-                          style={{ marginTop: '0.35rem' }}
-                          onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx))}
-                          {...testIdProps(TestIds.caseDetailStepRemove)}
-                        >
-                          Remove
-                        </button>
-                      )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </section>
@@ -1016,6 +1249,53 @@ export function CaseDetail({
             </>
           )}
         </section>
+      )}
+
+      {editing && (
+        <div
+          className="case-edit-sticky"
+          role="region"
+          aria-label={t('cases.editActions')}
+          {...testIdProps(TestIds.caseDetailStickyBar)}
+        >
+          <div className="case-edit-sticky-inner">
+            {dirty ? (
+              <span
+                className="unsaved-indicator"
+                {...testIdProps(TestIds.caseDetailStickyUnsaved)}
+              >
+                {t('cases.unsavedChanges')}
+              </span>
+            ) : (
+              <span className="muted">{t('cases.noUnsavedChanges')}</span>
+            )}
+            <div className="case-edit-sticky-actions">
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={confirmDiscard}
+                disabled={saving}
+                {...testIdProps(TestIds.caseDetailCancelButton)}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void save()}
+                disabled={saving}
+                title={saveBtnTitle}
+                aria-keyshortcuts={apple ? 'Meta+S' : 'Control+S'}
+                {...testIdProps(TestIds.caseDetailSaveButton)}
+              >
+                {saving ? t('cases.saving') : t('common.save')}
+                <span className="save-shortcut-badge" aria-hidden>
+                  {saveShortcutLabel}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

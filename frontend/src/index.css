@@ -3189,6 +3189,70 @@ button.trend-seg.clickable:focus-visible {
   font-size: 0.9rem;
 }
 
+.case-detail-editing {
+  padding-bottom: 5.5rem;
+}
+
+.case-edit-sticky {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 0.65rem 1.5rem;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-elevated) 94%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 -6px 18px color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+@media (min-width: 901px) {
+  .app-shell:not(.drawer-open) .case-edit-sticky {
+    left: var(--sidebar-width, 15.5rem);
+  }
+}
+
+.case-edit-sticky-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.case-edit-sticky-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.unsaved-indicator {
+  font-size: 0.85rem;
+  color: var(--warn, #b45309);
+  font-weight: 600;
+}
+
+.unsaved-indicator::before {
+  content: '●';
+  margin-right: 0.35rem;
+  font-size: 0.65rem;
+  vertical-align: middle;
+}
+
+.save-shortcut-badge {
+  margin-left: 0.45rem;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-family: var(--font-mono);
+}
+
+.step-shortcut-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+}
+
 .case-deleted h2 {
   margin-top: 0;
 }
@@ -3201,5 +3265,13 @@ button.trend-seg.clickable:focus-visible {
 
   .case-key-copy-icon {
     opacity: 0.85;
+  }
+
+  .case-detail-editing {
+    padding-bottom: 7.5rem;
+  }
+
+  .case-edit-sticky {
+    bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
   }
 }

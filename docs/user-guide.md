@@ -30,8 +30,21 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 - **Cases** shows a SquashTM-style **folder tree** on the left of the page (the only folder UI — not duplicated in the app sidebar). Nested folders + cases with priority bar and status icon; **All cases** is the tree root. Folder badges show the **recursive** case total (tooltip includes the direct count). Expanding a folder **lazy-loads** its direct cases (100 at a time with Load more). Selecting a folder filters the list (including subfolders by default; use **Direct only** to exclude descendants). Cases sort by numeric key suffix (`PREFIX-2` before `PREFIX-10`). On narrow viewports the tree opens as a **Folders** drawer.
 - **Create case** needs only a title — keys are allocated automatically as `PREFIX-N` (prefix from project name initials, e.g. *Kyiv Open-Air Concert 2026* → `KOC`). Admins may edit the prefix before any cases exist. Deleted numbers are never reused.
 - Case detail URLs use the key (`/cases/PLTK-2194`). List and folder-tree links open the key URL. Old `/cases/<uuid>` bookmarks still work and **replace**-redirect to the key URL. Opening a deleted/retired key shows a clear **Case deleted** page. Click the key badge to copy it (toast + keyboard Enter/Space); optional **Copy link** copies the absolute URL. **Backspace** (when focus is not in an input/dialog) returns to the Cases list filtered to the case’s folder; the back control shows the shortcut hint. Breadcrumbs above the back link are **Project > Folder > … > KEY title**.
+- Open a case to view Details, History / Results, and Executions. **Edit** opens an inline editor with a sticky Save/Cancel bar, an unsaved-changes indicator, and a leave warning when navigating away with dirty fields.
 - Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
 - **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
+
+### Keyboard shortcuts (case editor)
+
+Available only while a test case is in **Edit** mode (the Ctrl/Cmd+S listener is unregistered when you leave the editor so the browser’s Save Page works elsewhere). **Backspace**-to-list is disabled while editing and never fires inside inputs/dialogs:
+
+| Shortcut | Action |
+|----------|--------|
+| **Tab** in the **Expected** field of the **last** step (when Action or Expected has content) | Add a new empty step and focus its Action field. Shift+Tab and Tab on non-last steps keep normal focus order; an empty last step does not spawn another. |
+| **Ctrl+Enter** (Windows/Linux) or **⌘Enter** (macOS) in a step field | Add the next step and focus its Action. |
+| **Ctrl+S** (Windows/Linux) or **⌘S** (macOS) | Save the case from anywhere in the editor (including textareas). Suppresses the browser save dialog. Ignored while a save is in flight, on key repeat, with Shift/Alt, or when another modal/dialog is open. Shows validation errors, a **No changes** toast when nothing changed, or a saved confirmation. |
+
+The Save button tooltip and sticky bar show the platform-appropriate shortcut. A hint under the last step (“Press Tab or Ctrl/⌘+Enter…”) appears while that step’s fields are focused.
 
 ## Plans & runs
 
