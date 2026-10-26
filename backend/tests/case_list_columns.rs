@@ -21,6 +21,8 @@ async fn spawn_app() -> String {
             jwt_ttl_hours: 12,
             session_ttl_hours: 168,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -51,6 +53,8 @@ async fn spawn_app_auth() -> (String, sqlx::PgPool) {
             jwt_ttl_hours: 12,
             session_ttl_hours: 168,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -77,7 +81,7 @@ async fn insert_admin_and_login(
     base: &str,
 ) -> String {
     let email = format!("admin-{}@example.com", uniq("A").to_lowercase());
-    let password = "Str0ngPass1";
+    let password = "password12345678";
     let hash = vulyk_api::auth::hash_password(password).expect("hash");
     sqlx::query(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
