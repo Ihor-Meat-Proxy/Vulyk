@@ -27,6 +27,7 @@ impl GitHubDestination {
             .ok_or_else(|| AppError::BadRequest("github token required".into()))?;
         let api_base =
             cfg_str(config, "api_base").unwrap_or_else(|| "https://api.github.com".into());
+        crate::services::egress::validate_public_https_url(&api_base)?;
         Ok(Self {
             owner,
             repo,
@@ -34,7 +35,10 @@ impl GitHubDestination {
             path_prefix,
             token,
             api_base,
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .map_err(|e| AppError::Internal(format!("http client: {e}")))?,
         })
     }
 

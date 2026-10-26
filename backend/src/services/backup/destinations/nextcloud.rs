@@ -15,6 +15,7 @@ pub struct NextcloudDestination {
 impl NextcloudDestination {
     pub fn from_config(config: &Value, secrets: &Value) -> AppResult<Self> {
         let base_url = require_str(config, "base_url")?;
+        crate::services::egress::validate_public_https_url(&base_url)?;
         let username = require_str(config, "username")?;
         let app_password = cfg_str(secrets, "app_password")
             .or_else(|| cfg_str(secrets, "password"))
@@ -26,7 +27,10 @@ impl NextcloudDestination {
             username,
             app_password,
             root_path,
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .map_err(|e| AppError::Internal(format!("http client: {e}")))?,
         })
     }
 
