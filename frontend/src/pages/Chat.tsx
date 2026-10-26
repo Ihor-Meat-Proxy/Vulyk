@@ -68,6 +68,9 @@ export function Chat({ projectId }: Props) {
   const [suites, setSuites] = useState<Suite[]>([])
   const [reqFolders, setReqFolders] = useState<RequirementFolder[]>([])
   const [proposal, setProposal] = useState<ChatProposal | null>(null)
+  /** Stable React keys for editable draft rows (index keys remount on reorder/edit). */
+  const [draftCaseKeys, setDraftCaseKeys] = useState<string[]>([])
+  const [draftReqKeys, setDraftReqKeys] = useState<string[]>([])
   const [confirmPrompt, setConfirmPrompt] = useState<string | null>(null)
   const [draftMeta, setDraftMeta] = useState<{
     provider: string
@@ -161,6 +164,8 @@ export function Chat({ projectId }: Props) {
     setError(null)
     setNotice(null)
     setProposal(null)
+    setDraftCaseKeys([])
+    setDraftReqKeys([])
     setConfirmPrompt(null)
     try {
       const history = turns.slice(-8).map((turn) => ({
@@ -207,6 +212,8 @@ export function Chat({ projectId }: Props) {
       }
 
       setProposal(res.proposal)
+      setDraftCaseKeys(res.proposal.cases.map(() => nextTurnId()))
+      setDraftReqKeys(res.proposal.requirements.map(() => nextTurnId()))
       setConfirmPrompt(res.confirmation_prompt ?? t('chat.confirmPrompt'))
       setTurns((prev) => [
         ...prev,
@@ -278,6 +285,8 @@ export function Chat({ projectId }: Props) {
         },
       ])
       setProposal(null)
+      setDraftCaseKeys([])
+      setDraftReqKeys([])
       setConfirmPrompt(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -289,6 +298,8 @@ export function Chat({ projectId }: Props) {
   const onRevise = () => {
     setQuestion(t('chat.reviseHint'))
     setProposal(null)
+    setDraftCaseKeys([])
+    setDraftReqKeys([])
     setConfirmPrompt(null)
   }
 
@@ -344,7 +355,7 @@ export function Chat({ projectId }: Props) {
         )}
         {turns.map((turn, i) => (
           <div
-            key={i}
+            key={turn.id}
             className={`chat-bubble ${turn.role}`}
             {...listItemProps(TestIds.chatMessage, {
               entityId: turn.id,
@@ -436,10 +447,10 @@ export function Chat({ projectId }: Props) {
 
           {proposal.cases.map((c, i) => (
             <div
-              key={i}
+              key={draftCaseKeys[i] ?? `case-${i}`}
               className="chat-draft-item"
               {...listItemProps(TestIds.chatDraftCase, {
-                entityId: String(i),
+                entityId: draftCaseKeys[i] ?? String(i),
                 index: i,
               })}
             >
@@ -554,10 +565,10 @@ export function Chat({ projectId }: Props) {
 
           {proposal.requirements.map((r, i) => (
             <div
-              key={i}
+              key={draftReqKeys[i] ?? `req-${i}`}
               className="chat-draft-item"
               {...listItemProps(TestIds.chatDraftRequirement, {
-                entityId: String(i),
+                entityId: draftReqKeys[i] ?? String(i),
                 index: i,
               })}
             >
@@ -628,6 +639,8 @@ export function Chat({ projectId }: Props) {
               disabled={busy}
               onClick={() => {
                 setProposal(null)
+                setDraftCaseKeys([])
+                setDraftReqKeys([])
                 setConfirmPrompt(null)
               }}
               {...testIdProps(TestIds.chatDismissButton)}

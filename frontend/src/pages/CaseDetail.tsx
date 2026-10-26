@@ -31,6 +31,12 @@ import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useCaseEditorSaveShortcut } from '../hooks/useCaseEditorSaveShortcut'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import {
+  draftStepsFromApi,
+  emptyDraftStep,
+  stepsForApi,
+  type DraftStep,
+} from '../draftSteps'
 import { casePath, isCaseUuid } from '../lib/caseUrls'
 import { isApplePlatform, modKeyLabel } from '../platform'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
@@ -43,12 +49,6 @@ type Props = {
   suites: Suite[]
   onEnsureProject: (projectId: string) => void
   onBackToList: (suiteId: string | null) => void
-}
-
-type DraftStep = {
-  action: string
-  expected_result: string
-  data: string
 }
 
 type Tab = 'details' | 'history' | 'executions'
@@ -66,10 +66,6 @@ type EditSnapshot = {
 
 function snapshotFromState(s: EditSnapshot): string {
   return JSON.stringify(s)
-}
-
-function emptyStep(): DraftStep {
-  return { action: '', expected_result: '', data: '' }
 }
 
 function Sparkline({ statuses }: { statuses: string[] }) {
@@ -196,11 +192,7 @@ export function CaseDetail({
     const nextPriority = data.case.priority
     const nextStatus = data.case.status
     const nextTagInput = data.tags.map((tag) => tag.name).join(', ')
-    const nextSteps = data.steps.map((s) => ({
-      action: s.action,
-      expected_result: s.expected_result,
-      data: s.data,
-    }))
+    const nextSteps = draftStepsFromApi(data.steps)
     const vals: Record<string, string> = {}
     for (const cf of data.custom_fields) {
       vals[cf.field_id] =
@@ -262,7 +254,7 @@ export function CaseDetail({
         afterIndex === undefined
           ? next.length
           : Math.min(afterIndex + 1, next.length)
-      next.splice(insertAt, 0, emptyStep())
+      next.splice(insertAt, 0, emptyDraftStep())
       focusAction(insertAt)
       return next
     })
@@ -410,13 +402,17 @@ export function CaseDetail({
     }
   }
 
-  useEffect(() => {
-    if (tab === 'history' && detail?.case.id) {
+  const onTabDataLoad = useEffectEvent((nextTab: Tab) => {
+    if (nextTab === 'history' && detail?.case.id) {
       void loadResults(0)
     }
-    if (tab === 'executions' && detail?.case.id) {
+    if (nextTab === 'executions' && detail?.case.id) {
       void loadExecutions(0)
     }
+  })
+
+  useEffect(() => {
+    onTabDataLoad(tab)
   }, [tab, detail?.case.id])
 
   const save = async () => {
@@ -449,7 +445,7 @@ export function CaseDetail({
         precondition,
         priority,
         status,
-        steps,
+        steps: stepsForApi(steps),
         tag_names: tagNames,
         change_summary: 'edited in UI',
       })
@@ -869,9 +865,9 @@ export function CaseDetail({
                   return (
                     <div
                       className="step"
-                      key={idx}
+                      key={step.clientKey}
                       {...listItemProps(TestIds.caseDetailStep, {
-                        entityId: String(idx),
+                        entityId: step.clientKey,
                         index: idx,
                       })}
                     >
