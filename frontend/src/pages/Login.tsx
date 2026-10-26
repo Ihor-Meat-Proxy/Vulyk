@@ -65,7 +65,7 @@ export function Login() {
           <span className="brand-mark">
             {status?.instance_name || 'Vulyk'}
           </span>
-          <span className="brand-tag">
+          <span className="brand-tag" {...testIdProps(TestIds.loginBrandTag)}>
             {isBootstrap
               ? t('login.bootstrapTitle')
               : showRegister

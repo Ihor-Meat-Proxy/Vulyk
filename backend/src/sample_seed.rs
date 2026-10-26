@@ -134,6 +134,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "pdf-export",
         include_str!("../seed/vulyk-qa.d/pdf-export.json"),
     ),
+    (
+        "qa-coverage-hardening",
+        include_str!("../seed/vulyk-qa.d/qa-coverage-hardening.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
