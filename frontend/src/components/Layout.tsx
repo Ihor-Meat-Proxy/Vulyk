@@ -1,70 +1,19 @@
 import { useEffect, useId, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import type { Project, Suite } from '../api'
+import type { Project } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n, type Locale } from '../i18n'
 import { BottomNav } from './BottomNav'
 import { PwaToasts } from './PwaToasts'
 
-function SidebarFolder({
-  suite,
-  suites,
-  depth,
-  selectedSuiteId,
-  onSelect,
-}: {
-  suite: Suite
-  suites: Suite[]
-  depth: number
-  selectedSuiteId: string | null
-  onSelect: (id: string | null) => void
-}) {
-  const children = suites
-    .filter((s) => s.parent_id === suite.id)
-    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-  return (
-    <>
-      <button
-        type="button"
-        className={selectedSuiteId === suite.id ? 'active' : undefined}
-        style={{ paddingLeft: `${0.55 + depth * 0.75}rem` }}
-        onClick={() => onSelect(suite.id)}
-      >
-        {suite.name}
-        {typeof suite.case_count === 'number' ? ` (${suite.case_count})` : ''}
-      </button>
-      {children.map((child) => (
-        <SidebarFolder
-          key={child.id}
-          suite={child}
-          suites={suites}
-          depth={depth + 1}
-          selectedSuiteId={selectedSuiteId}
-          onSelect={onSelect}
-        />
-      ))}
-    </>
-  )
-}
-
 type Props = {
   projects: Project[]
   project: Project | null
-  suites: Suite[]
-  selectedSuiteId: string | null
   onSelectProject: (id: string) => void
-  onSelectSuite: (id: string | null) => void
 }
 
-export function Layout({
-  projects,
-  project,
-  suites,
-  selectedSuiteId,
-  onSelectProject,
-  onSelectSuite,
-}: Props) {
+export function Layout({ projects, project, onSelectProject }: Props) {
   const { user, logout, status } = useAuth()
   const { t, locale, setLocale } = useI18n()
   const { can } = useProjectPermissions(project?.id ?? null)
@@ -74,7 +23,7 @@ export function Layout({
 
   useEffect(() => {
     setDrawerOpen(false)
-  }, [location.pathname, selectedSuiteId])
+  }, [location.pathname])
 
   useEffect(() => {
     if (!drawerOpen) return
@@ -84,11 +33,6 @@ export function Layout({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [drawerOpen])
-
-  const selectSuite = (id: string | null) => {
-    onSelectSuite(id)
-    setDrawerOpen(false)
-  }
 
   const showImport = can('import_cases')
   const showGenerate = can('llm_assist')
@@ -108,14 +52,14 @@ export function Layout({
         <button
           type="button"
           className="drawer-backdrop"
-          aria-label="Close suite drawer"
+          aria-label={t('nav.closeMenu')}
           onClick={() => setDrawerOpen(false)}
         />
       )}
 
       <aside
         className="sidebar"
-        id="suite-drawer"
+        id="nav-drawer"
         aria-labelledby={drawerTitleId}
       >
         <div className="brand-row">
@@ -134,66 +78,58 @@ export function Layout({
           </button>
         </div>
 
-        <nav className="nav nav-desktop" aria-label="Primary">
-          <NavLink to="/" end>
+        <nav className="nav" aria-label="Primary">
+          <NavLink to="/" end onClick={() => setDrawerOpen(false)}>
             {t('nav.cases')}
           </NavLink>
           {can('manage_requirements') || can('view_project') ? (
-            <NavLink to="/requirements">{t('nav.requirements')}</NavLink>
-          ) : null}
-          {showImport ? <NavLink to="/import">{t('nav.import')}</NavLink> : null}
-          {showGenerate ? (
-            <NavLink to="/generate">{t('nav.generate')}</NavLink>
-          ) : null}
-          {showChat ? <NavLink to="/chat">{t('nav.chat')}</NavLink> : null}
-          <NavLink to="/runs">{t('nav.runs')}</NavLink>
-          <NavLink to="/executions">{t('nav.executions')}</NavLink>
-          {showCi ? <NavLink to="/ci">{t('nav.ci')}</NavLink> : null}
-          {can('view_reports') ? (
-            <NavLink to="/reports">{t('nav.reports')}</NavLink>
-          ) : null}
-          {showAdmin ? <NavLink to="/admin">{t('nav.admin')}</NavLink> : null}
-          <NavLink to="/appearance">{t('nav.appearance')}</NavLink>
-        </nav>
-
-        <div className="suite-block">
-          <div
-            className="muted"
-            style={{ marginBottom: '0.5rem', fontSize: '0.8rem' }}
-          >
-            {t('nav.folders')}
-          </div>
-          <div className="suite-tree">
-            <button
-              type="button"
-              className={selectedSuiteId === null ? 'active' : undefined}
-              onClick={() => selectSuite(null)}
+            <NavLink
+              to="/requirements"
+              onClick={() => setDrawerOpen(false)}
             >
-              {t('nav.allCases')}
-            </button>
-            {suites
-              .filter((s) => !s.parent_id)
-              .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
-              .map((suite) => (
-                <SidebarFolder
-                  key={suite.id}
-                  suite={suite}
-                  suites={suites}
-                  depth={0}
-                  selectedSuiteId={selectedSuiteId}
-                  onSelect={selectSuite}
-                />
-              ))}
-            {project && suites.length === 0 && (
-              <p
-                className="muted"
-                style={{ margin: '0.35rem 0.55rem', fontSize: '0.85rem' }}
-              >
-                {t('folders.empty')}
-              </p>
-            )}
-          </div>
-        </div>
+              {t('nav.requirements')}
+            </NavLink>
+          ) : null}
+          {showImport ? (
+            <NavLink to="/import" onClick={() => setDrawerOpen(false)}>
+              {t('nav.import')}
+            </NavLink>
+          ) : null}
+          {showGenerate ? (
+            <NavLink to="/generate" onClick={() => setDrawerOpen(false)}>
+              {t('nav.generate')}
+            </NavLink>
+          ) : null}
+          {showChat ? (
+            <NavLink to="/chat" onClick={() => setDrawerOpen(false)}>
+              {t('nav.chat')}
+            </NavLink>
+          ) : null}
+          <NavLink to="/runs" onClick={() => setDrawerOpen(false)}>
+            {t('nav.runs')}
+          </NavLink>
+          <NavLink to="/executions" onClick={() => setDrawerOpen(false)}>
+            {t('nav.executions')}
+          </NavLink>
+          {showCi ? (
+            <NavLink to="/ci" onClick={() => setDrawerOpen(false)}>
+              {t('nav.ci')}
+            </NavLink>
+          ) : null}
+          {can('view_reports') ? (
+            <NavLink to="/reports" onClick={() => setDrawerOpen(false)}>
+              {t('nav.reports')}
+            </NavLink>
+          ) : null}
+          {showAdmin ? (
+            <NavLink to="/admin" onClick={() => setDrawerOpen(false)}>
+              {t('nav.admin')}
+            </NavLink>
+          ) : null}
+          <NavLink to="/appearance" onClick={() => setDrawerOpen(false)}>
+            {t('nav.appearance')}
+          </NavLink>
+        </nav>
       </aside>
 
       <div className="main">
@@ -203,10 +139,10 @@ export function Layout({
               type="button"
               className="btn secondary menu-toggle"
               aria-expanded={drawerOpen}
-              aria-controls="suite-drawer"
+              aria-controls="nav-drawer"
               onClick={() => setDrawerOpen((v) => !v)}
             >
-              {t('nav.suites')}
+              {t('nav.menu')}
             </button>
             <h1>{project ? project.name : status?.instance_name || 'Vulyk'}</h1>
           </div>

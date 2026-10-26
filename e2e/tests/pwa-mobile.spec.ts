@@ -7,7 +7,7 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await ensureAdminSession(request)
   })
 
-  test('bottom nav, suite drawer, and stacked case flow', async ({ page }) => {
+  test('bottom nav, folders drawer, and stacked case flow', async ({ page }) => {
     await loginAsAdmin(page)
 
     const bottom = page.getByRole('navigation', { name: 'Mobile primary' })
@@ -15,13 +15,31 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(bottom.getByRole('link', { name: /Cases|Кейси/i })).toBeVisible()
     await expect(bottom.getByRole('link', { name: /Runs|Прогони/i })).toBeVisible()
 
+    // App sidebar no longer lists folders — only Menu for primary nav.
     await page.locator('button.menu-toggle').click()
-    await expect(page.locator('#suite-drawer')).toBeVisible()
+    await expect(page.locator('#nav-drawer')).toBeVisible()
     await expect(
-      page.locator('#suite-drawer').getByRole('button', { name: /All cases|Усі кейси/i }),
+      page.locator('#nav-drawer').getByRole('navigation', { name: 'Primary' }),
     ).toBeVisible()
-    await page.locator('#suite-drawer').getByRole('button', { name: /Close|Закрити/i }).click()
+    await expect(page.locator('#nav-drawer').locator('.suite-block')).toHaveCount(0)
+    await expect(
+      page.locator('#nav-drawer').getByText(/^\s*Folders\s*$|^\s*Теки\s*$/),
+    ).toHaveCount(0)
+    await page.locator('#nav-drawer').getByRole('button', { name: /Close|Закрити/i }).click()
     await expect(page.locator('.drawer-backdrop')).toHaveCount(0)
+
+    // Cases page owns the SquashTM tree as a collapsible Folders drawer.
+    await page
+      .locator('.case-list-panel')
+      .getByRole('button', { name: /Folders|Теки/i })
+      .click()
+    const folderDrawer = page.locator('#case-folder-drawer')
+    await expect(folderDrawer).toBeVisible()
+    await expect(
+      folderDrawer.getByTestId('folder-all-cases'),
+    ).toBeVisible()
+    await folderDrawer.getByTestId('folder-all-cases').click()
+    await expect(page.locator('.case-tree-backdrop')).toHaveCount(0)
 
     await expect(page.getByLabel(/New case title|Назва нового кейсу/i)).toBeVisible()
     const caseKey = `MOB-${uniqueKey('').slice(-5)}`

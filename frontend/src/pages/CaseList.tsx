@@ -49,6 +49,21 @@ export function CaseList({
   const [newTitle, setNewTitle] = useState('')
   const [creating, setCreating] = useState(false)
   const [treeReloadToken, setTreeReloadToken] = useState(0)
+  const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
+
+  useEffect(() => {
+    if (!treeDrawerOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setTreeDrawerOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [treeDrawerOpen])
+
+  const selectSuite = (id: string | null) => {
+    onSelectSuite(id)
+    setTreeDrawerOpen(false)
+  }
 
   useEffect(() => {
     setOffset(0)
@@ -240,7 +255,7 @@ export function CaseList({
     }
     try {
       await api.deleteSuite(projectId, suite.id, onNonempty)
-      if (suiteId === suite.id) onSelectSuite(null)
+      if (suiteId === suite.id) selectSuite(null)
       onSuitesChanged()
       await reloadList()
     } catch (err) {
@@ -286,8 +301,32 @@ export function CaseList({
   }
 
   return (
-    <div className="case-browser case-browser-split">
-      <aside className="case-tree-panel">
+    <div
+      className={`case-browser case-browser-split${treeDrawerOpen ? ' tree-drawer-open' : ''}`}
+    >
+      {treeDrawerOpen && (
+        <button
+          type="button"
+          className="case-tree-backdrop"
+          aria-label={t('nav.close')}
+          onClick={() => setTreeDrawerOpen(false)}
+        />
+      )}
+      <aside
+        className="case-tree-panel"
+        id="case-folder-drawer"
+        aria-hidden={false}
+      >
+        <div className="case-tree-drawer-header">
+          <span className="folder-tree-title">{t('folders.title')}</span>
+          <button
+            type="button"
+            className="btn secondary case-tree-drawer-close"
+            onClick={() => setTreeDrawerOpen(false)}
+          >
+            {t('nav.close')}
+          </button>
+        </div>
         <CaseFolderTree
           projectId={projectId}
           suites={suites}
@@ -295,7 +334,7 @@ export function CaseList({
           selectedSuiteId={suiteId}
           canManage={canManageFolders}
           canEditCases={canBulkEdit}
-          onSelectSuite={onSelectSuite}
+          onSelectSuite={selectSuite}
           onCreateFolder={(id) => void onCreateFolder(id)}
           onRenameFolder={(s) => void onRenameFolder(s)}
           onDeleteFolder={(s) => void onDeleteFolder(s)}
@@ -306,6 +345,17 @@ export function CaseList({
       </aside>
 
       <div className="case-list-panel">
+        <div className="toolbar folders-drawer-bar">
+          <button
+            type="button"
+            className="btn secondary folders-drawer-toggle"
+            aria-expanded={treeDrawerOpen}
+            aria-controls="case-folder-drawer"
+            onClick={() => setTreeDrawerOpen(true)}
+          >
+            {t('folders.title')}
+          </button>
+        </div>
         {canCreate && (
           <div className="toolbar create-case-bar">
             <input

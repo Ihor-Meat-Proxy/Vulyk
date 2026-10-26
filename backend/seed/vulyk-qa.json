@@ -5123,12 +5123,12 @@
         {
           "key": "VQA-114",
           "title": {
-            "en": "Suite drawer on mobile",
+            "en": "Folders drawer on mobile",
             "uk": "Drawer тек на мобільному"
           },
           "description": {
-            "en": "#suite-drawer / folder access.",
-            "uk": "#suite-drawer / folder access."
+            "en": "#case-folder-drawer — SquashTM tree (not sidebar Folders).",
+            "uk": "#case-folder-drawer — дерево тек (не сайдбар)."
           },
           "precondition": {
             "en": "Mobile viewport; Cases page.",
@@ -5147,12 +5147,12 @@
           "steps": [
             {
               "action": {
-                "en": "Open suite drawer; select a folder.",
-                "uk": "Open suite drawer; select a folder."
+                "en": "Open Folders drawer; select All cases or a folder.",
+                "uk": "Open Folders drawer; select All cases or a folder."
               },
               "expected_result": {
-                "en": "Drawer opens; selecting folder filters cases; backdrop dismisses.",
-                "uk": "Drawer opens; selecting folder filters cases; backdrop dismisses."
+                "en": "Drawer opens; selecting a folder filters the list; Close/backdrop dismisses.",
+                "uk": "Drawer opens; selecting a folder filters the list; Close/backdrop dismisses."
               },
               "data": {
                 "en": "",

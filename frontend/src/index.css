@@ -217,28 +217,6 @@ select {
   color: var(--accent);
 }
 
-.suite-tree {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.suite-tree button {
-  text-align: left;
-  border: 0;
-  background: transparent;
-  padding: 0.4rem 0.55rem;
-  border-radius: 0.4rem;
-  color: var(--ink-muted);
-  cursor: pointer;
-}
-
-.suite-tree button.active,
-.suite-tree button:hover {
-  background: var(--bg-elevated);
-  color: var(--ink);
-}
-
 .main {
   display: flex;
   flex-direction: column;
@@ -1686,6 +1664,12 @@ select.locale-select {
   overflow: auto;
 }
 
+.folders-drawer-bar,
+.case-tree-drawer-header,
+.case-tree-backdrop {
+  display: none;
+}
+
 .folder-tree {
   padding: 0.65rem 0.5rem 1rem;
   font-size: 0.9rem;
@@ -2044,10 +2028,6 @@ select.locale-select {
     min-height: 2.5rem;
   }
 
-  .nav-desktop {
-    display: none;
-  }
-
   .bottom-nav {
     display: grid;
   }
@@ -2172,10 +2152,57 @@ select.locale-select {
     grid-template-columns: 1fr;
   }
 
-  .case-tree-panel {
-    max-height: 14rem;
-    border-right: 0;
+  .folders-drawer-bar {
+    display: flex;
+    margin-bottom: 0.35rem;
+  }
+
+  .folders-drawer-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+  }
+
+  .case-tree-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem 0.75rem 0.35rem;
     border-bottom: 1px solid var(--line);
+  }
+
+  /* Drawer header already shows the title; keep New folder in the tree toolbar. */
+  .case-tree-panel .folder-tree-toolbar .folder-tree-title {
+    display: none;
+  }
+
+  .case-tree-panel {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: min(20rem, 88vw);
+    max-height: none;
+    height: 100%;
+    z-index: 35;
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    transform: translateX(-105%);
+    transition: transform 180ms ease;
+    padding-bottom: 5rem;
+  }
+
+  .tree-drawer-open .case-tree-panel {
+    transform: translateX(0);
+  }
+
+  .tree-drawer-open .case-tree-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 32;
+    border: 0;
+    background: color-mix(in srgb, var(--ink) 35%, transparent);
+    cursor: pointer;
   }
 
   .folder-tree-move-btn {

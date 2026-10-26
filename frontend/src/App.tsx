@@ -183,10 +183,7 @@ export default function App() {
             <Layout
               projects={projects}
               project={project}
-              suites={suites}
-              selectedSuiteId={selectedSuiteId}
               onSelectProject={onSelectProject}
-              onSelectSuite={setSelectedSuiteId}
             />
           }
         >

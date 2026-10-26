@@ -2038,17 +2038,17 @@ def build() -> dict:
                     ],
                 ),
                 case(
-                    "Suite drawer on mobile",
+                    "Folders drawer on mobile",
                     title_uk="Drawer тек на мобільному",
-                    desc_en="#suite-drawer / folder access.",
+                    desc_en="#case-folder-drawer — SquashTM tree (not sidebar Folders).",
                     pre_en="Mobile viewport; Cases page.",
                     priority="high",
                     tags=["regression", "e2e", "mobile", "folders"],
                     external_key="e2e:pwa-mobile.spec.ts",
                     steps=[
                         step(
-                            "Open suite drawer; select a folder.",
-                            "Drawer opens; selecting folder filters cases; backdrop dismisses.",
+                            "Open Folders drawer; select All cases or a folder.",
+                            "Drawer opens; selecting a folder filters the list; Close/backdrop dismisses.",
                         ),
                     ],
                 ),
