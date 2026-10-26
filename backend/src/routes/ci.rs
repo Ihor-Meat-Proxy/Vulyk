@@ -257,8 +257,10 @@ pub async fn dispatch_ci(
 
     let run_id = if let Some(run_id) = body.run_id {
         let run = sqlx::query_as::<_, TestRun>(
-            r#"SELECT id, project_id, plan_id, name, description, status, source,
-                      external_ref, meta, started_at, finished_at, created_at, updated_at
+            r#"SELECT id, project_id, plan_id, iteration_id, name, description, status, source,
+                      external_ref, meta, created_by_name, environment, artifacts,
+                      pass_count, fail_count, skip_count, blocked_count, duration_ms,
+                      started_at, finished_at, created_at, updated_at
                FROM test_runs WHERE id = $1"#,
         )
         .bind(run_id)
@@ -297,8 +299,10 @@ pub async fn dispatch_ci(
         let run = sqlx::query_as::<_, TestRun>(
             r#"INSERT INTO test_runs (project_id, name, status, source, meta, started_at)
                VALUES ($1, $2, $3, $4, $5, NOW())
-               RETURNING id, project_id, plan_id, name, description, status, source,
-                         external_ref, meta, started_at, finished_at, created_at, updated_at"#,
+               RETURNING id, project_id, plan_id, iteration_id, name, description, status, source,
+                         external_ref, meta, created_by_name, environment, artifacts,
+                         pass_count, fail_count, skip_count, blocked_count, duration_ms,
+                         started_at, finished_at, created_at, updated_at"#,
         )
         .bind(cfg.project_id)
         .bind(create.name)

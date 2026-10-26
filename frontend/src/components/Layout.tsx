@@ -147,6 +147,7 @@ export function Layout({
           ) : null}
           {showChat ? <NavLink to="/chat">{t('nav.chat')}</NavLink> : null}
           <NavLink to="/runs">{t('nav.runs')}</NavLink>
+          <NavLink to="/executions">{t('nav.executions')}</NavLink>
           {showCi ? <NavLink to="/ci">{t('nav.ci')}</NavLink> : null}
           {can('view_reports') ? (
             <NavLink to="/reports">{t('nav.reports')}</NavLink>

@@ -1,4 +1,5 @@
 pub mod automation_repo;
+pub mod campaigns;
 pub mod case_keys;
 pub mod cases;
 pub mod chat_propose;

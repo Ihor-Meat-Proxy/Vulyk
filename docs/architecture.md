@@ -7,8 +7,8 @@ Vulyk (Ukrainian for *beehive*) is an open-source test management system. This d
 | Area | Capability |
 |------|------------|
 | Repository | Projects (with case key prefix + monotonic counter), nested suite/folder trees, cases with steps, custom fields, versioning, key tombstones |
-| Execution | Test plans, test runs, result ingestion |
-| CI ingest | GitHub Actions / GitLab CI → JUnit XML, Vulyk JSON, CLI/reporter |
+| Execution | Test plans, test runs, campaigns/iterations, result ingestion |
+| CI ingest | GitHub Actions / GitLab CI → JUnit XML, Playwright/pytest JSON, Vulyk JSON, CLI/reporter |
 | Traceability | Requirements import + link cases ↔ requirements |
 | Reporting | Dashboards, run summaries, coverage |
 | Admin | Users, roles, projects, integrations, LLM providers |

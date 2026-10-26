@@ -34,12 +34,19 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 
 - **Runs** creates an execution queue from a plan, suite, or all cases.
 - Open a run to execute items, record step results, and attach notes.
-- Result statuses are **Untested** (initial), **Passed**, **Failed**, **Blocked**, **Skipped**, and **Retest**. Every status change is stored as an immutable history row (who, when, comment, elapsed, case version, attachments/defects).
-- The run execution panel shows a **Result history** timeline for the selected case. The case page **History / Results** tab lists all results across runs (filter by run, status, date, user) with latest status and pass-rate summary. Case **edit/version** history remains on the Details tab.
+- Result statuses are **Untested** / **Ready** (initial), **Running**, **Passed**, **Failed**, **Blocked**, **Skipped**, **Untestable**, and **Retest**. Every status change is stored as an immutable history row (who, when, comment, elapsed, case version, attachments/defects).
+- The run execution panel shows a **Result history** timeline for the selected case. The case page **History / Results** tab lists all results across runs (filter by run, status, date, user) with latest status and pass-rate summary. Case **edit/version** history remains on the Details tab. The **Executions** tab shows cross-iteration history with a status sparkline.
 - On phones, use the bottom nav and large **Passed / Failed / Blocked / Skipped** controls; you can attach a camera photo to a result.
 - Offline: recently viewed cases/runs stay readable; step results queue locally and sync when you are back online. See [PWA and mobile](guides/pwa-and-mobile.md).
 - **Upload JUnit results** on the Runs page to ingest CI XML into a selected run. JUnit `skipped` → Skipped; JUnit `error` → Failed.
 - **CI** configures GitHub Actions / GitLab triggers and dispatch history.
+
+## Automation executions
+
+- **Executions** organises CI work as **Campaigns → Iterations → Automated suites** (SquashTM-style tree, TestRail/Xray-like UI).
+- Iteration **Dashboard**: status donut, pass-rate trend, flaky/slowest tests, editable schedule and cadence.
+- **Automated suites** table: created on/by, duration, pass/fail counts, Details drawer, report/artifact links, delete/rerun by RBAC.
+- Pipeline upload can auto-create the campaign/iteration/run — see [guides/executions.md](guides/executions.md) and [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
 
 ## Requirements & coverage
 

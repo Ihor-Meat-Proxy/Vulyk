@@ -9,11 +9,14 @@ function normalize(status: string): ResultStatus | 'unknown' {
   const s = status.trim()
   const known = [
     'Untested',
+    'Ready',
+    'Running',
     'Passed',
     'Failed',
     'Blocked',
     'Skipped',
     'Retest',
+    'Untestable',
   ] as const
   const hit = known.find((k) => k.toLowerCase() === s.toLowerCase())
   return hit ?? 'unknown'
@@ -75,6 +78,39 @@ export function StatusIcon({ status, className }: Props) {
           <path
             fill="currentColor"
             d="M8 2.2a5.8 5.8 0 0 1 5.5 4h1.7L12.5 9.9 9.8 6.2h1.5A4.2 4.2 0 1 0 12 10.4l1.1 1.2A5.8 5.8 0 1 1 8 2.2z"
+          />
+        </svg>
+      )
+    case 'Ready':
+      return (
+        <svg {...common}>
+          <circle
+            cx="8"
+            cy="8"
+            r="5.2"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+          <circle cx="8" cy="8" r="2.2" fill="currentColor" />
+        </svg>
+      )
+    case 'Running':
+      return (
+        <svg {...common}>
+          <path
+            fill="currentColor"
+            d="M8 1.6a6.4 6.4 0 1 0 5.9 4h-1.7A4.8 4.8 0 1 1 8 3.2V1.6zm2.2 5.2L14 8.8l-3.8 2V6.8z"
+          />
+        </svg>
+      )
+    case 'Untestable':
+      return (
+        <svg {...common}>
+          <path
+            fill="currentColor"
+            fillRule="evenodd"
+            d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM4.2 5.1l6.7 6.7A4.3 4.3 0 0 1 4.2 5.1zm1.1-1.1a4.3 4.3 0 0 1 6.6 5.5L5.3 4z"
           />
         </svg>
       )

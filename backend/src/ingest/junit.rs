@@ -160,6 +160,12 @@ fn finish_case(c: CaseBuilder) -> BulkResultItem {
     } else {
         format!("{}::{}", c.classname, c.name)
     };
+    let title = if c.classname.is_empty() {
+        c.name.clone()
+    } else {
+        format!("{} — {}", c.classname, c.name)
+    };
+    let case_key = super::case_key::resolve_case_key(None, Some(&title), Some(&external_id));
     let duration_ms = c
         .time_secs
         .map(|t| (t * 1000.0).round() as i32)
@@ -168,13 +174,9 @@ fn finish_case(c: CaseBuilder) -> BulkResultItem {
         status: c.status,
         message: c.message,
         case_id: None,
-        case_key: None,
+        case_key,
         external_id: Some(external_id.clone()),
-        title: Some(if c.classname.is_empty() {
-            c.name
-        } else {
-            format!("{} — {}", c.classname, c.name)
-        }),
+        title: Some(title),
         duration_ms,
         executed_at: Some(Utc::now()),
         raw: Some(json!({ "external_id": external_id })),

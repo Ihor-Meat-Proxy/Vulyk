@@ -13,6 +13,8 @@ import { Chat } from './pages/Chat'
 import { Generate } from './pages/Generate'
 import { ImportPage } from './pages/ImportPage'
 import { Login } from './pages/Login'
+import { ExecutionPage } from './pages/ExecutionPage'
+import { ExecutionsPage } from './pages/ExecutionsPage'
 import { Runs } from './pages/Runs'
 import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
@@ -226,6 +228,22 @@ export default function App() {
           <Route
             path="runs/:runId"
             element={<RunDetail projectId={activeProjectId} />}
+          />
+          <Route
+            path="executions"
+            element={<ExecutionsPage projectId={activeProjectId} />}
+          />
+          <Route
+            path="executions/iterations/:iterationId"
+            element={<ExecutionsPage projectId={activeProjectId} />}
+          />
+          <Route
+            path="executions/runs/:runId"
+            element={<ExecutionPage projectId={activeProjectId} />}
+          />
+          <Route
+            path="executions/runs/:runId/cases/:caseId"
+            element={<ExecutionPage projectId={activeProjectId} />}
           />
           <Route path="ci" element={<Runs projectId={activeProjectId} />} />
           <Route

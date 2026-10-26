@@ -25,7 +25,8 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Automation repo | `/api/v1/projects/{id}/automation-repo` (+ `/test`, `/reindex`) — encrypted Git token, shallow index for generate-code context |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
 | Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` |
-| Ingest | `POST /api/v1/runs/{id}/ingest`, `…/results:bulk` |
+| Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — see [guides/executions.md](guides/executions.md) |
+| Ingest | `POST /api/v1/projects/{id}/ingest` (pipeline), `POST /api/v1/runs/{id}/ingest` (`junit` / `vulyk_json` / `playwright_json` / `pytest_json`), `…/results:bulk` |
 | Reports (W8) | `/api/v1/projects/{id}/reports/*` |
 | Requirements / ALM | `/requirements`, `/integrations`, `/defects` |
 | Importers | `/api/v1/importers`, `/imports` |

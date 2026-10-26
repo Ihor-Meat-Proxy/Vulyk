@@ -151,12 +151,21 @@ export type TestRun = {
   id: string
   project_id: string
   plan_id: string | null
+  iteration_id?: string | null
   name: string
   description: string
   status: string
   source: string
   external_ref: string | null
   meta: Record<string, unknown>
+  created_by_name?: string | null
+  environment?: Record<string, unknown>
+  artifacts?: Record<string, unknown>
+  pass_count?: number
+  fail_count?: number
+  skip_count?: number
+  blocked_count?: number
+  duration_ms?: number | null
   started_at: string | null
   finished_at: string | null
   created_at: string
@@ -216,17 +225,239 @@ export type ResultStep = {
 /** Canonical execution statuses (PascalCase), matching the API/DB. */
 export const RESULT_STATUSES = [
   'Untested',
+  'Ready',
+  'Running',
   'Passed',
   'Failed',
   'Blocked',
   'Skipped',
   'Retest',
+  'Untestable',
 ] as const
 
 export type ResultStatus = (typeof RESULT_STATUSES)[number]
 
+/** Dashboard donut buckets (Ready absorbs Untested/Retest). */
+export const DASHBOARD_STATUSES = [
+  'Ready',
+  'Running',
+  'Passed',
+  'Failed',
+  'Blocked',
+  'Skipped',
+  'Untestable',
+] as const
+
+export type DashboardStatus = (typeof DASHBOARD_STATUSES)[number]
+
 export function statusClass(status: string): string {
   return `status-${status.toLowerCase()}`
+}
+
+export type Campaign = {
+  id: string
+  project_id: string
+  parent_id: string | null
+  name: string
+  description: string
+  sort_order: number
+  created_at: string
+  updated_at: string
+}
+
+export type CreateCampaign = {
+  name: string
+  description?: string
+  parent_id?: string | null
+  sort_order?: number
+}
+
+export type UpdateCampaign = {
+  name?: string
+  description?: string
+  parent_id?: string | null
+  sort_order?: number
+}
+
+export type Iteration = {
+  id: string
+  project_id: string
+  campaign_id: string
+  name: string
+  reference: string
+  description: string
+  status: string
+  mode: string
+  cadence: string
+  scheduled_start: string | null
+  scheduled_end: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type CreateIteration = {
+  name: string
+  reference?: string
+  description?: string
+  status?: string
+  mode?: string
+  cadence?: string
+  scheduled_start?: string | null
+  scheduled_end?: string | null
+  case_ids?: string[]
+  suite_ids?: string[]
+}
+
+export type UpdateIteration = {
+  name?: string
+  reference?: string
+  description?: string
+  status?: string
+  mode?: string
+  cadence?: string
+  scheduled_start?: string | null
+  scheduled_end?: string | null
+  campaign_id?: string
+}
+
+export type IterationStatusCounts = {
+  ready: number
+  running: number
+  passed: number
+  failed: number
+  blocked: number
+  skipped: number
+  untestable: number
+  total: number
+}
+
+export type PassRatePoint = {
+  run_id: string
+  run_name: string
+  created_at: string
+  pass_rate: number
+  passed: number
+  failed: number
+  total: number
+}
+
+export type FlakyTestSummary = {
+  case_id: string
+  case_key: string
+  case_title: string
+  flips: number
+  latest_status: string
+  statuses: string[]
+}
+
+export type SlowTestSummary = {
+  case_id: string
+  case_key: string
+  case_title: string
+  duration_ms: number
+  status: string
+}
+
+export type IterationDashboard = {
+  iteration: Iteration
+  campaign_name: string
+  campaign_path: string[]
+  status_counts: IterationStatusCounts
+  pass_rate_trend: PassRatePoint[]
+  flaky_tests: FlakyTestSummary[]
+  slowest_tests: SlowTestSummary[]
+}
+
+export type ExecutionsTreeNode = {
+  id: string
+  kind: string
+  name: string
+  reference: string | null
+  status: string | null
+  mode: string | null
+  parent_id: string | null
+  children: ExecutionsTreeNode[]
+}
+
+export type AutomatedSuite = {
+  id: string
+  project_id: string
+  iteration_id: string | null
+  name: string
+  status: string
+  source: string
+  created_by_name: string | null
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  duration_ms: number | null
+  pass_count: number
+  fail_count: number
+  skip_count: number
+  blocked_count: number
+  environment: Record<string, unknown>
+  artifacts: Record<string, unknown> | unknown[]
+  external_ref: string | null
+}
+
+export type AutomatedSuitesParams = {
+  status?: string
+  created_by?: string
+  q?: string
+  limit?: number
+  offset?: number
+  sort?: string
+}
+
+export type SuiteResultRow = {
+  result_id: string
+  case_id: string | null
+  case_key: string | null
+  case_title: string | null
+  status: string
+  message: string
+  environment: string | null
+  environment_vars: Record<string, unknown>
+  dataset: string | null
+  executed_at: string
+  duration_ms: number | null
+  attachment_count: number
+  external_id: string | null
+}
+
+export type CaseExecutionHistoryItem = {
+  result_id: string
+  path: string
+  plan_type: string
+  exec_number: number
+  mode: string
+  status: string
+  executed_by: string | null
+  executed_on: string
+  linked_issues: number
+  run_id: string
+  iteration_id: string | null
+  duration_ms: number | null
+}
+
+export type CaseExecutionHistoryPage = {
+  items: CaseExecutionHistoryItem[]
+  total: number
+  limit: number
+  offset: number
+  pass_rate: number
+  sparkline: string[]
+}
+
+export type AttachmentMeta = {
+  id: string
+  project_id: string
+  entity_type: string
+  entity_id: string
+  filename: string
+  content_type: string
+  size_bytes: number
+  created_at: string
 }
 
 export type TestResult = {
@@ -1144,11 +1375,141 @@ export const api = {
       content_base64: string
     },
   ) =>
-    request(`/api/v1/projects/${projectId}/attachments`, {
+    request<AttachmentMeta>(`/api/v1/projects/${projectId}/attachments`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  listAttachments: (
+    projectId: string,
+    params: { entity_type?: string; entity_id?: string } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    if (params.entity_type) qs.set('entity_type', params.entity_type)
+    if (params.entity_id) qs.set('entity_id', params.entity_id)
+    const q = qs.toString()
+    return request<AttachmentMeta[]>(
+      `/api/v1/projects/${projectId}/attachments${q ? `?${q}` : ''}`,
+    )
+  },
 
+  executionsTree: (projectId: string) =>
+    request<ExecutionsTreeNode[]>(
+      `/api/v1/projects/${projectId}/executions/tree`,
+    ),
+  listCampaigns: (projectId: string) =>
+    request<Campaign[]>(`/api/v1/projects/${projectId}/campaigns`),
+  createCampaign: (projectId: string, body: CreateCampaign) =>
+    request<Campaign>(`/api/v1/projects/${projectId}/campaigns`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getCampaign: (projectId: string, campaignId: string) =>
+    request<Campaign>(
+      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
+    ),
+  updateCampaign: (
+    projectId: string,
+    campaignId: string,
+    body: UpdateCampaign,
+  ) =>
+    request<Campaign>(
+      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  deleteCampaign: (projectId: string, campaignId: string) =>
+    request<void>(
+      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
+      { method: 'DELETE' },
+    ),
+  listIterations: (projectId: string, campaignId?: string) => {
+    const qs = campaignId
+      ? `?campaign_id=${encodeURIComponent(campaignId)}`
+      : ''
+    return request<Iteration[]>(
+      `/api/v1/projects/${projectId}/iterations${qs}`,
+    )
+  },
+  createIteration: (
+    projectId: string,
+    campaignId: string,
+    body: CreateIteration,
+  ) =>
+    request<Iteration>(
+      `/api/v1/projects/${projectId}/campaigns/${campaignId}/iterations`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  getIteration: (projectId: string, iterationId: string) =>
+    request<Iteration>(
+      `/api/v1/projects/${projectId}/iterations/${iterationId}`,
+    ),
+  updateIteration: (
+    projectId: string,
+    iterationId: string,
+    body: UpdateIteration,
+  ) =>
+    request<Iteration>(
+      `/api/v1/projects/${projectId}/iterations/${iterationId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  deleteIteration: (projectId: string, iterationId: string) =>
+    request<void>(
+      `/api/v1/projects/${projectId}/iterations/${iterationId}`,
+      { method: 'DELETE' },
+    ),
+  iterationDashboard: (projectId: string, iterationId: string) =>
+    request<IterationDashboard>(
+      `/api/v1/projects/${projectId}/iterations/${iterationId}/dashboard`,
+    ),
+  listIterationSuites: (
+    projectId: string,
+    iterationId: string,
+    params: AutomatedSuitesParams = {},
+  ) => {
+    const qs = new URLSearchParams()
+    if (params.status) qs.set('status', params.status)
+    if (params.created_by) qs.set('created_by', params.created_by)
+    if (params.q) qs.set('q', params.q)
+    qs.set('limit', String(params.limit ?? 25))
+    qs.set('offset', String(params.offset ?? 0))
+    qs.set('sort', params.sort ?? 'created_at_desc')
+    return request<Page<AutomatedSuite>>(
+      `/api/v1/projects/${projectId}/iterations/${iterationId}/suites?${qs}`,
+    )
+  },
+  listSuiteResults: (
+    projectId: string,
+    runId: string,
+    params: { limit?: number; offset?: number } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    qs.set('limit', String(params.limit ?? 50))
+    qs.set('offset', String(params.offset ?? 0))
+    return request<Page<SuiteResultRow>>(
+      `/api/v1/projects/${projectId}/suites-runs/${runId}/results?${qs}`,
+    )
+  },
+  deleteSuiteRun: (projectId: string, runId: string) =>
+    request<void>(
+      `/api/v1/projects/${projectId}/suites-runs/${runId}`,
+      { method: 'DELETE' },
+    ),
+  rerunSuite: (projectId: string, runId: string) =>
+    request<AutomatedSuite>(
+      `/api/v1/projects/${projectId}/suites-runs/${runId}`,
+      { method: 'POST' },
+    ),
+  listCaseExecutions: (
+    projectId: string,
+    caseId: string,
+    params: { limit?: number; offset?: number } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    qs.set('limit', String(params.limit ?? 25))
+    qs.set('offset', String(params.offset ?? 0))
+    return request<CaseExecutionHistoryPage>(
+      `/api/v1/projects/${projectId}/cases/${caseId}/executions?${qs}`,
+    )
+  },
 
   listRequirements: (projectId: string) =>
     request<Requirement[]>(`/api/v1/projects/${projectId}/requirements`),

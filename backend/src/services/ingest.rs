@@ -35,10 +35,23 @@ pub async fn persist_results(
             let mut row = item.clone();
             row.status = normalize_result_status(&row.status);
             if row.case_id.is_none() {
+                if row.case_key.is_none() {
+                    row.case_key = crate::ingest::resolve_case_key(
+                        None,
+                        row.title.as_deref(),
+                        row.external_id.as_deref(),
+                    );
+                }
                 if let Some(ref key) = row.case_key {
                     match find_case_id(pool, project_id, key).await? {
                         Some(id) => row.case_id = Some(id),
-                        None => unmatched_case_keys.push(key.clone()),
+                        None => {
+                            // Also try external_key match.
+                            match find_case_by_external(pool, project_id, key).await? {
+                                Some(id) => row.case_id = Some(id),
+                                None => unmatched_case_keys.push(key.clone()),
+                            }
+                        }
                     }
                 }
             }
@@ -60,6 +73,18 @@ pub async fn persist_results(
         .bind(run_id)
         .execute(pool)
         .await?;
+        let _ = crate::services::campaigns::refresh_run_counters(pool, run_id).await;
+        if let Some(iteration_id) = sqlx::query_scalar::<_, Option<Uuid>>(
+            "SELECT iteration_id FROM test_runs WHERE id = $1",
+        )
+        .bind(run_id)
+        .fetch_optional(pool)
+        .await?
+        .flatten()
+        {
+            let _ =
+                crate::services::campaigns::sync_iteration_item_statuses(pool, iteration_id).await;
+        }
     }
 
     unmatched_case_keys.sort();
@@ -102,6 +127,22 @@ async fn find_case_id(pool: &PgPool, project_id: Uuid, key: &str) -> AppResult<O
             .bind(key)
             .fetch_optional(pool)
             .await?;
+    Ok(row.map(|r| r.0))
+}
+
+async fn find_case_by_external(
+    pool: &PgPool,
+    project_id: Uuid,
+    external_key: &str,
+) -> AppResult<Option<Uuid>> {
+    let row: Option<(Uuid,)> = sqlx::query_as(
+        r#"SELECT id FROM test_cases
+           WHERE project_id = $1 AND external_key = $2"#,
+    )
+    .bind(project_id)
+    .bind(external_key)
+    .fetch_optional(pool)
+    .await?;
     Ok(row.map(|r| r.0))
 }
 

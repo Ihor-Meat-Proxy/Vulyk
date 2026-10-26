@@ -13,6 +13,7 @@ export function BottomNav({ showAdmin = true, showReports = true }: Props) {
   const items: NavItem[] = [
     { to: '/', end: true, label: t('nav.cases') },
     { to: '/runs', end: false, label: t('nav.runs') },
+    { to: '/executions', end: false, label: t('nav.executions') },
   ]
   if (showReports) {
     items.push({ to: '/reports', end: false, label: t('nav.reports') })

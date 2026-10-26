@@ -1,6 +1,7 @@
 pub mod attachment;
 pub mod automation_repo;
 pub mod bulk;
+pub mod campaign;
 pub mod case;
 pub mod chat_propose;
 pub mod ci;
@@ -28,6 +29,7 @@ pub mod version;
 pub use attachment::*;
 pub use automation_repo::*;
 pub use bulk::*;
+pub use campaign::*;
 pub use case::*;
 pub use chat_propose::*;
 pub use ci::*;

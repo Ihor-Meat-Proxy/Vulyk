@@ -2,6 +2,7 @@ pub mod admin;
 pub mod attachments;
 pub mod auth;
 pub mod automation_repos;
+pub mod campaigns;
 pub mod cases;
 pub mod chat_propose;
 pub mod ci;
@@ -53,6 +54,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(tags::router())
         .merge(custom_fields::router())
         .merge(plans::router())
+        .merge(campaigns::router())
         .merge(runs::router())
         .merge(reports::router())
         .merge(attachments::router())

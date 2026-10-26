@@ -28,19 +28,29 @@ Statuses: `passed`, `failed`, `skipped`, `error`, `blocked` (aliases like `pass`
 
 ## JUnit XML
 
-pytest, Playwright, Surefire, and similar reporters are supported. Each `<testcase>` becomes a result with `external_id` = `classname::name` (or `name` alone).
+pytest, Playwright, Surefire, and similar reporters are supported. Each `<testcase>` becomes a result with `external_id` = `classname::name` (or `name` alone). Keys like `KC-12` in the title are mapped automatically; unmatched keys are returned in the response.
+
+## Playwright / pytest JSON
+
+| Format | Flag | Notes |
+|--------|------|-------|
+| Playwright JSON reporter | `playwright_json` | Nested `suites` / `specs` / `tests` |
+| pytest-json-report | `pytest_json` | `tests[].nodeid` + `outcome`; `metadata.case_key` supported |
 
 ## API
 
 | Method | Path | Purpose |
 |--------|------|---------|
 | `POST` | `/api/v1/projects/{id}/runs` | Create a run |
-| `POST` | `/api/v1/runs/{id}/ingest` | Parse JUnit / Vulyk JSON (`async_mode` enqueues a job) |
+| `POST` | `/api/v1/projects/{id}/ingest` | **Pipeline ingest**: auto campaign/iteration/suite + parse results |
+| `POST` | `/api/v1/runs/{id}/ingest` | Parse JUnit / Vulyk / Playwright / pytest JSON into an existing run |
 | `POST` | `/api/v1/runs/{id}/results:bulk` | Bulk insert already-normalized results |
 | `GET` | `/api/v1/jobs/{id}` | Poll background ingest jobs |
 | `POST` | `/api/v1/ci-configs/{id}/dispatch` | Trigger GitHub `workflow_dispatch` or GitLab pipeline |
 | `POST` | `/api/v1/webhooks/github[/{config_id}]` | Sync GitHub Actions status |
 | `POST` | `/api/v1/webhooks/gitlab[/{config_id}]` | Sync GitLab pipeline status |
+
+Campaign / iteration / suite dashboard APIs: see [executions.md](executions.md).
 
 Payloads larger than ~200 results (or `async_mode: true`) are processed by the Postgres job worker (`SKIP LOCKED`).
 
@@ -66,6 +76,17 @@ Environment: `VULYK_API_URL`, `VULYK_API_TOKEN`, `VULYK_RUN_ID`, `VULYK_PROJECT_
   --file report.xml \
   --create-run \
   --project-key DEMO
+
+# Preferred for CI: auto-create campaign + iteration + suite
+./scripts/vulyk-upload.sh \
+  --api-url http://127.0.0.1:8080 \
+  --file playwright.json \
+  --format playwright_json \
+  --pipeline \
+  --project-key DEMO \
+  --campaign Integration_Automation \
+  --iteration "Daily - main" \
+  --created-by "$GITHUB_ACTOR"
 ```
 
 ## GitHub Action

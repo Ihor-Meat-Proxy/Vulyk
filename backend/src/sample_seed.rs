@@ -181,6 +181,10 @@ async fn seed_one_sample(
         .await?;
     if let Some(id) = existing {
         tracing::info!("Sample project {project_key} already present ({id})");
+        // Backfill executions tree for the concert sample when migrating older seeds.
+        if project_key == "KYIV_CONCERT_2026" {
+            let _ = ensure_sample_executions(pool, id).await;
+        }
         return Ok(Some(id));
     }
 
@@ -240,6 +244,10 @@ async fn seed_one_sample(
 
     for run in &seed.runs {
         insert_run(pool, project_id, run, locale, &case_ids).await?;
+    }
+
+    if project_key == "KYIV_CONCERT_2026" {
+        ensure_sample_executions(pool, project_id).await?;
     }
 
     // Align monotonic counter with highest seeded PREFIX-N number.
@@ -573,6 +581,204 @@ async fn insert_run(
         }
     }
 
+    Ok(())
+}
+
+/// Seed Integration_Automation campaign with daily + manual iterations and ~15 CI suites.
+async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<()> {
+    // Skip if campaigns already exist for this project.
+    let existing: i64 =
+        sqlx::query_scalar("SELECT COUNT(*)::bigint FROM campaigns WHERE project_id = $1")
+            .bind(project_id)
+            .fetch_one(pool)
+            .await?;
+    if existing > 0 {
+        return Ok(());
+    }
+
+    use crate::models::{CreateCampaign, CreateIteration};
+    use crate::services::campaigns::{create_campaign, create_iteration, seed_historical_suite};
+    use serde_json::json;
+
+    let case_rows: Vec<(Uuid, String)> =
+        sqlx::query_as("SELECT id, key FROM test_cases WHERE project_id = $1 ORDER BY key")
+            .bind(project_id)
+            .fetch_all(pool)
+            .await?;
+    if case_rows.len() < 8 {
+        return Ok(());
+    }
+
+    let integration = create_campaign(
+        pool,
+        project_id,
+        &CreateCampaign {
+            name: "Integration_Automation".into(),
+            description: "Nightly and on-push automation for concert stack".into(),
+            parent_id: None,
+            sort_order: 0,
+        },
+    )
+    .await?;
+    let _major = create_campaign(
+        pool,
+        project_id,
+        &CreateCampaign {
+            name: "Major release testing (.0)".into(),
+            description: String::new(),
+            parent_id: None,
+            sort_order: 1,
+        },
+    )
+    .await?;
+    let non_major = create_campaign(
+        pool,
+        project_id,
+        &CreateCampaign {
+            name: "Non-major release testing (.x)".into(),
+            description: String::new(),
+            parent_id: None,
+            sort_order: 2,
+        },
+    )
+    .await?;
+
+    let case_ids: Vec<Uuid> = case_rows.iter().map(|(id, _)| *id).collect();
+    let daily = create_iteration(
+        pool,
+        project_id,
+        integration.id,
+        &CreateIteration {
+            name: "Daily - dev (17.8) + NC 34".into(),
+            reference: "Daily".into(),
+            description: "Automated smoke + regression for current NC build".into(),
+            status: "Running".into(),
+            mode: "automated".into(),
+            cadence: "daily".into(),
+            scheduled_start: Some(chrono::Utc::now() - chrono::Duration::hours(6)),
+            scheduled_end: Some(chrono::Utc::now() + chrono::Duration::hours(2)),
+            case_ids: case_ids.clone(),
+            suite_ids: vec![],
+        },
+    )
+    .await?;
+    let _older = create_iteration(
+        pool,
+        project_id,
+        integration.id,
+        &CreateIteration {
+            name: "Daily - 17.7 NC33".into(),
+            reference: "Daily".into(),
+            description: String::new(),
+            status: "Completed".into(),
+            mode: "automated".into(),
+            cadence: "daily".into(),
+            scheduled_start: None,
+            scheduled_end: None,
+            case_ids: case_ids[..12.min(case_ids.len())].to_vec(),
+            suite_ids: vec![],
+        },
+    )
+    .await?;
+    let _manual = create_iteration(
+        pool,
+        project_id,
+        integration.id,
+        &CreateIteration {
+            name: "Manual Run".into(),
+            reference: "Manual".into(),
+            description: "Ad-hoc exploratory pass".into(),
+            status: "Ready".into(),
+            mode: "manual".into(),
+            cadence: "manual".into(),
+            scheduled_start: None,
+            scheduled_end: None,
+            case_ids: case_ids[..6.min(case_ids.len())].to_vec(),
+            suite_ids: vec![],
+        },
+    )
+    .await?;
+    let _rel = create_iteration(
+        pool,
+        project_id,
+        non_major.id,
+        &CreateIteration {
+            name: "17.8".into(),
+            reference: "Release".into(),
+            description: String::new(),
+            status: "Completed".into(),
+            mode: "mixed".into(),
+            cadence: "on-tag".into(),
+            scheduled_start: None,
+            scheduled_end: None,
+            case_ids: case_ids[..10.min(case_ids.len())].to_vec(),
+            suite_ids: vec![],
+        },
+    )
+    .await?;
+
+    let statuses_rot = [
+        "Passed",
+        "Passed",
+        "Passed",
+        "Failed",
+        "Skipped",
+        "Passed",
+        "Blocked",
+        "Passed",
+        "Passed",
+        "Failed",
+        "Passed",
+        "Untestable",
+        "Passed",
+        "Passed",
+        "Running",
+    ];
+    let env = json!({"runner": "Playwright", "browser": "chromium", "os": "linux"});
+    let artifacts = json!([
+        {"kind": "report", "label": "Playwright HTML", "url": "https://example.invalid/report/index.html"},
+        {"kind": "trace", "label": "Trace", "url": "https://example.invalid/trace.zip"},
+        {"kind": "video", "label": "Video", "url": "https://example.invalid/video.webm"},
+        {"kind": "log", "label": "Job log", "url": "https://example.invalid/job.log"}
+    ]);
+
+    for day in 0..15 {
+        let mut results: Vec<(Uuid, &str, i32)> = Vec::new();
+        let take = 10.min(case_ids.len());
+        for (i, case_id) in case_ids.iter().take(take).enumerate() {
+            // Flip a couple of cases across days to seed flaky detection.
+            let mut status = statuses_rot[(i + day) % statuses_rot.len()];
+            if i == 3 && day % 2 == 0 {
+                status = "Failed";
+            } else if i == 3 {
+                status = "Passed";
+            }
+            if status == "Running" {
+                status = "Ready";
+            }
+            let ms = 800 + ((i * 337 + day * 110) % 170_000) as i32;
+            results.push((*case_id, status, ms));
+        }
+        let name = format!(
+            "CI #{} — wall-e {}",
+            80 - day,
+            (chrono::Utc::now() - chrono::Duration::days(day as i64)).format("%m/%d %H:%M")
+        );
+        seed_historical_suite(
+            pool,
+            project_id,
+            daily.id,
+            &name,
+            "WALL-E-rror",
+            day as i64,
+            &results,
+            env.clone(),
+            artifacts.clone(),
+        )
+        .await?;
+    }
+
+    tracing::info!("Seeded sample executions tree with 15 automated suites");
     Ok(())
 }
 

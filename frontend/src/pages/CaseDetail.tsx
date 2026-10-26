@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
+  type CaseExecutionHistoryPage,
   type CaseResultsPage,
   type CaseVersionSummary,
   type CustomField,
@@ -11,6 +12,7 @@ import {
 import { useAuth } from '../auth'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { useI18n } from '../i18n'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 import { formatTimestamp } from '../timezone'
 
@@ -24,10 +26,50 @@ type DraftStep = {
   data: string
 }
 
-type Tab = 'details' | 'history'
+type Tab = 'details' | 'history' | 'executions'
+
+function Sparkline({ statuses }: { statuses: string[] }) {
+  if (statuses.length === 0) return null
+  const w = Math.max(60, statuses.length * 8)
+  const h = 22
+  return (
+    <svg
+      className="exec-sparkline"
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      aria-hidden
+    >
+      {statuses.map((status, i) => {
+        const x = i * (w / statuses.length) + 1
+        const barW = Math.max(3, w / statuses.length - 2)
+        const passed = status.toLowerCase() === 'passed'
+        const failed = status.toLowerCase() === 'failed'
+        const fill = passed
+          ? 'var(--status-passed)'
+          : failed
+            ? 'var(--status-failed)'
+            : 'var(--status-skipped)'
+        const barH = passed ? h - 4 : failed ? h - 2 : h * 0.55
+        return (
+          <rect
+            key={`${status}-${i}`}
+            x={x}
+            y={h - barH}
+            width={barW}
+            height={barH}
+            fill={fill}
+            rx={1}
+          />
+        )
+      })}
+    </svg>
+  )
+}
 
 export function CaseDetail({ projectId }: Props) {
   const { user, status: authStatus } = useAuth()
+  const { t } = useI18n()
   const { can } = useProjectPermissions(projectId)
   const canEdit = can('create_edit_cases')
   const canManageReqs = can('manage_requirements')
@@ -58,6 +100,10 @@ export function CaseDetail({ projectId }: Props) {
   const [filterRunId, setFilterRunId] = useState('')
   const [resultsOffset, setResultsOffset] = useState(0)
   const resultsLimit = 25
+  const [execPage, setExecPage] = useState<CaseExecutionHistoryPage | null>(null)
+  const [execLoading, setExecLoading] = useState(false)
+  const [execOffset, setExecOffset] = useState(0)
+  const execLimit = 25
 
   const applyDetail = (data: TestCaseDetail) => {
     setDetail(data)
@@ -155,9 +201,30 @@ export function CaseDetail({ projectId }: Props) {
     }
   }, [projectId, caseId])
 
+  const loadExecutions = async (offset = 0) => {
+    if (!projectId || !caseId) return
+    setExecLoading(true)
+    try {
+      const page = await api.listCaseExecutions(projectId, caseId, {
+        limit: execLimit,
+        offset,
+      })
+      setExecPage(page)
+      setExecOffset(offset)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExecLoading(false)
+    }
+  }
+
   useEffect(() => {
     if (tab === 'history' && projectId && caseId) {
       void loadResults(0)
+    }
+    if (tab === 'executions' && projectId && caseId) {
+      void loadExecutions(0)
     }
   }, [tab, projectId, caseId])
 
@@ -279,6 +346,15 @@ export function CaseDetail({ projectId }: Props) {
           onClick={() => setTab('history')}
         >
           History / Results
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'executions'}
+          className={tab === 'executions' ? 'active' : ''}
+          onClick={() => setTab('executions')}
+        >
+          {t('executions.caseExecutions')}
         </button>
       </div>
 
@@ -552,6 +628,102 @@ export function CaseDetail({ projectId }: Props) {
             )}
           </section>
         </>
+      )}
+
+      {tab === 'executions' && (
+        <section className="case-executions-tab" aria-label="Case executions">
+          {execLoading && !execPage ? (
+            <p className="muted">Loading executions…</p>
+          ) : !execPage ? (
+            <p className="muted">No executions yet.</p>
+          ) : (
+            <>
+              <div className="meta-row results-summary">
+                <span>
+                  Pass rate: <strong>{execPage.pass_rate.toFixed(0)}%</strong>
+                </span>
+                <span>Total: {execPage.total}</span>
+                <Sparkline statuses={execPage.sparkline} />
+              </div>
+              {execPage.items.length === 0 ? (
+                <p className="muted">No executions yet.</p>
+              ) : (
+                <div className="table-wrap">
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Path</th>
+                        <th>Plan</th>
+                        <th>Exec #</th>
+                        <th>Mode</th>
+                        <th>Status</th>
+                        <th>By</th>
+                        <th>On</th>
+                        <th>Issues</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {execPage.items.map((row) => (
+                        <tr key={row.result_id}>
+                          <td>
+                            <Link
+                              to={`/executions/runs/${row.run_id}/cases/${caseId}`}
+                            >
+                              {row.path}
+                            </Link>
+                          </td>
+                          <td>{row.plan_type}</td>
+                          <td>{row.exec_number}</td>
+                          <td>{row.mode}</td>
+                          <td>
+                            <StatusBadge status={row.status} />
+                          </td>
+                          <td>{row.executed_by || '—'}</td>
+                          <td>
+                            {formatTimestamp(row.executed_on, {
+                              timeZone: user?.timezone,
+                              instanceTimeZone: authStatus?.default_timezone,
+                              locale:
+                                user?.locale ?? authStatus?.default_locale,
+                            })}
+                          </td>
+                          <td>{row.linked_issues}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="pager">
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={execOffset <= 0 || execLoading}
+                  onClick={() =>
+                    void loadExecutions(Math.max(0, execOffset - execLimit))
+                  }
+                >
+                  Previous
+                </button>
+                <span className="muted">
+                  {execOffset + 1}–
+                  {Math.min(execOffset + execLimit, execPage.total)} of{' '}
+                  {execPage.total}
+                </span>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={
+                    execLoading || execOffset + execLimit >= execPage.total
+                  }
+                  onClick={() => void loadExecutions(execOffset + execLimit)}
+                >
+                  Next
+                </button>
+              </div>
+            </>
+          )}
+        </section>
       )}
 
       {tab === 'history' && (
