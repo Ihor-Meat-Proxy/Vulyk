@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test, type Page } from '@playwright/test'
-import { loginAsAdmin } from '../fixtures/auth'
+import { loginAsAdmin, logout } from '../fixtures/auth'
 
 const THEMES = [
   'system',
@@ -64,9 +64,8 @@ test.describe('Appearance & theming', () => {
     await openAppearance(page)
     await selectTheme(page, 'dark')
 
-    const signOut = page.getByRole('button', { name: /Sign out|Вийти/i })
-    await signOut.click()
-    await expect(page.locator('.login-panel')).toBeVisible({ timeout: 30_000 })
+    const { logout } = await import('../fixtures/auth')
+    await logout(page)
     await expect(page.locator('html')).toHaveAttribute('data-theme-choice', 'dark')
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
 

@@ -8,6 +8,7 @@ import {
   ensureAdminSession,
   loginAs,
   loginAsAdmin,
+  logout,
 } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 import { openUserMenu, userMenuItem } from '../fixtures/header'
@@ -82,15 +83,8 @@ test('gear menu: appearance, admin for admin only, logout', async ({
     }),
   ).toBeVisible({ timeout: 15_000 })
 
-  await openUserMenu(page)
-  await userMenuItem(
-    page,
-    /Sign out|Вийти|Se déconnecter|Cerrar sesión|Abmelden/i,
-  ).click()
-
-  // Open mode may keep the shell; force login page for the next user.
-  await page.goto('/login')
-  await expect(page.locator('.login-panel')).toBeVisible({ timeout: 30_000 })
+  const { logout } = await import('../fixtures/auth')
+  await logout(page)
 
   await loginAs(page, viewer.email, viewer.password)
   await openUserMenu(page)

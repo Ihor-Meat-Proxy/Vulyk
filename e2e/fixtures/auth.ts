@@ -116,10 +116,22 @@ export async function loginAsDemo(page: Page): Promise<void> {
 }
 
 export async function logout(page: Page): Promise<void> {
-  const signOut = page.getByRole('button', { name: /Sign out|Вийти/i })
+  const gear = page.getByRole('button', {
+    name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
+  })
+  await expect(gear).toBeVisible()
+  await gear.click()
+  const signOut = page.getByRole('menuitem', {
+    name: /Sign out|Вийти|Se déconnecter|Cerrar sesión|Abmelden/i,
+  })
   await expect(signOut).toBeVisible()
   await signOut.click()
-  await expect(page.locator('.login-panel')).toBeVisible({ timeout: 30_000 })
+  // auth_required → login panel immediately; open mode may keep the shell.
+  const panel = page.locator('.login-panel')
+  if (!(await panel.isVisible().catch(() => false))) {
+    await page.goto('/login')
+  }
+  await expect(panel).toBeVisible({ timeout: 30_000 })
 }
 
 /** Create a user and assign a project role via API (admin token). */
