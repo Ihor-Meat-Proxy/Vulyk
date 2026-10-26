@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
-import { LanguageMenu } from '../components/LanguageMenu'
 import { useI18n } from '../i18n'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 export function Login() {
   const { status, login, bootstrap, register } = useAuth()
@@ -41,10 +41,11 @@ export function Login() {
 
   return (
     <div className="login-shell">
-      <div className="login-shell-actions">
-        <LanguageMenu />
-      </div>
-      <form className="login-panel" onSubmit={(e) => void onSubmit(e)}>
+      <form
+        className="login-panel"
+        onSubmit={(e) => void onSubmit(e)}
+        {...testIdProps(TestIds.loginPanel)}
+      >
         <div className="brand">
           <span className="brand-mark">
             {status?.instance_name || 'Vulyk'}
@@ -70,6 +71,7 @@ export function Login() {
               onChange={(e) => setDisplayName(e.target.value)}
               required
               autoComplete="name"
+              {...testIdProps(TestIds.loginDisplayNameInput)}
             />
           </label>
         )}
@@ -81,6 +83,7 @@ export function Login() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
+            {...testIdProps(TestIds.loginEmailInput)}
           />
         </label>
         <label className="field">
@@ -94,10 +97,20 @@ export function Login() {
             autoComplete={
               isBootstrap || showRegister ? 'new-password' : 'current-password'
             }
+            {...testIdProps(TestIds.loginPasswordInput)}
           />
         </label>
-        {error && <p className="error">{error}</p>}
-        <button className="btn" type="submit" disabled={busy}>
+        {error && (
+          <p className="error" {...testIdProps(TestIds.loginError)}>
+            {error}
+          </p>
+        )}
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy}
+          {...testIdProps(TestIds.loginSubmitButton)}
+        >
           {busy
             ? t('login.working')
             : isBootstrap
@@ -115,6 +128,7 @@ export function Login() {
             onClick={() =>
               setMode((m) => (m === 'login' ? 'register' : 'login'))
             }
+            {...testIdProps(TestIds.loginRegisterToggle)}
           >
             {showRegister ? t('login.backToSignIn') : t('login.register')}
           </button>
@@ -122,7 +136,7 @@ export function Login() {
 
         {!isBootstrap && ssoProviders.length > 0 && (
           <div style={{ marginTop: '1rem' }}>
-            {ssoProviders.map((p) => (
+            {ssoProviders.map((p, index) => (
               <button
                 key={p.id}
                 type="button"
@@ -131,6 +145,11 @@ export function Login() {
                 onClick={() => {
                   window.location.href = ssoStartUrl(p.provider_key)
                 }}
+                {...listItemProps(TestIds.loginSsoButton, {
+                  entityId: p.id,
+                  entityKey: p.provider_key,
+                  index,
+                })}
               >
                 {t('login.sso', { name: p.display_name })}
               </button>

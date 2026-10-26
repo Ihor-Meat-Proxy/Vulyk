@@ -11,6 +11,7 @@ import {
 import { CasePicker, type PickedCase } from '../components/CasePicker'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -194,13 +195,17 @@ export function Generate({ projectId }: Props) {
   }
 
   return (
-    <div className="generate-page">
+    <div className="generate-page" {...testIdProps(TestIds.generatePage)}>
       <header className="panel-header">
         <h2>{t('generate.title')}</h2>
         <p className="muted">{t('generate.subtitle')}</p>
       </header>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.generateError)}>
+          {error}
+        </p>
+      )}
       {notice && <p className="notice">{notice}</p>}
 
       <section className="admin-section">
@@ -212,6 +217,7 @@ export function Generate({ projectId }: Props) {
               value={caseConfigId}
               onChange={(e) => setCaseConfigId(e.target.value)}
               aria-label={t('generate.model')}
+              {...testIdProps(TestIds.generateModelSelect)}
             >
               {modelOptions.length === 0 && (
                 <option value="">{t('generate.mockFallback')}</option>
@@ -231,9 +237,14 @@ export function Generate({ projectId }: Props) {
               onChange={(e) => setRequirements(e.target.value)}
               required
               placeholder={t('generate.requirementsPlaceholder')}
+              {...testIdProps(TestIds.generateRequirementsInput)}
             />
           </label>
-          <button type="submit" disabled={busy}>
+          <button
+            type="submit"
+            disabled={busy}
+            {...testIdProps(TestIds.generateSubmitButton)}
+          >
             {t('generate.generateDrafts')}
           </button>
         </form>
@@ -257,6 +268,7 @@ export function Generate({ projectId }: Props) {
               value={codeConfigId}
               onChange={(e) => setCodeConfigId(e.target.value)}
               aria-label={t('generate.modelAutomation')}
+              {...testIdProps(TestIds.generateCodeModelSelect)}
             >
               {modelOptions.length === 0 && (
                 <option value="">{t('generate.mockFallback')}</option>
@@ -268,7 +280,10 @@ export function Generate({ projectId }: Props) {
               ))}
             </select>
           </label>
-          <div className="field">
+          <div
+            className="field"
+            {...testIdProps(TestIds.generateCasePicker)}
+          >
             <span>{t('generate.pickCases')}</span>
             <CasePicker
               projectId={projectId}
@@ -283,6 +298,7 @@ export function Generate({ projectId }: Props) {
               onChange={(e) =>
                 setFramework(e.target.value as 'playwright' | 'pytest')
               }
+              {...testIdProps(TestIds.generateFrameworkSelect)}
             >
               <option value="playwright">Playwright</option>
               <option value="pytest">pytest</option>
@@ -295,6 +311,7 @@ export function Generate({ projectId }: Props) {
                 value={repoId}
                 onChange={(e) => setRepoId(e.target.value)}
                 aria-label={t('generate.repoPicker')}
+                {...testIdProps(TestIds.generateRepoSelect)}
               >
                 {linkedRepos.map((repo) => (
                   <option key={repo.id} value={repo.id}>
@@ -309,7 +326,11 @@ export function Generate({ projectId }: Props) {
           ) : linkedRepos.length === 0 ? (
             <p className="muted">{t('generate.repoNone')}</p>
           ) : null}
-          <button type="submit" disabled={busy || picked.length === 0}>
+          <button
+            type="submit"
+            disabled={busy || picked.length === 0}
+            {...testIdProps(TestIds.generateCodeSubmitButton)}
+          >
             {t('generate.generateCode')}
           </button>
         </form>
@@ -332,12 +353,16 @@ export function Generate({ projectId }: Props) {
         )}
 
         {code && (
-          <div className="generated-code">
+          <div
+            className="generated-code"
+            {...testIdProps(TestIds.generateOutput)}
+          >
             <div className="generated-code-actions">
               <button
                 type="button"
                 className="btn secondary"
                 onClick={downloadCode}
+                {...testIdProps(TestIds.generateCopyButton)}
               >
                 {t('generate.download')}
               </button>

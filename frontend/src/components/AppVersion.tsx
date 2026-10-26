@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { TestIds, testIdProps } from '../testing'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 const FALLBACK = import.meta.env.VITE_APP_VERSION ?? '0.1.0'
@@ -32,7 +33,11 @@ export function AppVersion() {
   }, [])
 
   return (
-    <p className="app-version muted" title="Vulyk version">
+    <p
+      className="app-version muted"
+      title="Vulyk version"
+      {...testIdProps(TestIds.appVersion)}
+    >
       Vulyk {version}
     </p>
   )

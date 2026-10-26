@@ -8,6 +8,7 @@ import {
 } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -142,8 +143,12 @@ export function Runs({ projectId }: Props) {
   }
 
   return (
-    <div className="stack-lg">
-      {error && <p className="error">{error}</p>}
+    <div className="stack-lg" {...testIdProps(TestIds.runsPage)}>
+      {error && (
+        <p className="error" {...testIdProps(TestIds.runsError)}>
+          {error}
+        </p>
+      )}
 
       <section className="panel">
         <h2>Runs</h2>
@@ -158,16 +163,25 @@ export function Runs({ projectId }: Props) {
             onChange={(e) => setRunName(e.target.value)}
             aria-label="New run name"
             placeholder="Run name"
+            {...testIdProps(TestIds.runsCreateNameInput)}
           />
-          <button type="button" className="btn" disabled={busy} onClick={() => void onCreateRun()}>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={() => void onCreateRun()}
+            {...testIdProps(TestIds.runsCreateButton)}
+          >
             New run
           </button>
         </div>
         )}
         {runs.length === 0 ? (
-          <p className="empty">No runs yet.</p>
+          <p className="empty" {...testIdProps(TestIds.runsEmpty)}>
+            No runs yet.
+          </p>
         ) : (
-          <table className="table">
+          <table className="table" {...testIdProps(TestIds.runsList)}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -177,14 +191,19 @@ export function Runs({ projectId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {runs.map((run) => (
+              {runs.map((run, index) => (
                 <tr
                   key={run.id}
                   className={selectedRunId === run.id ? 'selected' : undefined}
                   onClick={() => setSelectedRunId(run.id)}
+                  {...listItemProps(TestIds.runRow, {
+                    entityId: run.id,
+                    entityKey: run.name,
+                    index,
+                  })}
                 >
-                  <td>{run.name}</td>
-                  <td>
+                  <td {...testIdProps(TestIds.runRowName)}>{run.name}</td>
+                  <td {...testIdProps(TestIds.runRowStatus)}>
                     <span className="badge">{run.status}</span>
                   </td>
                   <td>{run.source}</td>
@@ -256,6 +275,7 @@ export function Runs({ projectId }: Props) {
               )
             }}
             aria-label="CI provider"
+            {...testIdProps(TestIds.runsCiProviderSelect)}
           >
             <option value="github">GitHub</option>
             <option value="gitlab">GitLab</option>
@@ -265,8 +285,15 @@ export function Runs({ projectId }: Props) {
             onChange={(e) => setCiName(e.target.value)}
             aria-label="CI config name"
             placeholder="Config name"
+            {...testIdProps(TestIds.runsCiNameInput)}
           />
-          <button type="button" className="btn" disabled={busy} onClick={() => void onSaveCi()}>
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={() => void onSaveCi()}
+            {...testIdProps(TestIds.runsCiSaveButton)}
+          >
             Save config
           </button>
         </div>
@@ -276,6 +303,7 @@ export function Runs({ projectId }: Props) {
           onChange={(e) => setCiJson(e.target.value)}
           rows={8}
           aria-label="CI config JSON"
+          {...testIdProps(TestIds.runsCiJsonInput)}
         />
         </>
         )}
@@ -290,7 +318,7 @@ export function Runs({ projectId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {configs.map((cfg) => (
+              {configs.map((cfg, index) => (
                 <tr key={cfg.id} style={{ cursor: 'default' }}>
                   <td>{cfg.name}</td>
                   <td>{cfg.provider}</td>
@@ -301,6 +329,10 @@ export function Runs({ projectId }: Props) {
                       className="btn secondary"
                       disabled={busy || !cfg.enabled}
                       onClick={() => void onDispatch(cfg.id)}
+                      {...listItemProps(TestIds.runsCiDispatchButton, {
+                        entityId: cfg.id,
+                        index,
+                      })}
                     >
                       Dispatch
                     </button>
@@ -327,14 +359,22 @@ export function Runs({ projectId }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {dispatches.slice(0, 10).map((d) => (
+                {dispatches.slice(0, 10).map((d, index) => (
                   <tr key={d.id} style={{ cursor: 'default' }}>
                     <td>
                       <span className="badge">{d.status}</span>
                     </td>
                     <td>
                       {d.external_url ? (
-                        <a href={d.external_url} target="_blank" rel="noreferrer">
+                        <a
+                          href={d.external_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          {...listItemProps(TestIds.runsCiExternalLink, {
+                            entityId: d.id,
+                            index,
+                          })}
+                        >
                           {d.external_id ?? 'open'}
                         </a>
                       ) : (

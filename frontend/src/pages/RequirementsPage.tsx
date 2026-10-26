@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { api, type Requirement } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -52,7 +53,7 @@ export function RequirementsPage({ projectId }: Props) {
   }
 
   return (
-    <div className="panel">
+    <div className="panel" {...testIdProps(TestIds.requirementsPage)}>
       <h2>Requirements</h2>
       <p className="muted" style={{ marginTop: 0 }}>
         Track requirements locally or import them from OpenProject / Jira
@@ -66,20 +67,37 @@ export function RequirementsPage({ projectId }: Props) {
           onChange={(e) => setTitle(e.target.value)}
           placeholder="New requirement title"
           aria-label="Requirement title"
+          {...testIdProps(TestIds.requirementsTitleInput)}
         />
-        <button type="submit" className="btn" disabled={!title.trim()}>
+        <button
+          type="submit"
+          className="btn"
+          disabled={!title.trim()}
+          {...testIdProps(TestIds.requirementsAddButton)}
+        >
           Add
         </button>
       </form>
       )}
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.requirementsError)}>
+          {error}
+        </p>
+      )}
       {loading ? (
-        <p className="muted">Loading…</p>
+        <p className="muted" {...testIdProps(TestIds.requirementsLoading)}>
+          Loading…
+        </p>
       ) : items.length === 0 ? (
-        <p className="empty">No requirements yet.</p>
+        <p className="empty" {...testIdProps(TestIds.requirementsEmpty)}>
+          No requirements yet.
+        </p>
       ) : (
-        <table className="table">
+        <table
+          className="table"
+          {...testIdProps(TestIds.requirementsList)}
+        >
           <thead>
             <tr>
               <th>Key</th>
@@ -88,14 +106,26 @@ export function RequirementsPage({ projectId }: Props) {
             </tr>
           </thead>
           <tbody>
-            {items.map((r) => (
-              <tr key={r.id}>
-                <td>
+            {items.map((r, index) => (
+              <tr
+                key={r.id}
+                {...listItemProps(TestIds.requirementRow, {
+                  entityId: r.id,
+                  entityKey: r.external_key,
+                  index,
+                })}
+              >
+                <td {...testIdProps(TestIds.requirementRowKey)}>
                   <span className="badge">{r.external_key ?? '—'}</span>
                 </td>
-                <td>
+                <td {...testIdProps(TestIds.requirementRowTitle)}>
                   {r.url ? (
-                    <a href={r.url} target="_blank" rel="noreferrer">
+                    <a
+                      href={r.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      {...listChildProps(TestIds.requirementRow, 'link')}
+                    >
                       {r.title}
                     </a>
                   ) : (

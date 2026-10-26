@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type Suite, type TestCase } from '../api'
 import { useI18n } from '../i18n'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 export type PickedCase = { id: string; key: string; title: string }
 
@@ -104,7 +105,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     onChange(selected.filter((c) => c.id !== id))
   }
 
-  const renderNode = (node: SuiteNode, depth: number) => (
+  const renderNode = (node: SuiteNode, depth: number, index: number) => (
     <li key={node.id} style={{ marginLeft: depth * 12 }}>
       <div className="picker-folder-row">
         <button
@@ -115,6 +116,11 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
           onClick={() =>
             setActiveSuite((cur) => (cur === node.id ? null : node.id))
           }
+          {...listItemProps(TestIds.casePickerFolder, {
+            entityId: node.id,
+            index,
+            depth,
+          })}
         >
           {node.name}
           {typeof node.case_count === 'number' ? ` (${node.case_count})` : ''}
@@ -124,31 +130,39 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
           className="btn secondary tiny"
           onClick={() => selectFolder(node.id)}
           title={t('generate.selectFolder')}
+          {...listChildProps(TestIds.casePickerFolder, 'select')}
         >
           {t('generate.selectFolder')}
         </button>
       </div>
       {node.children.length > 0 && (
         <ul className="plain-list picker-tree">
-          {node.children.map((ch) => renderNode(ch, depth + 1))}
+          {node.children.map((ch, childIndex) =>
+            renderNode(ch, depth + 1, childIndex),
+          )}
         </ul>
       )}
     </li>
   )
 
   return (
-    <div className="case-picker">
+    <div className="case-picker" {...testIdProps(TestIds.casePicker)}>
       <div className="case-picker-chips" aria-live="polite">
         {selected.length === 0 ? (
           <span className="muted">{t('generate.noCasesSelected')}</span>
         ) : (
-          selected.map((c) => (
+          selected.map((c, index) => (
             <button
               key={c.id}
               type="button"
               className="chip"
               onClick={() => removeChip(c.id)}
               title={c.title}
+              {...listItemProps(TestIds.casePickerChip, {
+                entityId: c.id,
+                entityKey: c.key,
+                index,
+              })}
             >
               <span className="badge">{c.key}</span>
               <span aria-hidden="true"> ×</span>
@@ -163,6 +177,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('generate.searchCasesPlaceholder')}
+          {...testIdProps(TestIds.casePickerSearchInput)}
         />
       </label>
 
@@ -178,30 +193,44 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                 type="button"
                 className={activeSuite == null ? 'linkish active' : 'linkish'}
                 onClick={() => setActiveSuite(null)}
+                {...testIdProps(TestIds.casePickerAllFolders)}
               >
                 {t('generate.allFolders')}
               </button>
             </li>
-            {tree.map((n) => renderNode(n, 0))}
+            {tree.map((n, index) => renderNode(n, 0, index))}
           </ul>
         </div>
         <div className="case-picker-list">
           <h4>{t('generate.cases')}</h4>
           <ul className="plain-list">
-            {visibleCases.map((c) => (
-              <li key={c.id}>
+            {visibleCases.map((c, index) => (
+              <li
+                key={c.id}
+                {...listItemProps(TestIds.casePickerItem, {
+                  entityId: c.id,
+                  entityKey: c.key,
+                  index,
+                })}
+              >
                 <label className="check">
                   <input
                     type="checkbox"
                     checked={selectedIds.has(c.id)}
                     onChange={() => toggle(c)}
+                    {...listChildProps(TestIds.casePickerItem, 'checkbox')}
                   />
                   <span className="badge">{c.key}</span> {c.title}
                 </label>
               </li>
             ))}
             {visibleCases.length === 0 && (
-              <li className="muted">{t('cases.empty')}</li>
+              <li
+                className="muted"
+                {...testIdProps(TestIds.casePickerEmpty)}
+              >
+                {t('cases.empty')}
+              </li>
             )}
           </ul>
         </div>

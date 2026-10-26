@@ -6,6 +6,13 @@ import {
   type UpdateIteration,
 } from '../api'
 import { useI18n } from '../i18n'
+import {
+  TestIds,
+  isSafeEntityKey,
+  listChildProps,
+  listItemProps,
+  testIdProps,
+} from '../testing'
 import { StatusBadge } from './StatusBadge'
 import { StatusIcon } from './StatusIcon'
 
@@ -233,7 +240,11 @@ export function IterationDashboard({
   }
 
   return (
-    <section className="exec-dashboard" aria-label={t('executions.dashboard')}>
+    <section
+      className="exec-dashboard"
+      aria-label={t('executions.dashboard')}
+      {...testIdProps(TestIds.iterationDashboard)}
+    >
       <header className="exec-dashboard-header">
         <div>
           <p className="muted exec-breadcrumb">
@@ -277,6 +288,7 @@ export function IterationDashboard({
                 disabled={!canEdit}
                 onChange={(e) => setCadence(e.target.value)}
                 placeholder="daily / on-push / manual"
+                {...testIdProps(TestIds.iterationCadenceInput)}
               />
             </label>
             <label>
@@ -287,6 +299,7 @@ export function IterationDashboard({
                 value={start}
                 disabled={!canEdit}
                 onChange={(e) => setStart(e.target.value)}
+                {...testIdProps(TestIds.iterationScheduledStartInput)}
               />
             </label>
             <label>
@@ -297,6 +310,7 @@ export function IterationDashboard({
                 value={end}
                 disabled={!canEdit}
                 onChange={(e) => setEnd(e.target.value)}
+                {...testIdProps(TestIds.iterationScheduledEndInput)}
               />
             </label>
             {canEdit && onSaveSchedule ? (
@@ -305,6 +319,7 @@ export function IterationDashboard({
                 className="btn"
                 disabled={saving}
                 onClick={() => void save()}
+                {...testIdProps(TestIds.iterationSaveScheduleButton)}
               >
                 {saving ? t('common.loading') : t('executions.saveSchedule')}
               </button>
@@ -315,12 +330,26 @@ export function IterationDashboard({
         <div className="panel exec-dash-panel">
           <h3>{t('executions.flaky')}</h3>
           {dashboard.flaky_tests.length === 0 ? (
-            <p className="muted">{t('executions.noFlaky')}</p>
+            <p className="muted" {...testIdProps(TestIds.iterationFlakyEmpty)}>
+              {t('executions.noFlaky')}
+            </p>
           ) : (
             <ul className="exec-mini-list">
-              {dashboard.flaky_tests.map((row) => (
-                <li key={row.case_id}>
-                  <Link to={`/cases/${row.case_id}`}>
+              {dashboard.flaky_tests.map((row, index) => (
+                <li
+                  key={row.case_id}
+                  {...listItemProps(TestIds.iterationFlakyItem, {
+                    entityId: row.case_id,
+                    entityKey: isSafeEntityKey(row.case_key)
+                      ? row.case_key
+                      : undefined,
+                    index,
+                  })}
+                >
+                  <Link
+                    to={`/cases/${row.case_id}`}
+                    {...listChildProps(TestIds.iterationFlakyItem, 'link')}
+                  >
                     <span className="badge">{row.case_key}</span> {row.case_title}
                   </Link>
                   <span className="muted">flips {row.flips}</span>
@@ -334,12 +363,26 @@ export function IterationDashboard({
         <div className="panel exec-dash-panel">
           <h3>{t('executions.slowest')}</h3>
           {dashboard.slowest_tests.length === 0 ? (
-            <p className="muted">{t('executions.noSlow')}</p>
+            <p className="muted" {...testIdProps(TestIds.iterationSlowEmpty)}>
+              {t('executions.noSlow')}
+            </p>
           ) : (
             <ul className="exec-mini-list">
-              {dashboard.slowest_tests.map((row) => (
-                <li key={row.case_id}>
-                  <Link to={`/cases/${row.case_id}`}>
+              {dashboard.slowest_tests.map((row, index) => (
+                <li
+                  key={row.case_id}
+                  {...listItemProps(TestIds.iterationSlowItem, {
+                    entityId: row.case_id,
+                    entityKey: isSafeEntityKey(row.case_key)
+                      ? row.case_key
+                      : undefined,
+                    index,
+                  })}
+                >
+                  <Link
+                    to={`/cases/${row.case_id}`}
+                    {...listChildProps(TestIds.iterationSlowItem, 'link')}
+                  >
                     <span className="badge">{row.case_key}</span> {row.case_title}
                   </Link>
                   <span className="muted">

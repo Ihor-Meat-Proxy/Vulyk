@@ -8,6 +8,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 
 function GearIcon() {
   return (
@@ -121,6 +122,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
+        {...testIdProps(TestIds.headerGearMenu)}
       >
         <GearIcon />
       </button>
@@ -132,6 +134,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
           aria-label={label}
           ref={listRef}
           onKeyDown={onMenuKeyDown}
+          {...testIdProps(TestIds.headerGearMenuPanel)}
         >
           <div className="user-menu-header" role="presentation">
             <span className="user-avatar" aria-hidden="true">
@@ -161,6 +164,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
               role="menuitem"
               className="user-menu-item"
               onClick={() => go('/settings')}
+              {...testIdProps(TestIds.headerGearSettings)}
             >
               {t('nav.mySettings')}
             </button>
@@ -171,6 +175,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
             role="menuitem"
             className="user-menu-item"
             onClick={() => go('/appearance')}
+            {...testIdProps(TestIds.headerGearAppearance)}
           >
             {t('nav.appearance')}
           </button>
@@ -181,6 +186,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
               role="menuitem"
               className="user-menu-item"
               onClick={() => go('/admin')}
+              {...testIdProps(TestIds.headerGearAdmin)}
             >
               {t('nav.adminSettings')}
             </button>
@@ -193,6 +199,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
             target="_blank"
             rel="noreferrer"
             onClick={close}
+            {...testIdProps(TestIds.headerGearDocs)}
           >
             {t('nav.helpDocs')}
           </a>
@@ -208,6 +215,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
                 close()
                 void logout()
               }}
+              {...testIdProps(TestIds.headerGearSignOut)}
             >
               {t('nav.signOut')}
             </button>
@@ -217,6 +225,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
               className="user-menu-item"
               to="/login"
               onClick={close}
+              {...testIdProps(TestIds.headerGearSignIn)}
             >
               {t('nav.signIn')}
             </Link>

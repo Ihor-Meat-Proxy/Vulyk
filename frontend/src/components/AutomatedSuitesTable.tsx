@@ -7,6 +7,12 @@ import {
 } from '../api'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import {
+  TestIds,
+  isSafeEntityKey,
+  listItemProps,
+  testIdProps,
+} from '../testing'
 import { formatTimestamp } from '../timezone'
 import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
 import { StatusBadge } from './StatusBadge'
@@ -144,7 +150,11 @@ export function AutomatedSuitesTable({
   }
 
   return (
-    <section className="panel" aria-label={t('executions.suites')}>
+    <section
+      className="panel"
+      aria-label={t('executions.suites')}
+      {...testIdProps(TestIds.automatedSuitesTable)}
+    >
       <div className="panel-header">
         <h2>{t('executions.suites')}</h2>
       </div>
@@ -156,12 +166,14 @@ export function AutomatedSuitesTable({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           aria-label={t('executions.search')}
+          {...testIdProps(TestIds.automatedSuitesSearchInput)}
         />
         <select
           className="filter-input"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
           aria-label={t('executions.filterStatus')}
+          {...testIdProps(TestIds.automatedSuitesStatusFilter)}
         >
           <option value="">{t('cases.allStatuses')}</option>
           <option value="Ready">Ready</option>
@@ -178,12 +190,14 @@ export function AutomatedSuitesTable({
           value={createdBy}
           onChange={(e) => setCreatedBy(e.target.value)}
           aria-label={t('executions.filterCreatedBy')}
+          {...testIdProps(TestIds.automatedSuitesCreatedByInput)}
         />
         <select
           className="filter-input"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           aria-label="Sort"
+          {...testIdProps(TestIds.automatedSuitesSortSelect)}
         >
           <option value="created_at_desc">Newest</option>
           <option value="created_at_asc">Oldest</option>
@@ -196,16 +210,25 @@ export function AutomatedSuitesTable({
           className="btn secondary"
           disabled={loading}
           onClick={() => void load(0)}
+          {...testIdProps(TestIds.automatedSuitesApplyButton)}
         >
           {t('executions.applyFilters')}
         </button>
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <p className="error" {...testIdProps(TestIds.automatedSuitesError)}>
+          {error}
+        </p>
+      ) : null}
       {loading && items.length === 0 ? (
-        <p className="muted">{t('common.loading')}</p>
+        <p className="muted" {...testIdProps(TestIds.automatedSuitesLoading)}>
+          {t('common.loading')}
+        </p>
       ) : items.length === 0 ? (
-        <p className="muted">{t('executions.noSuites')}</p>
+        <p className="muted" {...testIdProps(TestIds.automatedSuitesEmpty)}>
+          {t('executions.noSuites')}
+        </p>
       ) : (
         <>
           <div className="table-wrap">
@@ -222,12 +245,25 @@ export function AutomatedSuitesTable({
                 </tr>
               </thead>
               <tbody>
-                {items.map((suite) => {
+                {items.map((suite, index) => {
                   const report = reportHref(suite)
                   return (
-                    <tr key={suite.id}>
+                    <tr
+                      key={suite.id}
+                      {...listItemProps(TestIds.automatedSuiteRow, {
+                        entityId: suite.id,
+                        // Suite display names often contain spaces — omit entityKey then
+                        entityKey: isSafeEntityKey(suite.name)
+                          ? suite.name
+                          : undefined,
+                        index,
+                      })}
+                    >
                       <td>
-                        <Link to={`/executions/runs/${suite.id}`}>
+                        <Link
+                          to={`/executions/runs/${suite.id}`}
+                          {...testIdProps(TestIds.automatedSuiteNameLink)}
+                        >
                           {suite.suite_name || suite.name}
                         </Link>
                         <div className="meta-row" style={{ marginTop: '0.25rem' }}>
@@ -257,6 +293,7 @@ export function AutomatedSuitesTable({
                             type="button"
                             className="btn secondary"
                             onClick={() => onOpenDetails(suite)}
+                            {...testIdProps(TestIds.automatedSuiteDetailsButton)}
                           >
                             {t('executions.details')}
                           </button>
@@ -266,6 +303,7 @@ export function AutomatedSuitesTable({
                               href={report}
                               target="_blank"
                               rel="noreferrer"
+                              {...testIdProps(TestIds.automatedSuiteReportButton)}
                             >
                               {t('executions.report')}
                             </a>
@@ -276,6 +314,7 @@ export function AutomatedSuitesTable({
                               className="btn secondary"
                               disabled={busyId === suite.id}
                               onClick={() => void onRerun(suite)}
+                              {...testIdProps(TestIds.automatedSuiteRerunButton)}
                             >
                               {t('executions.rerun')}
                             </button>
@@ -286,6 +325,7 @@ export function AutomatedSuitesTable({
                               className="btn secondary"
                               disabled={busyId === suite.id}
                               onClick={() => void onDelete(suite)}
+                              {...testIdProps(TestIds.automatedSuiteDeleteButton)}
                             >
                               {t('executions.delete')}
                             </button>
@@ -304,6 +344,7 @@ export function AutomatedSuitesTable({
               className="btn secondary"
               disabled={offset <= 0 || loading}
               onClick={() => void load(Math.max(0, offset - limit))}
+              {...testIdProps(TestIds.automatedSuitesPrevButton)}
             >
               ←
             </button>
@@ -315,6 +356,7 @@ export function AutomatedSuitesTable({
               className="btn secondary"
               disabled={loading || offset + limit >= total}
               onClick={() => void load(offset + limit)}
+              {...testIdProps(TestIds.automatedSuitesNextButton)}
             >
               →
             </button>

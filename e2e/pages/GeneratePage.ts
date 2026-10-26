@@ -1,16 +1,12 @@
 import { expect, type Page } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 export class GeneratePage {
   constructor(readonly page: Page) {}
 
   async open() {
-    await this.page
-      .getByRole('navigation', { name: 'Primary' })
-      .getByRole('link', { name: /^Generate|Генерація$/i })
-      .click()
-    await expect(
-      this.page.getByRole('heading', { name: /^Generate$|^Генерація$/i }),
-    ).toBeVisible()
+    await this.page.getByTestId(TestIds.navLinkGenerate).click()
+    await expect(this.page.getByTestId(TestIds.generatePage)).toBeVisible()
   }
 
   modelSelect(which: 'cases' | 'automation' = 'cases') {
@@ -25,24 +21,20 @@ export class GeneratePage {
     await this.page
       .getByPlaceholder(/Describe the behaviour|Опишіть поведінку/i)
       .fill(requirements)
-    await this.page
-      .getByRole('button', {
-        name: /Generate & save drafts|Згенерувати і зберегти чернетки/i,
-      })
-      .click()
+    await this.page.getByTestId(TestIds.generateSubmitButton).click()
   }
 
   async pickFirstCase() {
     const checkbox = this.page
-      .locator('.case-picker-list input[type="checkbox"]')
+      .getByTestId(TestIds.casePicker)
+      .getByTestId(TestIds.casePickerItem)
       .first()
+      .locator('input[type="checkbox"]')
     await expect(checkbox).toBeVisible({ timeout: 20_000 })
     await checkbox.check()
   }
 
   async generateCode() {
-    await this.page
-      .getByRole('button', { name: /Generate code|Згенерувати код/i })
-      .click()
+    await this.page.getByTestId(TestIds.generateSubmitButton).click()
   }
 }

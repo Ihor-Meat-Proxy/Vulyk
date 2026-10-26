@@ -11,6 +11,7 @@ import {
 import { useAuth } from '../auth'
 import { LOCALES, useI18n, type Locale } from '../i18n'
 import { can } from '../permissions'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
 
 const CI_GUIDE_URL =
@@ -229,7 +230,11 @@ export function Settings() {
       <div className="panel">
         <h2>{t('settings.title')}</h2>
         <p className="muted">{t('nav.signIn')}</p>
-        <Link className="btn" to="/login">
+        <Link
+          className="btn"
+          to="/login"
+          {...testIdProps(TestIds.settingsSignInLink)}
+        >
           {t('nav.signIn')}
         </Link>
       </div>
@@ -441,14 +446,22 @@ export function Settings() {
   }
 
   return (
-    <div className="settings-page">
+    <div className="settings-page" {...testIdProps(TestIds.settingsPage)}>
       <header>
         <h2>{t('settings.title')}</h2>
         <p className="muted">{t('settings.subtitle')}</p>
       </header>
 
-      {message && <p className="notice">{message}</p>}
-      {error && <p className="error">{error}</p>}
+      {message && (
+        <p className="notice" {...testIdProps(TestIds.settingsMessage)}>
+          {message}
+        </p>
+      )}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.settingsError)}>
+          {error}
+        </p>
+      )}
 
       <form className="panel stack-form" onSubmit={(e) => void onSaveProfile(e)}>
         <h3>{t('settings.profile')}</h3>
@@ -458,11 +471,17 @@ export function Settings() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             required
+            {...testIdProps(TestIds.settingsDisplayNameInput)}
           />
         </label>
         <label className="field">
           <span>{t('login.email')}</span>
-          <input value={user.email} disabled readOnly />
+          <input
+            value={user.email}
+            disabled
+            readOnly
+            {...testIdProps(TestIds.settingsEmailInput)}
+          />
           <span className="muted" style={{ fontSize: '0.85rem' }}>
             {t('settings.emailReadonly')}
           </span>
@@ -473,6 +492,7 @@ export function Settings() {
             value={locale}
             onChange={(e) => void setLocale(e.target.value as Locale)}
             aria-label={t('settings.language')}
+            {...testIdProps(TestIds.settingsLocaleSelect)}
           >
             {LOCALES.map((meta) => (
               <option key={meta.code} value={meta.code}>
@@ -488,6 +508,7 @@ export function Settings() {
             onChange={(e) => setTimezone(e.target.value)}
             placeholder="Europe/Paris"
             required
+            {...testIdProps(TestIds.settingsTimezoneInput)}
           />
         </label>
 
@@ -500,6 +521,7 @@ export function Settings() {
             onChange={(e) =>
               setNotify((n) => ({ ...n, notify_email: e.target.checked }))
             }
+            {...testIdProps(TestIds.settingsNotifyEmailCheckbox)}
           />
           <span>{t('settings.notifyEmail')}</span>
         </label>
@@ -510,6 +532,7 @@ export function Settings() {
             onChange={(e) =>
               setNotify((n) => ({ ...n, notify_in_app: e.target.checked }))
             }
+            {...testIdProps(TestIds.settingsNotifyInAppCheckbox)}
           />
           <span>{t('settings.notifyInApp')}</span>
         </label>
@@ -523,11 +546,17 @@ export function Settings() {
                 notify_run_updates: e.target.checked,
               }))
             }
+            {...testIdProps(TestIds.settingsNotifyRunUpdatesCheckbox)}
           />
           <span>{t('settings.notifyRunUpdates')}</span>
         </label>
 
-        <button className="btn" type="submit" disabled={busy}>
+        <button
+          className="btn"
+          type="submit"
+          disabled={busy}
+          {...testIdProps(TestIds.settingsSaveProfileButton)}
+        >
           {busy ? t('login.working') : t('common.save')}
         </button>
       </form>
@@ -544,6 +573,7 @@ export function Settings() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             autoComplete="current-password"
+            {...testIdProps(TestIds.settingsCurrentPasswordInput)}
           />
         </label>
         <label className="field">
@@ -555,6 +585,7 @@ export function Settings() {
             required
             minLength={8}
             autoComplete="new-password"
+            {...testIdProps(TestIds.settingsNewPasswordInput)}
           />
           <span className="muted" style={{ fontSize: '0.85rem' }}>
             {t('setup.passwordHint')}
@@ -569,12 +600,14 @@ export function Settings() {
             required
             minLength={8}
             autoComplete="new-password"
+            {...testIdProps(TestIds.settingsConfirmPasswordInput)}
           />
         </label>
         <button
           className="btn"
           type="submit"
           disabled={busy || !passwordLooksStrong(newPassword)}
+          {...testIdProps(TestIds.settingsChangePasswordButton)}
         >
           {t('settings.passwordLink')}
         </button>
@@ -588,7 +621,10 @@ export function Settings() {
         ) : (
           <>
             {secretOnce && (
-              <p className="token-secret">
+              <p
+                className="token-secret"
+                {...testIdProps(TestIds.settingsTokenSecret)}
+              >
                 {t('settings.tokenCreated')}{' '}
                 <code>{secretOnce}</code>
               </p>
@@ -596,9 +632,19 @@ export function Settings() {
             {tokens.length === 0 ? (
               <p className="muted">{t('settings.noTokens')}</p>
             ) : (
-              <ul className="plain-list">
-                {tokens.map((tok) => (
-                  <li key={tok.id}>
+              <ul
+                className="plain-list"
+                {...testIdProps(TestIds.settingsTokenList)}
+              >
+                {tokens.map((tok, index) => (
+                  <li
+                    key={tok.id}
+                    {...listItemProps(TestIds.settingsTokenRow, {
+                      // UUID only — token names are freeform and must not land in data-*
+                      entityId: tok.id,
+                      index,
+                    })}
+                  >
                     <strong>{tok.name}</strong> · {tok.token_prefix}…
                     {tok.revoked_at ? null : (
                       <button
@@ -610,6 +656,7 @@ export function Settings() {
                             void refreshTokens()
                           })
                         }
+                        {...listChildProps(TestIds.settingsTokenRow, 'revoke')}
                       >
                         {t('settings.revokeToken')}
                       </button>
@@ -629,9 +676,14 @@ export function Settings() {
                   value={tokenName}
                   onChange={(e) => setTokenName(e.target.value)}
                   required
+                  {...testIdProps(TestIds.settingsTokenNameInput)}
                 />
               </label>
-              <button className="btn" type="submit">
+              <button
+                className="btn"
+                type="submit"
+                {...testIdProps(TestIds.settingsCreateTokenButton)}
+              >
                 {t('settings.createToken')}
               </button>
             </form>

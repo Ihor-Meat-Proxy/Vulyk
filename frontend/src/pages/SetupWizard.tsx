@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api, type RegistrationMode } from '../api'
 import { useAuth } from '../auth'
 import { LOCALES, normalizeLocale, useI18n, type Locale } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
 
 function passwordLooksStrong(password: string): boolean {
@@ -66,7 +67,7 @@ export function SetupWizard() {
   if (done && !status?.setup_required) {
     return (
       <div className="login-shell">
-        <div className="login-panel">
+        <div className="login-panel" {...testIdProps(TestIds.setupSuccess)}>
           <div className="brand">
             <span className="brand-mark">Vulyk</span>
             <span className="brand-tag">{t('setup.title')}</span>
@@ -79,7 +80,11 @@ export function SetupWizard() {
 
   return (
     <div className="login-shell">
-      <form className="login-panel" onSubmit={(e) => void onSubmit(e)}>
+      <form
+        className="login-panel"
+        onSubmit={(e) => void onSubmit(e)}
+        {...testIdProps(TestIds.setupPanel)}
+      >
         <div className="brand">
           <span className="brand-mark">Vulyk</span>
           <span className="brand-tag">{t('setup.title')}</span>
@@ -93,6 +98,7 @@ export function SetupWizard() {
             onChange={(e) => setSetupToken(e.target.value)}
             required
             autoComplete="off"
+            {...testIdProps(TestIds.setupTokenInput)}
           />
         </label>
         <label className="field">
@@ -102,6 +108,7 @@ export function SetupWizard() {
             onChange={(e) => setDisplayName(e.target.value)}
             required
             autoComplete="name"
+            {...testIdProps(TestIds.setupDisplayNameInput)}
           />
         </label>
         <label className="field">
@@ -112,6 +119,7 @@ export function SetupWizard() {
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
+            {...testIdProps(TestIds.setupEmailInput)}
           />
         </label>
         <label className="field">
@@ -123,6 +131,7 @@ export function SetupWizard() {
             required
             minLength={8}
             autoComplete="new-password"
+            {...testIdProps(TestIds.setupPasswordInput)}
           />
           <span className="muted" style={{ fontSize: '0.85rem' }}>
             {t('setup.passwordHint')}
@@ -138,6 +147,7 @@ export function SetupWizard() {
           <input
             value={instanceName}
             onChange={(e) => setInstanceName(e.target.value)}
+            {...testIdProps(TestIds.setupInstanceNameInput)}
           />
         </label>
         <label className="field">
@@ -146,6 +156,7 @@ export function SetupWizard() {
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder="https://vulyk.example.com"
+            {...testIdProps(TestIds.setupBaseUrlInput)}
           />
         </label>
         <label className="field">
@@ -154,6 +165,7 @@ export function SetupWizard() {
             value={locale}
             aria-label={t('setup.locale')}
             onChange={(e) => setLocale(e.target.value as Locale)}
+            {...testIdProps(TestIds.setupLocaleSelect)}
           >
             {LOCALES.map((meta) => (
               <option key={meta.code} value={meta.code}>
@@ -169,6 +181,7 @@ export function SetupWizard() {
             onChange={(e) => setTimezone(e.target.value)}
             placeholder="Europe/Kyiv"
             required
+            {...testIdProps(TestIds.setupTimezoneInput)}
           />
         </label>
         <label className="field">
@@ -178,6 +191,7 @@ export function SetupWizard() {
             onChange={(e) =>
               setRegistrationMode(e.target.value as RegistrationMode)
             }
+            {...testIdProps(TestIds.setupRegistrationSelect)}
           >
             <option value="open">{t('setup.modeOpen')}</option>
             <option value="invite">{t('setup.modeInvite')}</option>
@@ -189,15 +203,21 @@ export function SetupWizard() {
             type="checkbox"
             checked={seedSample}
             onChange={(e) => setSeedSample(e.target.checked)}
+            {...testIdProps(TestIds.setupSeedSampleCheckbox)}
           />
           <span>{t('setup.seedSample')}</span>
         </label>
 
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.setupError)}>
+            {error}
+          </p>
+        )}
         <button
           className="btn"
           type="submit"
           disabled={busy || !passwordLooksStrong(password)}
+          {...testIdProps(TestIds.setupSubmitButton)}
         >
           {busy ? t('login.working') : t('setup.submit')}
         </button>

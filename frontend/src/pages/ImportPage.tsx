@@ -7,6 +7,7 @@ import {
   type ImporterInfo,
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -117,7 +118,7 @@ export function ImportPage({ projectId }: Props) {
   }
 
   return (
-    <div className="panel import-panel">
+    <div className="panel import-panel" {...testIdProps(TestIds.importPage)}>
       <h2>Import cases</h2>
       <p className="muted" style={{ marginTop: 0 }}>
         Choose an importer, map fields, dry-run a preview, then persist.
@@ -129,6 +130,7 @@ export function ImportPage({ projectId }: Props) {
           <select
             value={importerId}
             onChange={(e) => setImporterId(e.target.value)}
+            {...testIdProps(TestIds.importImporterSelect)}
           >
             {importers.map((i) => (
               <option key={i.id} value={i.id}>
@@ -139,7 +141,11 @@ export function ImportPage({ projectId }: Props) {
         </label>
         <label>
           Format
-          <select value={format} onChange={(e) => setFormat(e.target.value)}>
+          <select
+            value={format}
+            onChange={(e) => setFormat(e.target.value)}
+            {...testIdProps(TestIds.importFormatSelect)}
+          >
             {(selected?.supported_formats ?? [format]).map((f) => (
               <option key={f} value={f}>
                 {f}
@@ -158,20 +164,28 @@ export function ImportPage({ projectId }: Props) {
           onChange={(e) => setContent(e.target.value)}
           placeholder="Paste CSV, XML, or JSON export…"
           spellCheck={false}
+          {...testIdProps(TestIds.importFileInput)}
         />
       </label>
 
       <h3>Field mapping</h3>
       <div className="mapping-grid">
-        {(Object.keys(EMPTY_MAPPING) as (keyof FieldMapping)[]).map((key) => (
-          <label key={key}>
-            {key}
-            <input
-              value={mapping[key]}
-              onChange={(e) => setMap(key, e.target.value)}
-            />
-          </label>
-        ))}
+        {(Object.keys(EMPTY_MAPPING) as (keyof FieldMapping)[]).map(
+          (key, index) => (
+            <label key={key}>
+              {key}
+              <input
+                value={mapping[key]}
+                onChange={(e) => setMap(key, e.target.value)}
+                {...listItemProps(TestIds.importMappingInput, {
+                  entityId: key,
+                  entityKey: key,
+                  index,
+                })}
+              />
+            </label>
+          ),
+        )}
       </div>
 
       <div className="import-actions">
@@ -180,6 +194,7 @@ export function ImportPage({ projectId }: Props) {
           className="btn secondary"
           disabled={busy || !content.trim()}
           onClick={() => void runPreview()}
+          {...testIdProps(TestIds.importPreviewButton)}
         >
           Dry-run preview
         </button>
@@ -188,12 +203,17 @@ export function ImportPage({ projectId }: Props) {
           className="btn"
           disabled={busy || !content.trim()}
           onClick={() => void runImport()}
+          {...testIdProps(TestIds.importSubmitButton)}
         >
           Import
         </button>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.importError)}>
+          {error}
+        </p>
+      )}
 
       {preview && (
         <section className="preview-block">
@@ -229,7 +249,10 @@ export function ImportPage({ projectId }: Props) {
       )}
 
       {report && (
-        <section className="preview-block">
+        <section
+          className="preview-block"
+          {...testIdProps(TestIds.importSuccess)}
+        >
           <h3>Import complete</h3>
           <p>
             Created {report.created_cases} cases

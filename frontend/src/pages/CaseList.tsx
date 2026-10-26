@@ -6,6 +6,7 @@ import { CaseStatusIcon } from '../components/CaseStatusIcon'
 import { VirtualList } from '../components/VirtualList'
 import { useI18n } from '../i18n'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -310,12 +311,14 @@ export function CaseList({
           className="case-tree-backdrop"
           aria-label={t('nav.close')}
           onClick={() => setTreeDrawerOpen(false)}
+          {...testIdProps(TestIds.caseListFoldersBackdrop)}
         />
       )}
       <aside
         className="case-tree-panel"
         id="case-folder-drawer"
         aria-hidden={false}
+        {...testIdProps(TestIds.caseListFoldersDrawer)}
       >
         <div className="case-tree-drawer-header">
           <span className="folder-tree-title">{t('folders.title')}</span>
@@ -323,6 +326,7 @@ export function CaseList({
             type="button"
             className="btn secondary case-tree-drawer-close"
             onClick={() => setTreeDrawerOpen(false)}
+            {...testIdProps(TestIds.caseListFoldersDrawerClose)}
           >
             {t('nav.close')}
           </button>
@@ -344,7 +348,7 @@ export function CaseList({
         />
       </aside>
 
-      <div className="case-list-panel">
+      <div className="case-list-panel" {...testIdProps(TestIds.caseListPanel)}>
         <div className="toolbar folders-drawer-bar">
           <button
             type="button"
@@ -352,6 +356,7 @@ export function CaseList({
             aria-expanded={treeDrawerOpen}
             aria-controls="case-folder-drawer"
             onClick={() => setTreeDrawerOpen(true)}
+            {...testIdProps(TestIds.caseListFoldersToggle)}
           >
             {t('folders.title')}
           </button>
@@ -367,12 +372,14 @@ export function CaseList({
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void createCase()
               }}
+              {...testIdProps(TestIds.caseListNewTitleInput)}
             />
             <button
               type="button"
               className="btn"
               disabled={creating || !newTitle.trim()}
               onClick={() => void createCase()}
+              {...testIdProps(TestIds.caseListNewCaseButton)}
             >
               {creating ? t('cases.creating') : t('cases.create')}
             </button>
@@ -385,18 +392,21 @@ export function CaseList({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             aria-label={t('cases.search')}
+            {...testIdProps(TestIds.caseListSearchInput)}
           />
           <input
             className="filter-input"
             placeholder={t('cases.tag')}
             value={tag}
             onChange={(e) => setTag(e.target.value)}
+            {...testIdProps(TestIds.caseListTagInput)}
           />
           <select
             className="filter-input"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             aria-label={t('cases.statusFilter')}
+            {...testIdProps(TestIds.caseListStatusFilter)}
           >
             <option value="">{t('cases.allStatuses')}</option>
             <option value="draft">draft</option>
@@ -409,6 +419,7 @@ export function CaseList({
                 type="checkbox"
                 checked={directOnly}
                 onChange={(e) => setDirectOnly(e.target.checked)}
+                {...testIdProps(TestIds.caseListDirectOnlyCheckbox)}
               />
               {t('folders.directOnly')}
             </label>
@@ -420,7 +431,7 @@ export function CaseList({
         </div>
 
         {(canBulkEdit || canLlm) && selected.size > 0 && (
-          <div className="bulk-bar">
+          <div className="bulk-bar" {...testIdProps(TestIds.caseListBulkBar)}>
             <span>
               {selected.size} {t('cases.selected')}
             </span>
@@ -430,6 +441,7 @@ export function CaseList({
                   type="button"
                   className="btn secondary"
                   onClick={() => void bulkStatus('ready')}
+                  {...testIdProps(TestIds.caseListMarkReadyButton)}
                 >
                   {t('cases.markReady')}
                 </button>
@@ -437,6 +449,7 @@ export function CaseList({
                   type="button"
                   className="btn secondary"
                   onClick={() => void bulkStatus('deprecated')}
+                  {...testIdProps(TestIds.caseListDeprecateButton)}
                 >
                   {t('cases.deprecate')}
                 </button>
@@ -449,6 +462,7 @@ export function CaseList({
                 onClick={() =>
                   navigate(`/generate?cases=${[...selected].join(',')}`)
                 }
+                {...testIdProps(TestIds.caseListGenerateButton)}
               >
                 {t('cases.generateAutomation')}
               </button>
@@ -457,60 +471,103 @@ export function CaseList({
               type="button"
               className="btn secondary"
               onClick={() => setSelected(new Set())}
+              {...testIdProps(TestIds.caseListClearSelectionButton)}
             >
               {t('cases.clearSelection')}
             </button>
           </div>
         )}
 
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.caseListError)}>
+            {error}
+          </p>
+        )}
 
-        {cases.length === 0 && !loading ? (
-          <div className="empty">{t('cases.empty')}</div>
+        {loading && cases.length === 0 ? (
+          <div className="empty" {...testIdProps(TestIds.caseListLoading)}>
+            {t('common.loading')}
+          </div>
+        ) : cases.length === 0 ? (
+          <div className="empty" {...testIdProps(TestIds.caseListEmpty)}>
+            {t('cases.empty')}
+          </div>
         ) : (
           <>
             <div className="table-head">
               <span />
-              <span>{t('cases.colKey')}</span>
-              <span>{t('cases.colTitle')}</span>
-              <span>{t('cases.colPriority')}</span>
-              <span>{t('cases.colStatus')}</span>
+              <span {...testIdProps(TestIds.caseListColKey)}>
+                {t('cases.colKey')}
+              </span>
+              <span {...testIdProps(TestIds.caseListColTitle)}>
+                {t('cases.colTitle')}
+              </span>
+              <span {...testIdProps(TestIds.caseListColPriority)}>
+                {t('cases.colPriority')}
+              </span>
+              <span {...testIdProps(TestIds.caseListColStatus)}>
+                {t('cases.colStatus')}
+              </span>
             </div>
-            <VirtualList
-              items={cases}
-              rowHeight={44}
-              height={520}
-              className="case-virtual"
-              renderRow={(c) => (
-                <div className="table-row">
-                  {canBulkEdit || canLlm ? (
-                    <input
-                      type="checkbox"
-                      checked={selected.has(c.id)}
-                      onChange={() => toggle(c.id)}
-                      aria-label={`Select ${c.key}`}
-                    />
-                  ) : (
-                    <span />
-                  )}
-                  <Link to={`/cases/${c.id}`}>
-                    <span className="badge">{c.key}</span>
-                  </Link>
-                  <Link to={`/cases/${c.id}`}>{c.title}</Link>
-                  <span className={`priority-label priority-${c.priority}`}>
+            <div {...testIdProps(TestIds.caseListTable)}>
+              <VirtualList
+                items={cases}
+                rowHeight={44}
+                height={520}
+                className="case-virtual"
+                renderRow={(c, index) => (
+                  <div
+                    className="table-row"
+                    {...listItemProps(TestIds.caseRow, {
+                      entityId: c.id,
+                      entityKey: c.key,
+                      index,
+                    })}
+                  >
+                    {canBulkEdit || canLlm ? (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(c.id)}
+                        onChange={() => toggle(c.id)}
+                        aria-label={`Select ${c.key}`}
+                        {...testIdProps(TestIds.caseRowCheckbox)}
+                      />
+                    ) : (
+                      <span />
+                    )}
+                    <Link
+                      to={`/cases/${c.id}`}
+                      {...testIdProps(TestIds.caseRowKey)}
+                    >
+                      <span className="badge">{c.key}</span>
+                    </Link>
+                    <Link
+                      to={`/cases/${c.id}`}
+                      {...testIdProps(TestIds.caseRowTitle)}
+                    >
+                      {c.title}
+                    </Link>
                     <span
-                      className={`priority-bar inline priority-${c.priority}`}
-                      aria-hidden
-                    />
-                    {c.priority}
-                  </span>
-                  <span className={`status-pill status-${c.status}`}>
-                    <CaseStatusIcon status={c.status} />
-                    {c.status}
-                  </span>
-                </div>
-              )}
-            />
+                      className={`priority-label priority-${c.priority}`}
+                      {...testIdProps(TestIds.caseRowPriority)}
+                    >
+                      <span
+                        className={`priority-bar inline priority-${c.priority}`}
+                        aria-hidden
+                      />
+                      {c.priority}
+                    </span>
+                    <span
+                      className={`status-pill status-${c.status}`}
+                      {...testIdProps(TestIds.caseRowStatus)}
+                    >
+                      <CaseStatusIcon status={c.status} />
+                      {c.status}
+                    </span>
+                  </div>
+                )}
+              />
+            </div>
             {cases.length < total && (
               <div className="pager">
                 <button
@@ -518,6 +575,7 @@ export function CaseList({
                   className="btn secondary"
                   disabled={loading}
                   onClick={() => setOffset(cases.length)}
+                  {...testIdProps(TestIds.caseListLoadMoreButton)}
                 >
                   {t('cases.loadMore')} ({formatNumber(cases.length)} /{' '}
                   {formatNumber(total)})

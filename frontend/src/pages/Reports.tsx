@@ -8,6 +8,7 @@ import {
   type RunSummaryReport,
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -117,7 +118,7 @@ export function Reports({ projectId }: Props) {
   }
 
   return (
-    <div className="reports-page">
+    <div className="reports-page" {...testIdProps(TestIds.reportsPage)}>
       <div className="panel-header">
         <div>
           <h2>Reports</h2>
@@ -126,23 +127,53 @@ export function Reports({ projectId }: Props) {
           </p>
         </div>
         <div className="topbar-actions">
-          <button type="button" className="btn secondary" onClick={() => void refresh()} disabled={busy}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => void refresh()}
+            disabled={busy}
+            {...testIdProps(TestIds.reportsRefreshButton)}
+          >
             Refresh
           </button>
           {canExport && (
-            <button type="button" className="btn secondary" onClick={() => void onExport('csv')}>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => void onExport('csv')}
+              {...testIdProps(TestIds.reportsExportButton)}
+            >
               Export CSV
             </button>
           )}
           {canExport && (
-            <button type="button" className="btn" onClick={() => void onExport('pdf')}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void onExport('pdf')}
+              {...testIdProps(TestIds.reportsExportPdfButton)}
+            >
               Export PDF
             </button>
           )}
         </div>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.reportsError)}>
+          {error}
+        </p>
+      )}
+      {busy && !dash && (
+        <p className="muted" {...testIdProps(TestIds.reportsLoading)}>
+          Loading…
+        </p>
+      )}
+      {!busy && dash && dash.total_runs === 0 && !dash.recent_run_summaries.length && (
+        <p className="muted" {...testIdProps(TestIds.reportsEmpty)}>
+          No report data yet.
+        </p>
+      )}
 
       {dash && (
         <section className="report-kpis" aria-label="Project summary">
@@ -172,12 +203,16 @@ export function Reports({ projectId }: Props) {
             <p className="muted">No runs yet. Create a run and ingest results to see summaries.</p>
           )}
           <ul className="report-list">
-            {dash?.recent_run_summaries.map((s) => (
+            {dash?.recent_run_summaries.map((s, index) => (
               <li key={s.run_id}>
                 <button
                   type="button"
                   className={selectedSummary?.run_id === s.run_id ? 'active' : undefined}
                   onClick={() => setSelectedSummary(s)}
+                  {...listItemProps(TestIds.reportsRunSummaryItem, {
+                    entityId: s.run_id,
+                    index,
+                  })}
                 >
                   <strong>{s.name}</strong>
                   <span className="muted">
@@ -218,6 +253,7 @@ export function Reports({ projectId }: Props) {
                 type="button"
                 className="btn secondary"
                 onClick={() => void onExport('csv', 'run', selectedSummary.run_id)}
+                {...testIdProps(TestIds.reportsExportRunButton)}
               >
                 Export this run (CSV)
               </button>
@@ -247,6 +283,7 @@ export function Reports({ projectId }: Props) {
             type="button"
             className="btn secondary"
             onClick={() => void onExport('csv', 'trends')}
+            {...testIdProps(TestIds.reportsExportTrendsButton)}
           >
             Export trends CSV
           </button>
@@ -286,6 +323,7 @@ export function Reports({ projectId }: Props) {
             type="button"
             className="btn secondary"
             onClick={() => void onExport('csv', 'coverage')}
+            {...testIdProps(TestIds.reportsExportCoverageButton)}
           >
             Export coverage CSV
           </button>
@@ -315,6 +353,7 @@ export function Reports({ projectId }: Props) {
             type="button"
             className="btn secondary"
             onClick={() => void onExport('csv', 'flaky')}
+            {...testIdProps(TestIds.reportsExportFlakyButton)}
           >
             Export flaky CSV
           </button>

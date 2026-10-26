@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   apiJson,
   createCase,
@@ -103,7 +104,7 @@ test.describe('folder tree lazy load + numeric sort', () => {
     )
 
     await loginAsAdmin(page)
-    const select = page.locator('.project-select')
+    const select = page.getByTestId(TestIds.headerProjectSelect)
     await expect
       .poll(async () => select.locator('option').count())
       .toBeGreaterThan(0)
@@ -111,7 +112,6 @@ test.describe('folder tree lazy load + numeric sort', () => {
     const idx = options.findIndex((o) => o.includes(key))
     expect(idx).toBeGreaterThanOrEqual(0)
     await select.selectOption({ index: idx })
-
     const cases = new CasesPage(page)
     await cases.open()
     await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
@@ -119,7 +119,9 @@ test.describe('folder tree lazy load + numeric sort', () => {
     // Recursive badge on parent (visible at root); leaf only appears after expand.
     const parentCount = cases
       .folderTree()
-      .locator(`[data-testid="folder-count-${parent.id}"]`)
+      .locator(
+        `[data-testid="folder-node"][data-entity-id="${parent.id}"] [data-testid="folder-node-count"]`,
+      )
     await expect(parentCount).toHaveText('221', { timeout: 20_000 })
     await expect(parentCount).toHaveAttribute('title', /221 \(1 direct\)/)
 
@@ -132,7 +134,9 @@ test.describe('folder tree lazy load + numeric sort', () => {
 
     const leafCount = cases
       .folderTree()
-      .locator(`[data-testid="folder-count-${leaf.id}"]`)
+      .locator(
+        `[data-testid="folder-node"][data-entity-id="${leaf.id}"] [data-testid="folder-node-count"]`,
+      )
     await expect(leafCount).toHaveText('220', { timeout: 20_000 })
 
     // Expand leaf — cases appear only after expand (lazy, 100/page).

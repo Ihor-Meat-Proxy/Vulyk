@@ -11,6 +11,7 @@ import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -223,18 +224,42 @@ export function RunDetail({ projectId }: Props) {
   }
 
   if (!projectId) return <p className="muted">Select a project first.</p>
-  if (loading) return <p className="muted">Loading run…</p>
-  if (error && !detail) return <p className="error">{error}</p>
+  if (loading) {
+    return (
+      <p className="muted" {...testIdProps(TestIds.runsLoading)}>
+        Loading run…
+      </p>
+    )
+  }
+  if (error && !detail) {
+    return (
+      <p className="error" {...testIdProps(TestIds.runDetailError)}>
+        {error}
+      </p>
+    )
+  }
   if (!detail) return <p className="muted">Run not found.</p>
 
   const { run, progress, items } = detail
   const currentStep = active?.steps[mobileStep]
 
+  const STATUS_ACTION_IDS = {
+    Passed: TestIds.executionPassButton,
+    Failed: TestIds.executionFailButton,
+    Blocked: TestIds.executionBlockButton,
+    Skipped: TestIds.executionSkipButton,
+  } as const
+
   return (
-    <div className={`run-layout${active ? ' run-executing' : ''}`}>
+    <div
+      className={`run-layout${active ? ' run-executing' : ''}`}
+      {...testIdProps(TestIds.runDetailPanel)}
+    >
       <div className="panel run-queue-panel">
         <p style={{ marginTop: 0 }}>
-          <Link to="/runs">← Runs</Link>
+          <Link to="/runs" {...testIdProps(TestIds.runDetailBackLink)}>
+            ← Runs
+          </Link>
         </p>
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
@@ -268,16 +293,32 @@ export function RunDetail({ projectId }: Props) {
           ))}
         </div>
 
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.runDetailError)}>
+            {error}
+          </p>
+        )}
         {notice && <p className="notice">{notice}</p>}
 
-        <ul className="run-item-list" aria-label="Run cases">
-          {items.map((row) => (
-            <li key={row.item.id}>
+        <ul
+          className="run-item-list"
+          aria-label="Run cases"
+          {...testIdProps(TestIds.runDetailCases)}
+        >
+          {items.map((row, index) => (
+            <li
+              key={row.item.id}
+              {...listItemProps(TestIds.runDetailCaseRow, {
+                entityId: row.item.id,
+                entityKey: row.case_key,
+                index,
+              })}
+            >
               <button
                 type="button"
                 className={`run-item-btn${active?.item.item.id === row.item.id ? ' active' : ''}`}
                 onClick={() => void openItem(row.item.id)}
+                {...listChildProps(TestIds.runDetailCaseRow, 'open')}
               >
                 <span className="badge">{row.case_key}</span>
                 <span className="run-item-title">{row.case_title}</span>
@@ -298,11 +339,16 @@ export function RunDetail({ projectId }: Props) {
               </tr>
             </thead>
             <tbody>
-              {items.map((row) => (
+              {items.map((row, index) => (
                 <tr
                   key={row.item.id}
                   className={active?.item.item.id === row.item.id ? 'row-active' : undefined}
                   onClick={() => void openItem(row.item.id)}
+                  {...listItemProps(TestIds.runDetailCaseRow, {
+                    entityId: row.item.id,
+                    entityKey: row.case_key,
+                    index,
+                  })}
                 >
                   <td>
                     <span className="badge">{row.case_key}</span> {row.case_title}
@@ -329,6 +375,7 @@ export function RunDetail({ projectId }: Props) {
                 type="button"
                 className="btn secondary exec-back"
                 onClick={() => setActive(null)}
+                {...testIdProps(TestIds.executionBackToQueueButton)}
               >
                 ← Queue
               </button>
@@ -344,6 +391,7 @@ export function RunDetail({ projectId }: Props) {
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
                 aria-label="Assignee"
+                {...testIdProps(TestIds.executionAssigneeInput)}
               />
               <input
                 className="search-input"
@@ -351,6 +399,7 @@ export function RunDetail({ projectId }: Props) {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 aria-label="Comment"
+                {...testIdProps(TestIds.executionCommentInput)}
               />
             </div>
 
@@ -380,6 +429,7 @@ export function RunDetail({ projectId }: Props) {
                         next[idx] = e.target.value
                         setStepStatuses(next)
                       }}
+                      {...testIdProps(TestIds.executionStepStatusSelect)}
                     >
                       {STEP_STATUSES.map((s) => (
                         <option key={s} value={s}>
@@ -421,6 +471,7 @@ export function RunDetail({ projectId }: Props) {
                     next[mobileStep] = e.target.value
                     setStepStatuses(next)
                   }}
+                  {...testIdProps(TestIds.executionStepStatusSelect)}
                 >
                   {STEP_STATUSES.map((s) => (
                     <option key={s} value={s}>
@@ -434,6 +485,7 @@ export function RunDetail({ projectId }: Props) {
                     className="btn secondary"
                     disabled={mobileStep === 0}
                     onClick={() => setMobileStep((s) => Math.max(0, s - 1))}
+                    {...testIdProps(TestIds.executionPrevButton)}
                   >
                     Prev
                   </button>
@@ -446,6 +498,7 @@ export function RunDetail({ projectId }: Props) {
                         Math.min(active.steps.length - 1, s + 1),
                       )
                     }
+                    {...testIdProps(TestIds.executionNextButton)}
                   >
                     Next
                   </button>
@@ -461,6 +514,7 @@ export function RunDetail({ projectId }: Props) {
                   className="thumb-btn"
                   disabled={saving}
                   onClick={() => void submitStatus(s)}
+                  {...testIdProps(STATUS_ACTION_IDS[s])}
                 />
               ))}
             </div>
@@ -499,12 +553,14 @@ export function RunDetail({ projectId }: Props) {
                   if (file) void attachPhoto(file)
                   e.target.value = ''
                 }}
+                {...testIdProps(TestIds.executionCameraInput)}
               />
               <button
                 type="button"
                 className="btn secondary"
                 disabled={saving || !active.latest_result}
                 onClick={() => cameraInputRef.current?.click()}
+                {...testIdProps(TestIds.executionCameraButton)}
               >
                 Camera / photo
               </button>
@@ -513,6 +569,7 @@ export function RunDetail({ projectId }: Props) {
                   type="button"
                   className="btn secondary"
                   onClick={() => void attachNote()}
+                  {...testIdProps(TestIds.executionAttachNoteButton)}
                 >
                   Attach note
                 </button>
