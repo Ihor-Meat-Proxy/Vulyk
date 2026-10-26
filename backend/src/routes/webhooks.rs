@@ -83,18 +83,18 @@ async fn handle_github(
         }));
     }
 
-    // Verify against any matching secret when provided.
-    let mut authorized = configs.iter().any(|c| c.webhook_secret.is_none());
-    for cfg in &configs {
-        if let Some(secret) = &cfg.webhook_secret {
-            if github::verify_signature(secret, body, &signature) {
-                authorized = true;
-                break;
-            }
-        }
-    }
-    if !authorized {
-        return Err(AppError::BadRequest("invalid GitHub signature".into()));
+    // Fail closed: only configs whose webhook_secret verifies the signature are
+    // authorized. Missing secrets never grant access (previously fail-open).
+    let matched: Vec<CiConfig> = configs
+        .into_iter()
+        .filter(|c| {
+            c.webhook_secret
+                .as_deref()
+                .is_some_and(|secret| github::verify_signature(secret, body, &signature))
+        })
+        .collect();
+    if matched.is_empty() {
+        return Err(AppError::Unauthorized("invalid GitHub signature".into()));
     }
 
     let mut dispatch_id = None;
@@ -108,7 +108,7 @@ async fn handle_github(
                 &external_id,
                 &mapped,
                 url.as_deref(),
-                &configs,
+                &matched,
             )
             .await?
             {
@@ -156,17 +156,17 @@ async fn handle_gitlab(
         }));
     }
 
-    let mut authorized = configs.iter().any(|c| c.webhook_secret.is_none());
-    for cfg in &configs {
-        if let Some(secret) = &cfg.webhook_secret {
-            if gitlab::verify_token(secret, token.as_deref()) {
-                authorized = true;
-                break;
-            }
-        }
-    }
-    if !authorized {
-        return Err(AppError::BadRequest("invalid GitLab token".into()));
+    // Fail closed: missing webhook_secret must not authorize the request.
+    let matched: Vec<CiConfig> = configs
+        .into_iter()
+        .filter(|c| {
+            c.webhook_secret
+                .as_deref()
+                .is_some_and(|secret| gitlab::verify_token(secret, token.as_deref()))
+        })
+        .collect();
+    if matched.is_empty() {
+        return Err(AppError::Unauthorized("invalid GitLab token".into()));
     }
 
     let mut dispatch_id = None;
@@ -182,7 +182,7 @@ async fn handle_gitlab(
                 &external_id,
                 &mapped,
                 url.as_deref(),
-                &configs,
+                &matched,
             )
             .await?
             {
