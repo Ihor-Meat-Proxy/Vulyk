@@ -50,7 +50,7 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
 
 async fn ensure_admin_token(client: &reqwest::Client, base: &str, pool: &sqlx::PgPool) -> String {
     let email = format!("backup-{}@vulyk.test", uuid::Uuid::new_v4().simple());
-    let password = "BackupAdm1";
+    let password = "BackupAdm1Pass12";
     let hash = vulyk_api::auth::hash_password(password).expect("hash");
     let _uid: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)

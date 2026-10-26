@@ -101,7 +101,7 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
 
     let admin_email = unique_email("sample-admin");
     let user_email = unique_email("sample-user");
-    let password = "password123";
+    let password = "password12345678";
     insert_admin(&pool, &admin_email, password).await;
     insert_user(&pool, &user_email, password).await;
     let admin_token = login(&client, &base, &admin_email, password).await;

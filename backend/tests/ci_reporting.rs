@@ -293,8 +293,8 @@ async fn ci_token_auth_and_permissions() {
     let client = reqwest::Client::new();
 
     let admin_email = format!("admin+{}@example.com", uuid::Uuid::new_v4().simple());
-    let _admin_id = insert_user(&pool, &admin_email, "password123", true).await;
-    let admin_token = login(&client, &base, &admin_email, "password123").await;
+    let _admin_id = insert_user(&pool, &admin_email, "password12345678", true).await;
+    let admin_token = login(&client, &base, &admin_email, "password12345678").await;
 
     let key = unique_key("T");
     let project: Value = client
@@ -312,7 +312,7 @@ async fn ci_token_auth_and_permissions() {
     let project_id = project["id"].as_str().unwrap();
 
     let viewer_email = format!("viewer+{}@example.com", uuid::Uuid::new_v4().simple());
-    let viewer_id = insert_user(&pool, &viewer_email, "password123", false).await;
+    let viewer_id = insert_user(&pool, &viewer_email, "password12345678", false).await;
     sqlx::query(
         r#"INSERT INTO memberships (project_id, user_id, role)
            VALUES ($1, $2, 'viewer')"#,
@@ -322,7 +322,7 @@ async fn ci_token_auth_and_permissions() {
     .execute(&pool)
     .await
     .unwrap();
-    let viewer_token = login(&client, &base, &viewer_email, "password123").await;
+    let viewer_token = login(&client, &base, &viewer_email, "password12345678").await;
 
     // Viewer cannot create CI tokens
     let forbidden = client
