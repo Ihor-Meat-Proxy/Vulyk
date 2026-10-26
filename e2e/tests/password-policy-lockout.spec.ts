@@ -28,13 +28,17 @@ test('auth status exposes password policy min length', async ({ request }) => {
   expect(body.password_policy?.require_digit).toBe(true)
 })
 
-test('registration rejects weak password below policy', async ({ page }) => {
+test('registration rejects weak password below policy', async ({
+  page,
+  request,
+}) => {
   await loginAsAdmin(page)
   await logout(page)
 
   const login = new LoginPage(page)
   await login.goto()
   await expect(page.getByTestId(TestIds.loginPanel)).toBeVisible()
+  await expect(page.getByTestId(TestIds.loginRegisterToggle)).toBeVisible()
 
   const email = `weak-${uniqueKey('').toLowerCase()}@vulyk.local`
   await login.switchToRegister()
@@ -42,14 +46,19 @@ test('registration rejects weak password below policy', async ({ page }) => {
   await page.getByTestId(TestIds.loginEmailInput).fill(email)
   await page.getByTestId(TestIds.loginPasswordInput).fill('short1')
   await expect(page.getByTestId(TestIds.passwordRequirements)).toBeVisible()
-  await page.getByTestId(TestIds.loginSubmitButton).click()
-
-  await expect(page.getByTestId(TestIds.loginError)).toBeVisible({
-    timeout: 15_000,
-  })
+  // Client-side: submit stays disabled until the password meets policy.
+  await expect(page.getByTestId(TestIds.loginSubmitButton)).toBeDisabled()
   await expect(page.getByTestId(TestIds.appShell)).toHaveCount(0)
-  const token = await page.evaluate(() => localStorage.getItem('vulyk.authToken'))
-  expect(token).toBeFalsy()
+
+  const apiReject = await request.post(`${API_URL}/api/v1/auth/register`, {
+    data: {
+      email: `weak-api-${uniqueKey('').toLowerCase()}@vulyk.local`,
+      password: 'short1',
+      display_name: 'Weak API',
+    },
+  })
+  expect(apiReject.status()).toBeGreaterThanOrEqual(400)
+  expect(apiReject.status()).toBeLessThan(500)
 })
 
 test('repeated failed logins lock out then recover', async ({
