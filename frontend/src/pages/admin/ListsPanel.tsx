@@ -6,7 +6,7 @@ import {
   type OptionListItem,
 } from '../../api'
 import { useI18n } from '../../i18n'
-import { TestIds, testIdProps } from '../../testing'
+import { TestIds, listItemProps, testIdProps } from '../../testing'
 
 type Props = {
   onError: (msg: string) => void
@@ -169,8 +169,15 @@ export function ListsPanel({ onError }: Props) {
             </tr>
           </thead>
           <tbody>
-            {lists.map((l) => (
-              <tr key={l.id}>
+            {lists.map((l, index) => (
+              <tr
+                key={l.id}
+                {...listItemProps(TestIds.adminListsRow, {
+                  entityId: l.id,
+                  entityKey: l.key,
+                  index,
+                })}
+              >
                 <td>
                   <span className="badge">{l.key}</span>
                 </td>
@@ -180,6 +187,7 @@ export function ListsPanel({ onError }: Props) {
                     type="button"
                     className="btn secondary"
                     onClick={() => setSelectedId(l.id)}
+                    {...testIdProps(TestIds.adminListsOpenButton)}
                   >
                     {t('admin.lists.open')}
                   </button>
@@ -207,6 +215,7 @@ export function ListsPanel({ onError }: Props) {
               onChange={(e) => setKey(e.target.value)}
               required
               pattern="[a-z0-9_\\-]+"
+              {...testIdProps(TestIds.adminListsKeyInput)}
             />
           </label>
           <label className="field">
@@ -215,6 +224,7 @@ export function ListsPanel({ onError }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              {...testIdProps(TestIds.adminListsNameInput)}
             />
           </label>
           <label className="field">
@@ -224,6 +234,7 @@ export function ListsPanel({ onError }: Props) {
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              {...testIdProps(TestIds.adminListsDescriptionInput)}
             />
           </label>
           <button
@@ -250,9 +261,15 @@ export function ListsPanel({ onError }: Props) {
                   value={renameName}
                   onChange={(e) => setRenameName(e.target.value)}
                   required
+                  {...testIdProps(TestIds.adminListsRenameInput)}
                 />
               </label>
-              <button className="btn secondary" type="submit" disabled={busy}>
+              <button
+                className="btn secondary"
+                type="submit"
+                disabled={busy}
+                {...testIdProps(TestIds.adminListsRenameButton)}
+              >
                 {t('common.save')}
               </button>
             </form>
@@ -267,7 +284,14 @@ export function ListsPanel({ onError }: Props) {
               </thead>
               <tbody>
                 {detail.items.map((item, idx) => (
-                  <tr key={item.id}>
+                  <tr
+                    key={item.id}
+                    {...listItemProps(TestIds.adminListsItemRow, {
+                      entityId: item.id,
+                      entityKey: item.value,
+                      index: idx,
+                    })}
+                  >
                     <td>
                       {item.label}
                       {item.value && item.value !== item.label ? (
@@ -287,6 +311,9 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy || idx === 0}
                         onClick={() => void moveItem(item, -1)}
+                        {...testIdProps(
+                          TestIds.adminListsItemMoveUpButton,
+                        )}
                       >
                         ↑
                       </button>
@@ -295,6 +322,9 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy || idx === detail.items.length - 1}
                         onClick={() => void moveItem(item, 1)}
+                        {...testIdProps(
+                          TestIds.adminListsItemMoveDownButton,
+                        )}
                       >
                         ↓
                       </button>
@@ -303,6 +333,9 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy}
                         onClick={() => void deprecateItem(item)}
+                        {...testIdProps(
+                          TestIds.adminListsItemDeprecateButton,
+                        )}
                       >
                         {item.deprecated
                           ? t('admin.lists.undeprecate')
@@ -313,6 +346,9 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy}
                         onClick={() => void deleteItem(item)}
+                        {...testIdProps(
+                          TestIds.adminListsItemDeleteButton,
+                        )}
                       >
                         {t('common.delete')}
                       </button>
@@ -329,9 +365,15 @@ export function ListsPanel({ onError }: Props) {
                   value={itemLabel}
                   onChange={(e) => setItemLabel(e.target.value)}
                   required
+                  {...testIdProps(TestIds.adminListsItemLabelInput)}
                 />
               </label>
-              <button className="btn" type="submit" disabled={busy}>
+              <button
+                className="btn"
+                type="submit"
+                disabled={busy}
+                {...testIdProps(TestIds.adminListsItemAddButton)}
+              >
                 {t('admin.lists.addItem')}
               </button>
             </form>

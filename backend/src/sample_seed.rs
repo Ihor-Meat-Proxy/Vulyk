@@ -1365,8 +1365,11 @@ mod seed_file_tests {
             .filter_map(|c| c.key.rsplit_once('-')?.1.parse::<i32>().ok())
             .max()
             .unwrap_or(0);
-        // Fragment cases omit keys; they allocate before this probe case.
-        let empty_before = before.iter().filter(|c| c.key.trim().is_empty()).count() as i32;
+        // Feature fragments may already omit keys; those allocate before the probe case.
+        let empty_before = before
+            .iter()
+            .filter(|c| c.key.trim().is_empty())
+            .count() as i32;
 
         seed.suites.push(SeedSuite {
             name: Localized {
@@ -1408,7 +1411,14 @@ mod seed_file_tests {
             .iter()
             .find(|c| c.title.en == "Auto-keyed case")
             .expect("auto case");
+<<<<<<< HEAD
         assert_eq!(auto.key, format!("VQA-{}", max_before + empty_before + 1));
+=======
+        assert_eq!(
+            auto.key,
+            format!("VQA-{}", max_before + empty_before + 1)
+        );
+>>>>>>> e5eec27 (fix(ci): seed key allocation test, upgrade CF table, TestIds coverage)
         let mut seen = HashSet::new();
         for c in &cases {
             assert!(seen.insert(c.key.as_str()), "dup {}", c.key);

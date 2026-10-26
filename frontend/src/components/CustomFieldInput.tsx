@@ -1,4 +1,5 @@
 import type { CustomField, CustomFieldOption } from '../api'
+import { TestIds, testIdProps } from '../testing'
 
 function asOptions(raw: CustomField['options']): CustomFieldOption[] {
   if (!Array.isArray(raw)) return []
@@ -29,6 +30,7 @@ type Props = {
   onChange: (next: unknown) => void
   disabled?: boolean
   readOnly?: boolean
+  testId?: string
 }
 
 export function CustomFieldInput({
@@ -37,6 +39,7 @@ export function CustomFieldInput({
   onChange,
   disabled,
   readOnly,
+  testId = TestIds.caseDetailCustomFieldInput,
 }: Props) {
   const options = asOptions(field.options)
   const help = field.help_text?.trim()
@@ -68,6 +71,7 @@ export function CustomFieldInput({
           checked={Boolean(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.checked)}
+          {...testIdProps(testId)}
         />
       ) : ft === 'long_text' ? (
         <textarea
@@ -76,6 +80,7 @@ export function CustomFieldInput({
           value={value == null ? '' : String(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          {...testIdProps(testId)}
         />
       ) : ft === 'number' ? (
         <input
@@ -87,6 +92,7 @@ export function CustomFieldInput({
             if (raw === '') onChange(null)
             else onChange(Number(raw))
           }}
+          {...testIdProps(testId)}
         />
       ) : ft === 'date' ? (
         <input
@@ -94,6 +100,7 @@ export function CustomFieldInput({
           value={value == null ? '' : String(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value || null)}
+          {...testIdProps(testId)}
         />
       ) : ft === 'url' ? (
         <input
@@ -102,12 +109,14 @@ export function CustomFieldInput({
           value={value == null ? '' : String(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          {...testIdProps(testId)}
         />
       ) : ft === 'dropdown' ? (
         <select
           value={value == null ? '' : String(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value || null)}
+          {...testIdProps(testId)}
         >
           <option value="">—</option>
           {options.map((o) => (
@@ -128,6 +137,7 @@ export function CustomFieldInput({
             onChange(selected)
           }}
           size={Math.min(6, Math.max(3, options.length || 3))}
+          {...testIdProps(testId)}
         >
           {options.map((o) => (
             <option key={o.value} value={o.value}>
@@ -141,6 +151,7 @@ export function CustomFieldInput({
           value={value == null ? '' : String(value)}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
+          {...testIdProps(testId)}
         />
       )}
       {help ? <span className="muted cf-help">{help}</span> : null}

@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, type ConfigImportPreview, type Project } from '../../api'
 import { useI18n } from '../../i18n'
-import { TestIds, testIdProps } from '../../testing'
+import { TestIds, listItemProps, testIdProps } from '../../testing'
 
 type Props = {
   projects: Project[]
@@ -142,6 +142,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           <select
             value={scope}
             onChange={(e) => setScope(e.target.value as 'all' | 'selected')}
+            {...testIdProps(TestIds.adminConfigScopeSelect)}
           >
             <option value="all">{t('admin.export.scopeAll')}</option>
             <option value="selected">{t('admin.export.scopeSelected')}</option>
@@ -151,12 +152,17 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           <fieldset className="field">
             <legend>{t('admin.customFields.projects')}</legend>
             <div className="check-list">
-              {projects.map((p) => (
+              {projects.map((p, index) => (
                 <label key={p.id} className="check">
                   <input
                     type="checkbox"
                     checked={projectIds.includes(p.id)}
                     onChange={() => toggleProject(p.id)}
+                    {...listItemProps(TestIds.adminConfigProjectCheckbox, {
+                      entityId: p.id,
+                      entityKey: p.key,
+                      index,
+                    })}
                   />
                   {p.name} <span className="muted">({p.key})</span>
                 </label>
@@ -169,6 +175,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             type="checkbox"
             checked={includeMemberships}
             onChange={(e) => setIncludeMemberships(e.target.checked)}
+            {...testIdProps(TestIds.adminConfigIncludeMembershipsCheckbox)}
           />
           {t('admin.export.memberships')}
         </label>
@@ -177,6 +184,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             type="checkbox"
             checked={includeData}
             onChange={(e) => setIncludeData(e.target.checked)}
+            {...testIdProps(TestIds.adminConfigIncludeDataCheckbox)}
           />
           {t('admin.export.data')}
         </label>
@@ -185,6 +193,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             type="checkbox"
             checked={includeFolders}
             onChange={(e) => setIncludeFolders(e.target.checked)}
+            {...testIdProps(TestIds.adminConfigIncludeFoldersCheckbox)}
           />
           {t('admin.export.folders')}
         </label>
@@ -193,6 +202,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value as 'json' | 'yaml')}
+            {...testIdProps(TestIds.adminConfigFormatSelect)}
           >
             <option value="json">JSON</option>
             <option value="yaml">YAML</option>
@@ -228,6 +238,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             onChange={(e) =>
               setStrategy(e.target.value as 'merge' | 'replace')
             }
+            {...testIdProps(TestIds.adminConfigStrategySelect)}
           >
             <option value="merge">{t('admin.export.merge')}</option>
             <option value="replace">{t('admin.export.replace')}</option>
@@ -239,6 +250,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
             className="btn secondary"
             disabled={busy || !bundle}
             onClick={() => void onPreview()}
+            {...testIdProps(TestIds.adminConfigPreviewButton)}
           >
             {t('admin.export.preview')}
           </button>

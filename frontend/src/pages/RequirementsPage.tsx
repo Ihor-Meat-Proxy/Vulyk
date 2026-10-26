@@ -241,6 +241,7 @@ export function RequirementsPage({ projectId }: Props) {
               style={{ marginTop: '0.75rem' }}
               disabled={savingCf}
               onClick={() => void saveCustomFields()}
+              {...testIdProps(TestIds.requirementsCustomFieldsSaveButton)}
             >
               {savingCf ? t('common.loading') : t('common.save')}
             </button>

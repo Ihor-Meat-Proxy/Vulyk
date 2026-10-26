@@ -6,7 +6,7 @@ import {
   type Project,
 } from '../../api'
 import { useI18n } from '../../i18n'
-import { TestIds, testIdProps } from '../../testing'
+import { TestIds, listItemProps, testIdProps } from '../../testing'
 
 const FIELD_TYPES = [
   'text',
@@ -257,8 +257,15 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             </tr>
           </thead>
           <tbody>
-            {fields.map((f) => (
-              <tr key={f.id}>
+            {fields.map((f, index) => (
+              <tr
+                key={f.id}
+                {...listItemProps(TestIds.adminCustomFieldRow, {
+                  entityId: f.id,
+                  entityKey: f.key,
+                  index,
+                })}
+              >
                 <td>
                   <span className="badge">{f.key}</span>
                 </td>
@@ -276,6 +283,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
                     type="button"
                     className="btn secondary"
                     onClick={() => startEdit(f)}
+                    {...testIdProps(TestIds.adminCustomFieldsEditButton)}
                   >
                     {t('common.edit')}
                   </button>
@@ -284,6 +292,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
                     className="btn secondary"
                     disabled={busy}
                     onClick={() => void onDelete(f)}
+                    {...testIdProps(TestIds.adminCustomFieldsDeleteButton)}
                   >
                     {t('common.delete')}
                   </button>
@@ -315,6 +324,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) => setForm({ ...form, key: e.target.value })}
             required
             pattern="[a-z0-9_\\-]+"
+            {...testIdProps(TestIds.adminCustomFieldsKeyInput)}
           />
         </label>
         <label className="field">
@@ -323,6 +333,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
+            {...testIdProps(TestIds.adminCustomFieldsNameInput)}
           />
         </label>
         <label className="field">
@@ -330,6 +341,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           <select
             value={form.field_type}
             onChange={(e) => setForm({ ...form, field_type: e.target.value })}
+            {...testIdProps(TestIds.adminCustomFieldsTypeSelect)}
           >
             {FIELD_TYPES.map((ft) => (
               <option key={ft} value={ft}>
@@ -343,6 +355,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           <select
             value={form.entity}
             onChange={(e) => setForm({ ...form, entity: e.target.value })}
+            {...testIdProps(TestIds.adminCustomFieldsEntitySelect)}
           >
             <option value="test_case">test_case</option>
             <option value="requirement">requirement</option>
@@ -358,6 +371,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
                 setForm({ ...form, option_list_id: e.target.value })
               }
               required
+              {...testIdProps(TestIds.adminCustomFieldsOptionListSelect)}
             >
               <option value="">—</option>
               {lists.map((l) => (
@@ -375,6 +389,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) =>
               setForm({ ...form, default_value: e.target.value })
             }
+            {...testIdProps(TestIds.adminCustomFieldsDefaultValueInput)}
           />
         </label>
         <label className="field">
@@ -384,6 +399,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             rows={2}
             value={form.help_text}
             onChange={(e) => setForm({ ...form, help_text: e.target.value })}
+            {...testIdProps(TestIds.adminCustomFieldsHelpTextInput)}
           />
         </label>
         <label className="field">
@@ -394,6 +410,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) =>
               setForm({ ...form, sort_order: Number(e.target.value) || 0 })
             }
+            {...testIdProps(TestIds.adminCustomFieldsSortOrderInput)}
           />
         </label>
         <label className="field">
@@ -401,6 +418,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           <select
             value={form.scope}
             onChange={(e) => setForm({ ...form, scope: e.target.value })}
+            {...testIdProps(TestIds.adminCustomFieldsScopeSelect)}
           >
             <option value="all">{t('admin.customFields.scopeAll')}</option>
             <option value="selected">
@@ -412,12 +430,20 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           <fieldset className="field">
             <legend>{t('admin.customFields.projects')}</legend>
             <div className="check-list">
-              {projects.map((p) => (
+              {projects.map((p, index) => (
                 <label key={p.id} className="check">
                   <input
                     type="checkbox"
                     checked={form.project_ids.includes(p.id)}
                     onChange={() => toggleProject(p.id)}
+                    {...listItemProps(
+                      TestIds.adminCustomFieldsProjectCheckbox,
+                      {
+                        entityId: p.id,
+                        entityKey: p.key,
+                        index,
+                      },
+                    )}
                   />
                   {p.name} <span className="muted">({p.key})</span>
                 </label>
@@ -430,6 +456,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             type="checkbox"
             checked={form.required}
             onChange={(e) => setForm({ ...form, required: e.target.checked })}
+            {...testIdProps(TestIds.adminCustomFieldsRequiredCheckbox)}
           />
           {t('admin.customFields.required')}
         </label>
@@ -440,6 +467,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) =>
               setForm({ ...form, show_in_list: e.target.checked })
             }
+            {...testIdProps(TestIds.adminCustomFieldsShowInListCheckbox)}
           />
           {t('admin.customFields.showInList')}
         </label>
@@ -450,6 +478,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) =>
               setForm({ ...form, show_in_filters: e.target.checked })
             }
+            {...testIdProps(TestIds.adminCustomFieldsShowInFiltersCheckbox)}
           />
           {t('admin.customFields.showInFilters')}
         </label>
@@ -458,6 +487,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             type="checkbox"
             checked={form.active}
             onChange={(e) => setForm({ ...form, active: e.target.checked })}
+            {...testIdProps(TestIds.adminCustomFieldsActiveCheckbox)}
           />
           {t('admin.lists.active')}
         </label>
@@ -475,6 +505,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
               type="button"
               className="btn secondary"
               onClick={resetForm}
+              {...testIdProps(TestIds.adminCustomFieldsCancelButton)}
             >
               {t('common.cancel')}
             </button>
