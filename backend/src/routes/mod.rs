@@ -1,6 +1,7 @@
 pub mod admin;
 pub mod attachments;
 pub mod auth;
+pub mod automation_repos;
 pub mod cases;
 pub mod ci;
 pub mod custom_fields;
@@ -61,6 +62,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(jobs::router())
         .merge(ci::router())
         .merge(llm::router())
+        .merge(automation_repos::router())
         .merge(tokens::router())
         .merge(users::router())
         .merge(memberships::router())

@@ -141,6 +141,9 @@ pub struct GenerateCodeResponse {
     pub model: String,
     pub framework: String,
     pub code: String,
+    /// Repo files included in the LLM prompt (empty when no automation repo).
+    #[serde(default)]
+    pub context_files: Vec<crate::models::ContextFileRef>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

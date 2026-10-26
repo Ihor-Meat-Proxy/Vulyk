@@ -53,6 +53,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
   const isSystemAdmin = Boolean(user?.is_system_admin)
   const canTokens = can('manage_api_tokens') || isSystemAdmin
   const canLlm = can('manage_llm_config') || isSystemAdmin
+  const canAutomationRepo = can('manage_automation_repo') || isSystemAdmin
   const canRoles = can('manage_memberships') || isSystemAdmin
   const projectId = project?.id ?? null
 
@@ -62,6 +63,8 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       list.push({ id: 'users', label: t('admin.users') })
       list.push({ id: 'settings', label: t('admin.settings') })
       list.push({ id: 'sso', label: t('admin.sso') })
+    }
+    if (isSystemAdmin || canAutomationRepo) {
       list.push({ id: 'integrations', label: t('admin.integrations') })
     }
     if (canRoles || isSystemAdmin) {
@@ -71,7 +74,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
     if (canLlm) list.push({ id: 'llm', label: t('admin.llm') })
     if (canTokens) list.push({ id: 'tokens', label: t('admin.tokens') })
     return list
-  }, [isSystemAdmin, canRoles, canLlm, canTokens, t])
+  }, [isSystemAdmin, canRoles, canLlm, canTokens, canAutomationRepo, t])
 
   useEffect(() => {
     if (tabs.length > 0 && !tabs.some((x) => x.id === tab)) {
@@ -159,12 +162,20 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
         />
       )}
       {tab === 'integrations' && (
-        <IntegrationsPanel
-          items={integrations}
-          isAdmin={isSystemAdmin}
-          onChanged={load}
-          onError={setError}
-        />
+        <>
+          <IntegrationsPanel
+            items={integrations}
+            isAdmin={isSystemAdmin}
+            onChanged={load}
+            onError={setError}
+          />
+          {canAutomationRepo && (
+            <AutomationRepoPanel
+              projectId={projectId}
+              onError={setError}
+            />
+          )}
+        </>
       )}
       {tab === 'llm' && canLlm && (
         <LlmPanel
@@ -524,6 +535,184 @@ function ProjectsPanel({
   )
 }
 
+function AutomationRepoPanel({
+  projectId,
+  onError,
+}: {
+  projectId: string | null
+  onError: (msg: string) => void
+}) {
+  const { t } = useI18n()
+  const [provider, setProvider] = useState('github')
+  const [remoteUrl, setRemoteUrl] = useState('')
+  const [branch, setBranch] = useState('main')
+  const [subpath, setSubpath] = useState('')
+  const [token, setToken] = useState('')
+  const [status, setStatus] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [info, setInfo] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    if (!projectId) return
+    try {
+      const repo = await api.getAutomationRepo(projectId)
+      setProvider(repo.provider)
+      setRemoteUrl(repo.remote_url)
+      setBranch(repo.branch)
+      setSubpath(repo.subpath)
+      setStatus(
+        `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
+          (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
+          (repo.has_token ? ' · token set' : ''),
+      )
+      setInfo(repo.last_index_error)
+    } catch {
+      setStatus(null)
+      setInfo(null)
+    }
+  }, [projectId])
+
+  useEffect(() => {
+    void load()
+  }, [load])
+
+  if (!projectId) {
+    return (
+      <div className="panel">
+        <h3>{t('admin.automationRepo')}</h3>
+        <p className="muted">{t('admin.automationRepoNeedProject')}</p>
+      </div>
+    )
+  }
+
+  const onSave = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    try {
+      await api.upsertAutomationRepo(projectId, {
+        provider,
+        remote_url: remoteUrl,
+        branch,
+        subpath,
+        ...(token ? { token } : {}),
+      })
+      setToken('')
+      await load()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onTest = async () => {
+    setBusy(true)
+    try {
+      const res = await api.testAutomationRepo(projectId)
+      setInfo(res.message)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onReindex = async () => {
+    setBusy(true)
+    try {
+      const res = await api.reindexAutomationRepo(projectId)
+      setInfo(
+        res.error
+          ? res.error
+          : `Indexed ${res.file_count} files / ${res.chunk_count} chunks`,
+      )
+      await load()
+    } catch (err) {
+      onError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h3>{t('admin.automationRepo')}</h3>
+      <p className="muted">{t('admin.automationRepoHelp')}</p>
+      {status && <p className="notice">{status}</p>}
+      {info && <p className="muted">{info}</p>}
+      <form className="stack-form" onSubmit={(e) => void onSave(e)}>
+        <label className="field">
+          <span>{t('admin.automationProvider')}</span>
+          <select
+            value={provider}
+            onChange={(e) => setProvider(e.target.value)}
+          >
+            <option value="github">GitHub</option>
+            <option value="gitlab">GitLab</option>
+            <option value="generic">Generic HTTPS Git</option>
+          </select>
+        </label>
+        <label className="field">
+          <span>{t('admin.automationUrl')}</span>
+          <input
+            value={remoteUrl}
+            onChange={(e) => setRemoteUrl(e.target.value)}
+            placeholder="https://github.com/org/repo.git"
+            required
+          />
+        </label>
+        <label className="field">
+          <span>{t('admin.automationBranch')}</span>
+          <input
+            value={branch}
+            onChange={(e) => setBranch(e.target.value)}
+            required
+          />
+        </label>
+        <label className="field">
+          <span>{t('admin.automationSubpath')}</span>
+          <input
+            value={subpath}
+            onChange={(e) => setSubpath(e.target.value)}
+            placeholder="e2e"
+          />
+        </label>
+        <label className="field">
+          <span>{t('admin.automationToken')}</span>
+          <input
+            type="password"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            autoComplete="off"
+            placeholder={t('admin.automationTokenHint')}
+          />
+        </label>
+        <div className="btn-row">
+          <button className="btn" type="submit" disabled={busy}>
+            {t('admin.automationSave')}
+          </button>
+          <button
+            className="btn secondary"
+            type="button"
+            disabled={busy}
+            onClick={() => void onTest()}
+          >
+            {t('admin.automationTest')}
+          </button>
+          <button
+            className="btn secondary"
+            type="button"
+            disabled={busy}
+            onClick={() => void onReindex()}
+          >
+            {t('admin.automationReindex')}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
 function IntegrationsPanel({
   items,
   isAdmin,
@@ -539,13 +728,7 @@ function IntegrationsPanel({
   const [name, setName] = useState('')
 
   if (!isAdmin) {
-    return (
-      <div className="panel">
-        <p className="muted">
-          Integration settings are managed by system administrators.
-        </p>
-      </div>
-    )
+    return null
   }
 
   const onSubmit = async (e: FormEvent) => {

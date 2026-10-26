@@ -101,8 +101,9 @@ Legacy API aliases: `project_lead` → `test_architect`, `tester` → `test_auto
 | `comment` | ✓ | ✓ | ✓ | ✓ | | ✓ |
 | `trigger_ci` | ✓ | | ✓ | ✓ | | ✓ |
 | `manage_ci_config` | ✓ | | ✓ | | | ✓ |
-| `llm_assist` | ✓ | ✓ | ✓ | | | ✓ |
+| `llm_assist` | ✓ | ✓ | ✓ | ✓ | | ✓ |
 | `manage_llm_config` | ✓ | ✓ | | | | ✓ |
+| `manage_automation_repo` | ✓ | ✓ | ✓ | | | ✓ |
 | `manage_api_tokens` | ✓ | | ✓ | | | ✓ |
 | `manage_users` | | | | | | ✓ |
 | `manage_system_settings` | | | | | | ✓ |

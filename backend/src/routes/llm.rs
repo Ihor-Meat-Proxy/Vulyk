@@ -453,6 +453,7 @@ pub async fn generate_code(
     }
 
     let mut bundle = String::new();
+    let mut query_parts = Vec::new();
     for case_id in &body.case_ids {
         let case = sqlx::query_as::<_, TestCase>(
             r#"SELECT id, project_id, suite_id, key, title, description, precondition,
@@ -465,11 +466,14 @@ pub async fn generate_code(
         .await?
         .ok_or_else(|| AppError::NotFound("case".into()))?;
         let steps = load_steps(&state.pool, case.id).await?;
+        query_parts.push(format!("{} {}", case.key, case.title));
+        query_parts.push(case.description.clone());
         bundle.push_str(&format!(
             "Case {} — {}\nDescription: {}\nPrecondition: {}\nSteps:\n",
             case.key, case.title, case.description, case.precondition
         ));
         for s in steps {
+            query_parts.push(s.action.clone());
             bundle.push_str(&format!(
                 "  {}. {} => {}\n",
                 s.position + 1,
@@ -480,14 +484,36 @@ pub async fn generate_code(
         bundle.push('\n');
     }
 
+    let (context_files, repo_context) = if let Some(repo) =
+        crate::services::automation_repo::load_repo_for_project(&state.pool, project_id).await?
+    {
+        if repo.index_status == "ready" {
+            let q = format!("{framework} {}", query_parts.join(" "));
+            crate::services::automation_repo::retrieve_context(&state.pool, repo.id, &q, None)
+                .await?
+        } else {
+            (vec![], String::new())
+        }
+    } else {
+        (vec![], String::new())
+    };
+
     let system = format!(
         "You write test automation. Produce {framework} code for the given cases. \
-         Return only the source code. Mark as automation generation."
+         Prefer reusing existing page objects, fixtures, helpers, and import styles from the \
+         repository context when provided. Return only the source code. Mark as automation generation."
     );
+    let user = if repo_context.is_empty() {
+        format!("FRAMEWORK: {framework}\n\n{bundle}")
+    } else {
+        format!(
+            "FRAMEWORK: {framework}\n\n## Repository context (reuse patterns/imports)\n{repo_context}\n\n## Cases to automate\n{bundle}"
+        )
+    };
     let resp = provider
         .complete(LlmRequest {
             system,
-            user: format!("FRAMEWORK: {framework}\n\n{bundle}"),
+            user,
             max_tokens: 4096,
         })
         .await?;
@@ -497,6 +523,7 @@ pub async fn generate_code(
         model: resp.model,
         framework,
         code: resp.text,
+        context_files,
     }))
 }
 

@@ -26,6 +26,7 @@ export type Permission =
   | 'manage_ci_config'
   | 'llm_assist'
   | 'manage_llm_config'
+  | 'manage_automation_repo'
   | 'manage_api_tokens'
 
 const SYSTEM_ONLY: ReadonlySet<Permission> = new Set([
@@ -57,6 +58,7 @@ const ROLE_PERMISSIONS: Record<ProjectRole, readonly Permission[]> = {
     'manage_ci_config',
     'llm_assist',
     'manage_llm_config',
+    'manage_automation_repo',
     'manage_api_tokens',
   ],
   test_architect: [
@@ -76,6 +78,7 @@ const ROLE_PERMISSIONS: Record<ProjectRole, readonly Permission[]> = {
     'comment',
     'llm_assist',
     'manage_llm_config',
+    'manage_automation_repo',
   ],
   test_automation_engineer: [
     'view_project',
@@ -90,6 +93,7 @@ const ROLE_PERMISSIONS: Record<ProjectRole, readonly Permission[]> = {
     'trigger_ci',
     'manage_ci_config',
     'llm_assist',
+    'manage_automation_repo',
     'manage_api_tokens',
   ],
   developer: [
@@ -101,6 +105,7 @@ const ROLE_PERMISSIONS: Record<ProjectRole, readonly Permission[]> = {
     'manage_attachments',
     'comment',
     'trigger_ci',
+    'llm_assist',
   ],
   viewer: ['view_project', 'view_reports', 'export_reports'],
 }

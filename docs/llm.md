@@ -39,6 +39,19 @@ Configured providers are never silently replaced by mock. If a real provider cal
 
 Mark a config **Global (all projects)** in Admin → LLM providers to share one default across projects.
 
+## Generate page
+
+- **Model** dropdown on both “Cases from requirements” and “Automation code” (default preselected).
+- **Case picker** (search by key/title, folder tree, multi-select, folder select, chips). Cases page bulk action **Generate automation** opens Generate with the selection.
+- **Automation repo** (Admin → Integrations): connect a GitHub / GitLab / generic HTTPS repo (token encrypted). Re-index clones shallowly and indexes source; generate-code retrieves BM25 context (framework configs, page objects, helpers, similar tests) and returns `context_files` for preview. Download generated code from the UI — no automatic commits.
+
+### RBAC
+
+| Capability | Admin | Test Architect | Test Automation Engineer | Developer | Viewer |
+|------------|:-----:|:--------------:|:------------------------:|:---------:|:------:|
+| Generate (`llm_assist`) | ✓ | ✓ | ✓ | ✓ | |
+| Configure automation repo | ✓ | ✓ | ✓ | | |
+
 ## Secrets
 
 API keys are encrypted at rest (AES-256-GCM). Set `VULYK_SECRETS_KEY` to a 32-byte value (base64 or hex) or a passphrase (SHA-256 derived). Plaintext keys are **never** returned by the API (`has_api_key` only).
