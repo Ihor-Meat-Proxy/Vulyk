@@ -692,7 +692,10 @@ export function Settings() {
       </section>
 
       {canAutomation ? (
-        <section className="panel">
+        <section
+          className="panel"
+          {...testIdProps(TestIds.settingsAutomationPanel)}
+        >
           <h3>{t('settings.automationRepos')}</h3>
           <p className="muted">
             {t('settings.automationReposHelp')}{' '}
@@ -917,7 +920,7 @@ export function Settings() {
       ) : null}
 
       {canCiTokens ? (
-        <section className="panel">
+        <section className="panel" {...testIdProps(TestIds.settingsCiPanel)}>
           <h3>{t('settings.ciTokens')}</h3>
           <p className="muted">
             {t('settings.ciTokensHelp')}{' '}

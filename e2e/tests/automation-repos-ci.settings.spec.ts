@@ -23,19 +23,20 @@ test('settings: automation repo + project CI token CRUD', async ({
   await settings.expectAutomationHeading()
 
   const repoName = `e2e-repo-${key}`
+  const before = await settings.repoRows().count()
   await settings.fillNewRepo({
     name: repoName,
     remoteUrl: 'https://github.com/example/e2e-tests.git',
-    projectKey: key,
+    projectId: project.id,
   })
   await settings.submitAddRepo()
-  await expect(page.getByText(repoName)).toBeVisible({ timeout: 15_000 })
+  await expect(settings.repoRows()).toHaveCount(before + 1, { timeout: 15_000 })
 
   await settings.expectCiTokensHeading()
-  await settings.selectCiProject(project.id, key)
+  await settings.selectCiProject(project.id)
   await settings.createCiToken(`ci-${key}`)
 
-  await expect(page.locator('code')).toContainText(/vulyk_ci_/, {
+  await expect(settings.ciTokenSecret()).toContainText(/vulyk_ci_/, {
     timeout: 15_000,
   })
 })

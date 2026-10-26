@@ -135,6 +135,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         include_str!("../seed/vulyk-qa.d/pdf-export.json"),
     ),
     (
+        "multi-repo-ci-ingest",
+        include_str!("../seed/vulyk-qa.d/multi-repo-ci-ingest.json"),
+    ),
+    (
         "qa-coverage-hardening",
         include_str!("../seed/vulyk-qa.d/qa-coverage-hardening.json"),
     ),
