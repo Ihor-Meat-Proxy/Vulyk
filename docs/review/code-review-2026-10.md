@@ -53,7 +53,7 @@ permanent “running” job with no recovery short of manual SQL.
 `status = 'running' AND locked_at < NOW() - interval 'N minutes'` back to
 `pending` (honouring `max_attempts`), and cover with a unit/integration test.
 
-**Fixed:** see PR “fix(jobs): reclaim stale running jobs”.
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46
 
 ### 3. **bug** — Ingest case-key lookup is case-sensitive
 
@@ -67,7 +67,7 @@ stored `DEMO-1` lands in `unmatched_case_keys` and drops the result.
 **Fix:** Normalize with `normalize_case_key` / `upper(key) = $2` before lookup
 (same as `find_case_by_key`).
 
-**Fixed:** see PR “fix(ingest): case-insensitive case_key matching”.
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49
 
 ### 4. **bug** — Bulk PDF export has no `case_ids` cap
 
@@ -81,7 +81,7 @@ on a 20k-case project “select all + export”.
 **Fix:** Reject requests above a documented max (e.g. 100) with `400 bad_request`;
 document in `docs/api.md`.
 
-**Fixed:** see PR “fix(export): cap bulk PDF case_ids”.
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51
 
 ---
 
@@ -353,10 +353,10 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 
 | Priority | Finding | PR |
 | --- | --- | --- |
-| P0 | #1 run-item `executed_at` | small focused PR + regression test |
-| P0 | #2 stale job reclaim | small focused PR + regression test |
-| P1 | #3 ingest case_key normalize | small focused PR + unit/integration test |
-| P1 | #4 bulk export cap | small focused PR + unit test + docs |
+| P0 | #1 run-item `executed_at` | [#42](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42) |
+| P0 | #2 stale job reclaim | [#46](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46) |
+| P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) |
+| P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
 | Later | #24 a11y i18n aria | separate UI PR |
 | Security agent | #20 auth on result history | out of scope here |
