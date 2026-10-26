@@ -211,6 +211,75 @@ pub fn validate_prefix(prefix: &str) -> AppResult<String> {
     Ok(cleaned)
 }
 
+/// Validate a project key (`^[A-Z][A-Z0-9_]{1,31}$`).
+pub fn validate_project_key(key: &str) -> AppResult<String> {
+    let cleaned: String = key.trim().to_uppercase();
+    if !regex_is_valid_project_key(&cleaned) {
+        return Err(AppError::BadRequest(
+            "project key must match ^[A-Z][A-Z0-9_]{1,31}$".into(),
+        ));
+    }
+    Ok(cleaned)
+}
+
+fn regex_is_valid_project_key(s: &str) -> bool {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(c) if c.is_ascii_uppercase() => {}
+        _ => return false,
+    }
+    let rest: Vec<char> = chars.collect();
+    if rest.is_empty() || rest.len() > 31 {
+        return false;
+    }
+    rest.into_iter()
+        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_')
+}
+
+/// Derive a unique project `key` from a display name (same initials rules as case_key_prefix).
+pub async fn unique_key_for_name(pool: &PgPool, name: &str) -> AppResult<String> {
+    unique_project_key(pool, &derive_prefix_from_name(name)).await
+}
+
+pub async fn unique_project_key(pool: &PgPool, candidate: &str) -> AppResult<String> {
+    let cleaned: String = candidate
+        .chars()
+        .map(|c| c.to_ascii_uppercase())
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
+        .take(32)
+        .collect();
+    let base = if cleaned.len() < 2 || !cleaned.chars().next().unwrap().is_ascii_alphabetic() {
+        "PR".to_string()
+    } else {
+        cleaned
+    };
+
+    let stem: String = base.chars().take(28).collect();
+    let mut attempt = base.clone();
+    let mut n = 2u32;
+    loop {
+        let exists: bool = sqlx::query_scalar(
+            r#"SELECT EXISTS(SELECT 1 FROM projects WHERE key = $1)"#,
+        )
+        .bind(&attempt)
+        .fetch_one(pool)
+        .await?;
+        if !exists {
+            return Ok(attempt);
+        }
+        let suffix = n.to_string();
+        let keep = 32usize.saturating_sub(suffix.len()).max(1);
+        let stem_trim: String = stem.chars().take(keep).collect();
+        attempt = format!("{stem_trim}{suffix}");
+        n += 1;
+        if n > 10_000 {
+            return Err(AppError::Conflict(
+                "unable to allocate unique project key".into(),
+            ));
+        }
+    }
+}
+
 fn regex_is_valid_prefix(s: &str) -> bool {
     let mut chars = s.chars();
     match chars.next() {
@@ -261,5 +330,18 @@ mod tests {
     fn validate_prefix_rejects() {
         assert!(validate_prefix("x").is_err());
         assert!(validate_prefix("1AB").is_err());
+    }
+
+    #[test]
+    fn validate_project_key_ok() {
+        assert_eq!(validate_project_key("kyiv_concert").unwrap(), "KYIV_CONCERT");
+        assert_eq!(validate_project_key("DEMO").unwrap(), "DEMO");
+    }
+
+    #[test]
+    fn validate_project_key_rejects() {
+        assert!(validate_project_key("x").is_err());
+        assert!(validate_project_key("1AB").is_err());
+        assert!(validate_project_key("has-dash").is_err());
     }
 }

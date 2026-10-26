@@ -168,8 +168,14 @@ pub async fn create_config(
         None => (None, None),
     };
 
+    let scoped_project_id: Option<Uuid> = if body.global {
+        None
+    } else {
+        Some(project_id)
+    };
+
     if body.is_default {
-        clear_default(&state.pool, project_id).await?;
+        clear_default(&state.pool, scoped_project_id).await?;
     }
 
     let row = sqlx::query_as::<_, LlmConfigRow>(
@@ -179,7 +185,7 @@ pub async fn create_config(
            RETURNING id, project_id, provider, name, base_url, model,
                      api_key_ciphertext, api_key_nonce, extra, is_default, created_at, updated_at"#,
     )
-    .bind(project_id)
+    .bind(scoped_project_id)
     .bind(kind.as_str())
     .bind(body.name.trim())
     .bind(&body.base_url)
@@ -267,7 +273,7 @@ pub async fn update_config(
     };
 
     if is_default {
-        clear_default(&state.pool, project_id).await?;
+        clear_default(&state.pool, existing.project_id).await?;
     }
 
     let row = sqlx::query_as::<_, LlmConfigRow>(
@@ -575,11 +581,20 @@ pub async fn ask_tests(
     }))
 }
 
-async fn clear_default(pool: &sqlx::PgPool, project_id: Uuid) -> AppResult<()> {
-    sqlx::query("UPDATE llm_configs SET is_default = FALSE WHERE project_id = $1")
-        .bind(project_id)
-        .execute(pool)
-        .await?;
+async fn clear_default(pool: &sqlx::PgPool, project_id: Option<Uuid>) -> AppResult<()> {
+    match project_id {
+        Some(pid) => {
+            sqlx::query("UPDATE llm_configs SET is_default = FALSE WHERE project_id = $1")
+                .bind(pid)
+                .execute(pool)
+                .await?;
+        }
+        None => {
+            sqlx::query("UPDATE llm_configs SET is_default = FALSE WHERE project_id IS NULL")
+                .execute(pool)
+                .await?;
+        }
+    }
     Ok(())
 }
 
@@ -602,19 +617,23 @@ async fn load_config_row(
     .ok_or_else(|| AppError::NotFound("llm config".into()))
 }
 
+/// Resolve which LLM provider to use for chat / generate-cases / generate-code.
+///
+/// Order (when `config_id` is omitted):
+/// 1. Project-specific default
+/// 2. Any other project-specific config
+/// 3. Global default (`project_id IS NULL`)
+/// 4. Any other global config
+/// 5. Built-in mock — **only** when no configs exist
+///
+/// `VULYK_LLM_MOCK=1` no longer overrides a configured provider (that hid real
+/// OpenRouter keys behind a silent mock). It remains documented for CI as a
+/// hint that mock is acceptable when nothing is configured.
 async fn resolve_provider(
     state: &AppState,
     project_id: Uuid,
     config_id: Option<Uuid>,
 ) -> AppResult<Box<dyn crate::llm::LlmProvider>> {
-    // Prefer explicit mock when env set (CI / local without keys).
-    if std::env::var("VULYK_LLM_MOCK")
-        .map(|v| matches!(v.as_str(), "1" | "true" | "TRUE" | "yes"))
-        .unwrap_or(false)
-    {
-        return Ok(Box::new(crate::llm::providers::MockProvider));
-    }
-
     let row = if let Some(id) = config_id {
         load_config_row(&state.pool, project_id, id).await?
     } else {
@@ -623,7 +642,14 @@ async fn resolve_provider(
                       api_key_ciphertext, api_key_nonce, extra, is_default, created_at, updated_at
                FROM llm_configs
                WHERE (project_id = $1 OR project_id IS NULL)
-               ORDER BY is_default DESC, created_at ASC
+               ORDER BY
+                 CASE
+                   WHEN project_id = $1 AND is_default THEN 0
+                   WHEN project_id = $1 THEN 1
+                   WHEN project_id IS NULL AND is_default THEN 2
+                   ELSE 3
+                 END,
+                 created_at ASC
                LIMIT 1"#,
         )
         .bind(project_id)
@@ -633,7 +659,6 @@ async fn resolve_provider(
         match found {
             Some(r) => r,
             None => {
-                // No config: use mock so offline / fresh installs still work.
                 return Ok(Box::new(crate::llm::providers::MockProvider));
             }
         }

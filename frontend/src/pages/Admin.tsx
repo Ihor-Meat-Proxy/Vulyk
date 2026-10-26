@@ -453,7 +453,11 @@ function ProjectsPanel({
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
-      await api.createProject({ key, name, description })
+      await api.createProject({
+        ...(key.trim() ? { key: key.trim() } : {}),
+        name,
+        description,
+      })
       setKey('')
       setName('')
       setDescription('')
@@ -489,20 +493,20 @@ function ProjectsPanel({
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
         <h3>New project</h3>
         <label className="field">
-          <span>Key</span>
-          <input
-            value={key}
-            onChange={(e) => setKey(e.target.value.toUpperCase())}
-            pattern="[A-Z][A-Z0-9_]{1,31}"
-            required
-          />
-        </label>
-        <label className="field">
           <span>Name</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+          />
+        </label>
+        <label className="field">
+          <span>Key (optional)</span>
+          <input
+            value={key}
+            onChange={(e) => setKey(e.target.value.toUpperCase())}
+            pattern="[A-Z][A-Z0-9_]{1,31}"
+            placeholder="Derived from name when empty"
           />
         </label>
         <label className="field">
@@ -635,6 +639,7 @@ function LlmPanel({
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [isDefault, setIsDefault] = useState(true)
+  const [isGlobal, setIsGlobal] = useState(false)
 
   useEffect(() => {
     const meta = providers.find((p) => p.id === provider)
@@ -661,6 +666,7 @@ function LlmPanel({
         base_url: baseUrl || undefined,
         api_key: apiKey || undefined,
         is_default: isDefault,
+        global: isGlobal,
       })
       setApiKey('')
       onChanged()
@@ -673,11 +679,16 @@ function LlmPanel({
     <div className="panel admin-grid">
       <div>
         <h3>LLM providers</h3>
+        <p className="muted">
+          Resolution: project provider → global default → mock only if none
+          exist.
+        </p>
         <ul className="plain-list">
           {configs.map((c) => (
             <li key={c.id}>
               <strong>{c.name}</strong> · {c.provider}
               {c.model ? ` · ${c.model}` : ''}
+              {c.project_id == null ? ' · global' : ''}
               {c.is_default ? ' · default' : ''}
               {c.has_api_key ? ' · key set' : ''}
               <button
@@ -744,7 +755,15 @@ function LlmPanel({
             checked={isDefault}
             onChange={(e) => setIsDefault(e.target.checked)}
           />
-          Default for this project
+          {isGlobal ? 'Global default' : 'Default for this project'}
+        </label>
+        <label className="check">
+          <input
+            type="checkbox"
+            checked={isGlobal}
+            onChange={(e) => setIsGlobal(e.target.checked)}
+          />
+          Global (all projects)
         </label>
         <button className="btn" type="submit">
           Save provider

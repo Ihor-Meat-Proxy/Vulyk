@@ -29,10 +29,15 @@ export class AdminPage {
     await expect(this.page.getByText(userEmail)).toBeVisible()
   }
 
-  async createProject(key: string, name: string) {
+  async createProject(name: string, key?: string) {
     await this.openTab(/Projects|Проєкти/i)
-    await this.page.locator('form.stack-form').getByLabel(/^Key$/i).fill(key)
     await this.page.locator('form.stack-form').getByLabel(/^Name$/i).fill(name)
+    if (key) {
+      await this.page
+        .locator('form.stack-form')
+        .getByLabel(/^Key \(optional\)$|^Key$/i)
+        .fill(key)
+    }
     await this.page.getByRole('button', { name: 'Create project' }).click()
     await expect(
       this.page.locator('.admin').getByText(name, { exact: true }).first(),

@@ -32,11 +32,20 @@ export function Chat({ projectId }: Props) {
         {
           role: 'assistant',
           text: res.answer,
-          meta: `${res.provider} / ${res.model}`,
+          meta: `Answered by ${res.provider} / ${res.model}`,
         },
       ])
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      const message = err instanceof Error ? err.message : String(err)
+      setError(message)
+      setTurns((t) => [
+        ...t,
+        {
+          role: 'assistant',
+          text: message,
+          meta: 'Provider error — not falling back to mock',
+        },
+      ])
     } finally {
       setBusy(false)
     }
@@ -59,8 +68,10 @@ export function Chat({ projectId }: Props) {
       <header className="panel-header">
         <h2>Chat with your tests</h2>
         <p className="muted">
-          Ask about coverage, gaps, or case intent. Uses the project LLM config
-          (mock when none is set).
+          Ask about coverage, gaps, or case intent. Resolves project provider →
+          global default → mock only if none exist. Each answer shows which
+          provider and model responded; real provider failures are shown as
+          errors (no silent mock fallback).
         </p>
       </header>
 

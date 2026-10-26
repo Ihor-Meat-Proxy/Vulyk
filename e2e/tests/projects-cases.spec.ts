@@ -32,7 +32,17 @@ test('admin can create a project via UI', async ({ page }) => {
   const admin = new AdminPage(page)
   await admin.open()
   const key = uniqueKey('PJ')
-  await admin.createProject(key, `Project ${key}`)
+  await admin.createProject(`Project ${key}`, key)
+})
+
+test('admin can create a project with name only (auto key)', async ({
+  page,
+}) => {
+  await loginAsAdmin(page)
+  const admin = new AdminPage(page)
+  await admin.open()
+  const name = `Kyiv Auto Concert ${uniqueKey('AC')}`
+  await admin.createProject(name)
 })
 
 test('suite tree, case CRUD with steps, search, filter, bulk', async ({

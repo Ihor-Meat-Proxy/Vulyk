@@ -64,8 +64,14 @@ impl LlmProvider for AnthropicProvider {
             .await
             .map_err(|e| AppError::BadRequest(format!("anthropic body: {e}")))?;
         if !status.is_success() {
+            let rate_hint = if status.as_u16() == 429 {
+                " Rate limited — wait and retry, or switch models."
+            } else {
+                ""
+            };
             return Err(AppError::BadRequest(format!(
-                "anthropic failed ({status}): {body}"
+                "LLM call failed via anthropic / {} (HTTP {status}): {body}{rate_hint}",
+                self.model
             )));
         }
         let parsed: AnthropicResponse = serde_json::from_str(&body)
