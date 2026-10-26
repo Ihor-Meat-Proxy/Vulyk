@@ -116,25 +116,26 @@ test.describe('folder tree lazy load + numeric sort', () => {
     await cases.open()
     await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
 
-    // Recursive badge on parent
+    // Recursive badge on parent (visible at root); leaf only appears after expand.
     const parentCount = cases
       .folderTree()
       .locator(`[data-testid="folder-count-${parent.id}"]`)
     await expect(parentCount).toHaveText('221', { timeout: 20_000 })
     await expect(parentCount).toHaveAttribute('title', /221 \(1 direct\)/)
 
-    const leafCount = cases
-      .folderTree()
-      .locator(`[data-testid="folder-count-${leaf.id}"]`)
-    await expect(leafCount).toHaveText('220')
-
-    // Expand parent then leaf — cases appear only after expand (lazy).
     await cases
       .folderTree()
       .locator('.folder-tree-folder')
       .filter({ hasText: 'Area-0' })
       .getByRole('button', { name: /Expand|Розгорнути/i })
       .click()
+
+    const leafCount = cases
+      .folderTree()
+      .locator(`[data-testid="folder-count-${leaf.id}"]`)
+    await expect(leafCount).toHaveText('220', { timeout: 20_000 })
+
+    // Expand leaf — cases appear only after expand (lazy, 100/page).
     await cases
       .folderTree()
       .locator('.folder-tree-folder')
@@ -142,11 +143,12 @@ test.describe('folder tree lazy load + numeric sort', () => {
       .getByRole('button', { name: /Expand|Розгорнути/i })
       .click()
 
+    // Parent expand also lazy-loads its 1 direct case, so total visible = 100 leaf + 1 parent.
     const treeCases = cases.folderTree().locator('.folder-tree-case')
     await expect(treeCases.first()).toBeVisible({ timeout: 20_000 })
     await expect
       .poll(async () => treeCases.count())
-      .toBe(100)
+      .toBe(101)
 
     const firstKeys = await treeCases
       .locator('.folder-tree-case-key')
@@ -162,7 +164,7 @@ test.describe('folder tree lazy load + numeric sort', () => {
       .click()
     await expect
       .poll(async () => treeCases.count())
-      .toBe(200)
+      .toBe(201)
 
     // Selecting the leaf filters the right-hand list to 220 (not a capped handful).
     await cases.selectFolder(/Leaf-0-0/)
