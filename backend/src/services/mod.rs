@@ -1,6 +1,7 @@
 pub mod automation_repo;
 pub mod case_keys;
 pub mod cases;
+pub mod chat_propose;
 pub mod ingest;
 pub mod jobs;
 pub mod reports;

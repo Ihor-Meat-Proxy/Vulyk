@@ -61,8 +61,8 @@ Result statuses (**Passed**, **Failed**, **Blocked**, **Skipped**, **Retest**, *
 
 ## LLM assists
 
-- **Generate** drafts cases or automation code (provider configured by an admin).
-- **Chat** asks questions over the project’s cases.
+- **Generate** drafts cases or automation code (provider configured by an admin). Pick the model, cases (search/folder/multi-select), and optionally an automation Git repo for context.
+- **Chat** asks questions over the project’s cases and can **propose** new cases or requirements. Review the preview card (project/folder + drafts), then click **Create**. Viewer and Developer can chat but cannot create.
 
 ## CLI reporter
 

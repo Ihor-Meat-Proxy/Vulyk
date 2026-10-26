@@ -4,7 +4,7 @@ Vulyk can call local and cloud LLMs to:
 
 1. **Generate test cases** from requirements text or linked requirements  
 2. **Generate automation** (Playwright or pytest) from existing cases  
-3. **Chat with your tests** — project-scoped Q&A over the case catalogue  
+3. **Chat with your tests** — project-scoped Q&A, plus propose/create cases and requirements after confirmation  
 
 ## Providers
 
@@ -25,7 +25,10 @@ Configure per project under **Admin → LLM providers**, or via:
 - `CRUD /api/v1/projects/{id}/llm/configs`
 - `POST /api/v1/projects/{id}/llm/generate-cases`
 - `POST /api/v1/projects/{id}/llm/generate-code`
-- `POST /api/v1/projects/{id}/llm/ask`
+- `POST /api/v1/projects/{id}/llm/ask` — plain Q&A
+- `POST /api/v1/projects/{id}/llm/chat` — Q&A **or** propose cases/requirements (JSON-schema / tool fallback)
+- `POST /api/v1/projects/{id}/llm/chat/confirm` — persist an edited proposal (RBAC gated)
+- `GET /api/v1/llm/chat-tools` — tool catalog (`list_folders`, `search_cases`, `propose_test_cases`, `propose_requirements`)
 
 ## Resolution order
 
@@ -45,11 +48,21 @@ Mark a config **Global (all projects)** in Admin → LLM providers to share one 
 - **Case picker** (search by key/title, folder tree, multi-select, folder select, chips). Cases page bulk action **Generate automation** opens Generate with the selection.
 - **Automation repo** (Admin → Integrations): connect a GitHub / GitLab / generic HTTPS repo (token encrypted). Re-index clones shallowly and indexes source; generate-code retrieves BM25 context (framework configs, page objects, helpers, similar tests) and returns `context_files` for preview. Download generated code from the UI — no automatic commits.
 
+## Chat propose / create
+
+From a natural-language prompt the model can draft one or more **test cases** (title, description, preconditions, priority, tags, ordered steps) or **requirements** (title, description, acceptance criteria), optionally linking cases to requirements.
+
+Placement uses retrieval over the suite / requirement-folder tree and similar items. The UI shows a **preview card** (project + folder editable, drafts editable inline, short reason) and asks *“Is this the right project and folder?”*. Nothing is written until **Create**. Ambiguous placement returns a clarifying question instead of guessing.
+
+Models without native tool calling return a JSON envelope (`propose_cases` / `propose_requirements` / `clarify` / `answer`). Created items receive normal auto keys and are recorded in `chat_creation_events` with the user and model name.
+
 ### RBAC
 
 | Capability | Admin | Test Architect | Test Automation Engineer | Developer | Viewer |
 |------------|:-----:|:--------------:|:------------------------:|:---------:|:------:|
-| Generate (`llm_assist`) | ✓ | ✓ | ✓ | ✓ | |
+| Generate / chat ask (`llm_assist`) | ✓ | ✓ | ✓ | ✓ | |
+| Confirm create cases | ✓ | ✓ | ✓ | | |
+| Confirm create requirements | ✓ | ✓ | | | |
 | Configure automation repo | ✓ | ✓ | ✓ | | |
 
 ## Secrets
