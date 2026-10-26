@@ -48,18 +48,18 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$FILE" || ! -f "$FILE" ]]; then
+if [[ -z "${FILE}" || ! -f "${FILE}" ]]; then
   echo "error: --file is required and must exist" >&2
   exit 2
 fi
-if [[ -z "$API_URL" ]]; then
+if [[ -z "${API_URL}" ]]; then
   echo "error: --api-url or VULYK_API_URL required" >&2
   exit 2
 fi
 
 API_URL="${API_URL%/}"
 AUTH=()
-if [[ -n "$TOKEN" ]]; then
+if [[ -n "${TOKEN}" ]]; then
   AUTH=(-H "Authorization: Bearer ${TOKEN}")
 fi
 
@@ -70,15 +70,15 @@ json_escape() {
 
 detect_format() {
   local f="$1" content
-  content="$(head -c 256 "$f" || true)"
+  content="$(head -c 256 "${f}" || true)"
   case "${FORMAT}" in
-    junit|vulyk_json) echo "$FORMAT"; return ;;
+    junit|vulyk_json) echo "${FORMAT}"; return ;;
     auto) ;;
     *) echo "error: bad --format" >&2; exit 2 ;;
   esac
-  if [[ "$f" == *.xml ]] || [[ "$content" == "<?xml"* ]] || [[ "$content" == "<testsuites"* ]] || [[ "$content" == "<testsuite"* ]]; then
+  if [[ "${f}" == *.xml ]] || [[ "${content}" == "<?xml"* ]] || [[ "${content}" == "<testsuites"* ]] || [[ "${content}" == "<testsuite"* ]]; then
     echo junit
-  elif [[ "$f" == *.json ]] || [[ "$content" == "{"* ]]; then
+  elif [[ "${f}" == *.json ]] || [[ "${content}" == "{"* ]]; then
     echo vulyk_json
   else
     echo "error: cannot detect format; pass --format" >&2
@@ -86,20 +86,20 @@ detect_format() {
   fi
 }
 
-FORMAT="$(detect_format "$FILE")"
+FORMAT="$(detect_format "${FILE}")"
 
-if [[ -z "$RUN_ID" ]]; then
-  if [[ "$CREATE_RUN" -ne 1 ]]; then
+if [[ -z "${RUN_ID}" ]]; then
+  if [[ "${CREATE_RUN}" -ne 1 ]]; then
     echo "error: --run-id required unless --create-run" >&2
     exit 2
   fi
-  if [[ -z "$PROJECT_ID" ]]; then
-    if [[ -z "$PROJECT_KEY" ]]; then
+  if [[ -z "${PROJECT_ID}" ]]; then
+    if [[ -z "${PROJECT_KEY}" ]]; then
       echo "error: --project-id or --project-key required with --create-run" >&2
       exit 2
     fi
     PROJECTS="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/projects")"
-    PROJECT_ID="$(PROJECT_KEY="$PROJECT_KEY" PROJECTS="$PROJECTS" python3 - <<'PY'
+    PROJECT_ID="$(PROJECT_KEY="${PROJECT_KEY}" PROJECTS="${PROJECTS}" python3 - <<'PY'
 import json, os
 key = os.environ["PROJECT_KEY"].upper()
 for p in json.loads(os.environ["PROJECTS"]):
@@ -111,28 +111,28 @@ else:
 PY
 )"
   fi
-  if [[ -z "$RUN_NAME" ]]; then
-    RUN_NAME="CI upload $(basename "$FILE")"
+  if [[ -z "${RUN_NAME}" ]]; then
+    RUN_NAME="CI upload $(basename "${FILE}")"
   fi
-  RUN_PAYLOAD="$(RUN_NAME="$RUN_NAME" python3 - <<'PY'
+  RUN_PAYLOAD="$(RUN_NAME="${RUN_NAME}" python3 - <<'PY'
 import json, os
 print(json.dumps({"name": os.environ["RUN_NAME"], "status": "running", "source": "ci"}))
 PY
 )"
   RUN_JSON="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-    -d "$RUN_PAYLOAD" \
+    -d "${RUN_PAYLOAD}" \
     "${API_URL}/api/v1/projects/${PROJECT_ID}/runs")"
-  RUN_ID="$(printf '%s' "$RUN_JSON" | python3 -c 'import json,sys
+  RUN_ID="$(printf '%s' "${RUN_JSON}" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 print(d.get("id") or d["run"]["id"])')"
   echo "created run ${RUN_ID}"
 fi
 
-CONTENT="$(cat "$FILE")"
+CONTENT="$(cat "${FILE}")"
 ASYNC_BOOL=false
-if [[ "$ASYNC" -eq 1 ]]; then ASYNC_BOOL=true; fi
+if [[ "${ASYNC}" -eq 1 ]]; then ASYNC_BOOL=true; fi
 
-PAYLOAD="$(FORMAT="$FORMAT" CONTENT="$CONTENT" ASYNC_BOOL="$ASYNC_BOOL" python3 - <<'PY'
+PAYLOAD="$(FORMAT="${FORMAT}" CONTENT="${CONTENT}" ASYNC_BOOL="${ASYNC_BOOL}" python3 - <<'PY'
 import json, os
 print(json.dumps({
     "format": os.environ["FORMAT"],
@@ -144,18 +144,18 @@ PY
 )"
 
 RESP="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-  -d "$PAYLOAD" \
+  -d "${PAYLOAD}" \
   "${API_URL}/api/v1/runs/${RUN_ID}/ingest")"
-echo "$RESP"
+echo "${RESP}"
 
-JOB_ID="$(printf '%s' "$RESP" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("job_id") or "")')"
-if [[ -n "$JOB_ID" ]]; then
+JOB_ID="$(printf '%s' "${RESP}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("job_id") or "")')"
+if [[ -n "${JOB_ID}" ]]; then
   for _ in $(seq 1 60); do
     JOB="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/jobs/${JOB_ID}")"
-    STATUS="$(printf '%s' "$JOB" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))')"
-    if [[ "$STATUS" == "completed" || "$STATUS" == "failed" || "$STATUS" == "cancelled" ]]; then
-      echo "$JOB"
-      if [[ "$STATUS" != "completed" ]]; then
+    STATUS="$(printf '%s' "${JOB}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))')"
+    if [[ "${STATUS}" == "completed" || "${STATUS}" == "failed" || "${STATUS}" == "cancelled" ]]; then
+      echo "${JOB}"
+      if [[ "${STATUS}" != "completed" ]]; then
         echo "error: ingest job ${STATUS}" >&2
         exit 1
       fi

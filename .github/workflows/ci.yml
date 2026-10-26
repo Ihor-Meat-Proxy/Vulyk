@@ -188,10 +188,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Syntax + toolchain check
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+      - name: Syntax, shellcheck, ASCII, toolchain
         run: |
           bash -n scripts/install.sh
           bash -n scripts/perf-smoke.sh
+          bash -n scripts/vulyk-upload.sh
+          shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh
+          # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
+          if grep -nP '[^\x00-\x7F]' scripts/*.sh; then
+            echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
+            exit 1
+          fi
+          ./scripts/install.sh check
+
+  install-script-macos:
+    name: Install script check (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: check under UTF-8 locale (system bash 3.2)
+        env:
+          LC_ALL: en_US.UTF-8
+          LANG: en_US.UTF-8
+        run: |
+          bash --version
+          bash -n scripts/install.sh
+          bash -n scripts/perf-smoke.sh
+          bash -n scripts/vulyk-upload.sh
           ./scripts/install.sh check
 
   helm:
