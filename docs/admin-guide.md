@@ -73,13 +73,14 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 
 1. Complete first-run (env seed, setup Job/CLI, or web wizard + setup token).
 2. Change the admin password if the default was used.
-3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled):
-   - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, and two example runs (dress rehearsal + ticketing smoke).
-   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~160+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). i18n cases cover globe menu EN/UK/FR/ES/DE, persistence, `--locale`, formatting, key fallback, and graceful API errors. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
+3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled). Rows are flagged `is_sample` and show a **Sample** badge:
+   - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, dress rehearsal + ticketing smoke runs, and **Sample nightly #N** CI suites (creator **Sample CI**, varied outcomes).
+   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~160+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance, status badges & sample data), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). i18n cases cover globe menu EN/UK/FR/ES/DE, persistence, `--locale`, formatting, key fallback, and graceful API errors. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
 4. Create additional projects and memberships under gear → **Admin settings**.
-5. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens).
-6. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.
-7. Set instance **default locale** (`en` / `uk` / `fr` / `es` / `de`) and theme under Admin settings (or `--locale` / `VULYK_DEFAULT_LOCALE` at first-run).
+5. Under **Admin → Settings → Sample data**, inspect what is installed, **Remove sample data** (confirm; deletes only `is_sample` rows; idempotent), or **Re-seed sample data**. System-admin only (`GET/DELETE /api/v1/admin/sample-data`, `POST /api/v1/admin/sample-data/reseed`).
+6. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens).
+7. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.
+8. Set instance **default locale** (`en` / `uk` / `fr` / `es` / `de`) and theme under Admin settings (or `--locale` / `VULYK_DEFAULT_LOCALE` at first-run).
 
 ## Upgrades & backups
 

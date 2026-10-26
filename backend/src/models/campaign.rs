@@ -208,6 +208,8 @@ pub struct AutomatedSuite {
     pub ci_provider: Option<String>,
     pub pipeline_url: Option<String>,
     pub job_url: Option<String>,
+    #[serde(default)]
+    pub is_sample: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

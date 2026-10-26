@@ -757,6 +757,7 @@ fn suite_from_run(run: TestRun) -> AutomatedSuite {
         ci_provider: run.ci_provider,
         pipeline_url: run.pipeline_url,
         job_url: run.job_url,
+        is_sample: run.is_sample,
     }
 }
 
@@ -1044,6 +1045,9 @@ pub async fn case_execution_history(
 }
 
 /// Seed helper: create a realistic historical automated suite under an iteration.
+///
+/// When `status_override` is set it is used as the run status (e.g. `in_progress`,
+/// `cancelled`). Otherwise status is derived from case results (`failed` / `completed`).
 #[allow(clippy::too_many_arguments)]
 pub async fn seed_historical_suite(
     pool: &PgPool,
@@ -1055,9 +1059,9 @@ pub async fn seed_historical_suite(
     case_results: &[(Uuid, &str, i32)],
     environment: Value,
     artifacts: Value,
+    status_override: Option<&str>,
 ) -> AppResult<Uuid> {
     let created_at = Utc::now() - Duration::days(days_ago) - Duration::minutes(days_ago * 7);
-    let finished_at = created_at + Duration::minutes(12);
     let mut pass = 0i32;
     let mut fail = 0i32;
     let mut skip = 0i32;
@@ -1074,14 +1078,21 @@ pub async fn seed_historical_suite(
             _ => {}
         }
     }
-    let status = if fail > 0 { "failed" } else { "completed" };
+    let derived = if fail > 0 { "failed" } else { "completed" };
+    let status = status_override.unwrap_or(derived);
+    let finished_at = if matches!(status, "in_progress" | "running" | "cancelled") {
+        None
+    } else {
+        Some(created_at + Duration::minutes(12))
+    };
 
+    let updated_at = finished_at.unwrap_or(created_at);
     let run_id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, created_by_name,
               environment, artifacts, pass_count, fail_count, skip_count, blocked_count,
-              duration_ms, started_at, finished_at, created_at, updated_at)
-           VALUES ($1, $2, $3, '', $4, 'ci', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $14)
+              duration_ms, started_at, finished_at, created_at, updated_at, is_sample)
+           VALUES ($1, $2, $3, '', $4, 'ci', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $15, TRUE)
            RETURNING id"#,
     )
     .bind(project_id)
@@ -1098,6 +1109,7 @@ pub async fn seed_historical_suite(
     .bind(duration)
     .bind(created_at)
     .bind(finished_at)
+    .bind(updated_at)
     .fetch_one(pool)
     .await?;
 

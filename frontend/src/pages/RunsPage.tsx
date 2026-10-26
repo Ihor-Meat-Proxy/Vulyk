@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Suite, type TestPlan, type TestRun } from '../api'
 import { useAuth } from '../auth'
+import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
@@ -303,7 +304,7 @@ export function RunsPage({ projectId, suites }: Props) {
                     </Link>
                   </td>
                   <td {...testIdProps(TestIds.runRowStatus)}>
-                    <span className={`status-pill status-${r.status}`}>{r.status}</span>
+                    <StatusBadge status={r.status} testId="runs-page-status-badge" />
                   </td>
                   <td className="muted">{fmt(r.started_at)}</td>
                 </tr>

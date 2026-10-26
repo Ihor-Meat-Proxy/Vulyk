@@ -1,32 +1,67 @@
-import type { ResultStatus } from '../api'
-
 type Props = {
   status: string
   className?: string
 }
 
-function normalize(status: string): ResultStatus | 'unknown' {
-  const s = status.trim()
-  const known = [
-    'Untested',
-    'Ready',
-    'Running',
-    'Passed',
-    'Failed',
-    'Blocked',
-    'Skipped',
-    'Retest',
-    'Untestable',
-  ] as const
-  const hit = known.find((k) => k.toLowerCase() === s.toLowerCase())
-  return hit ?? 'unknown'
+/** Normalized visual kind for glyphs (result + run + CI vocabularies). */
+export type StatusVisualKind =
+  | 'passed'
+  | 'failed'
+  | 'blocked'
+  | 'skipped'
+  | 'retest'
+  | 'ready'
+  | 'running'
+  | 'untestable'
+  | 'untested'
+  | 'cancelled'
+  | 'open'
+  | 'unknown'
+
+/** Map any status string to a visual icon kind. */
+export function statusVisualKind(status: string): StatusVisualKind {
+  const s = status.trim().toLowerCase().replace(/-/g, '_')
+  switch (s) {
+    case 'passed':
+    case 'completed':
+    case 'succeeded':
+    case 'closed':
+      return 'passed'
+    case 'failed':
+      return 'failed'
+    case 'blocked':
+      return 'blocked'
+    case 'skipped':
+      return 'skipped'
+    case 'retest':
+      return 'retest'
+    case 'ready':
+    case 'queued':
+    case 'dispatched':
+    case 'draft':
+      return 'ready'
+    case 'running':
+    case 'in_progress':
+      return 'running'
+    case 'untestable':
+      return 'untestable'
+    case 'untested':
+      return 'untested'
+    case 'cancelled':
+    case 'canceled':
+      return 'cancelled'
+    case 'open':
+      return 'open'
+    default:
+      return 'unknown'
+  }
 }
 
 /** Decorative status glyph — always paired with a visible label. */
 export function StatusIcon({ status, className }: Props) {
-  const kind = normalize(status)
+  const kind = statusVisualKind(status)
   const common = {
-    className: `status-icon ${className ?? ''}`.trim(),
+    className: `status-icon${kind === 'running' ? ' status-icon-spin' : ''}${className ? ` ${className}` : ''}`.trim(),
     width: 14,
     height: 14,
     viewBox: '0 0 16 16',
@@ -35,7 +70,7 @@ export function StatusIcon({ status, className }: Props) {
   }
 
   switch (kind) {
-    case 'Passed':
+    case 'passed':
       return (
         <svg {...common}>
           <path
@@ -44,7 +79,7 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Failed':
+    case 'failed':
       return (
         <svg {...common}>
           <path
@@ -53,7 +88,7 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Blocked':
+    case 'blocked':
       return (
         <svg {...common}>
           <path
@@ -63,7 +98,7 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Skipped':
+    case 'skipped':
       return (
         <svg {...common}>
           <path
@@ -72,7 +107,7 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Retest':
+    case 'retest':
       return (
         <svg {...common}>
           <path
@@ -81,7 +116,7 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Ready':
+    case 'ready':
       return (
         <svg {...common}>
           <circle
@@ -95,16 +130,40 @@ export function StatusIcon({ status, className }: Props) {
           <circle cx="8" cy="8" r="2.2" fill="currentColor" />
         </svg>
       )
-    case 'Running':
+    case 'open':
+      return (
+        <svg {...common}>
+          <circle
+            cx="8"
+            cy="8"
+            r="5.2"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+        </svg>
+      )
+    case 'running':
       return (
         <svg {...common}>
           <path
             fill="currentColor"
-            d="M8 1.6a6.4 6.4 0 1 0 5.9 4h-1.7A4.8 4.8 0 1 1 8 3.2V1.6zm2.2 5.2L14 8.8l-3.8 2V6.8z"
+            d="M8 1.6a6.4 6.4 0 0 1 6.2 4.6h-1.7A4.8 4.8 0 1 0 8 12.8V14.4A6.4 6.4 0 1 1 8 1.6z"
+          />
+          <path fill="currentColor" d="M10.2 6.8 14 8.8l-3.8 2V6.8z" />
+        </svg>
+      )
+    case 'cancelled':
+      return (
+        <svg {...common}>
+          <path
+            fill="currentColor"
+            fillRule="evenodd"
+            d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zm3.1 3.4L9.1 8l2 2.1-1.1 1.1L8 9.1l-2 2.1-1.1-1.1L6.9 8l-2-2.1L6 4.8 8 6.9l2-2.1 1.1 1.1z"
           />
         </svg>
       )
-    case 'Untestable':
+    case 'untestable':
       return (
         <svg {...common}>
           <path
@@ -114,7 +173,8 @@ export function StatusIcon({ status, className }: Props) {
           />
         </svg>
       )
-    case 'Untested':
+    case 'untested':
+    case 'unknown':
     default:
       return (
         <svg {...common}>

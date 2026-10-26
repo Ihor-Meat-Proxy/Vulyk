@@ -44,6 +44,8 @@ use crate::models::{
 use crate::routes::health::{HealthResponse, ReadyResponse};
 use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSettings};
 use crate::routes::llm::ProviderKindInfo;
+use crate::routes::sample_data::{ReseedSampleDataRequest, SampleDataStatus, SampleProjectInfo};
+use crate::sample_seed::SampleDataSummary;
 use crate::settings::{InstanceSettings, RegistrationMode};
 use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
 
@@ -86,6 +88,9 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::admin::list_integrations,
         crate::routes::admin::create_integration,
         crate::routes::admin::delete_integration,
+        crate::routes::sample_data::get_sample_data,
+        crate::routes::sample_data::delete_sample_data,
+        crate::routes::sample_data::reseed_sample_data,
         crate::routes::projects::list_projects,
         crate::routes::projects::create_project,
         crate::routes::projects::get_project,
@@ -414,6 +419,10 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         UpdateSsoProviderRequest,
         InstanceSettings,
         UpdateInstanceSettings,
+        SampleDataStatus,
+        SampleProjectInfo,
+        SampleDataSummary,
+        ReseedSampleDataRequest,
         RegistrationMode,
         RoleMatrixRow,
         RoleMatrixResponse,

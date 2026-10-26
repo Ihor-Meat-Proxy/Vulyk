@@ -696,6 +696,7 @@ pub async fn rerun_suite(
         ci_provider: new_run.ci_provider,
         pipeline_url: new_run.pipeline_url,
         job_url: new_run.job_url,
+        is_sample: new_run.is_sample,
     }))
 }
 

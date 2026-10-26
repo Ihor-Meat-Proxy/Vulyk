@@ -17,7 +17,7 @@ use crate::services::case_keys::{
 };
 
 const PROJECT_COLS: &str =
-    "id, key, name, description, case_key_prefix, next_case_number, created_at, updated_at";
+    "id, key, name, description, case_key_prefix, next_case_number, is_sample, created_at, updated_at";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -50,7 +50,7 @@ pub async fn list_projects(
             Some(user) => {
                 sqlx::query_as::<_, Project>(
                     r#"SELECT p.id, p.key, p.name, p.description, p.case_key_prefix,
-                              p.next_case_number, p.created_at, p.updated_at
+                              p.next_case_number, p.is_sample, p.created_at, p.updated_at
                        FROM projects p
                        INNER JOIN memberships m ON m.project_id = p.id
                        WHERE m.user_id = $1

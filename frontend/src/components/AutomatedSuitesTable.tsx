@@ -15,6 +15,7 @@ import {
 } from '../testing'
 import { formatTimestamp } from '../timezone'
 import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
+import { SampleBadge } from './SampleBadge'
 import { StatusBadge } from './StatusBadge'
 
 type Props = {
@@ -266,6 +267,12 @@ export function AutomatedSuitesTable({
                         >
                           {suite.suite_name || suite.name}
                         </Link>
+                        {suite.is_sample ? (
+                          <>
+                            {' '}
+                            <SampleBadge testId="executions-suite-sample-badge" />
+                          </>
+                        ) : null}
                         <div className="meta-row" style={{ marginTop: '0.25rem' }}>
                           <CiSourceBadge
                             source={suite.source}
@@ -278,7 +285,10 @@ export function AutomatedSuitesTable({
                         </div>
                       </td>
                       <td>
-                        <StatusBadge status={suite.status} />
+                        <StatusBadge
+                          status={suite.status}
+                          testId="executions-suite-status-badge"
+                        />
                       </td>
                       <td>{suite.created_by_name || '—'}</td>
                       <td>{fmt(suite.created_at)}</td>

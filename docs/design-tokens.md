@@ -37,12 +37,17 @@ Result statuses always use **icon + label** (never colour alone). Charts/progres
 
 | Status | Hue (Okabe–Ito family) | Icon |
 |--------|------------------------|------|
-| Passed | Bluish green `#009E73` | Check |
+| Passed / Completed / Succeeded / Closed | Bluish green `#009E73` | Check |
 | Failed | Vermillion `#D55E00` | X |
 | Blocked | Purple / reddish purple | Block |
-| Skipped | Grey | Skip |
+| Skipped / Cancelled | Grey | Skip / cancel |
 | Retest | Amber / orange `#E69F00` | Retry |
-| Untested | Outline / muted | Hollow circle |
+| Ready / Open / Queued | Sky blue | Filled / hollow circle |
+| Running / In progress | Blue `#0072B2` | Spinner / clock |
+| Untested / Draft | Outline / muted | Hollow circle |
+| Untestable | Slate dashed | Ban |
+
+Use the shared `StatusBadge` / `StatusIcon` components everywhere (Runs list, executions dashboard, automation suites, run details, per-case executions). Never render raw enum strings in a generic `.badge`.
 
 Per-theme badge pairs: `--status-*-fg` / `--status-*-bg` / solid `--status-*` for charts.
 

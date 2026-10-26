@@ -135,9 +135,14 @@ export function Appearance() {
               'Ready',
               'Running',
               'Untestable',
+              'Completed',
+              'In_progress',
+              'Cancelled',
+              'Open',
+              'Closed',
             ] as const
           ).map((s) => (
-            <StatusBadge key={s} status={s} />
+            <StatusBadge key={s} status={s} testId="appearance-status-preview" />
           ))}
         </div>
       </section>

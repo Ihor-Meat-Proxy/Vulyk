@@ -86,4 +86,4 @@ Legacy `--create-run` / `--run-id` still targets `POST /api/v1/runs/{id}/ingest`
 
 ## Sample data
 
-The Kyiv Open-Air Concert sample project seeds `Integration_Automation` (plus release campaigns), daily/manual iterations, and ~15 historical automated suites so dashboards look alive on first boot.
+The Kyiv Open-Air Concert sample project seeds `Sample Integration_Automation` (plus release campaigns), daily/manual iterations, and ~15 **Sample nightly #N** automated suites (creator **Sample CI**, artifact URLs on `example.invalid`) with varied outcomes — mostly passed, a few failed, one in progress, one cancelled — while keeping a flaky case for flaky-test detection. All sample entities carry `is_sample` and can be removed/re-seeded from Admin → Settings → Sample data.

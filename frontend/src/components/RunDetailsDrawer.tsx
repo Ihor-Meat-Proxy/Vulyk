@@ -12,6 +12,7 @@ import {
 } from '../testing'
 import { formatTimestamp } from '../timezone'
 import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
+import { SampleBadge } from './SampleBadge'
 import { StatusBadge } from './StatusBadge'
 
 type Props = {
@@ -127,7 +128,10 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
               {suite.suite_name || suite.name}
             </h2>
             <div className="meta-row">
-              <StatusBadge status={suite.status} />
+              <StatusBadge status={suite.status} testId="run-drawer-status-badge" />
+              {suite.is_sample ? (
+                <SampleBadge testId="run-drawer-sample-badge" />
+              ) : null}
               <CiSourceBadge
                 source={suite.source}
                 ciProvider={suite.ci_provider}

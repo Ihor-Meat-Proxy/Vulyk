@@ -9,6 +9,7 @@ import { AppVersion } from './AppVersion'
 import { BottomNav } from './BottomNav'
 import { LanguageMenu } from './LanguageMenu'
 import { PwaToasts } from './PwaToasts'
+import { SampleBadge } from './SampleBadge'
 import { UserMenu } from './UserMenu'
 
 type Props = {
@@ -187,7 +188,15 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             >
               {t('nav.menu')}
             </button>
-            <h1>{project ? project.name : status?.instance_name || 'Vulyk'}</h1>
+            <h1>
+              {project ? project.name : status?.instance_name || 'Vulyk'}
+              {project?.is_sample ? (
+                <>
+                  {' '}
+                  <SampleBadge testId="header-project-sample-badge" />
+                </>
+              ) : null}
+            </h1>
           </div>
           <div className="topbar-actions">
             <label className="project-field">
@@ -206,6 +215,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.key} — {p.name}
+                    {p.is_sample ? ' (Sample)' : ''}
                   </option>
                 ))}
               </select>

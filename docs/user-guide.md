@@ -13,12 +13,14 @@ When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the 
 
 ## Demo sample data
 
-On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two projects idempotently (skipped when the project key already exists; not seeded in prod unless you enable the flag):
+On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two projects idempotently (skipped when the project key already exists; not seeded in prod unless you enable the flag). Every seeded row is marked `is_sample` and shows a **Sample** badge in lists and detail headers.
 
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
-| Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~169 cases with Playwright-oriented steps (folder tree, key URLs, i18n/locales, header menus, executions, …), requirements per area, smoke + regression runs |
+| Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs, plus **Sample nightly #N** automated suites (varied pass/fail/in-progress/cancelled; creator **Sample CI**) |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~165+ cases with Playwright-oriented steps (folder tree, key URLs, i18n/locales, header menus, executions, status badges, …), requirements per area, smoke + regression runs |
+
+**Admin → Settings → Sample data** lists installed sample projects, **Remove sample data** (confirm, danger) deletes only `is_sample` rows (idempotent; never user-created projects), and **Re-seed sample data** restores the demos. Case keys on remove go through the retired-key path before the sample project is deleted.
 
 Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local` / `admin` (forced password change), `user@vulyk.local` / `user` (TAE on sample projects). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
 
@@ -35,7 +37,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 
 - **Runs** creates an execution queue from a plan, suite, or all cases.
 - Open a run to execute items, record step results, and attach notes.
-- Result statuses are **Untested** / **Ready** (initial), **Running**, **Passed**, **Failed**, **Blocked**, **Skipped**, **Untestable**, and **Retest**. Every status change is stored as an immutable history row (who, when, comment, elapsed, case version, attachments/defects).
+- Result statuses are **Untested** / **Ready** (initial), **Running**, **Passed**, **Failed**, **Blocked**, **Skipped**, **Untestable**, and **Retest**. Run/CI lifecycle statuses (**Completed**, **In progress**, **Cancelled**, **Open** / **Closed**, …) use the same shared status chip. Every chip is **icon + translated label** (never colour alone, never raw `snake_case` enums) with colour-blind-safe Okabe–Ito colours that meet WCAG AA in System / Light / Dark / High contrast. Every status change is stored as an immutable history row (who, when, comment, elapsed, case version, attachments/defects).
 - The run execution panel shows a **Result history** timeline for the selected case. The case page **History / Results** tab lists all results across runs (filter by run, status, date, user) with latest status and pass-rate summary. Case **edit/version** history remains on the Details tab. The **Executions** tab shows cross-iteration history with a status sparkline.
 - On phones, use the bottom nav and large **Passed / Failed / Blocked / Skipped** controls; you can attach a camera photo to a result.
 - Offline: recently viewed cases/runs stay readable; step results queue locally and sync when you are back online. See [PWA and mobile](guides/pwa-and-mobile.md).

@@ -36,6 +36,7 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Chat tools | `GET /api/v1/llm/chat-tools` |
 | Requirement folders | `/api/v1/projects/{id}/requirement-folders` |
 | Tokens | `/api/v1/tokens` |
+| Admin sample data | `GET/DELETE /api/v1/admin/sample-data`, `POST /api/v1/admin/sample-data/reseed` (system admin) — list / remove / re-seed `is_sample` projects |
 
 ## Reports endpoints
 
