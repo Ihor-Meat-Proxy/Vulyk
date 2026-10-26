@@ -605,14 +605,19 @@ pub async fn update_run_item(
     .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
     let existing = load_item(&state.pool, run_id, item_id).await?;
-    let status = normalize_result_status(&body.status.unwrap_or(existing.status));
+    // Only recompute status / executed_at when the client sends `status`.
+    // Assignee/comment-only updates must preserve the original execution time.
+    let status = match &body.status {
+        Some(raw) => normalize_result_status(raw),
+        None => existing.status.clone(),
+    };
     if !crate::models::is_valid_run_item_status(&status) {
         return Err(AppError::BadRequest("invalid status".into()));
     }
-    let executed_at = if status == UNTESTED {
-        None
-    } else {
-        Some(chrono::Utc::now())
+    let executed_at = match &body.status {
+        None => existing.executed_at,
+        Some(_) if status == UNTESTED => None,
+        Some(_) => Some(chrono::Utc::now()),
     };
 
     let item = sqlx::query_as::<_, RunItem>(
