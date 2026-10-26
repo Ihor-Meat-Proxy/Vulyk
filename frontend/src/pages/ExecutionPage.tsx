@@ -226,7 +226,7 @@ export function ExecutionPage({ projectId }: Props) {
         <div className="meta-row">
           <span className="badge">{active.item.case_key}</span>
           <Link
-            to={`/cases/${active.item.item.case_id}`}
+            to={`/cases/${encodeURIComponent(active.item.case_key || active.item.item.case_id)}`}
             {...testIdProps(TestIds.executionCaseTitleLink)}
           >
             {active.item.case_title}

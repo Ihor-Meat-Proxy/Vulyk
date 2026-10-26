@@ -50,6 +50,10 @@ export class CasesPage {
       .click()
   }
 
+  async backToCases() {
+    await this.page.getByTestId('case-detail-back').click()
+  }
+
   folderTree() {
     return this.page.getByTestId(TestIds.folderTree)
   }

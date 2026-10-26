@@ -49,6 +49,20 @@ const LIST_BASE_IDS = new Set([
   'runs-ci-dispatch-button',
   'runs-ci-external-link',
   'import-mapping-input',
+  'settings-automation-repo-row',
+  'settings-automation-project-checkbox',
+  'settings-ci-token-row',
+  'admin-membership-row',
+  'admin-token-row',
+  'admin-integration-row',
+  'admin-llm-row',
+  'admin-sso-row',
+  'chat-draft-case',
+  'chat-draft-requirement',
+  'iteration-flaky-item',
+  'iteration-slow-item',
+  'app-toast',
+  'case-detail-breadcrumb-folder',
 ])
 function walk(dir, out = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {

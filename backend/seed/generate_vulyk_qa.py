@@ -832,6 +832,143 @@ def build() -> dict:
                         ),
                     ],
                 ),
+                case(
+                    "Case detail URL uses human-readable key",
+                    title_uk="URL деталей кейсу використовує читабельний ключ",
+                    desc_en="Opening a case navigates to /cases/PREFIX-N; list and tree links use the key.",
+                    pre_en="Cases page; at least one case with known key.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "case-keys", "urls"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "On Cases list, click the case title link (data-testid=case-list-title-link).",
+                            "Browser URL is /cases/{KEY} (not a UUID); case detail panel (data-testid=case-detail-page) shows the same key badge.",
+                        ),
+                        step(
+                            "From the folder tree, click a case row link (data-testid=folder-tree-case-link).",
+                            "URL is again /cases/{KEY}; title and key match the row.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Legacy UUID case URL redirects to key URL",
+                    title_uk="Застарілий UUID URL кейсу перенаправляє на ключ",
+                    desc_en="Visiting /cases/{uuid} replace-navigates to /cases/{KEY}.",
+                    pre_en="Known case id and key; authenticated session.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "case-keys", "urls"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "Navigate to /cases/{uuid} for an existing case.",
+                            "History is replaced with /cases/{KEY}; detail loads for that case.",
+                        ),
+                    ],
+                ),
+                case(
+                    "GET cases/by-key resolves case-insensitively",
+                    title_uk="GET cases/by-key резолвить без урахування регістру",
+                    desc_en="API GET /api/v1/cases/by-key/{key} returns the case for any casing of PREFIX-N.",
+                    pre_en="Existing case PREFIX-N; API reachable.",
+                    priority="critical",
+                    tags=["smoke", "regression", "api", "case-keys"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "GET /api/v1/cases/by-key/{lowercased-key}.",
+                            "200 with case.key equal to canonical PREFIX-N and matching id.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Deleted key shows case deleted page",
+                    title_uk="Видалений ключ показує сторінку «кейс видалено»",
+                    desc_en="Retired keys return API 410 case_deleted; UI shows a clear deleted state.",
+                    pre_en="Delete a case (tombstone); note its key.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "api", "case-keys"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "GET /api/v1/cases/by-key/{retired-key}.",
+                            "HTTP 410; error.code is case_deleted.",
+                        ),
+                        step(
+                            "Open /cases/{retired-key} in the UI.",
+                            "data-testid=case-detail-deleted shows cases.deletedTitle; back link returns to Cases.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Key badge copies key with toast and keyboard",
+                    title_uk="Бейдж ключа копіює ключ з тостом і клавіатурою",
+                    desc_en="Clicking or activating the key badge copies PREFIX-N and shows Copied toast.",
+                    pre_en="Case detail open.",
+                    priority="high",
+                    tags=["smoke", "regression", "e2e", "case-keys", "a11y"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "Click data-testid=case-detail-key-badge.",
+                            "Clipboard holds the key; data-testid=app-toast shows Copied {KEY} (localized).",
+                        ),
+                        step(
+                            "Focus the badge; press Enter then Space.",
+                            "Each activation copies again; tooltip/aria-label describe copy.",
+                        ),
+                        step(
+                            "Optional: click data-testid=case-detail-copy-link.",
+                            "Clipboard holds absolute /cases/{KEY} URL; toast confirms.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Backspace returns to folder-scoped case list",
+                    title_uk="Backspace повертає до списку кейсів у теці",
+                    desc_en="Backspace (outside inputs/dialogs) navigates to Cases filtered to the case folder; hint shown on back control.",
+                    pre_en="Case in a folder; detail open; focus not in an input.",
+                    priority="high",
+                    tags=["smoke", "regression", "e2e", "case-keys", "folders"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "Confirm data-testid=case-detail-back shows a Backspace shortcut hint.",
+                            "Hint is visible and titled with cases.backspaceHint.",
+                        ),
+                        step(
+                            "Press Backspace.",
+                            "App navigates to Cases; folder filter matches the case suite_id; list scroll/state preserved when applicable.",
+                        ),
+                        step(
+                            "Focus a title input on the detail page; press Backspace.",
+                            "Character deleted in the field; no navigation.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Case breadcrumbs link project and folders",
+                    title_uk="Хлібні крихти кейсу ведуть до проєкту і тек",
+                    desc_en="Above the back link: Project > Folder > … > KEY title with aria-current on the last segment.",
+                    pre_en="Case in a nested folder path.",
+                    priority="high",
+                    tags=["regression", "e2e", "case-keys", "folders", "a11y"],
+                    external_key="e2e:case-key-urls.spec.ts",
+                    steps=[
+                        step(
+                            "Inspect nav[data-testid=case-detail-breadcrumbs] (aria-label cases.breadcrumbNav).",
+                            "Segments show project name, each ancestor folder, then KEY title with aria-current=page.",
+                        ),
+                        step(
+                            "Click a folder breadcrumb segment.",
+                            "Cases list opens scoped to that folder.",
+                        ),
+                        step(
+                            "With a long folder name, hover truncated segment.",
+                            "Full name appears in title tooltip; layout remains usable on narrow viewports.",
+                        ),
+                    ],
+                ),
             ],
         ),
         # ── 06 Folders ──────────────────────────────────────────────────

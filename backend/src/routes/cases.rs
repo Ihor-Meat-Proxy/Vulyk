@@ -13,7 +13,9 @@ use crate::models::{
     CreateCase, Page, PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
 };
 use crate::routes::AppState;
-use crate::services::case_keys::{allocate_case_key, retire_case_key};
+use crate::services::case_keys::{
+    allocate_case_key, find_case_by_key, is_key_retired, retire_case_key,
+};
 use crate::services::cases::{
     add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
     snapshot_case,
@@ -58,6 +60,7 @@ pub fn router() -> Router<AppState> {
             "/api/v1/cases/{case_id}/results",
             get(list_case_results_by_id),
         )
+        .route("/api/v1/cases/by-key/{key}", get(get_case_by_key))
 }
 
 #[derive(Debug, Deserialize)]
@@ -360,6 +363,45 @@ pub async fn get_case(
     .ok_or_else(|| AppError::NotFound("case".into()))?;
 
     Ok(Json(load_case_detail(&state.pool, case).await?))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cases/by-key/{key}",
+    tag = "cases",
+    params(
+        ("key" = String, Path, description = "Human-readable case key (PREFIX-N), case-insensitive")
+    ),
+    responses(
+        (status = 200, description = "Case detail", body = TestCaseDetail),
+        (status = 404, description = "Unknown key"),
+        (status = 410, description = "Case key deleted / retired")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_case_by_key(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(key): Path<String>,
+) -> AppResult<Json<TestCaseDetail>> {
+    let case = find_case_by_key(&state.pool, &key).await?;
+    if let Some(case) = case {
+        require_permission(
+            &state.pool,
+            &auth,
+            state.auth.required,
+            case.project_id,
+            Permission::ViewProject,
+        )
+        .await?;
+        return Ok(Json(load_case_detail(&state.pool, case).await?));
+    }
+
+    if is_key_retired(&state.pool, &key).await? {
+        return Err(AppError::Gone(format!("case key {key} deleted")));
+    }
+
+    Err(AppError::NotFound("case".into()))
 }
 
 #[utoipa::path(

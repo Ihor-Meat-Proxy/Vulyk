@@ -10,6 +10,9 @@ use thiserror::Error;
 pub enum AppError {
     #[error("not found: {0}")]
     NotFound(String),
+    /// Resource existed but was deleted/retired (e.g. case key tombstone).
+    #[error("gone: {0}")]
+    Gone(String),
     #[error("bad request: {0}")]
     BadRequest(String),
     #[error("conflict: {0}")]
@@ -39,6 +42,7 @@ impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, code) = match &self {
             AppError::NotFound(_) => (StatusCode::NOT_FOUND, "not_found"),
+            AppError::Gone(_) => (StatusCode::GONE, "case_deleted"),
             AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, "bad_request"),
             AppError::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
             AppError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized"),

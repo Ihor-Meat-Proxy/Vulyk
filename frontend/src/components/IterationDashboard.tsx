@@ -347,7 +347,7 @@ export function IterationDashboard({
                   })}
                 >
                   <Link
-                    to={`/cases/${row.case_id}`}
+                    to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
                     {...listChildProps(TestIds.iterationFlakyItem, 'link')}
                   >
                     <span className="badge">{row.case_key}</span> {row.case_title}
@@ -380,7 +380,7 @@ export function IterationDashboard({
                   })}
                 >
                   <Link
-                    to={`/cases/${row.case_id}`}
+                    to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
                     {...listChildProps(TestIds.iterationSlowItem, 'link')}
                   >
                     <span className="badge">{row.case_key}</span> {row.case_title}

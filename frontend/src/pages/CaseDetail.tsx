@@ -1,24 +1,34 @@
-import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
+  ApiError,
   api,
   type CaseExecutionHistoryPage,
   type CaseResultsPage,
   type CaseVersionSummary,
   type CustomField,
   type Requirement,
+  type Suite,
   type TestCaseDetail,
 } from '../api'
 import { useAuth } from '../auth'
+import { CaseBreadcrumbs } from '../components/CaseBreadcrumbs'
+import { CaseKeyBadge } from '../components/CaseKeyBadge'
 import { StatusBadge } from '../components/StatusBadge'
+import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { casePath, isCaseUuid } from '../lib/caseUrls'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
+  projectName: string
+  suites: Suite[]
+  onEnsureProject: (projectId: string) => void
+  onBackToList: (suiteId: string | null) => void
 }
 
 type DraftStep = {
@@ -68,13 +78,20 @@ function Sparkline({ statuses }: { statuses: string[] }) {
   )
 }
 
-export function CaseDetail({ projectId }: Props) {
+export function CaseDetail({
+  projectId,
+  projectName,
+  suites,
+  onEnsureProject,
+  onBackToList,
+}: Props) {
   const { user, status: authStatus } = useAuth()
   const { t } = useI18n()
+  const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canEdit = can('create_edit_cases')
   const canManageReqs = can('manage_requirements')
-  const { caseId } = useParams()
+  const { caseId: caseRef } = useParams()
   const [detail, setDetail] = useState<TestCaseDetail | null>(null)
   const [versions, setVersions] = useState<CaseVersionSummary[]>([])
   const [fields, setFields] = useState<CustomField[]>([])
@@ -82,8 +99,10 @@ export function CaseDetail({ projectId }: Props) {
   const [allReqs, setAllReqs] = useState<Requirement[]>([])
   const [linkId, setLinkId] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [deleted, setDeleted] = useState(false)
   const [offlineNotice, setOfflineNotice] = useState(false)
   const [loading, setLoading] = useState(true)
+  const caseId = detail?.case.id ?? (caseRef && isCaseUuid(caseRef) ? caseRef : null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [title, setTitle] = useState('')
@@ -129,42 +148,81 @@ export function CaseDetail({ projectId }: Props) {
     setFieldValues(vals)
   }
 
+  const goBack = useCallback(() => {
+    onBackToList(detail?.case.suite_id ?? null)
+  }, [detail?.case.suite_id, onBackToList])
+
+  useBackspaceNavigate(goBack, !loading && !deleted)
+
+  const loadRelated = async (pid: string, id: string, data: TestCaseDetail) => {
+    const [vers, defs, reqs, all] = await Promise.all([
+      api.listVersions(pid, id),
+      api.listCustomFields(pid),
+      api.listCaseRequirements(pid, id),
+      api.listRequirements(pid),
+    ])
+    applyDetail(data)
+    setVersions(vers)
+    setFields(defs)
+    setLinked(reqs)
+    setAllReqs(all)
+    setOfflineNotice(false)
+    setDeleted(false)
+    void cacheCase(pid, id, data)
+  }
+
   const reload = async () => {
-    if (!projectId || !caseId) return
+    if (!caseRef) return
     try {
-      const [data, vers, defs, reqs, all] = await Promise.all([
-        api.getCase(projectId, caseId),
-        api.listVersions(projectId, caseId),
-        api.listCustomFields(projectId),
-        api.listCaseRequirements(projectId, caseId),
-        api.listRequirements(projectId),
-      ])
-      applyDetail(data)
-      setVersions(vers)
-      setFields(defs)
-      setLinked(reqs)
-      setAllReqs(all)
-      setOfflineNotice(false)
-      void cacheCase(projectId, caseId, data)
+      let data: TestCaseDetail
+      if (isCaseUuid(caseRef)) {
+        if (!projectId) return
+        data = await api.getCase(projectId, caseRef)
+        if (data.case.key) {
+          navigate(casePath(data.case.key), { replace: true })
+        }
+      } else {
+        data = await api.getCaseByKey(caseRef)
+        onEnsureProject(data.case.project_id)
+        if (data.case.key && data.case.key.toUpperCase() !== caseRef.toUpperCase()) {
+          navigate(casePath(data.case.key), { replace: true })
+        }
+      }
+      const pid = data.case.project_id
+      const id = data.case.id
+      try {
+        await loadRelated(pid, id, data)
+      } catch {
+        applyDetail(data)
+      }
     } catch (err) {
-      const cached = (await getCachedCase(
-        projectId,
-        caseId,
-      )) as TestCaseDetail | null
-      if (cached) {
-        applyDetail(cached)
-        setOfflineNotice(true)
+      if (err instanceof ApiError && (err.status === 410 || err.code === 'case_deleted')) {
+        setDeleted(true)
+        setDetail(null)
         return
+      }
+      if (projectId && caseRef && isCaseUuid(caseRef)) {
+        const cached = (await getCachedCase(
+          projectId,
+          caseRef,
+        )) as TestCaseDetail | null
+        if (cached) {
+          applyDetail(cached)
+          setOfflineNotice(true)
+          return
+        }
       }
       throw err
     }
   }
 
   const loadResults = async (offset = 0) => {
-    if (!projectId || !caseId) return
+    const pid = detail?.case.project_id ?? projectId
+    const id = detail?.case.id
+    if (!pid || !id) return
     setResultsLoading(true)
     try {
-      const page = await api.listCaseResults(projectId, caseId, {
+      const page = await api.listCaseResults(pid, id, {
         status: filterStatus || undefined,
         run_id: filterRunId.trim() || undefined,
         limit: resultsLimit,
@@ -181,12 +239,18 @@ export function CaseDetail({ projectId }: Props) {
   }
 
   useEffect(() => {
-    if (!projectId || !caseId) {
+    if (!caseRef) {
+      setLoading(false)
+      return
+    }
+    // UUID URLs need an active project; key URLs resolve globally.
+    if (isCaseUuid(caseRef) && !projectId) {
       setLoading(false)
       return
     }
     let cancelled = false
     setLoading(true)
+    setDeleted(false)
     reload()
       .then(() => {
         if (!cancelled) setError(null)
@@ -200,13 +264,15 @@ export function CaseDetail({ projectId }: Props) {
     return () => {
       cancelled = true
     }
-  }, [projectId, caseId])
+  }, [projectId, caseRef])
 
   const loadExecutions = async (offset = 0) => {
-    if (!projectId || !caseId) return
+    const pid = detail?.case.project_id ?? projectId
+    const id = detail?.case.id
+    if (!pid || !id) return
     setExecLoading(true)
     try {
-      const page = await api.listCaseExecutions(projectId, caseId, {
+      const page = await api.listCaseExecutions(pid, id, {
         limit: execLimit,
         offset,
       })
@@ -221,23 +287,25 @@ export function CaseDetail({ projectId }: Props) {
   }
 
   useEffect(() => {
-    if (tab === 'history' && projectId && caseId) {
+    if (tab === 'history' && detail?.case.id) {
       void loadResults(0)
     }
-    if (tab === 'executions' && projectId && caseId) {
+    if (tab === 'executions' && detail?.case.id) {
       void loadExecutions(0)
     }
-  }, [tab, projectId, caseId])
+  }, [tab, detail?.case.id])
 
   const save = async () => {
-    if (!projectId || !caseId) return
+    const pid = detail?.case.project_id ?? projectId
+    const id = detail?.case.id
+    if (!pid || !id) return
     setSaving(true)
     try {
       const tagNames = tagInput
         .split(',')
         .map((t) => t.trim())
         .filter(Boolean)
-      await api.updateCase(projectId, caseId, {
+      await api.updateCase(pid, id, {
         title,
         description,
         precondition,
@@ -252,7 +320,7 @@ export function CaseDetail({ projectId }: Props) {
         value,
       }))
       if (cfBody.length) {
-        await api.setCustomFields(projectId, caseId, cfBody)
+        await api.setCustomFields(pid, id, cfBody)
       }
       await reload()
       setEditing(false)
@@ -264,15 +332,34 @@ export function CaseDetail({ projectId }: Props) {
     }
   }
 
-  if (!projectId) {
-    return <p className="muted">Select a project first.</p>
+  if (isCaseUuid(caseRef) && !projectId) {
+    return <p className="muted">{t('cases.selectProject')}</p>
   }
 
   if (loading) {
     return (
       <p className="muted" {...testIdProps(TestIds.caseDetailLoading)}>
-        Loading case…
+        {t('cases.loading')}
       </p>
+    )
+  }
+
+  if (deleted) {
+    return (
+      <div
+        className="panel case-detail case-deleted"
+        {...testIdProps(TestIds.caseDetailDeleted)}
+      >
+        <h2>{t('cases.deletedTitle')}</h2>
+        <p className="muted">
+          {t('cases.deletedBody', { key: caseRef ?? '' })}
+        </p>
+        <p>
+          <Link to="/" {...testIdProps(TestIds.caseDetailDeletedBack)}>
+            {t('cases.backToCases')}
+          </Link>
+        </p>
+      </div>
     )
   }
 
@@ -285,21 +372,37 @@ export function CaseDetail({ projectId }: Props) {
   }
 
   if (!detail) {
-    return <p className="muted">Case not found.</p>
+    return <p className="muted">{t('cases.notFound')}</p>
   }
 
   const { case: c, tags } = detail
   const summary = resultsPage?.summary
+  const activeProjectId = c.project_id
 
   return (
-    <div className="panel case-detail" {...testIdProps(TestIds.caseDetailPanel)}>
+    <div className="panel case-detail" {...testIdProps(TestIds.caseDetailPage)}>
+      <CaseBreadcrumbs
+        projectName={projectName}
+        suites={suites}
+        suiteId={c.suite_id}
+        caseKey={c.key}
+        caseTitle={c.title}
+        onSelectFolder={(suiteId) => onBackToList(suiteId)}
+      />
       <p style={{ marginTop: 0 }}>
-        <Link to="/" {...testIdProps(TestIds.caseDetailBackLink)}>
-          ← Back to cases
-        </Link>
+        <button
+          type="button"
+          className="linkish case-detail-back"
+          onClick={goBack}
+          title={t('cases.backspaceHint')}
+          {...testIdProps(TestIds.caseDetailBackLink)}
+        >
+          {t('cases.backToCases')}
+          <kbd className="shortcut-hint">{t('cases.backspaceKey')}</kbd>
+        </button>
       </p>
       {offlineNotice && (
-        <p className="notice">Showing cached case (offline / network error).</p>
+        <p className="notice">{t('cases.offlineCached')}</p>
       )}
       {error && (
         <p className="error" {...testIdProps(TestIds.caseDetailError)}>
@@ -308,7 +411,7 @@ export function CaseDetail({ projectId }: Props) {
       )}
       <div className="detail-header">
         <h2 {...testIdProps(TestIds.caseDetailTitle)}>
-          <span className="badge">{c.key}</span>{' '}
+          <CaseKeyBadge caseKey={c.key} />{' '}
           {editing ? (
             <input
               className="title-input"
@@ -317,7 +420,7 @@ export function CaseDetail({ projectId }: Props) {
               {...testIdProps(TestIds.caseDetailTitleInput)}
             />
           ) : (
-            c.title
+            <span {...testIdProps(TestIds.caseDetailTitleText)}>{c.title}</span>
           )}
         </h2>
         <div className="detail-actions">
@@ -647,13 +750,15 @@ export function CaseDetail({ projectId }: Props) {
                   className="btn secondary"
                   disabled={!linkId || !caseId}
                   onClick={() => {
-                    if (!projectId || !caseId || !linkId) return
+                    if (!activeProjectId || !caseId || !linkId) return
                     void api
-                      .linkRequirement(projectId, {
+                      .linkRequirement(activeProjectId, {
                         case_id: caseId,
                         requirement_id: linkId,
                       })
-                      .then(() => api.listCaseRequirements(projectId, caseId))
+                      .then(() =>
+                        api.listCaseRequirements(activeProjectId, caseId),
+                      )
                       .then(setLinked)
                       .then(() => setLinkId(''))
                       .catch((err: Error) => setError(err.message))

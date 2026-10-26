@@ -214,7 +214,7 @@ export function CaseFolderTree({
               <span className="visually-hidden">{c.status}</span>
             </span>
             <Link
-              to={`/cases/${c.id}`}
+              to={`/cases/${encodeURIComponent(c.key)}`}
               className="folder-tree-case-link"
               {...listChildProps(TestIds.folderCaseItem, 'link')}
             >

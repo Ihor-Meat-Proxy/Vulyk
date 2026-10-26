@@ -22,7 +22,7 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Area | Paths |
 |------|-------|
 | Auth | `/api/v1/auth/*` |
-| Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suites list returns recursive `case_count` + `direct_case_count`; cases list accepts `suite_id`, `direct_only`, `unfiled_only` and sorts by numeric key; suite delete accepts `on_nonempty` |
+| Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suites list returns recursive `case_count` + `direct_case_count`; cases list accepts `suite_id`, `direct_only`, `unfiled_only` and sorts by numeric key; suite delete accepts `on_nonempty`; `GET /api/v1/cases/by-key/{key}` resolves a case by human-readable key (case-insensitive; `410 case_deleted` when the key is retired) |
 | Automation repos | `/api/v1/automation-repos` (+ project links); legacy `/api/v1/projects/{id}/automation-repo` — see [automation-integration-design.md](automation-integration-design.md) |
 | CI reporting | `/api/v1/projects/{id}/ci/runs` (open / results / ingest / close), project CI tokens — [guides/ci-integration.md](guides/ci-integration.md) |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |

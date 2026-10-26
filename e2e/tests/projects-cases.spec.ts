@@ -88,7 +88,8 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   await page.getByRole('button', { name: /Save/i }).click()
   await expect(page.getByText('Open app')).toBeVisible({ timeout: 20_000 })
 
-  await page.getByRole('link', { name: /Back to cases/i }).click()
+  await page.getByTestId('case-detail-back').click()
+  await expect(page).toHaveURL(/\/$/)
 
   // Second case for bulk/filter
   const title2 = `Filter me ${projectKey}`

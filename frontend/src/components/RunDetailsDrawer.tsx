@@ -221,7 +221,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                           </Link>
                           {' · '}
                           <Link
-                            to={`/cases/${row.case_id}`}
+                            to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
                             {...listChildProps(
                               TestIds.runDetailsResultRow,
                               'case-link',
