@@ -4,7 +4,7 @@ import { api, type RequirementCoverageDetail } from '../api'
 import { StatusBadge } from '../components/StatusBadge'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useI18n } from '../i18n'
-import { TestIds, listItemProps, testIdProps } from '../testing'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -147,7 +147,10 @@ export function CoverageDetail({ projectId }: Props) {
                 <ul className="coverage-case-list">
                   {r.linked_cases.map((c) => (
                     <li key={c.case_id}>
-                      <Link to={`/cases/${encodeURIComponent(c.case_key)}`}>
+                      <Link
+                        to={`/cases/${encodeURIComponent(c.case_key)}`}
+                        {...listChildProps(TestIds.reportsCoverageReq, 'case-link')}
+                      >
                         {c.case_key}
                       </Link>{' '}
                       {c.title}{' '}

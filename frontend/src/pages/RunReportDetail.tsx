@@ -24,7 +24,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
-import { TestIds, listItemProps, testIdProps } from '../testing'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -626,6 +626,10 @@ export function RunReportDetail({ projectId }: Props) {
                                   href={d.external_url || '#'}
                                   target="_blank"
                                   rel="noreferrer"
+                                  {...listChildProps(
+                                    TestIds.reportsRunRow,
+                                    'defect',
+                                  )}
                                 >
                                   {d.external_key ?? d.title}
                                 </a>

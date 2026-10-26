@@ -340,6 +340,7 @@ export const TestIds = {
   reportsCoveragePreview: 'reports-coverage-preview',
   reportsCoverageDrilldown: 'reports-coverage-drilldown',
   reportsFlaky: 'reports-flaky',
+  reportsFlakyItem: 'reports-flaky-item',
   reportsExportRunButton: 'reports-export-run-button',
   reportsExportTrendsButton: 'reports-export-trends-button',
   reportsExportCoverageButton: 'reports-export-coverage-button',

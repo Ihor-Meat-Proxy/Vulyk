@@ -10,7 +10,7 @@ import {
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
-import { TestIds, listItemProps, testIdProps } from '../testing'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -53,16 +53,14 @@ function CountsBar({
     testId: string,
   ) => {
     const width = count === 0 ? '0%' : `${(count / total) * 100}%`
-    const entityProps =
-      runId != null
-        ? listItemProps(testId, { entityId: runId, index: 0 })
-        : testIdProps(testId)
     if (!clickable || !runId || count === 0) {
       return (
         <span
           className={`trend-seg ${className}`}
           style={{ width }}
-          {...entityProps}
+          {...(runId != null
+            ? listItemProps(testId, { entityId: runId, index: 0 })
+            : testIdProps(testId))}
         />
       )
     }
@@ -72,7 +70,9 @@ function CountsBar({
         className={`trend-seg ${className} clickable`}
         style={{ width }}
         aria-label={`${status} ${count}`}
-        {...entityProps}
+        {...(runId != null
+          ? listItemProps(testId, { entityId: runId, index: 0 })
+          : testIdProps(testId))}
         onClick={(e) => {
           e.stopPropagation()
           onSegmentClick?.(status, runId)
@@ -436,10 +436,20 @@ export function Reports({ projectId }: Props) {
             <p className="muted">{t('reports.noFlaky')}</p>
           )}
           <ul className="report-list">
-            {flaky?.cases.map((c) => (
-              <li key={c.case_id}>
+            {flaky?.cases.map((c, idx) => (
+              <li
+                key={c.case_id}
+                {...listItemProps(TestIds.reportsFlakyItem, {
+                  entityId: c.case_id,
+                  entityKey: c.case_key,
+                  index: idx,
+                })}
+              >
                 <strong>
-                  <Link to={`/cases/${encodeURIComponent(c.case_key)}`}>
+                  <Link
+                    to={`/cases/${encodeURIComponent(c.case_key)}`}
+                    {...listChildProps(TestIds.reportsFlakyItem, 'link')}
+                  >
                     {c.case_key}
                   </Link>{' '}
                   — {c.title}
