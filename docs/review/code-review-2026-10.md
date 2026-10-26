@@ -16,11 +16,12 @@ Confirmed bugs fixed in follow-up PRs are marked **Fixed** with the PR link.
 The foundation is solid: forward-only SQLx migrations, `SKIP LOCKED` job claims,
 transactional case-key allocation, paginated case list with virtualization,
 locale parity tests, and broad OpenAPI coverage. The highest-impact issues found
-are (1) run-item `executed_at` clobber on non-status updates, (2) jobs that stay
-`running` forever after a worker crash, (3) case-key matching that is not
-normalized on the ingest persist path, and (4) unbounded bulk PDF ZIP generation.
-At 20k cases the list query’s per-row `last_run_status` subquery and tag
-`LEFT JOIN` + `GROUP BY` are the main scale risks.
+are (1) run-item `executed_at` clobber (#42 merged), (2) jobs stuck `running`
+after a crash, (3) case-sensitive ingest key match, (4) unbounded bulk PDF ZIP,
+plus follow-ups: OpenAPI version drift, binary requirement coverage %,
+cross-project ID acceptance, and frontend navigation/i18n gaps (see §Additional
+findings). At 20k cases the list query’s per-row `last_run_status` subquery and
+tag `LEFT JOIN` + `GROUP BY` are the main scale risks.
 
 ---
 
@@ -38,7 +39,7 @@ and “last executed” UX.
 **Fix:** Preserve `existing.executed_at` when `body.status` is omitted; only
 clear/set it when status is explicitly provided.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42
 
 ### 2. **bug** — Stale `running` jobs never reclaimed
 
@@ -307,20 +308,17 @@ advisory, Playwright locator churn. Continue using fragment seeds + TestIds.
 
 ## Test coverage gaps
 
-### 30. **risk** — No regression for run-item `executed_at` preservation
+### 30. **risk** — No regression for run-item `executed_at` preservation — **addressed in #42**
 
-`backend/tests/api_smoke.rs` exercises execute + items get, but not
-assignee-only PUT. Add assertion that timestamp is unchanged.
+Covered by `backend/tests/run_item_executed_at.rs`.
 
-### 31. **risk** — No test for job reclaim after crash
+### 31. **risk** — No test for job reclaim after crash — **addressed in #46**
 
-Job helpers are covered lightly; add a test that inserts a stale `running` row
-and asserts `claim_next` recovers it.
+Covered by `backend/tests/job_reclaim.rs`.
 
-### 32. **risk** — No ingest test for mixed-case `case_key`
+### 32. **risk** — No ingest test for mixed-case `case_key` — **addressed in #49**
 
-`backend/tests/ingest_ci.rs` uses the key returned by create (uppercase). Add a
-lowercase / mixed-case payload expectation.
+Covered by `backend/tests/ingest_case_key_casefold.rs`.
 
 ### 33. **improvement** — Limited e2e around bulk export / large lists
 
@@ -353,20 +351,104 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 
 | Priority | Finding | PR |
 | --- | --- | --- |
-| P0 | #1 run-item `executed_at` | [#42](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42) |
+| P0 | #1 run-item `executed_at` | [#42](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42) **merged** |
 | P0 | #2 stale job reclaim | [#46](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46) |
 | P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) |
 | P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
+| P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) |
+| P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) |
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
-| Later | #24 a11y i18n aria | separate UI PR |
+| Later | #24 / #44–#46 a11y i18n | separate UI PR |
+| Later | #37–#40 project isolation | correctness follow-up (overlaps security) |
 | Security agent | #20 auth on result history | out of scope here |
+
+---
+
+## Additional findings (deep-dive follow-up)
+
+From parallel passes: [Backend correctness review](bc-3c5709c2-a5ba-5dcd-bb51-254d81c7f86c),
+[API OpenAPI migrations review](bc-b5893db1-cbd4-5106-8751-4dca2dfbf693),
+[Frontend i18n a11y review](bc-3f5b1306-07ec-5c58-bccd-6aebc3d973cf).
+
+### 35. **bug** — OpenAPI `info.version` is `0.2.0` while product is `0.1.0`
+
+`backend/src/openapi.rs:69` vs `VERSION` / `CARGO_PKG_VERSION`.
+
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58
+
+### 36. **bug** — Per-requirement `coverage_percent` is binary 0/100
+
+`backend/src/services/reports.rs:259` ignored `cases_with_results`.
+
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60
+
+### 37. **bug** — Cross-project `case_id` accepted into runs/results
+
+`backend/src/routes/runs.rs` create-run / ingest; `backend/src/services/ingest.rs`
+trusts client `case_id` without `project_id` filter. FK allows any case UUID.
+
+### 38. **bug** — `suite_id` not validated against project
+
+`backend/src/routes/cases.rs` create/update/bulk move; chat confirm. Cases can
+hang under another project’s folder.
+
+### 39. **bug** — Bulk tag ops report `affected = case_ids.len()` blindly
+
+`backend/src/routes/cases.rs:912-922` — foreign/missing IDs still counted.
+
+### 40. **bug** — MCP bulk ingest commits partial batches then 400s
+
+`backend/src/routes/runs.rs:724-776` — per-row insert without a transaction.
+
+### 41. **bug** — OpenAPI omits restore/upload + webhooks; SSO paths unregistered
+
+`backups.rs` restore/upload; `webhooks.rs` (4); `auth.rs` `sso_start` /
+`sso_callback` have annotations but are missing from `ApiDoc::paths`.
+
+### 42. **bug** — Campaigns `Page.limit` echoes unclamped query value
+
+`backend/src/routes/campaigns.rs:545-550` vs service clamp `1..=200`.
+
+### 43. **bug** — Docs invent restore/preview + project-admin backup RBAC
+
+`docs/backup-design.md` vs `RequireSystemAdmin` + `dry_run` on restore only.
+
+### 44. **bug** — CaseDetail / RunDetail stale paint on fast navigation
+
+`frontend/src/pages/CaseDetail.tsx:365-390`, `RunDetail.tsx:69-89` —
+`cancelled` does not gate `setDetail` / related setters.
+
+### 45. **bug** — CasePicker / Generate silently cap at 500 cases
+
+`frontend/src/components/CasePicker.tsx:44-46`, `Generate.tsx:92`.
+
+### 46. **bug** — Runs list hard-capped at 50 with no load-more
+
+`frontend/src/pages/RunsPage.tsx:50` + `api.ts` default limit.
+
+### 47. **risk** — Admin / Runs / Requirements / CaseDetail largely English-only
+
+Locale **key** parity is green; many surfaces still use hardcoded English
+(including `aria-label`s). Docs claiming full EN/UK/FR/ES/DE UI overstate
+coverage.
+
+### 48. **risk** — Dialogs without focus trap
+
+`RunDetailsDrawer`, `CaseListColumnSettings` — `role="dialog"` without initial
+focus / Tab trap / restore.
+
+### 49. **improvement** — Sample VQA counts disagree across guides (~140 / ~160 / ~195 / actual ~200)
+
+Align admin-guide / user-guide / first-run-setup to one figure.
 
 ---
 
 ## Review method
 
 Static review of services, routes, migrations, OpenAPI registration, frontend
-list/i18n/a11y paths, and docs. Parallel exploration of backend correctness,
-API/migrations, and frontend/i18n. No production load test at 20k rows was run
-in this environment (no local Postgres); scale notes are from query shape +
-indexes.
+list/i18n/a11y paths, and docs. Parallel exploration via
+[Backend correctness review](bc-3c5709c2-a5ba-5dcd-bb51-254d81c7f86c),
+[API OpenAPI migrations review](bc-b5893db1-cbd4-5106-8751-4dca2dfbf693), and
+[Frontend i18n a11y review](bc-3f5b1306-07ec-5c58-bccd-6aebc3d973cf).
+No production load test at 20k rows was run in this environment (no local
+Postgres); scale notes are from query shape + indexes.
