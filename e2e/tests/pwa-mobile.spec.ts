@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
+import { openUserMenu } from '../fixtures/header'
 import { uniqueKey } from '../fixtures/env'
 
 test.describe('PWA + mobile Chromium viewport', () => {
@@ -82,17 +84,9 @@ test.describe('PWA + mobile Chromium viewport', () => {
 
     await expect(bottom.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(0)
 
-    await page
-      .getByRole('button', {
-        name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
-      })
-      .click()
-    await page
-      .getByRole('menuitem', {
-        name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
-      })
-      .click()
-    await expect(page.getByRole('heading', { name: /Admin|Адмін|Administration/i })).toBeVisible()
+    await openUserMenu(page)
+    await page.getByTestId(TestIds.headerGearAdmin).click()
+    await expect(page.getByTestId(TestIds.adminPage)).toBeVisible()
     await expect(page.getByRole('tablist')).toBeVisible()
   })
 

@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 
@@ -19,50 +20,36 @@ test.beforeAll(async ({ request }) => {
 
 test('smoke: login → case → run → junit → import → report', async ({ page }) => {
   await loginAsAdmin(page)
-  await expect(page.locator('.app-shell')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Primary' })).toContainText(
-    /Cases|Кейси/,
-  )
+  await expect(page.getByTestId(TestIds.appShell)).toBeVisible()
+  await expect(page.getByTestId(TestIds.navLinkCases)).toBeVisible()
 
-  await expect(page.locator('.project-select')).toBeVisible()
+  await expect(page.getByTestId(TestIds.headerProjectSelect)).toBeVisible()
   await expect
-    .poll(async () => page.locator('.project-select option').count())
+    .poll(
+      async () =>
+        page.getByTestId(TestIds.headerProjectSelect).locator('option').count(),
+    )
     .toBeGreaterThan(0)
 
   const caseKey = `SMK-${uniqueKey('').slice(-6)}`
   const caseTitle = `Smoke case ${caseKey}`
-  await page
-    .getByLabel(
-      /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
-    )
-    .fill(caseTitle)
-  await page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-  await expect(page.locator('.case-list-panel').getByText(caseTitle)).toBeVisible({
+  await page.getByTestId(TestIds.caseListNewTitleInput).fill(caseTitle)
+  await page.getByTestId(TestIds.caseListNewCaseButton).click()
+  await expect(
+    page.getByTestId(TestIds.caseListPanel).getByText(caseTitle),
+  ).toBeVisible({
     timeout: 30_000,
   })
 
-  const nav = page.getByRole('navigation', { name: 'Primary' })
-  await nav
-    .getByRole('link', {
-      name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
-      exact: true,
-    })
-    .click()
-  await expect(page.getByRole('heading', { name: 'Start a run' })).toBeVisible()
+  await page.getByTestId(TestIds.navLinkRuns).click()
+  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible()
   const runName = `Smoke run ${caseKey}`
-  await page.getByPlaceholder('Run name').fill(runName)
-  await page.getByRole('button', { name: 'Create run' }).click()
+  await page.getByTestId(TestIds.runsCreateNameInput).fill(runName)
+  await page.getByTestId(TestIds.runsCreateButton).click()
   await expect(page.getByText(runName).first()).toBeVisible({ timeout: 30_000 })
 
-  await nav
-    .getByRole('link', {
-      name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
-      exact: true,
-    })
-    .click()
-  await expect(
-    page.getByRole('heading', { name: 'Upload JUnit results' }),
-  ).toBeVisible()
+  await page.getByTestId(TestIds.navLinkRuns).click()
+  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible()
   await page.getByLabel('Upload target run').selectOption({ label: runName })
   await page
     .getByLabel('JUnit XML file')
@@ -71,19 +58,23 @@ test('smoke: login → case → run → junit → import → report', async ({ p
     timeout: 30_000,
   })
 
-  await nav.getByRole('link', { name: /Import|Імпорт/i }).click()
-  await expect(page.getByRole('heading', { name: 'Import cases' })).toBeVisible()
+  await page.getByTestId(TestIds.navLinkImport).click()
+  await expect(page.getByTestId(TestIds.importPage)).toBeVisible()
   await page.getByLabel('Importer').selectOption({ label: 'TestLink' })
   await expect(page.getByLabel('Format')).toHaveValue('xml')
   const xml = fs.readFileSync(path.join(fixtures, 'testlink-sample.xml'), 'utf8')
   await page.getByLabel('Source content').fill(xml)
-  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByTestId(TestIds.importSubmitButton).click()
   await expect(page.getByText(/Created \d+ cases/i)).toBeVisible({
     timeout: 30_000,
   })
 
-  await nav.getByRole('link', { name: /Reports|Звіти/i }).click()
-  await expect(page.getByRole('heading', { name: 'Reports' })).toBeVisible()
+  const reportsLink = page.getByTestId(TestIds.navLinkReports)
+  if (!(await reportsLink.isVisible().catch(() => false))) {
+    await page.getByTestId(TestIds.headerMenuToggle).click()
+  }
+  await page.getByTestId(TestIds.navLinkReports).click()
+  await expect(page.getByTestId(TestIds.reportsPage)).toBeVisible()
   await expect(page.getByText('Recent run summaries')).toBeVisible()
   await expect(page.locator('.kpi-value').first()).toBeVisible()
 })

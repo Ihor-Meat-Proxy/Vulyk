@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   API_URL,
   ensureAdminSession,
@@ -103,7 +104,7 @@ test('anonymous login page keeps locale from localStorage', async ({ page }) => 
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
 
   await logout(page)
-  await expect(page.locator('.login-panel')).toBeVisible()
+  await expect(page.getByTestId(TestIds.loginPanel)).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
   const stored = await page.evaluate(() => localStorage.getItem('vulyk.locale'))
   expect(stored).toBe('de')
@@ -114,7 +115,11 @@ test('anonymous login page keeps locale from localStorage', async ({ page }) => 
   await expect(page.locator('.brand-tag')).toContainText(/Anmelden/)
 
   await openLanguageMenu(page)
-  await page.getByRole('menuitemradio', { name: 'English' }).click()
+  await page
+    .locator(
+      `[data-testid="${TestIds.headerLanguageItem}"][data-entity-key="en"]`,
+    )
+    .click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
 

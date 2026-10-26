@@ -35,6 +35,7 @@ export class GeneratePage {
   }
 
   async generateCode() {
-    await this.page.getByTestId(TestIds.generateSubmitButton).click()
+    await this.page.getByTestId(TestIds.generateCodeSubmitButton).click()
   }
 }
+
