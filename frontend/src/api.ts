@@ -173,6 +173,14 @@ export type TestRun = {
   finished_at: string | null
   created_at: string
   updated_at: string
+  suite_name?: string | null
+  ci_provider?: string | null
+  ci_repo?: string | null
+  ci_branch?: string | null
+  ci_commit?: string | null
+  pipeline_url?: string | null
+  job_url?: string | null
+  lifecycle?: string
 }
 
 export type RunProgress = {
@@ -401,6 +409,10 @@ export type AutomatedSuite = {
   environment: Record<string, unknown>
   artifacts: Record<string, unknown> | unknown[]
   external_ref: string | null
+  suite_name?: string | null
+  ci_provider?: string | null
+  pipeline_url?: string | null
+  job_url?: string | null
 }
 
 export type AutomatedSuitesParams = {
@@ -841,7 +853,10 @@ export type ContextFileRef = {
 
 export type AutomationRepo = {
   id: string
-  project_id: string
+  name: string
+  /** Legacy singular project link (first/default); prefer `project_ids`. */
+  project_id: string | null
+  project_ids: string[]
   provider: string
   remote_url: string
   branch: string
@@ -857,8 +872,44 @@ export type AutomationRepo = {
   updated_at: string
 }
 
+export type CreateAutomationRepoBody = {
+  name: string
+  provider: string
+  remote_url: string
+  branch?: string
+  subpath?: string
+  token?: string
+  project_ids?: string[]
+}
+
+export type UpdateAutomationRepoBody = {
+  name?: string
+  provider?: string
+  remote_url?: string
+  branch?: string
+  subpath?: string
+  /** Omit to leave unchanged; empty string clears. */
+  token?: string
+  project_ids?: string[]
+}
+
+export type SetAutomationRepoProjectsBody = {
+  project_ids: string[]
+  default_project_id?: string | null
+}
+
 export type ApiTokenPublic = {
   id: string
+  name: string
+  token_prefix: string
+  created_at: string
+  last_used_at: string | null
+  revoked_at: string | null
+}
+
+export type ProjectCiToken = {
+  id: string
+  project_id: string
   name: string
   token_prefix: string
   created_at: string
@@ -1637,7 +1688,12 @@ export const api = {
     }),
   generateCode: (
     projectId: string,
-    body: { case_ids: string[]; framework: string; config_id?: string },
+    body: {
+      case_ids: string[]
+      framework: string
+      config_id?: string
+      repo_id?: string
+    },
   ) =>
     request<{
       provider: string
@@ -1692,6 +1748,53 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
+  /** App-level multi-repo automation connections. */
+  listAutomationRepos: () =>
+    request<AutomationRepo[]>('/api/v1/automation-repos'),
+  createAutomationRepo: (body: CreateAutomationRepoBody) =>
+    request<AutomationRepo>('/api/v1/automation-repos', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getAutomationRepoById: (id: string) =>
+    request<AutomationRepo>(`/api/v1/automation-repos/${id}`),
+  updateAutomationRepo: (id: string, body: UpdateAutomationRepoBody) =>
+    request<AutomationRepo>(`/api/v1/automation-repos/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  deleteAutomationRepoById: (id: string) =>
+    request<void>(`/api/v1/automation-repos/${id}`, { method: 'DELETE' }),
+  setAutomationRepoProjects: (
+    id: string,
+    body: SetAutomationRepoProjectsBody,
+  ) =>
+    request<AutomationRepo>(`/api/v1/automation-repos/${id}/projects`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  listAutomationReposForProject: (projectId: string) =>
+    request<AutomationRepo[]>(
+      `/api/v1/projects/${projectId}/automation-repos`,
+    ),
+  testAutomationRepoById: (id: string) =>
+    request<{ ok: boolean; message: string; commit_sha: string | null }>(
+      `/api/v1/automation-repos/${id}/test`,
+      { method: 'POST', body: '{}' },
+    ),
+  reindexAutomationRepoById: (id: string) =>
+    request<{
+      status: string
+      commit_sha: string | null
+      file_count: number
+      chunk_count: number
+      error: string | null
+    }>(`/api/v1/automation-repos/${id}/reindex`, {
+      method: 'POST',
+      body: '{}',
+    }),
+
+  /** Legacy singular project-scoped automation repo (shim). */
   getAutomationRepo: (projectId: string) =>
     request<AutomationRepo>(`/api/v1/projects/${projectId}/automation-repo`),
   upsertAutomationRepo: (
@@ -1702,6 +1805,7 @@ export const api = {
       branch?: string
       subpath?: string
       token?: string
+      name?: string
     },
   ) =>
     request<AutomationRepo>(`/api/v1/projects/${projectId}/automation-repo`, {
@@ -1727,6 +1831,18 @@ export const api = {
     }>(`/api/v1/projects/${projectId}/automation-repo/reindex`, {
       method: 'POST',
       body: '{}',
+    }),
+
+  listProjectCiTokens: (projectId: string) =>
+    request<ProjectCiToken[]>(`/api/v1/projects/${projectId}/ci-tokens`),
+  createProjectCiToken: (projectId: string, name: string) =>
+    request<{ token: ProjectCiToken; secret: string }>(
+      `/api/v1/projects/${projectId}/ci-tokens`,
+      { method: 'POST', body: JSON.stringify({ name }) },
+    ),
+  revokeProjectCiToken: (projectId: string, tokenId: string) =>
+    request<void>(`/api/v1/projects/${projectId}/ci-tokens/${tokenId}`, {
+      method: 'DELETE',
     }),
 
   listTokens: () => request<ApiTokenPublic[]>('/api/v1/tokens'),

@@ -129,6 +129,8 @@ pub struct GenerateCodeRequest {
     #[serde(default = "default_framework")]
     pub framework: String,
     pub config_id: Option<Uuid>,
+    /// When the project has multiple automation repos, select which to index.
+    pub repo_id: Option<Uuid>,
 }
 
 fn default_framework() -> String {

@@ -753,6 +753,10 @@ fn suite_from_run(run: TestRun) -> AutomatedSuite {
         environment: run.environment,
         artifacts: run.artifacts,
         external_ref: run.external_ref,
+        suite_name: run.suite_name,
+        ci_provider: run.ci_provider,
+        pipeline_url: run.pipeline_url,
+        job_url: run.job_url,
     }
 }
 

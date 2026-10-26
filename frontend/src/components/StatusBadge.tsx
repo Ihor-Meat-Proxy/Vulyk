@@ -19,6 +19,10 @@ const STATUS_I18N: Record<string, string> = {
   skipped: 'status.skipped',
   retest: 'status.retest',
   untestable: 'status.untestable',
+  open: 'executions.statusOpen',
+  in_progress: 'executions.statusInProgress',
+  'in-progress': 'executions.statusInProgress',
+  closed: 'executions.statusClosed',
 }
 
 export function statusLabelKey(status: string): string {

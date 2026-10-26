@@ -4,6 +4,7 @@ import { api, type AutomatedSuite, type SuiteResultRow } from '../api'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { formatTimestamp } from '../timezone'
+import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
 import { StatusBadge } from './StatusBadge'
 
 type Props = {
@@ -114,10 +115,18 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
         <div className="exec-drawer-header">
           <div>
             <h2 id={titleId} style={{ margin: 0 }}>
-              {suite.name}
+              {suite.suite_name || suite.name}
             </h2>
             <div className="meta-row">
               <StatusBadge status={suite.status} />
+              <CiSourceBadge
+                source={suite.source}
+                ciProvider={suite.ci_provider}
+              />
+              <CiPipelineLink
+                pipelineUrl={suite.pipeline_url}
+                jobUrl={suite.job_url}
+              />
               <Link to={`/executions/runs/${suite.id}`}>
                 {t('executions.details')}
               </Link>
