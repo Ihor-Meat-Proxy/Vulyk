@@ -1,8 +1,8 @@
 [package]
 name = "vulyk-cli"
-version = "0.1.0"
-edition = "2021"
-license = "AGPL-3.0-only"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
 description = "Vulyk CLI and result reporter"
 
 [[bin]]

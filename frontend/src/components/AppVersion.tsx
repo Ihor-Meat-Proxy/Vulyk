@@ -36,7 +36,11 @@ export function AppVersion() {
     <p
       className="app-version muted"
       title="Vulyk version"
+<<<<<<< HEAD
       {...testIdProps(TestIds.appVersion)}
+=======
+      data-testid="app-version"
+>>>>>>> ee4f9b4 (feat: versioned GitHub Releases and GHCR images for 0.1.0)
     >
       Vulyk {version}
     </p>

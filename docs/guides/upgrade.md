@@ -16,10 +16,13 @@ individual services (`docker compose stop api web`).
 ### Recommended: `./scripts/install.sh upgrade`
 
 ```bash
-# Backup → git pull (or --to tag) → rebuild → migrate run → up → health check
+# Backup → pull/rebuild → migrate run → up → health check
 ./scripts/install.sh upgrade --yes
 
-# Pin a release tag or branch
+# Preferred: upgrade to a published release (GHCR images, no local build)
+./scripts/install.sh upgrade --yes --version 0.1.0
+
+# Or pin a git tag/branch and rebuild from source
 ./scripts/install.sh upgrade --yes --to=v0.1.0
 
 # Skip backup only when you already have an off-box dump
@@ -32,12 +35,16 @@ What it does:
 2. **Migration status** — `vulyk-api migrate status` (lists pending)
 3. **Backup** — `pg_dump` → `./backups/vulyk-<version>-<timestamp>.sql.gz`
    (retention via `VULYK_BACKUP_RETENTION`, default 10)
-4. **Checkout** — optional `--to <tag|branch>`, otherwise `git pull --ff-only`
-5. **Rebuild** images; **stop API/web only** (DB volume untouched)
+4. **Target** — `--version` pulls GHCR images; `--to` checks out git; else
+   `git pull --ff-only` + local rebuild (do not combine `--version` and `--to`)
+5. **Stop API/web only** (DB volume untouched)
 6. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
 7. **Start** stack and **health-check** `/health` (includes `version`)
 
 On failure it **stops**, keeps the volume, and prints a restore command.
+
+Publishing releases and first-time `--version` installs:
+[releasing.md](releasing.md).
 
 ### Manual backup / restore
 
@@ -74,7 +81,7 @@ a newer binary.
 
 1. Schedule / take a backup (`install.sh backup` or `pg_dump -Fc` off-box).
 2. Read the release notes / changelog for the target tag.
-3. Run `./scripts/install.sh upgrade --yes --to=vX.Y.Z`.
+3. Run `./scripts/install.sh upgrade --yes --version X.Y.Z` (or `--to=vX.Y.Z` for a source rebuild).
 4. Confirm `/health` returns `"status":"ok"` and the expected `"version"`.
 5. Spot-check sample projects / critical cases.
 6. Keep the backup until the next successful upgrade.
@@ -115,8 +122,8 @@ data. Set to `false` only for disposable demos.
 # 1) Backup (above)
 # 2) Upgrade chart / images
 helm upgrade vulyk deploy/helm/vulyk --namespace vulyk \
-  --set image.api=ghcr.io/example/vulyk-api:0.1.0 \
-  --set image.web=ghcr.io/example/vulyk-web:0.1.0
+  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.1.0 \
+  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.1.0
 
 # 3) Watch migrate hook + rollout
 kubectl get jobs -n vulyk
@@ -128,15 +135,17 @@ Setup Job is **post-install only** (not re-run on every upgrade).
 
 ## Versioning
 
-- Semver lives in `backend/Cargo.toml`, `cli/Cargo.toml`, `mcp/Cargo.toml`, and
-  `frontend/package.json` (keep them aligned).
-- Tag releases as `vMAJOR.MINOR.PATCH` and publish a GitHub Release with changelog
-  (see `CHANGELOG.md` and `.github/workflows/release.yml`).
+- Canonical semver is the root [`VERSION`](../../VERSION) file; Rust crates inherit
+  `[workspace.package].version`, and `frontend/package.json` + Helm `appVersion`
+  must match (`./scripts/check-version.sh`).
+- Tag releases as `vMAJOR.MINOR.PATCH` to run the Release workflow (GHCR + GitHub
+  Release artifacts). See [releasing.md](releasing.md).
 - `/health` and `/ready` include `"version"`. The UI sidebar footer shows the same
   value from `/health`.
 
 ## Related
 
+- [Releasing (tags, GHCR, install --version)](releasing.md)
 - [Migration authoring rules](../../CONTRIBUTING.md#database-migrations)
 - [Admin guide — backups](../admin-guide.md#backups)
 - [First-run setup](first-run-setup.md)

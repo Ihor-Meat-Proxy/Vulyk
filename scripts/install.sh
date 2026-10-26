@@ -10,8 +10,13 @@ cd "${ROOT}"
 BACKUP_DIR="${ROOT}/backups"
 BACKUP_RETENTION="${VULYK_BACKUP_RETENTION:-10}"
 UPGRADE_TO=""
+RELEASE_VERSION=""
 NO_BACKUP=0
 RESTORE_FILE=""
+# Override via env or --version (GHCR). Default owner derived from git remote when possible.
+VULYK_GHCR_OWNER="${VULYK_GHCR_OWNER:-}"
+VULYK_GHCR_API_IMAGE="${VULYK_GHCR_API_IMAGE:-}"
+VULYK_GHCR_WEB_IMAGE="${VULYK_GHCR_WEB_IMAGE:-}"
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -89,14 +94,16 @@ First-run options (compose / prod / dev / setup):
   --base-url=URL
   --yes, -y                Non-interactive (use flags/env; skip prompts)
 
-Upgrade / backup options:
-  --to=TAG|BRANCH          Checkout tag or branch before rebuilding (upgrade)
+Upgrade / backup / release options:
+  --version=X.Y.Z          Use published GHCR images for this semver (compose/prod/upgrade)
+  --to=TAG|BRANCH          Checkout tag or branch and rebuild from source (upgrade)
   --no-backup              Skip automatic pg_dump (upgrade only; not recommended)
 
 Environment equivalents:
   VULYK_ADMIN_EMAIL, VULYK_ADMIN_PASSWORD, VULYK_DEFAULT_LOCALE,
   VULYK_DEFAULT_TIMEZONE, VULYK_REGISTRATION_MODE, VULYK_INSTANCE_NAME,
-  VULYK_SEED_DEMO, VULYK_BASE_URL, VULYK_BACKUP_RETENTION
+  VULYK_SEED_DEMO, VULYK_BASE_URL, VULYK_BACKUP_RETENTION,
+  VULYK_GHCR_OWNER, VULYK_GHCR_API_IMAGE, VULYK_GHCR_WEB_IMAGE
 
 Written into .env (compose/dev) or .env.prod (prod). Defaults:
   compose/dev: seed demo=1, registration=open, admin@vulyk.local / admin
@@ -107,16 +114,21 @@ After compose/prod/dev, if setup did not complete automatically:
   # or: docker compose run --rm api vulyk-api setup --yes ...
   # or: cargo run -p vulyk-api -- setup ...
 
+Install a published release (pulls GHCR; no local Rust/Node build):
+  ./scripts/install.sh compose --yes --version 0.1.0
+  ./scripts/install.sh prod --yes --version 0.1.0
+
 Upgrade (keeps the named Postgres volume; never runs docker compose down -v):
   ./scripts/install.sh upgrade --yes
-  ./scripts/install.sh upgrade --yes --to=v0.2.0
+  ./scripts/install.sh upgrade --yes --version 0.1.0   # GHCR images
+  ./scripts/install.sh upgrade --yes --to=v0.2.0       # git checkout + source build
   ./scripts/install.sh backup
   ./scripts/install.sh restore ./backups/vulyk-0.1.0-20260101T120000Z.sql.gz
 
 WARNING: never run 'docker compose down -v' on a data you care about -
 the -v flag deletes named volumes (Postgres data).
 
-See docs/guides/first-run-setup.md and docs/guides/upgrade.md
+See docs/guides/first-run-setup.md, docs/guides/upgrade.md, docs/guides/releasing.md
 
 Environment:
   Linux, macOS (bash 3.2+), and WSL2 are supported. Native Windows is not - use WSL2.
@@ -182,6 +194,14 @@ parse_args() {
       --to)
         [[ $# -gt 0 ]] || die "--to requires a tag or branch"
         UPGRADE_TO="$1"
+        shift
+        ;;
+      --version=*)
+        RELEASE_VERSION="${arg#*=}"
+        ;;
+      --version)
+        [[ $# -gt 0 ]] || die "--version requires a semver (e.g. 0.1.0)"
+        RELEASE_VERSION="$1"
         shift
         ;;
       --no-backup)
@@ -473,6 +493,71 @@ resolve_compose() {
   fi
 }
 
+# Normalize --version / tag input to bare semver (strip leading v).
+normalize_release_version() {
+  local raw="$1"
+  raw="$(printf '%s' "${raw}" | tr -d '[:space:]')"
+  [[ -n "${raw}" ]] || die "empty --version"
+  raw="${raw#v}"
+  [[ "${raw}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]] \
+    || die "invalid --version '${1}' (expected semver like 0.1.0)"
+  printf '%s' "${raw}"
+}
+
+detect_ghcr_owner() {
+  if [[ -n "${VULYK_GHCR_OWNER}" ]]; then
+    printf '%s' "$(printf '%s' "${VULYK_GHCR_OWNER}" | tr '[:upper:]' '[:lower:]')"
+    return 0
+  fi
+  local url owner
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    url="$(git remote get-url origin 2>/dev/null || true)"
+    # git@github.com:Owner/Repo.git or https://github.com/Owner/Repo.git
+    owner="$(printf '%s' "${url}" | sed -nE 's#.*(github\.com[:/])([^/]+)/.*#\2#p')"
+    if [[ -n "${owner}" ]]; then
+      printf '%s' "$(printf '%s' "${owner}" | tr '[:upper:]' '[:lower:]')"
+      return 0
+    fi
+  fi
+  printf '%s' "ihor-meat-proxy"
+}
+
+# Sets VULYK_API_IMAGE / VULYK_WEB_IMAGE for a published release (and exports them).
+apply_release_images() {
+  local version owner api_img web_img
+  version="$(normalize_release_version "$1")"
+  RELEASE_VERSION="${version}"
+  owner="$(detect_ghcr_owner)"
+  api_img="${VULYK_GHCR_API_IMAGE:-ghcr.io/${owner}/vulyk-api:${version}}"
+  web_img="${VULYK_GHCR_WEB_IMAGE:-ghcr.io/${owner}/vulyk-web:${version}}"
+  export VULYK_API_IMAGE="${api_img}"
+  export VULYK_WEB_IMAGE="${web_img}"
+  log "Using release images for v${version}:"
+  log "  API: ${VULYK_API_IMAGE}"
+  log "  web: ${VULYK_WEB_IMAGE}"
+}
+
+persist_release_images_env() {
+  local env_file="$1"
+  [[ -n "${VULYK_API_IMAGE:-}" ]] || return 0
+  touch "${env_file}"
+  env_upsert "${env_file}" "VULYK_API_IMAGE" "${VULYK_API_IMAGE}"
+  env_upsert "${env_file}" "VULYK_WEB_IMAGE" "${VULYK_WEB_IMAGE}"
+}
+
+pull_release_images() {
+  need_cmd docker
+  [[ -n "${VULYK_API_IMAGE:-}" && -n "${VULYK_WEB_IMAGE:-}" ]] \
+    || die "internal: release images not set"
+  log "Pulling GHCR images (docker login ghcr.io if the packages are private)..."
+  if ! docker pull "${VULYK_API_IMAGE}"; then
+    die "failed to pull ${VULYK_API_IMAGE} (check version, network, or ghcr.io auth)"
+  fi
+  if ! docker pull "${VULYK_WEB_IMAGE}"; then
+    die "failed to pull ${VULYK_WEB_IMAGE} (check version, network, or ghcr.io auth)"
+  fi
+}
+
 run_setup_cli() {
   local -a setup_args=(
     setup
@@ -722,13 +807,30 @@ EOF
 }
 
 cmd_upgrade() {
-  local backup_file="" ver free_mb pending_rc=0
+  local backup_file="" ver free_mb pending_rc=0 target_label=""
+
+  if [[ -n "${RELEASE_VERSION}" && -n "${UPGRADE_TO}" ]]; then
+    die "use either --version (GHCR images) or --to (git + source build), not both"
+  fi
+
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    apply_release_images "${RELEASE_VERSION}"
+    target_label="GHCR ${RELEASE_VERSION}"
+  elif [[ -n "${UPGRADE_TO}" ]]; then
+    target_label="git ${UPGRADE_TO}"
+  else
+    target_label="latest source (git pull + rebuild)"
+  fi
+
   resolve_compose
   [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for upgrade"
-  need_cmd git
   need_cmd curl
   need_cmd gzip
   need_cmd docker
+
+  if [[ -z "${RELEASE_VERSION}" ]]; then
+    need_cmd git
+  fi
 
   log "Upgrade preflight..."
   docker info >/dev/null 2>&1 || die "Docker daemon not reachable"
@@ -744,7 +846,10 @@ cmd_upgrade() {
   ver="$(api_reported_version)"
   [[ -n "${ver}" ]] || ver="$(current_git_version)"
   log "Current version: ${ver}"
-  log "Git HEAD: $(current_git_version)"
+  if command -v git >/dev/null 2>&1; then
+    log "Git HEAD: $(current_git_version)"
+  fi
+  log "Target: ${target_label}"
 
   # Ensure DB is up for status / backup (do not start new API yet)
   detect_compose_files
@@ -752,13 +857,19 @@ cmd_upgrade() {
   compose_cmd up -d db
   wait_for_db
 
-  # Load env for POSTGRES_* when using prod
+  # Load env for POSTGRES_* when using prod (preserve release image exports)
   if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    local saved_api_image="${VULYK_API_IMAGE:-}"
+    local saved_web_image="${VULYK_WEB_IMAGE:-}"
     # shellcheck disable=SC1091
     set -a
     # shellcheck source=/dev/null
     source "${COMPOSE_ENV_FILE}"
     set +a
+    if [[ -n "${RELEASE_VERSION}" ]]; then
+      [[ -n "${saved_api_image}" ]] && export VULYK_API_IMAGE="${saved_api_image}"
+      [[ -n "${saved_web_image}" ]] && export VULYK_WEB_IMAGE="${saved_web_image}"
+    fi
   fi
 
   log "Migration status (current image, if available)..."
@@ -777,10 +888,14 @@ cmd_upgrade() {
   fi
 
   if [[ "${ASSUME_YES}" -eq 0 ]]; then
-    confirm_or_yes "Proceed with upgrade${UPGRADE_TO:+ to ${UPGRADE_TO}}?"
+    confirm_or_yes "Proceed with upgrade to ${target_label}?"
   fi
 
-  if [[ -n "${UPGRADE_TO}" ]]; then
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    if [[ -n "${COMPOSE_ENV_FILE}" ]]; then
+      persist_release_images_env "${COMPOSE_ENV_FILE}"
+    fi
+  elif [[ -n "${UPGRADE_TO}" ]]; then
     log "Checking out ${UPGRADE_TO}..."
     git fetch --tags --prune origin 2>/dev/null || git fetch --tags --prune 2>/dev/null || true
     git checkout "${UPGRADE_TO}" || die "git checkout ${UPGRADE_TO} failed"
@@ -801,10 +916,18 @@ cmd_upgrade() {
   # NEVER use down -v - volumes must be preserved
   compose_cmd stop api web 2>/dev/null || true
 
-  log "Rebuilding images..."
-  if ! compose_cmd build api web; then
-    print_restore_hint "${backup_file}"
-    die "image build failed"
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    log "Pulling release images (no local rebuild)..."
+    if ! pull_release_images; then
+      print_restore_hint "${backup_file}"
+      die "image pull failed"
+    fi
+  else
+    log "Rebuilding images..."
+    if ! compose_cmd build api web; then
+      print_restore_hint "${backup_file}"
+      die "image build failed"
+    fi
   fi
 
   log "Running migrations (one-shot, before starting API)..."
@@ -834,6 +957,9 @@ cmd_upgrade() {
       new_ver="$(api_reported_version)"
       log "Upgrade complete."
       log "Health: ${health_url} OK (version=${new_ver:-unknown})"
+      if [[ -n "${RELEASE_VERSION}" && -n "${new_ver}" && "${new_ver}" != "${RELEASE_VERSION}" ]]; then
+        warn "Expected version ${RELEASE_VERSION} but /health reported ${new_ver}"
+      fi
       if [[ -n "${backup_file}" ]]; then
         log "Backup kept at: ${backup_file}"
       fi
@@ -872,6 +998,17 @@ case "${MODE}" in
     die "unknown mode: ${MODE} (try --help)"
     ;;
 esac
+
+# Fail fast on bad --version before Docker/toolchain work
+if [[ -n "${RELEASE_VERSION}" ]]; then
+  case "${MODE}" in
+    compose|prod|upgrade) ;;
+    *)
+      die "--version is only supported for compose, prod, and upgrade modes"
+      ;;
+  esac
+  RELEASE_VERSION="$(normalize_release_version "${RELEASE_VERSION}")"
+fi
 
 if [[ "${MODE}" == "backup" ]]; then
   cmd_backup
@@ -1014,17 +1151,29 @@ EOF
 fi
 
 if [[ "${MODE}" == "prod" ]]; then
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    apply_release_images "${RELEASE_VERSION}"
+  fi
   collect_setup_options "prod"
   ensure_prod_env ".env.prod"
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    persist_release_images_env ".env.prod"
+  fi
   resolve_compose
   [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose plugin or docker-compose required"
-  log "Building and starting Vulyk production Compose..."
-  "${COMPOSE[@]}" -f docker-compose.prod.yml --env-file .env.prod up --build -d
   # shellcheck disable=SC1091
   set -a
   # shellcheck source=/dev/null
   source .env.prod
   set +a
+  if [[ -n "${RELEASE_VERSION}" ]]; then
+    log "Pulling and starting Vulyk production Compose (GHCR ${RELEASE_VERSION})..."
+    pull_release_images
+    "${COMPOSE[@]}" -f docker-compose.prod.yml --env-file .env.prod up -d
+  else
+    log "Building and starting Vulyk production Compose..."
+    "${COMPOSE[@]}" -f docker-compose.prod.yml --env-file .env.prod up --build -d
+  fi
   cat <<EOF
 
 Vulyk production stack is starting (auth required).
@@ -1042,7 +1191,7 @@ If setup did not complete via env seed, run:
 Logs:  docker compose -f docker-compose.prod.yml logs -f
 Stop:  docker compose -f docker-compose.prod.yml down
        (NEVER use down -v - that deletes Postgres volumes)
-Upgrade: ./scripts/install.sh upgrade --yes
+Upgrade: ./scripts/install.sh upgrade --yes${RELEASE_VERSION:+ --version ${RELEASE_VERSION}}
 Backups: ./scripts/install.sh backup  (see docs/guides/upgrade.md)
 EOF
   print_setup_next_steps "prod"
@@ -1050,12 +1199,29 @@ EOF
 fi
 
 # Default: compose - write .env first, then require Docker
+if [[ -n "${RELEASE_VERSION}" ]]; then
+  apply_release_images "${RELEASE_VERSION}"
+fi
 collect_setup_options "compose"
 ensure_compose_env ".env"
+if [[ -n "${RELEASE_VERSION}" ]]; then
+  persist_release_images_env ".env"
+fi
 resolve_compose
 [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose plugin or docker-compose required (first-run settings already in .env)"
-log "Building and starting Vulyk (docker compose)..."
-"${COMPOSE[@]}" --env-file .env up --build -d
+# shellcheck disable=SC1091
+set -a
+# shellcheck source=/dev/null
+source .env
+set +a
+if [[ -n "${RELEASE_VERSION}" ]]; then
+  log "Pulling and starting Vulyk (docker compose, GHCR ${RELEASE_VERSION})..."
+  pull_release_images
+  "${COMPOSE[@]}" --env-file .env up -d
+else
+  log "Building and starting Vulyk (docker compose)..."
+  "${COMPOSE[@]}" --env-file .env up --build -d
+fi
 
 cat <<EOF
 
@@ -1072,7 +1238,7 @@ If setup did not complete automatically (or you need to re-run first-time config
   # or: docker compose run --rm api vulyk-api setup --yes
 
 For production hardening: ./scripts/install.sh prod
-Upgrade: ./scripts/install.sh upgrade --yes
+Upgrade: ./scripts/install.sh upgrade --yes${RELEASE_VERSION:+ --version ${RELEASE_VERSION}}
 Logs:  docker compose logs -f
 Stop:  docker compose down
        (NEVER use down -v - that deletes the Postgres volume)

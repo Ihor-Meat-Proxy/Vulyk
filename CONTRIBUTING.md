@@ -64,7 +64,10 @@ Interactive UI must expose stable `data-testid` attributes. Convention, list/row
 - Add SQLx migrations under `backend/migrations/` (follow the rules above).
 - Annotate routes with `utoipa` so `/api/docs` stays accurate.
 - Update architecture notes if you change plugin contracts.
-- When bumping the release version, keep Cargo crate versions and `frontend/package.json` aligned; update `CHANGELOG.md`.
+- When bumping the release version, update the root `VERSION` file,
+  `[workspace.package].version` in `Cargo.toml`, `frontend/package.json`, Helm
+  `appVersion`, and `CHANGELOG.md`, then run `./scripts/check-version.sh`. Tag
+  `vX.Y.Z` on `main` to publish (see [docs/guides/releasing.md](docs/guides/releasing.md)).
 
 ## Parallel workstreams
 
