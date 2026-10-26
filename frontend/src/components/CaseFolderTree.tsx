@@ -1,12 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import type { Suite, TestCase } from '../api'
+import { api, type Suite, type TestCase } from '../api'
 import { useI18n } from '../i18n'
 import { CaseStatusIcon } from './CaseStatusIcon'
 
+const TREE_PAGE = 100
+const UNFILED_KEY = '__unfiled__'
+
 type Props = {
+  projectId: string
   suites: Suite[]
-  cases: TestCase[]
+  /** Unfiltered project case total (All cases). */
+  projectCaseTotal: number
   selectedSuiteId: string | null
   selectedCaseId?: string | null
   canManage: boolean
@@ -17,9 +22,17 @@ type Props = {
   onDeleteFolder: (suite: Suite) => void
   onMoveCase: (caseId: string, suiteId: string | null) => void
   onMoveFolder: (suiteId: string, parentId: string | null) => void
+  /** Bump to invalidate cached folder case pages after mutations. */
+  reloadToken?: number
 }
 
 type FolderNode = Suite & { children: FolderNode[] }
+
+type FolderCasesState = {
+  items: TestCase[]
+  total: number
+  loading: boolean
+}
 
 function buildTree(suites: Suite[]): FolderNode[] {
   const map = new Map<string, FolderNode>()
@@ -36,16 +49,23 @@ function buildTree(suites: Suite[]): FolderNode[] {
     }
   }
   const sortRec = (nodes: FolderNode[]) => {
-    nodes.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+    nodes.sort(
+      (a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name),
+    )
     nodes.forEach((n) => sortRec(n.children))
   }
   sortRec(roots)
   return roots
 }
 
+function countTooltip(recursive: number, direct: number): string {
+  return `${recursive} (${direct} direct)`
+}
+
 export function CaseFolderTree({
+  projectId,
   suites,
-  cases,
+  projectCaseTotal,
   selectedSuiteId,
   selectedCaseId,
   canManage,
@@ -56,36 +76,99 @@ export function CaseFolderTree({
   onDeleteFolder,
   onMoveCase,
   onMoveFolder,
+  reloadToken = 0,
 }: Props) {
   const { t } = useI18n()
   const tree = useMemo(() => buildTree(suites), [suites])
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(suites.map((s) => s.id)))
+  // Start collapsed — expand loads direct cases for that folder only.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
+  const [folderCases, setFolderCases] = useState<
+    Record<string, FolderCasesState>
+  >({})
+  const folderCasesRef = useRef(folderCases)
+  folderCasesRef.current = folderCases
   const [dragCaseId, setDragCaseId] = useState<string | null>(null)
   const [dragFolderId, setDragFolderId] = useState<string | null>(null)
   const [mobileMoveCaseId, setMobileMoveCaseId] = useState<string | null>(null)
 
-  const casesBySuite = useMemo(() => {
-    const map = new Map<string | null, TestCase[]>()
-    for (const c of cases) {
-      const key = c.suite_id
-      const list = map.get(key) ?? []
-      list.push(c)
-      map.set(key, list)
-    }
-    for (const list of map.values()) {
-      list.sort(
-        (a, b) =>
-          (a.sort_order ?? 0) - (b.sort_order ?? 0) || a.key.localeCompare(b.key),
-      )
-    }
-    return map
-  }, [cases])
+  useEffect(() => {
+    setFolderCases({})
+    setExpanded(new Set())
+  }, [projectId, reloadToken])
+
+  const loadFolderCases = useCallback(
+    async (suiteId: string | null, append: boolean) => {
+      const key = suiteId ?? UNFILED_KEY
+      const offset = append
+        ? (folderCasesRef.current[key]?.items.length ?? 0)
+        : 0
+      setFolderCases((prev) => ({
+        ...prev,
+        [key]: {
+          items: append ? (prev[key]?.items ?? []) : [],
+          total: append ? (prev[key]?.total ?? 0) : 0,
+          loading: true,
+        },
+      }))
+      try {
+        const page = await api.listCases(projectId, {
+          suiteId: suiteId ?? undefined,
+          directOnly: suiteId != null,
+          unfiledOnly: suiteId == null,
+          limit: TREE_PAGE,
+          offset,
+        })
+        setFolderCases((prev) => {
+          const prevItems = append ? (prev[key]?.items ?? []) : []
+          return {
+            ...prev,
+            [key]: {
+              items: [...prevItems, ...page.items],
+              total: page.total,
+              loading: false,
+            },
+          }
+        })
+      } catch {
+        setFolderCases((prev) => ({
+          ...prev,
+          [key]: {
+            items: prev[key]?.items ?? [],
+            total: prev[key]?.total ?? 0,
+            loading: false,
+          },
+        }))
+      }
+    },
+    [projectId],
+  )
 
   const toggle = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+        if (!folderCases[id]) {
+          void loadFolderCases(id, false)
+        }
+      }
+      return next
+    })
+  }
+
+  const toggleUnfiled = () => {
+    setExpanded((prev) => {
+      const next = new Set(prev)
+      if (next.has(UNFILED_KEY)) {
+        next.delete(UNFILED_KEY)
+      } else {
+        next.add(UNFILED_KEY)
+        if (!folderCases[UNFILED_KEY]) {
+          void loadFolderCases(null, false)
+        }
+      }
       return next
     })
   }
@@ -101,64 +184,92 @@ export function CaseFolderTree({
   }
 
   const renderCases = (suiteId: string | null, depth: number) => {
-    const list = casesBySuite.get(suiteId) ?? []
-    return list.map((c) => (
-      <div
-        key={c.id}
-        className={`folder-tree-case${selectedCaseId === c.id ? ' active' : ''}`}
-        style={{ paddingLeft: `${0.75 + depth * 0.9}rem` }}
-        draggable={canEditCases}
-        onDragStart={() => setDragCaseId(c.id)}
-        onDragEnd={() => setDragCaseId(null)}
-      >
-        <span className={`priority-bar priority-${c.priority}`} aria-hidden />
-        <span className={`case-status-token status-${c.status}`} title={c.status}>
-          <CaseStatusIcon status={c.status} />
-          <span className="visually-hidden">{c.status}</span>
-        </span>
-        <Link to={`/cases/${c.id}`} className="folder-tree-case-link">
-          <span className="folder-tree-case-key">{c.key}</span>
-          <span className="folder-tree-case-title">{c.title}</span>
-        </Link>
-        {canEditCases && (
+    const key = suiteId ?? UNFILED_KEY
+    const state = folderCases[key]
+    if (!state) return null
+    return (
+      <>
+        {state.items.map((c) => (
+          <div
+            key={c.id}
+            className={`folder-tree-case${selectedCaseId === c.id ? ' active' : ''}`}
+            style={{ paddingLeft: `${0.75 + depth * 0.9}rem` }}
+            draggable={canEditCases}
+            onDragStart={() => setDragCaseId(c.id)}
+            onDragEnd={() => setDragCaseId(null)}
+          >
+            <span className={`priority-bar priority-${c.priority}`} aria-hidden />
+            <span
+              className={`case-status-token status-${c.status}`}
+              title={c.status}
+            >
+              <CaseStatusIcon status={c.status} />
+              <span className="visually-hidden">{c.status}</span>
+            </span>
+            <Link to={`/cases/${c.id}`} className="folder-tree-case-link">
+              <span className="folder-tree-case-key">{c.key}</span>
+              <span className="folder-tree-case-title">{c.title}</span>
+            </Link>
+            {canEditCases && (
+              <button
+                type="button"
+                className="folder-tree-move-btn"
+                aria-label={t('folders.moveCase')}
+                onClick={() =>
+                  setMobileMoveCaseId((prev) => (prev === c.id ? null : c.id))
+                }
+              >
+                {t('folders.moveTo')}
+              </button>
+            )}
+            {mobileMoveCaseId === c.id && (
+              <label className="folder-tree-move-select">
+                <span className="visually-hidden">{t('folders.moveTo')}</span>
+                <select
+                  value={c.suite_id ?? ''}
+                  onChange={(e) => {
+                    const next = e.target.value || null
+                    onMoveCase(c.id, next)
+                    setMobileMoveCaseId(null)
+                  }}
+                >
+                  <option value="">{t('folders.root')}</option>
+                  {suites.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        ))}
+        {state.loading && (
+          <p
+            className="muted"
+            style={{ paddingLeft: `${0.75 + depth * 0.9}rem`, fontSize: '0.8rem' }}
+          >
+            {t('common.loading')}
+          </p>
+        )}
+        {!state.loading && state.items.length < state.total && (
           <button
             type="button"
-            className="folder-tree-move-btn"
-            aria-label={t('folders.moveCase')}
-            onClick={() =>
-              setMobileMoveCaseId((prev) => (prev === c.id ? null : c.id))
-            }
+            className="folder-tree-load-more"
+            style={{ marginLeft: `${0.75 + depth * 0.9}rem` }}
+            onClick={() => void loadFolderCases(suiteId, true)}
           >
-            {t('folders.moveTo')}
+            {t('folders.loadMore')} ({state.items.length}/{state.total})
           </button>
         )}
-        {mobileMoveCaseId === c.id && (
-          <label className="folder-tree-move-select">
-            <span className="visually-hidden">{t('folders.moveTo')}</span>
-            <select
-              value={c.suite_id ?? ''}
-              onChange={(e) => {
-                const next = e.target.value || null
-                onMoveCase(c.id, next)
-                setMobileMoveCaseId(null)
-              }}
-            >
-              <option value="">{t('folders.root')}</option>
-              {suites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-      </div>
-    ))
+      </>
+    )
   }
 
   const renderFolder = (node: FolderNode, depth: number) => {
     const open = expanded.has(node.id)
-    const count = node.case_count ?? (casesBySuite.get(node.id)?.length ?? 0)
+    const recursive = node.case_count ?? 0
+    const direct = node.direct_case_count ?? 0
     return (
       <div key={node.id} className="folder-tree-node">
         <div
@@ -186,10 +297,17 @@ export function CaseFolderTree({
             type="button"
             className="folder-tree-folder-btn"
             onClick={() => onSelectSuite(node.id)}
+            title={countTooltip(recursive, direct)}
           >
             <span className="folder-icon" aria-hidden />
             <span className="folder-tree-folder-name">{node.name}</span>
-            <span className="folder-tree-count">{count}</span>
+            <span
+              className="folder-tree-count"
+              title={countTooltip(recursive, direct)}
+              data-testid={`folder-count-${node.id}`}
+            >
+              {recursive}
+            </span>
           </button>
           {canManage && (
             <span className="folder-tree-actions">
@@ -233,6 +351,8 @@ export function CaseFolderTree({
     )
   }
 
+  const unfiledOpen = expanded.has(UNFILED_KEY)
+
   return (
     <div className="folder-tree" role="region" aria-label={t('folders.panel')}>
       <div className="folder-tree-toolbar">
@@ -256,11 +376,45 @@ export function CaseFolderTree({
           e.preventDefault()
           onDropTarget(null)
         }}
+        data-testid="folder-all-cases"
       >
-        {t('nav.allCases')}
+        <span>{t('nav.allCases')}</span>
+        <span className="folder-tree-count" title={t('folders.projectTotal')}>
+          {projectCaseTotal}
+        </span>
       </button>
       {tree.map((node) => renderFolder(node, 0))}
-      {renderCases(null, 0)}
+      <div className="folder-tree-node">
+        <div
+          className="folder-tree-folder"
+          style={{ paddingLeft: '0.35rem' }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            onDropTarget(null)
+          }}
+        >
+          <button
+            type="button"
+            className="folder-tree-twistie"
+            aria-expanded={unfiledOpen}
+            aria-label={unfiledOpen ? t('folders.collapse') : t('folders.expand')}
+            onClick={toggleUnfiled}
+          >
+            {unfiledOpen ? '−' : '+'}
+          </button>
+          <button
+            type="button"
+            className="folder-tree-folder-btn"
+            onClick={() => onSelectSuite(null)}
+          >
+            <span className="folder-tree-folder-name">{t('folders.unfiled')}</span>
+          </button>
+        </div>
+        {unfiledOpen && (
+          <div className="folder-tree-children">{renderCases(null, 1)}</div>
+        )}
+      </div>
       {suites.length === 0 && (
         <p className="muted folder-tree-empty">{t('folders.empty')}</p>
       )}

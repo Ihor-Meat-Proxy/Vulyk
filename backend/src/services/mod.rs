@@ -8,3 +8,4 @@ pub mod jobs;
 pub mod reports;
 pub mod results;
 pub mod runs;
+pub mod suites;

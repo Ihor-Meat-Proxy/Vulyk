@@ -1801,6 +1801,31 @@ select.locale-select {
   padding-right: 0.25rem;
 }
 
+.folder-tree-load-more {
+  display: block;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.2rem 0.45rem;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.folder-tree-load-more:hover {
+  text-decoration: underline;
+}
+
+.direct-only-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+}
+
 .folder-tree-actions {
   display: inline-flex;
   gap: 0.1rem;

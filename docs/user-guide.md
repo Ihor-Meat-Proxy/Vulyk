@@ -25,7 +25,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 ## Projects & cases
 
 - Use the project switcher in the top bar.
-- **Cases** shows a SquashTM-style **folder tree** on the left (nested folders + cases with priority bar and status icon) and the filtered list on the right. Selecting a folder filters the list (including subfolders).
+- **Cases** shows a SquashTM-style **folder tree** on the left (nested folders + cases with priority bar and status icon) and the filtered list on the right. Folder badges show the **recursive** case total (tooltip includes the direct count). Expanding a folder **lazy-loads** its direct cases (100 at a time with Load more) — the tree never fetches the whole project capped at 500. Selecting a folder filters the list (including subfolders by default; use **Direct only** to exclude descendants). Cases sort by numeric key suffix (`PREFIX-2` before `PREFIX-10`).
 - **Create case** needs only a title — keys are allocated automatically as `PREFIX-N` (prefix from project name initials, e.g. *Kyiv Open-Air Concert 2026* → `KOC`). Admins may edit the prefix before any cases exist. Deleted numbers are never reused.
 - Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
 - **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
