@@ -1,44 +1,53 @@
 import { expect, type Page } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 export class CasesPage {
   constructor(readonly page: Page) {}
 
   listPanel() {
-    return this.page.locator('.case-list-panel')
+    return this.page.getByTestId(TestIds.caseListPanel)
   }
 
   async open() {
-    await this.page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /Cases|Кейси/i }).click()
+    await this.page.getByTestId(TestIds.navLinkCases).click()
   }
 
   async createCase(title: string) {
-    await this.page
-      .getByLabel(
-        /New case title|Назва нового кейсу|Titre du nouveau cas|Título del nuevo caso|Titel des neuen Falls/i,
-      )
-      .fill(title)
-    await this.page.getByRole('button', { name: /Create case|Створити кейс/i }).click()
-    await expect(this.listPanel().getByText(title)).toBeVisible({ timeout: 30_000 })
+    await this.page.getByTestId(TestIds.caseListNewTitleInput).fill(title)
+    await this.page.getByTestId(TestIds.caseListNewCaseButton).click()
+    await expect(this.listPanel().getByText(title)).toBeVisible({
+      timeout: 30_000,
+    })
   }
 
   async search(query: string) {
-    await this.page.getByLabel(/Search cases|Пошук кейсів/i).fill(query)
+    await this.page.getByTestId(TestIds.caseListSearchInput).fill(query)
   }
 
   async filterStatus(status: string) {
-    await this.page.getByLabel(/Status filter|Фільтр статусу/i).selectOption(status)
+    await this.page
+      .getByTestId(TestIds.caseListStatusFilter)
+      .selectOption(status)
   }
 
   async selectCase(key: string) {
-    await this.page.getByLabel(`Select ${key}`).check()
+    await this.page
+      .locator(
+        `[data-testid="${TestIds.caseRow}"][data-entity-key="${key}"]`,
+      )
+      .getByTestId(TestIds.caseRowCheckbox)
+      .check()
   }
 
   async bulkMarkReady() {
-    await this.page.getByRole('button', { name: /Mark ready|Позначити готовим/i }).click()
+    await this.page.getByTestId(TestIds.caseListMarkReadyButton).click()
   }
 
   async openCaseByTitle(title: string) {
-    await this.listPanel().getByRole('link', { name: title }).click()
+    await this.listPanel()
+      .getByTestId(TestIds.caseRowTitle)
+      .filter({ hasText: title })
+      .click()
   }
 
   async backToCases() {
@@ -46,38 +55,34 @@ export class CasesPage {
   }
 
   folderTree() {
-    return this.page.locator('.folder-tree')
+    return this.page.getByTestId(TestIds.folderTree)
   }
 
   async selectFolder(name: string | RegExp) {
-    await this.folderTree().getByRole('button', { name }).first().click()
+    await this.folderTree()
+      .getByTestId(TestIds.folderNodeButton)
+      .filter({ hasText: name })
+      .first()
+      .click()
   }
 
   async createFolder(name: string) {
     this.page.once('dialog', async (dialog) => {
       await dialog.accept(name)
     })
-    await this.folderTree().getByRole('button', { name: /New folder|Нова тека/i }).click()
+    await this.folderTree().getByTestId(TestIds.folderTreeNewButton).click()
   }
 
   async editSteps(action: string, expected: string) {
-    await this.page.getByRole('button', { name: 'Edit' }).click()
-    const addStep = this.page.getByRole('button', { name: 'Add step' })
+    await this.page.getByTestId(TestIds.caseDetailEditButton).click()
+    const addStep = this.page.getByTestId(TestIds.caseDetailAddStepButton)
     if (await addStep.isVisible()) {
       await addStep.click()
     }
-    const stepBlocks = this.page.locator('.step, .steps > div')
-    const last = stepBlocks.last()
-    const inputs = last.locator('textarea, input')
-    const count = await inputs.count()
-    if (count >= 2) {
-      await inputs.nth(0).fill(action)
-      await inputs.nth(1).fill(expected)
-    } else {
-      await this.page.getByPlaceholder(/action/i).last().fill(action).catch(async () => {
-        await inputs.first().fill(action)
-      })
-    }
-    await this.page.getByRole('button', { name: /Save/i }).click()
+    const steps = this.page.getByTestId(TestIds.caseDetailStep)
+    const last = steps.last()
+    await last.getByTestId(TestIds.caseDetailStepAction).fill(action)
+    await last.getByTestId(TestIds.caseDetailStepExpected).fill(expected)
+    await this.page.getByTestId(TestIds.caseDetailSaveButton).click()
   }
 }

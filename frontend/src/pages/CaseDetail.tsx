@@ -20,6 +20,7 @@ import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { casePath, isCaseUuid } from '../lib/caseUrls'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -336,18 +337,25 @@ export function CaseDetail({
   }
 
   if (loading) {
-    return <p className="muted">{t('cases.loading')}</p>
+    return (
+      <p className="muted" {...testIdProps(TestIds.caseDetailLoading)}>
+        {t('cases.loading')}
+      </p>
+    )
   }
 
   if (deleted) {
     return (
-      <div className="panel case-detail case-deleted" data-testid="case-detail-deleted">
+      <div
+        className="panel case-detail case-deleted"
+        {...testIdProps(TestIds.caseDetailDeleted)}
+      >
         <h2>{t('cases.deletedTitle')}</h2>
         <p className="muted">
           {t('cases.deletedBody', { key: caseRef ?? '' })}
         </p>
         <p>
-          <Link to="/" data-testid="case-detail-deleted-back">
+          <Link to="/" {...testIdProps(TestIds.caseDetailDeletedBack)}>
             {t('cases.backToCases')}
           </Link>
         </p>
@@ -356,7 +364,11 @@ export function CaseDetail({
   }
 
   if (error && !detail) {
-    return <p className="error">{error}</p>
+    return (
+      <p className="error" {...testIdProps(TestIds.caseDetailError)}>
+        {error}
+      </p>
+    )
   }
 
   if (!detail) {
@@ -368,7 +380,7 @@ export function CaseDetail({
   const activeProjectId = c.project_id
 
   return (
-    <div className="panel case-detail" data-testid="case-detail-page">
+    <div className="panel case-detail" {...testIdProps(TestIds.caseDetailPage)}>
       <CaseBreadcrumbs
         projectName={projectName}
         suites={suites}
@@ -381,9 +393,9 @@ export function CaseDetail({
         <button
           type="button"
           className="linkish case-detail-back"
-          data-testid="case-detail-back"
           onClick={goBack}
           title={t('cases.backspaceHint')}
+          {...testIdProps(TestIds.caseDetailBackLink)}
         >
           {t('cases.backToCases')}
           <kbd className="shortcut-hint">{t('cases.backspaceKey')}</kbd>
@@ -392,24 +404,33 @@ export function CaseDetail({
       {offlineNotice && (
         <p className="notice">{t('cases.offlineCached')}</p>
       )}
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.caseDetailError)}>
+          {error}
+        </p>
+      )}
       <div className="detail-header">
-        <h2>
+        <h2 {...testIdProps(TestIds.caseDetailTitle)}>
           <CaseKeyBadge caseKey={c.key} />{' '}
           {editing ? (
             <input
               className="title-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              data-testid="case-detail-title-input"
+              {...testIdProps(TestIds.caseDetailTitleInput)}
             />
           ) : (
-            <span data-testid="case-detail-title">{c.title}</span>
+            <span {...testIdProps(TestIds.caseDetailTitleText)}>{c.title}</span>
           )}
         </h2>
         <div className="detail-actions">
           {canEdit && !editing ? (
-            <button type="button" className="btn" onClick={() => setEditing(true)}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setEditing(true)}
+              {...testIdProps(TestIds.caseDetailEditButton)}
+            >
               Edit
             </button>
           ) : null}
@@ -420,10 +441,17 @@ export function CaseDetail({
                 className="btn secondary"
                 onClick={() => setEditing(false)}
                 disabled={saving}
+                {...testIdProps(TestIds.caseDetailCancelButton)}
               >
                 Cancel
               </button>
-              <button type="button" className="btn" onClick={() => void save()} disabled={saving}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => void save()}
+                disabled={saving}
+                {...testIdProps(TestIds.caseDetailSaveButton)}
+              >
                 {saving ? 'Saving…' : 'Save'}
               </button>
             </>
@@ -438,6 +466,7 @@ export function CaseDetail({
           aria-selected={tab === 'details'}
           className={tab === 'details' ? 'active' : ''}
           onClick={() => setTab('details')}
+          {...testIdProps(TestIds.caseDetailTabDetails)}
         >
           Details
         </button>
@@ -447,6 +476,7 @@ export function CaseDetail({
           aria-selected={tab === 'history'}
           className={tab === 'history' ? 'active' : ''}
           onClick={() => setTab('history')}
+          {...testIdProps(TestIds.caseDetailTabHistory)}
         >
           History / Results
         </button>
@@ -456,6 +486,7 @@ export function CaseDetail({
           aria-selected={tab === 'executions'}
           className={tab === 'executions' ? 'active' : ''}
           onClick={() => setTab('executions')}
+          {...testIdProps(TestIds.caseDetailTabExecutions)}
         >
           {t('executions.caseExecutions')}
         </button>
@@ -467,7 +498,11 @@ export function CaseDetail({
             <span>
               Priority:{' '}
               {editing ? (
-                <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  {...testIdProps(TestIds.caseDetailPrioritySelect)}
+                >
                   <option value="low">low</option>
                   <option value="medium">medium</option>
                   <option value="high">high</option>
@@ -480,7 +515,11 @@ export function CaseDetail({
             <span>
               Status:{' '}
               {editing ? (
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value)}
+                  {...testIdProps(TestIds.caseDetailStatusSelect)}
+                >
                   <option value="draft">draft</option>
                   <option value="ready">ready</option>
                   <option value="deprecated">deprecated</option>
@@ -500,6 +539,7 @@ export function CaseDetail({
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 placeholder="comma-separated tags"
+                {...testIdProps(TestIds.caseDetailTagsInput)}
               />
             ) : tags.length === 0 ? (
               <span className="muted">none</span>
@@ -520,6 +560,7 @@ export function CaseDetail({
                 value={precondition}
                 onChange={(e) => setPrecondition(e.target.value)}
                 rows={3}
+                {...testIdProps(TestIds.caseDetailPreconditionInput)}
               />
             ) : (
               <p className="muted" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
@@ -536,6 +577,7 @@ export function CaseDetail({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
+                {...testIdProps(TestIds.caseDetailDescriptionInput)}
               />
             ) : (
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{c.description || '—'}</p>
@@ -543,11 +585,14 @@ export function CaseDetail({
           </section>
 
           {(fields.length > 0 || detail.custom_fields.length > 0) && (
-            <section style={{ marginBottom: '1rem' }}>
+            <section
+              style={{ marginBottom: '1rem' }}
+              {...testIdProps(TestIds.caseDetailCustomFields)}
+            >
               <h3>Custom fields</h3>
               <div className="cf-grid">
                 {editing
-                  ? fields.map((cf) => (
+                  ? fields.map((cf, index) => (
                       <label key={cf.id} className="cf-field">
                         <span className="muted">{cf.name}</span>
                         <input
@@ -558,6 +603,10 @@ export function CaseDetail({
                               [cf.id]: e.target.value,
                             }))
                           }
+                          {...listItemProps(TestIds.caseDetailCustomFieldInput, {
+                            entityId: cf.id,
+                            index,
+                          })}
                         />
                       </label>
                     ))
@@ -575,7 +624,7 @@ export function CaseDetail({
             </section>
           )}
 
-          <section>
+          <section {...testIdProps(TestIds.caseDetailSteps)}>
             <div className="detail-header">
               <h3>Steps</h3>
               {editing && (
@@ -588,6 +637,7 @@ export function CaseDetail({
                       { action: '', expected_result: '', data: '' },
                     ])
                   }
+                  {...testIdProps(TestIds.caseDetailAddStepButton)}
                 >
                   Add step
                 </button>
@@ -598,7 +648,14 @@ export function CaseDetail({
             ) : (
               <div className="steps">
                 {steps.map((step, idx) => (
-                  <div className="step" key={idx}>
+                  <div
+                    className="step"
+                    key={idx}
+                    {...listItemProps(TestIds.caseDetailStep, {
+                      entityId: String(idx),
+                      index: idx,
+                    })}
+                  >
                     <div className="step-num">{idx + 1}</div>
                     <div>
                       <div className="muted" style={{ fontSize: '0.78rem' }}>
@@ -614,6 +671,7 @@ export function CaseDetail({
                             next[idx] = { ...step, action: e.target.value }
                             setSteps(next)
                           }}
+                          {...testIdProps(TestIds.caseDetailStepAction)}
                         />
                       ) : (
                         <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
@@ -633,6 +691,7 @@ export function CaseDetail({
                             next[idx] = { ...step, expected_result: e.target.value }
                             setSteps(next)
                           }}
+                          {...testIdProps(TestIds.caseDetailStepExpected)}
                         />
                       ) : (
                         <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
@@ -643,6 +702,7 @@ export function CaseDetail({
                           className="btn secondary"
                           style={{ marginTop: '0.35rem' }}
                           onClick={() => setSteps((prev) => prev.filter((_, i) => i !== idx))}
+                          {...testIdProps(TestIds.caseDetailStepRemove)}
                         >
                           Remove
                         </button>
@@ -674,6 +734,7 @@ export function CaseDetail({
                   value={linkId}
                   onChange={(e) => setLinkId(e.target.value)}
                   aria-label="Requirement to link"
+                  {...testIdProps(TestIds.caseDetailLinkRequirementSelect)}
                 >
                   <option value="">Link a requirement…</option>
                   {allReqs
@@ -702,6 +763,7 @@ export function CaseDetail({
                       .then(() => setLinkId(''))
                       .catch((err: Error) => setError(err.message))
                   }}
+                  {...testIdProps(TestIds.caseDetailLinkRequirementButton)}
                 >
                   Link
                 </button>
@@ -709,7 +771,10 @@ export function CaseDetail({
             )}
           </section>
 
-          <section style={{ marginTop: '1.5rem' }}>
+          <section
+            style={{ marginTop: '1.5rem' }}
+            {...testIdProps(TestIds.caseDetailHistory)}
+          >
             <h3>Edit history</h3>
             {versions.length === 0 ? (
               <p className="muted">No snapshots yet.</p>
@@ -773,6 +838,7 @@ export function CaseDetail({
                           <td>
                             <Link
                               to={`/executions/runs/${row.run_id}/cases/${caseId}`}
+                              {...testIdProps(TestIds.caseDetailExecutionLink)}
                             >
                               {row.path}
                             </Link>
@@ -807,6 +873,7 @@ export function CaseDetail({
                   onClick={() =>
                     void loadExecutions(Math.max(0, execOffset - execLimit))
                   }
+                  {...testIdProps(TestIds.caseDetailExecutionsPrevButton)}
                 >
                   Previous
                 </button>
@@ -822,6 +889,7 @@ export function CaseDetail({
                     execLoading || execOffset + execLimit >= execPage.total
                   }
                   onClick={() => void loadExecutions(execOffset + execLimit)}
+                  {...testIdProps(TestIds.caseDetailExecutionsNextButton)}
                 >
                   Next
                 </button>
@@ -832,7 +900,11 @@ export function CaseDetail({
       )}
 
       {tab === 'history' && (
-        <section className="case-results-history" aria-label="Result history">
+        <section
+          className="case-results-history"
+          aria-label="Result history"
+          {...testIdProps(TestIds.caseDetailHistory)}
+        >
           {summary && (
             <div className="meta-row results-summary">
               <span>
@@ -858,6 +930,7 @@ export function CaseDetail({
               aria-label="Filter by status"
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
+              {...testIdProps(TestIds.caseDetailResultsStatusFilter)}
             >
               <option value="">All statuses</option>
               <option value="Passed">Passed</option>
@@ -873,12 +946,14 @@ export function CaseDetail({
               aria-label="Filter by run id"
               value={filterRunId}
               onChange={(e) => setFilterRunId(e.target.value)}
+              {...testIdProps(TestIds.caseDetailResultsRunFilter)}
             />
             <button
               type="button"
               className="btn secondary"
               disabled={resultsLoading}
               onClick={() => void loadResults(0)}
+              {...testIdProps(TestIds.caseDetailResultsApplyButton)}
             >
               Apply filters
             </button>
@@ -916,6 +991,7 @@ export function CaseDetail({
                   className="btn secondary"
                   disabled={resultsOffset <= 0 || resultsLoading}
                   onClick={() => void loadResults(Math.max(0, resultsOffset - resultsLimit))}
+                  {...testIdProps(TestIds.caseDetailResultsPrevButton)}
                 >
                   Previous
                 </button>
@@ -932,6 +1008,7 @@ export function CaseDetail({
                     resultsOffset + resultsLimit >= resultsPage.total
                   }
                   onClick={() => void loadResults(resultsOffset + resultsLimit)}
+                  {...testIdProps(TestIds.caseDetailResultsNextButton)}
                 >
                   Next
                 </button>

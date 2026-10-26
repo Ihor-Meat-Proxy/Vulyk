@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, type Suite, type TestPlan, type TestRun } from '../api'
 import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -122,11 +123,15 @@ export function RunsPage({ projectId, suites }: Props) {
   }
 
   if (!projectId) {
-    return <div className="empty">Select a project to manage runs.</div>
+    return (
+      <div className="runs-page empty" {...testIdProps(TestIds.runsPage)}>
+        Select a project to manage runs.
+      </div>
+    )
   }
 
   return (
-    <div className="runs-page">
+    <div className="runs-page" {...testIdProps(TestIds.runsPage)}>
       {canExecute && (
       <section className="panel" style={{ marginBottom: '1rem' }}>
         <h2 style={{ marginTop: 0 }}>Start a run</h2>
@@ -139,11 +144,13 @@ export function RunsPage({ projectId, suites }: Props) {
             placeholder="Run name"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            {...testIdProps(TestIds.runsCreateNameInput)}
           />
           <select
             className="filter-input"
             value={planId}
             onChange={(e) => setPlanId(e.target.value)}
+            {...testIdProps(TestIds.runsPlanSelect)}
           >
             <option value="">No plan</option>
             {plans.map((p) => (
@@ -156,6 +163,7 @@ export function RunsPage({ projectId, suites }: Props) {
             className="filter-input"
             value={suiteId}
             onChange={(e) => setSuiteId(e.target.value)}
+            {...testIdProps(TestIds.runsSuiteSelect)}
           >
             <option value="">All suites</option>
             {suites.map((s) => (
@@ -169,6 +177,7 @@ export function RunsPage({ projectId, suites }: Props) {
             className="btn"
             disabled={creating || !name.trim()}
             onClick={() => void createRun()}
+            {...testIdProps(TestIds.runsCreateButton)}
           >
             {creating ? 'Creating…' : 'Create run'}
           </button>
@@ -188,6 +197,7 @@ export function RunsPage({ projectId, suites }: Props) {
             value={uploadRunId}
             onChange={(e) => setUploadRunId(e.target.value)}
             aria-label="Upload target run"
+            {...testIdProps(TestIds.runsUploadRunSelect)}
           >
             <option value="">Select run…</option>
             {runs.map((r) => (
@@ -206,6 +216,7 @@ export function RunsPage({ projectId, suites }: Props) {
               if (file) void uploadJunit(file)
               e.target.value = ''
             }}
+            {...testIdProps(TestIds.runsUploadFileInput)}
           />
         </div>
         {uploadMessage && <p className="muted">{uploadMessage}</p>}
@@ -221,8 +232,14 @@ export function RunsPage({ projectId, suites }: Props) {
             placeholder="New plan name"
             value={planName}
             onChange={(e) => setPlanName(e.target.value)}
+            {...testIdProps(TestIds.runsPlanNameInput)}
           />
-          <button type="button" className="btn secondary" onClick={() => void createPlan()}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={() => void createPlan()}
+            {...testIdProps(TestIds.runsPlanAddButton)}
+          >
             Add plan
           </button>
         </div>
@@ -243,11 +260,23 @@ export function RunsPage({ projectId, suites }: Props) {
 
       <section className="panel">
         <h3 style={{ marginTop: 0 }}>Recent runs</h3>
-        {error && <p className="error">{error}</p>}
-        {loading && <p className="muted">Loading…</p>}
-        {!loading && runs.length === 0 && <div className="empty">No runs yet.</div>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.runsError)}>
+            {error}
+          </p>
+        )}
+        {loading && (
+          <p className="muted" {...testIdProps(TestIds.runsLoading)}>
+            Loading…
+          </p>
+        )}
+        {!loading && runs.length === 0 && (
+          <div className="empty" {...testIdProps(TestIds.runsEmpty)}>
+            No runs yet.
+          </div>
+        )}
         {runs.length > 0 && (
-          <table className="table">
+          <table className="table" {...testIdProps(TestIds.runsList)}>
             <thead>
               <tr>
                 <th>Name</th>
@@ -256,12 +285,24 @@ export function RunsPage({ projectId, suites }: Props) {
               </tr>
             </thead>
             <tbody>
-              {runs.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <Link to={`/runs/${r.id}`}>{r.name}</Link>
+              {runs.map((r, index) => (
+                <tr
+                  key={r.id}
+                  {...listItemProps(TestIds.runRow, {
+                    // UUID only — run names are freeform (spaces) and must not be entity keys
+                    entityId: r.id,
+                    index,
+                  })}
+                >
+                  <td {...testIdProps(TestIds.runRowName)}>
+                    <Link
+                      to={`/runs/${r.id}`}
+                      {...listChildProps(TestIds.runRow, 'link')}
+                    >
+                      {r.name}
+                    </Link>
                   </td>
-                  <td>
+                  <td {...testIdProps(TestIds.runRowStatus)}>
                     <span className={`status-pill status-${r.status}`}>{r.status}</span>
                   </td>
                   <td className="muted">{fmt(r.started_at)}</td>

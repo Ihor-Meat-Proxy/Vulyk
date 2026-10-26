@@ -2,12 +2,14 @@ import { Link } from 'react-router-dom'
 import type { Suite } from '../api'
 import { useI18n } from '../i18n'
 import { casePath } from '../lib/caseUrls'
+import { TestIds, testIdProps } from '../testing'
 
 export type BreadcrumbSeg = {
   id: string
   label: string
   to: string
   current?: boolean
+  kind: 'project' | 'folder' | 'case'
 }
 
 type Props = {
@@ -52,17 +54,20 @@ export function CaseBreadcrumbs({
       id: 'project',
       label: projectName,
       to: '/',
+      kind: 'project',
     },
     ...folders.map((f) => ({
       id: f.id,
       label: f.name,
       to: `/?suite=${encodeURIComponent(f.id)}`,
+      kind: 'folder' as const,
     })),
     {
       id: 'case',
       label: `${caseKey} ${caseTitle}`,
       to: casePath(caseKey),
       current: true,
+      kind: 'case' as const,
     },
   ]
 
@@ -70,7 +75,7 @@ export function CaseBreadcrumbs({
     <nav
       className="case-breadcrumbs"
       aria-label={t('cases.breadcrumbNav')}
-      data-testid="case-detail-breadcrumbs"
+      {...testIdProps(TestIds.caseDetailBreadcrumbs)}
     >
       <ol className="case-breadcrumbs-list">
         {segments.map((seg, i) => {
@@ -87,7 +92,7 @@ export function CaseBreadcrumbs({
                   className="case-breadcrumbs-current"
                   title={seg.label}
                   aria-current="page"
-                  data-testid="case-detail-breadcrumb-current"
+                  {...testIdProps(TestIds.caseDetailBreadcrumbCurrent)}
                 >
                   {seg.label}
                 </span>
@@ -96,12 +101,16 @@ export function CaseBreadcrumbs({
                   to={seg.to}
                   className="case-breadcrumbs-link"
                   title={seg.label}
-                  data-testid={`case-detail-breadcrumb-${seg.id === 'project' ? 'project' : 'folder'}`}
+                  {...testIdProps(
+                    seg.kind === 'project'
+                      ? TestIds.caseDetailBreadcrumbProject
+                      : TestIds.caseDetailBreadcrumbFolder,
+                  )}
                   onClick={(e) => {
-                    if (seg.id === 'project') {
+                    if (seg.kind === 'project') {
                       e.preventDefault()
                       onSelectFolder(null)
-                    } else if (seg.id !== 'case') {
+                    } else if (seg.kind === 'folder') {
                       e.preventDefault()
                       onSelectFolder(seg.id)
                     }

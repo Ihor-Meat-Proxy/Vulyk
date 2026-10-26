@@ -3,6 +3,13 @@ import { Link } from 'react-router-dom'
 import { api, type AutomatedSuite, type SuiteResultRow } from '../api'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import {
+  TestIds,
+  isSafeEntityKey,
+  listChildProps,
+  listItemProps,
+  testIdProps,
+} from '../testing'
 import { formatTimestamp } from '../timezone'
 import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
 import { StatusBadge } from './StatusBadge'
@@ -105,12 +112,14 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
         className="exec-drawer-backdrop"
         aria-label={t('executions.closeDrawer')}
         onClick={onClose}
+        {...testIdProps(TestIds.runDetailsDrawerBackdrop)}
       />
       <aside
         className="exec-drawer panel"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        {...testIdProps(TestIds.runDetailsDrawer)}
       >
         <div className="exec-drawer-header">
           <div>
@@ -127,29 +136,55 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                 pipelineUrl={suite.pipeline_url}
                 jobUrl={suite.job_url}
               />
-              <Link to={`/executions/runs/${suite.id}`}>
+              <Link
+                to={`/executions/runs/${suite.id}`}
+                {...testIdProps(TestIds.runDetailsDrawerLink)}
+              >
                 {t('executions.details')}
               </Link>
             </div>
           </div>
-          <button type="button" className="btn secondary" onClick={onClose}>
+          <button
+            type="button"
+            className="btn secondary"
+            onClick={onClose}
+            {...testIdProps(TestIds.runDetailsDrawerClose)}
+          >
             {t('executions.closeDrawer')}
           </button>
         </div>
 
         <h3>{t('executions.results')}</h3>
-        {error ? <p className="error">{error}</p> : null}
+        {error ? (
+          <p className="error" {...testIdProps(TestIds.runDetailsError)}>
+            {error}
+          </p>
+        ) : null}
         {loading && items.length === 0 ? (
-          <p className="muted">{t('common.loading')}</p>
+          <p className="muted" {...testIdProps(TestIds.runDetailsLoading)}>
+            {t('common.loading')}
+          </p>
         ) : items.length === 0 ? (
-          <p className="muted">{t('executions.noResults')}</p>
+          <p className="muted" {...testIdProps(TestIds.runDetailsEmpty)}>
+            {t('executions.noResults')}
+          </p>
         ) : (
           <ul className="exec-result-list">
-            {items.map((row) => {
+            {items.map((row, index) => {
               const isOpen = Boolean(expanded[row.result_id])
               const envText = envVarsText(row.environment_vars)
               return (
-                <li key={row.result_id} className="exec-result-row">
+                <li
+                  key={row.result_id}
+                  className="exec-result-row"
+                  {...listItemProps(TestIds.runDetailsResultRow, {
+                    entityId: row.result_id,
+                    entityKey: isSafeEntityKey(row.case_key)
+                      ? row.case_key
+                      : undefined,
+                    index,
+                  })}
+                >
                   <button
                     type="button"
                     className="exec-result-toggle"
@@ -160,6 +195,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                         [row.result_id]: !prev[row.result_id],
                       }))
                     }
+                    {...testIdProps(TestIds.runDetailsResultToggle)}
                   >
                     <StatusBadge status={row.status} />
                     <span className="exec-result-title">
@@ -176,12 +212,20 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                         <p>
                           <Link
                             to={`/executions/runs/${suite.id}/cases/${row.case_id}`}
+                            {...listChildProps(
+                              TestIds.runDetailsResultRow,
+                              'execution-link',
+                            )}
                           >
                             {t('executions.executionView')}
                           </Link>
                           {' · '}
                           <Link
                             to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
+                            {...listChildProps(
+                              TestIds.runDetailsResultRow,
+                              'case-link',
+                            )}
                           >
                             {t('executions.caseInfo')}
                           </Link>
@@ -228,6 +272,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
               className="btn secondary"
               disabled={offset <= 0 || loading}
               onClick={() => void loadMore(Math.max(0, offset - limit))}
+              {...testIdProps(TestIds.runDetailsPrevButton)}
             >
               ←
             </button>
@@ -239,6 +284,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
               className="btn secondary"
               disabled={loading || offset + limit >= total}
               onClick={() => void loadMore(offset + limit)}
+              {...testIdProps(TestIds.runDetailsNextButton)}
             >
               →
             </button>

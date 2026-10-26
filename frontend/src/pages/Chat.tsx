@@ -13,15 +13,23 @@ import {
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
 }
 
 type Turn = {
+  id: string
   role: 'user' | 'assistant'
   text: string
   meta?: string
+}
+
+let chatTurnSeq = 0
+function nextTurnId(): string {
+  chatTurnSeq += 1
+  return `turn-${chatTurnSeq}`
 }
 
 function configLabel(c: LlmConfig): string {
@@ -148,7 +156,7 @@ export function Chat({ projectId }: Props) {
     if (!projectId || !question.trim()) return
     const q = question.trim()
     setQuestion('')
-    setTurns((prev) => [...prev, { role: 'user', text: q }])
+    setTurns((prev) => [...prev, { id: nextTurnId(), role: 'user', text: q }])
     setBusy(true)
     setError(null)
     setNotice(null)
@@ -170,6 +178,7 @@ export function Chat({ projectId }: Props) {
         setTurns((prev) => [
           ...prev,
           {
+            id: nextTurnId(),
             role: 'assistant',
             text: res.clarify_question!,
             meta: t('chat.metaClarify', {
@@ -185,6 +194,7 @@ export function Chat({ projectId }: Props) {
         setTurns((prev) => [
           ...prev,
           {
+            id: nextTurnId(),
             role: 'assistant',
             text: res.answer || t('chat.emptyAnswer'),
             meta: t('chat.metaAnswer', {
@@ -201,6 +211,7 @@ export function Chat({ projectId }: Props) {
       setTurns((prev) => [
         ...prev,
         {
+          id: nextTurnId(),
           role: 'assistant',
           text: res.confirmation_prompt ?? t('chat.confirmPrompt'),
           meta: t('chat.metaPropose', {
@@ -215,6 +226,7 @@ export function Chat({ projectId }: Props) {
       setTurns((prev) => [
         ...prev,
         {
+          id: nextTurnId(),
           role: 'assistant',
           text: message,
           meta: t('chat.metaError'),
@@ -256,6 +268,7 @@ export function Chat({ projectId }: Props) {
       setTurns((prev) => [
         ...prev,
         {
+          id: nextTurnId(),
           role: 'assistant',
           text: createdBits.join('\n') || t('chat.createdOk'),
           meta: t('chat.metaCreated', {
@@ -294,7 +307,7 @@ export function Chat({ projectId }: Props) {
   const folderOptions = forRequirements ? reqFolders : suites
 
   return (
-    <div className="chat-page">
+    <div className="chat-page" {...testIdProps(TestIds.chatPage)}>
       <header className="panel-header">
         <h2>{t('chat.title')}</h2>
         <p className="muted">{t('chat.subtitle')}</p>
@@ -306,6 +319,7 @@ export function Chat({ projectId }: Props) {
           value={configId}
           onChange={(e) => setConfigId(e.target.value)}
           aria-label={t('generate.model')}
+          {...testIdProps(TestIds.chatModelSelect)}
         >
           {modelOptions.length === 0 && (
             <option value="">{t('generate.mockFallback')}</option>
@@ -318,12 +332,26 @@ export function Chat({ projectId }: Props) {
         </select>
       </label>
 
-      <div className="chat-log" aria-live="polite">
+      <div
+        className="chat-log"
+        aria-live="polite"
+        {...testIdProps(TestIds.chatMessages)}
+      >
         {turns.length === 0 && (
-          <p className="muted">{t('chat.emptyHint')}</p>
+          <p className="muted" {...testIdProps(TestIds.chatEmpty)}>
+            {t('chat.emptyHint')}
+          </p>
         )}
         {turns.map((turn, i) => (
-          <div key={i} className={`chat-bubble ${turn.role}`}>
+          <div
+            key={i}
+            className={`chat-bubble ${turn.role}`}
+            {...listItemProps(TestIds.chatMessage, {
+              entityId: turn.id,
+              entityKey: turn.role,
+              index: i,
+            })}
+          >
             <div className="chat-role">
               {turn.role === 'user' ? t('chat.you') : t('chat.assistant')}
             </div>
@@ -337,6 +365,7 @@ export function Chat({ projectId }: Props) {
         <section
           className="chat-proposal"
           aria-label={t('chat.proposalCard')}
+          {...testIdProps(TestIds.chatProposal)}
         >
           <h3>{t('chat.proposalTitle')}</h3>
           <p className="muted">{confirmPrompt}</p>
@@ -355,6 +384,7 @@ export function Chat({ projectId }: Props) {
                   })
                 }
                 aria-label={t('chat.project')}
+                {...testIdProps(TestIds.chatProjectSelect)}
               >
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -375,6 +405,7 @@ export function Chat({ projectId }: Props) {
                   })
                 }
                 aria-label={t('chat.folder')}
+                {...testIdProps(TestIds.chatFolderSelect)}
               >
                 <option value="">{t('chat.folderRoot')}</option>
                 {folderOptions.map((f) => (
@@ -398,12 +429,20 @@ export function Chat({ projectId }: Props) {
                 }
                 placeholder={t('chat.newFolderPlaceholder')}
                 aria-label={t('chat.newFolder')}
+                {...testIdProps(TestIds.chatNewFolderInput)}
               />
             </label>
           </div>
 
           {proposal.cases.map((c, i) => (
-            <div key={i} className="chat-draft-item">
+            <div
+              key={i}
+              className="chat-draft-item"
+              {...listItemProps(TestIds.chatDraftCase, {
+                entityId: String(i),
+                index: i,
+              })}
+            >
               <h4>
                 {t('chat.caseDraft')} {i + 1}
               </h4>
@@ -412,6 +451,7 @@ export function Chat({ projectId }: Props) {
                 <input
                   value={c.title}
                   onChange={(e) => updateCase(i, { title: e.target.value })}
+                  {...listChildProps(TestIds.chatDraftCase, 'title')}
                 />
               </label>
               <label className="field">
@@ -422,6 +462,7 @@ export function Chat({ projectId }: Props) {
                   onChange={(e) =>
                     updateCase(i, { description: e.target.value })
                   }
+                  {...listChildProps(TestIds.chatDraftCase, 'description')}
                 />
               </label>
               <label className="field">
@@ -432,6 +473,7 @@ export function Chat({ projectId }: Props) {
                   onChange={(e) =>
                     updateCase(i, { precondition: e.target.value })
                   }
+                  {...listChildProps(TestIds.chatDraftCase, 'precondition')}
                 />
               </label>
               <div className="chat-proposal-grid">
@@ -442,6 +484,7 @@ export function Chat({ projectId }: Props) {
                     onChange={(e) =>
                       updateCase(i, { priority: e.target.value })
                     }
+                    {...listChildProps(TestIds.chatDraftCase, 'priority')}
                   >
                     <option value="critical">critical</option>
                     <option value="high">high</option>
@@ -461,6 +504,7 @@ export function Chat({ projectId }: Props) {
                           .filter(Boolean),
                       })
                     }
+                    {...listChildProps(TestIds.chatDraftCase, 'tags')}
                   />
                 </label>
               </div>
@@ -481,6 +525,7 @@ export function Chat({ projectId }: Props) {
                           )
                           updateCase(i, { steps })
                         }}
+                        {...listChildProps(TestIds.chatDraftCase, 'step-action')}
                       />
                     </label>
                     <label className="field">
@@ -495,6 +540,10 @@ export function Chat({ projectId }: Props) {
                           )
                           updateCase(i, { steps })
                         }}
+                        {...listChildProps(
+                          TestIds.chatDraftCase,
+                          'step-expected',
+                        )}
                       />
                     </label>
                   </div>
@@ -504,7 +553,14 @@ export function Chat({ projectId }: Props) {
           ))}
 
           {proposal.requirements.map((r, i) => (
-            <div key={i} className="chat-draft-item">
+            <div
+              key={i}
+              className="chat-draft-item"
+              {...listItemProps(TestIds.chatDraftRequirement, {
+                entityId: String(i),
+                index: i,
+              })}
+            >
               <h4>
                 {t('chat.reqDraft')} {i + 1}
               </h4>
@@ -513,6 +569,7 @@ export function Chat({ projectId }: Props) {
                 <input
                   value={r.title}
                   onChange={(e) => updateReq(i, { title: e.target.value })}
+                  {...listChildProps(TestIds.chatDraftRequirement, 'title')}
                 />
               </label>
               <label className="field">
@@ -523,6 +580,10 @@ export function Chat({ projectId }: Props) {
                   onChange={(e) =>
                     updateReq(i, { description: e.target.value })
                   }
+                  {...listChildProps(
+                    TestIds.chatDraftRequirement,
+                    'description',
+                  )}
                 />
               </label>
               <label className="field">
@@ -533,6 +594,10 @@ export function Chat({ projectId }: Props) {
                   onChange={(e) =>
                     updateReq(i, { acceptance_criteria: e.target.value })
                   }
+                  {...listChildProps(
+                    TestIds.chatDraftRequirement,
+                    'acceptance',
+                  )}
                 />
               </label>
             </div>
@@ -544,6 +609,7 @@ export function Chat({ projectId }: Props) {
               className="btn"
               disabled={busy || !canConfirm}
               onClick={() => void onCreate()}
+              {...testIdProps(TestIds.chatApplyButton)}
             >
               {t('chat.create')}
             </button>
@@ -552,6 +618,7 @@ export function Chat({ projectId }: Props) {
               className="btn secondary"
               disabled={busy}
               onClick={onRevise}
+              {...testIdProps(TestIds.chatReviseButton)}
             >
               {t('chat.revise')}
             </button>
@@ -563,6 +630,7 @@ export function Chat({ projectId }: Props) {
                 setProposal(null)
                 setConfirmPrompt(null)
               }}
+              {...testIdProps(TestIds.chatDismissButton)}
             >
               {t('chat.dismiss')}
             </button>
@@ -573,8 +641,17 @@ export function Chat({ projectId }: Props) {
         </section>
       )}
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" {...testIdProps(TestIds.chatError)}>
+          {error}
+        </p>
+      )}
       {notice && <p className="notice">{notice}</p>}
+      {busy && (
+        <p className="muted" {...testIdProps(TestIds.chatLoading)}>
+          {t('chat.thinking')}
+        </p>
+      )}
 
       <form className="chat-compose" onSubmit={(e) => void onAsk(e)}>
         <input
@@ -583,8 +660,13 @@ export function Chat({ projectId }: Props) {
           placeholder={t('chat.placeholder')}
           disabled={busy}
           aria-label={t('chat.placeholder')}
+          {...testIdProps(TestIds.chatInput)}
         />
-        <button type="submit" disabled={busy || !question.trim()}>
+        <button
+          type="submit"
+          disabled={busy || !question.trim()}
+          {...testIdProps(TestIds.chatSendButton)}
+        >
           {busy ? t('chat.thinking') : t('chat.ask')}
         </button>
       </form>

@@ -6,6 +6,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
 import { LOCALES, useI18n, type Locale } from '../i18n'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 function GlobeIcon() {
   return (
@@ -100,6 +101,7 @@ export function LanguageMenu() {
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((v) => !v)}
+        {...testIdProps(TestIds.headerLanguageMenu)}
       >
         <GlobeIcon />
       </button>
@@ -111,8 +113,9 @@ export function LanguageMenu() {
           aria-label={label}
           ref={listRef}
           onKeyDown={onMenuKeyDown}
+          {...testIdProps(TestIds.headerLanguageMenuPanel)}
         >
-          {LOCALES.map((meta) => {
+          {LOCALES.map((meta, index) => {
             const checked = meta.code === locale
             return (
               <li key={meta.code} role="none">
@@ -123,6 +126,11 @@ export function LanguageMenu() {
                   className={checked ? 'is-active' : undefined}
                   tabIndex={checked ? 0 : -1}
                   onClick={() => choose(meta.code)}
+                  {...listItemProps(TestIds.headerLanguageItem, {
+                    entityId: meta.code,
+                    entityKey: meta.code,
+                    index,
+                  })}
                 >
                   <span className="icon-menu-check" aria-hidden="true">
                     {checked ? '✓' : ''}

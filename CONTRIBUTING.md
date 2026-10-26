@@ -25,7 +25,7 @@ cd frontend && npm install && npm run dev
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cd frontend && npm ci && npm run lint && npm run typecheck && npm run test && npm run build
+cd frontend && npm ci && npm run lint && npm run typecheck && npm run test && npm run check:test-ids && npm run build
 docker build -f backend/Dockerfile -t vulyk-api:local .
 docker build -f frontend/Dockerfile -t vulyk-web:local ./frontend
 ./scripts/check-migrations.sh
@@ -54,6 +54,10 @@ cargo run -p vulyk-api -- migrate run
 ```
 
 Upgrades for operators: [docs/guides/upgrade.md](docs/guides/upgrade.md).
+
+## Playwright test ids
+
+Interactive UI must expose stable `data-testid` attributes. Convention, list/row attrs, strip flag (`VITE_STRIP_TEST_IDS`), security (no PII/secrets in `data-*`), and enforcement are documented in [docs/testing/test-ids.md](docs/testing/test-ids.md). Use typed constants from `frontend/src/testing/testIds.ts` in components and e2e — do not invent ad-hoc selectors. Never put emails, names, passwords, or tokens into `data-testid` / `data-entity-*`.
 
 ## API / schema changes
 

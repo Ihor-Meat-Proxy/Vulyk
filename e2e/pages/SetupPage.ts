@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 export class SetupPage {
   constructor(readonly page: Page) {}
@@ -11,10 +12,9 @@ export class SetupPage {
       sessionStorage.clear()
     })
     await this.page.goto('/')
-    // Match the token field (title alone also appears on the success panel).
-    await expect(
-      this.page.getByLabel(/Setup token|Setup-токен/i),
-    ).toBeVisible({ timeout: 60_000 })
+    await expect(this.page.getByTestId(TestIds.setupTokenInput)).toBeVisible({
+      timeout: 60_000,
+    })
   }
 
   async fill(opts: {
@@ -26,53 +26,41 @@ export class SetupPage {
     timezone?: string
     registrationMode?: 'open' | 'invite' | 'disabled'
   }) {
-    await this.page.getByLabel(/Setup token|Setup-токен/i).fill(opts.token)
+    await this.page.getByTestId(TestIds.setupTokenInput).fill(opts.token)
     await this.page
-      .getByLabel(/Display name|Ім'я/i)
+      .getByTestId(TestIds.setupDisplayNameInput)
       .fill(opts.displayName ?? 'Setup Admin')
-    await this.page
-      .getByLabel(/Admin email|Email адміна/i)
-      .fill(opts.email)
-    await this.page
-      .getByLabel(/Admin password|Пароль адміна/i)
-      .fill(opts.password)
+    await this.page.getByTestId(TestIds.setupEmailInput).fill(opts.email)
+    await this.page.getByTestId(TestIds.setupPasswordInput).fill(opts.password)
     if (opts.locale) {
       await this.page
-        .getByLabel(
-          /Default locale|Мова за замовчуванням|Langue par défaut|Idioma predeterminado|Standardsprache/i,
-        )
+        .getByTestId(TestIds.setupLocaleSelect)
         .selectOption(opts.locale)
     }
     if (opts.timezone) {
       await this.page
-        .getByLabel(
-          /Default timezone|Часовий пояс|Fuseau horaire|Zona horaria|Zeitzone/i,
-        )
+        .getByTestId(TestIds.setupTimezoneInput)
         .fill(opts.timezone)
     }
     if (opts.registrationMode) {
       await this.page
-        .getByLabel(
-          /Registration mode|Режим реєстрації|Mode d.inscription|Modo de registro|Registrierungsmodus/i,
-        )
+        .getByTestId(TestIds.setupRegistrationSelect)
         .selectOption(opts.registrationMode)
     }
   }
 
   async submit() {
-    await this.page
-      .getByRole('button', { name: /Complete setup|Завершити налаштування/i })
-      .click()
+    await this.page.getByTestId(TestIds.setupSubmitButton).click()
   }
 
   async expectSuccess() {
-    await expect(
-      this.page.getByText(/Setup complete|Налаштування завершено/i),
-    ).toBeVisible({ timeout: 30_000 })
+    await expect(this.page.getByTestId(TestIds.setupSuccess)).toBeVisible({
+      timeout: 30_000,
+    })
   }
 
   async expectError() {
-    await expect(this.page.locator('.login-panel .error')).toBeVisible({
+    await expect(this.page.getByTestId(TestIds.setupError)).toBeVisible({
       timeout: 15_000,
     })
   }

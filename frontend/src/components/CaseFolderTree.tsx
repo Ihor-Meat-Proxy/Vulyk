@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Suite, type TestCase } from '../api'
 import { useI18n } from '../i18n'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { CaseStatusIcon } from './CaseStatusIcon'
 
 const TREE_PAGE = 100
@@ -189,7 +190,7 @@ export function CaseFolderTree({
     if (!state) return null
     return (
       <>
-        {state.items.map((c) => (
+        {state.items.map((c, index) => (
           <div
             key={c.id}
             className={`folder-tree-case${selectedCaseId === c.id ? ' active' : ''}`}
@@ -197,6 +198,12 @@ export function CaseFolderTree({
             draggable={canEditCases}
             onDragStart={() => setDragCaseId(c.id)}
             onDragEnd={() => setDragCaseId(null)}
+            {...listItemProps(TestIds.folderCaseItem, {
+              entityId: c.id,
+              entityKey: c.key,
+              index,
+              depth,
+            })}
           >
             <span className={`priority-bar priority-${c.priority}`} aria-hidden />
             <span
@@ -209,7 +216,7 @@ export function CaseFolderTree({
             <Link
               to={`/cases/${encodeURIComponent(c.key)}`}
               className="folder-tree-case-link"
-              data-testid="folder-tree-case-link"
+              {...listChildProps(TestIds.folderCaseItem, 'link')}
             >
               <span className="folder-tree-case-key">{c.key}</span>
               <span className="folder-tree-case-title">{c.title}</span>
@@ -222,6 +229,7 @@ export function CaseFolderTree({
                 onClick={() =>
                   setMobileMoveCaseId((prev) => (prev === c.id ? null : c.id))
                 }
+                {...listChildProps(TestIds.folderCaseItem, 'move')}
               >
                 {t('folders.moveTo')}
               </button>
@@ -236,6 +244,7 @@ export function CaseFolderTree({
                     onMoveCase(c.id, next)
                     setMobileMoveCaseId(null)
                   }}
+                  {...listChildProps(TestIds.folderCaseItem, 'move-select')}
                 >
                   <option value="">{t('folders.root')}</option>
                   {suites.map((s) => (
@@ -252,6 +261,7 @@ export function CaseFolderTree({
           <p
             className="muted"
             style={{ paddingLeft: `${0.75 + depth * 0.9}rem`, fontSize: '0.8rem' }}
+            {...testIdProps(TestIds.folderTreeLoading)}
           >
             {t('common.loading')}
           </p>
@@ -262,6 +272,7 @@ export function CaseFolderTree({
             className="folder-tree-load-more"
             style={{ marginLeft: `${0.75 + depth * 0.9}rem` }}
             onClick={() => void loadFolderCases(suiteId, true)}
+            {...testIdProps(TestIds.folderNodeLoadMore)}
           >
             {t('folders.loadMore')} ({state.items.length}/{state.total})
           </button>
@@ -270,7 +281,7 @@ export function CaseFolderTree({
     )
   }
 
-  const renderFolder = (node: FolderNode, depth: number) => {
+  const renderFolder = (node: FolderNode, depth: number, index: number) => {
     const open = expanded.has(node.id)
     const recursive = node.case_count ?? 0
     const direct = node.direct_case_count ?? 0
@@ -287,6 +298,11 @@ export function CaseFolderTree({
             e.preventDefault()
             onDropTarget(node.id)
           }}
+          {...listItemProps(TestIds.folderNode, {
+            entityId: node.id,
+            index,
+            depth,
+          })}
         >
           <button
             type="button"
@@ -294,6 +310,7 @@ export function CaseFolderTree({
             aria-expanded={open}
             aria-label={open ? t('folders.collapse') : t('folders.expand')}
             onClick={() => toggle(node.id)}
+            {...testIdProps(TestIds.folderNodeTwistie)}
           >
             {open ? '−' : '+'}
           </button>
@@ -302,13 +319,19 @@ export function CaseFolderTree({
             className="folder-tree-folder-btn"
             onClick={() => onSelectSuite(node.id)}
             title={countTooltip(recursive, direct)}
+            {...testIdProps(TestIds.folderNodeButton)}
           >
             <span className="folder-icon" aria-hidden />
-            <span className="folder-tree-folder-name">{node.name}</span>
+            <span
+              className="folder-tree-folder-name"
+              {...testIdProps(TestIds.folderNodeName)}
+            >
+              {node.name}
+            </span>
             <span
               className="folder-tree-count"
               title={countTooltip(recursive, direct)}
-              data-testid={`folder-count-${node.id}`}
+              {...testIdProps(TestIds.folderNodeCount)}
             >
               {recursive}
             </span>
@@ -321,6 +344,7 @@ export function CaseFolderTree({
                 title={t('folders.addChild')}
                 aria-label={t('folders.addChild')}
                 onClick={() => onCreateFolder(node.id)}
+                {...testIdProps(TestIds.folderNodeAddChild)}
               >
                 +
               </button>
@@ -330,6 +354,7 @@ export function CaseFolderTree({
                 title={t('folders.rename')}
                 aria-label={t('folders.rename')}
                 onClick={() => onRenameFolder(node)}
+                {...testIdProps(TestIds.folderNodeRename)}
               >
                 ✎
               </button>
@@ -339,6 +364,7 @@ export function CaseFolderTree({
                 title={t('folders.delete')}
                 aria-label={t('folders.delete')}
                 onClick={() => onDeleteFolder(node)}
+                {...testIdProps(TestIds.folderNodeDelete)}
               >
                 ⌫
               </button>
@@ -347,7 +373,9 @@ export function CaseFolderTree({
         </div>
         {open && (
           <div className="folder-tree-children">
-            {node.children.map((child) => renderFolder(child, depth + 1))}
+            {node.children.map((child, childIndex) =>
+              renderFolder(child, depth + 1, childIndex),
+            )}
             {renderCases(node.id, depth + 1)}
           </div>
         )}
@@ -358,7 +386,12 @@ export function CaseFolderTree({
   const unfiledOpen = expanded.has(UNFILED_KEY)
 
   return (
-    <div className="folder-tree" role="region" aria-label={t('folders.panel')}>
+    <div
+      className="folder-tree"
+      role="region"
+      aria-label={t('folders.panel')}
+      {...testIdProps(TestIds.folderTree)}
+    >
       <div className="folder-tree-toolbar">
         <span className="folder-tree-title">{t('folders.title')}</span>
         {canManage && (
@@ -366,6 +399,7 @@ export function CaseFolderTree({
             type="button"
             className="btn secondary"
             onClick={() => onCreateFolder(null)}
+            {...testIdProps(TestIds.folderTreeNewButton)}
           >
             {t('folders.new')}
           </button>
@@ -380,15 +414,15 @@ export function CaseFolderTree({
           e.preventDefault()
           onDropTarget(null)
         }}
-        data-testid="folder-all-cases"
+        {...testIdProps(TestIds.folderAllCases)}
       >
         <span>{t('nav.allCases')}</span>
         <span className="folder-tree-count" title={t('folders.projectTotal')}>
           {projectCaseTotal}
         </span>
       </button>
-      {tree.map((node) => renderFolder(node, 0))}
-      <div className="folder-tree-node">
+      {tree.map((node, index) => renderFolder(node, 0, index))}
+      <div className="folder-tree-node" {...testIdProps(TestIds.folderUnfiled)}>
         <div
           className="folder-tree-folder"
           style={{ paddingLeft: '0.35rem' }}
@@ -404,6 +438,7 @@ export function CaseFolderTree({
             aria-expanded={unfiledOpen}
             aria-label={unfiledOpen ? t('folders.collapse') : t('folders.expand')}
             onClick={toggleUnfiled}
+            {...testIdProps(TestIds.folderUnfiledTwistie)}
           >
             {unfiledOpen ? '−' : '+'}
           </button>
@@ -411,6 +446,7 @@ export function CaseFolderTree({
             type="button"
             className="folder-tree-folder-btn"
             onClick={() => onSelectSuite(null)}
+            {...testIdProps(TestIds.folderUnfiledButton)}
           >
             <span className="folder-tree-folder-name">{t('folders.unfiled')}</span>
           </button>
@@ -420,7 +456,12 @@ export function CaseFolderTree({
         )}
       </div>
       {suites.length === 0 && (
-        <p className="muted folder-tree-empty">{t('folders.empty')}</p>
+        <p
+          className="muted folder-tree-empty"
+          {...testIdProps(TestIds.folderTreeEmpty)}
+        >
+          {t('folders.empty')}
+        </p>
       )}
     </div>
   )

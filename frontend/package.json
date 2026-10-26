@@ -10,6 +10,7 @@
     "lint": "oxlint src",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "check:test-ids": "node scripts/check-test-ids.mjs",
     "preview": "vite preview",
     "lighthouse:ci": "node scripts/lighthouse-ci.mjs"
   },

@@ -121,6 +121,7 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
+      - run: npm run check:test-ids
       - run: npm run build
 
   docker:
@@ -431,7 +432,38 @@ jobs:
           npm run build
       - name: Install Chrome for Lighthouse
         run: |
-          npx --yes @puppeteer/browsers install chrome@stable
+          # Prefer @puppeteer/browsers; chrome-for-testing CDN often flakes.
+          # Fall back to the runner's system Chrome / Chromium.
+          for attempt in 1 2 3; do
+            if npx --yes @puppeteer/browsers install chrome@stable; then
+              echo "Installed chrome via @puppeteer/browsers"
+              exit 0
+            fi
+            echo "Chrome install attempt ${attempt} failed; retrying…" >&2
+            sleep $((attempt * 3))
+          done
+          for candidate in \
+            /usr/bin/google-chrome-stable \
+            /usr/bin/google-chrome \
+            /usr/bin/chromium-browser \
+            /usr/bin/chromium; do
+            if [ -x "$candidate" ]; then
+              echo "Using system browser: $candidate"
+              echo "CHROME_PATH=$candidate" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          # Last resort: apt chromium
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium-browser || sudo apt-get install -y -qq chromium
+          for candidate in /usr/bin/chromium-browser /usr/bin/chromium; do
+            if [ -x "$candidate" ]; then
+              echo "CHROME_PATH=$candidate" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "No Chrome/Chromium available for Lighthouse" >&2
+          exit 1
       - name: Start preview
         working-directory: frontend
         run: |
@@ -454,11 +486,13 @@ jobs:
           LH_MIN_PWA: "0.8"
           LH_MIN_A11Y: "0.85"
         run: |
-          # Point lighthouse at the puppeteer-installed Chrome if present
-          CHROME_BIN="$(find "$HOME/.cache/puppeteer" -type f -name chrome -path '*/chrome-linux*/chrome' 2>/dev/null | head -n1 || true)"
-          if [ -n "$CHROME_BIN" ]; then
-            export CHROME_PATH="$CHROME_BIN"
+          if [ -z "${CHROME_PATH:-}" ]; then
+            CHROME_BIN="$(find "$HOME/.cache/puppeteer" -type f -name chrome -path '*/chrome-linux*/chrome' 2>/dev/null | head -n1 || true)"
+            if [ -n "$CHROME_BIN" ]; then
+              export CHROME_PATH="$CHROME_BIN"
+            fi
           fi
+          echo "CHROME_PATH=${CHROME_PATH:-"(chrome-launcher default)"}"
           npm run lighthouse:ci
       - name: Upload Lighthouse report
         if: always()

@@ -50,8 +50,8 @@
                 "uk": "Open the UI root URL (e.g. http://localhost:5173/) while setup is incomplete."
               },
               "expected_result": {
-                "en": "Setup wizard is shown (or redirect to setup); getByLabel(/Setup token|Setup-токен/i) is visible.",
-                "uk": "Setup wizard is shown (or redirect to setup); getByLabel(/Setup token|Setup-токен/i) is visible."
+                "en": "Setup wizard is shown (or redirect to setup); getByTestId('setup-token-input') is visible.",
+                "uk": "Setup wizard is shown (or redirect to setup); getByTestId('setup-token-input') is visible."
               },
               "data": {
                 "en": "",
@@ -64,8 +64,8 @@
                 "uk": "Fill Setup token, Display name, Admin email, Admin password (≥8 chars with letter+digit), locale en, timezone UTC, registration open; click Complete setup."
               },
               "expected_result": {
-                "en": "Setup completes; user lands in app shell (.app-shell) or login; setup_completed is true.",
-                "uk": "Setup completes; user lands in app shell (.app-shell) or login; setup_completed is true."
+                "en": "Setup completes; user lands in app shell (data-testid=app-shell) or login; setup_completed is true.",
+                "uk": "Setup completes; user lands in app shell (data-testid=app-shell) or login; setup_completed is true."
               },
               "data": {
                 "en": "admin@example.com / Str0ngPass1",
@@ -411,8 +411,8 @@
                     "uk": "Open login panel; fill Email and Password; submit."
                   },
                   "expected_result": {
-                    "en": ".app-shell is visible; getByRole('navigation', {name: 'Primary'}) contains Cases|Кейси.",
-                    "uk": ".app-shell is visible; getByRole('navigation', {name: 'Primary'}) contains Cases|Кейси."
+                    "en": "getByTestId('app-shell') is visible; getByTestId('nav-link-cases') is visible.",
+                    "uk": "getByTestId('app-shell') is visible; getByTestId('nav-link-cases') is visible."
                   },
                   "data": {
                     "en": "admin@vulyk.local / admin (or changed password)",
@@ -449,12 +449,12 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Fill Email with admin@vulyk.local and Password with definitely-wrong-password; submit.",
-                    "uk": "Fill Email with admin@vulyk.local and Password with definitely-wrong-password; submit."
+                    "en": "Fill getByTestId('login-email-input') with admin@vulyk.local and getByTestId('login-password-input') with definitely-wrong-password; click getByTestId('login-submit-button').",
+                    "uk": "Fill getByTestId('login-email-input') with admin@vulyk.local and getByTestId('login-password-input') with definitely-wrong-password; click getByTestId('login-submit-button')."
                   },
                   "expected_result": {
-                    "en": "Login error is visible; .app-shell count is 0.",
-                    "uk": "Login error is visible; .app-shell count is 0."
+                    "en": "getByTestId('login-error') is visible; getByTestId('app-shell') count is 0.",
+                    "uk": "getByTestId('login-error') is visible; getByTestId('app-shell') count is 0."
                   },
                   "data": {
                     "en": "",
@@ -795,8 +795,8 @@
                     "uk": "Open login; click the SSO provider button for the mock OIDC provider."
                   },
                   "expected_result": {
-                    "en": "Browser redirects to IdP (or mock); after callback user is authenticated in .app-shell.",
-                    "uk": "Browser redirects to IdP (or mock); after callback user is authenticated in .app-shell."
+                    "en": "Browser redirects to IdP (or mock); after callback user is authenticated (getByTestId('app-shell')).",
+                    "uk": "Browser redirects to IdP (or mock); after callback user is authenticated (getByTestId('app-shell'))."
                   },
                   "data": {
                     "en": "",
@@ -929,8 +929,8 @@
                     "uk": "Click logout control from the shell."
                   },
                   "expected_result": {
-                    "en": "Login panel visible; getByLabel(/^Email$/i) is present; .app-shell gone.",
-                    "uk": "Login panel visible; getByLabel(/^Email$/i) is present; .app-shell gone."
+                    "en": "getByTestId('login-panel') and getByTestId('login-email-input') visible; app-shell gone.",
+                    "uk": "getByTestId('login-panel') and getByTestId('login-email-input') visible; app-shell gone."
                   },
                   "data": {
                     "en": "",
@@ -943,8 +943,8 @@
                     "uk": "Sign back in with admin credentials."
                   },
                   "expected_result": {
-                    "en": ".app-shell visible again within timeout.",
-                    "uk": ".app-shell visible again within timeout."
+                    "en": "getByTestId('app-shell') visible again within timeout.",
+                    "uk": "getByTestId('app-shell') visible again within timeout."
                   },
                   "data": {
                     "en": "admin@vulyk.local / admin (must_change_password on first login after seed)",
@@ -1857,8 +1857,8 @@
           "steps": [
             {
               "action": {
-                "en": "Create case with title only via getByRole('button', {name: /Create case|Створити кейс/i}).",
-                "uk": "Create case with title only via getByRole('button', {name: /Create case|Створити кейс/i})."
+                "en": "Create case with title only via getByTestId('case-list-new-title-input') + getByTestId('case-list-new-case-button').",
+                "uk": "Create case with title only via getByTestId('case-list-new-title-input') + getByTestId('case-list-new-case-button')."
               },
               "expected_result": {
                 "en": "New case key is PREFIX-(n+1) vs previous max.",
@@ -2549,8 +2549,8 @@
                 },
                 {
                   "action": {
-                    "en": "In .folder-tree find [data-testid=folder-count-{parentId}]; check text and title.",
-                    "uk": "In .folder-tree find [data-testid=folder-count-{parentId}]; check text and title."
+                    "en": "In getByTestId('folder-tree') find [data-testid=folder-node][data-entity-id={parentId}] [data-testid=folder-node-count]; check text and title.",
+                    "uk": "In getByTestId('folder-tree') find [data-testid=folder-node][data-entity-id={parentId}] [data-testid=folder-node-count]; check text and title."
                   },
                   "expected_result": {
                     "en": "Visible text is recursive total; title matches '{recursive} ({direct} direct)'.",
@@ -2647,8 +2647,8 @@
               "steps": [
                 {
                   "action": {
-                    "en": "With a folder selected, enable checkbox Direct only|Лише прямі in .case-list-panel.",
-                    "uk": "With a folder selected, enable checkbox Direct only|Лише прямі in .case-list-panel."
+                    "en": "With a folder selected, enable getByTestId('case-list-direct-only-checkbox') in getByTestId('case-list-panel').",
+                    "uk": "With a folder selected, enable getByTestId('case-list-direct-only-checkbox') in getByTestId('case-list-panel')."
                   },
                   "expected_result": {
                     "en": "List total drops to direct_case_count; GET cases?suite_id=&direct_only=true matches.",
@@ -3359,8 +3359,8 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Select cases via getByLabel('Select {key}'); click Mark ready.",
-                    "uk": "Select cases via getByLabel('Select {key}'); click Mark ready."
+                    "en": "Select cases via [data-testid=case-row][data-entity-key={key}] getByTestId('case-row-checkbox'); click getByTestId('case-list-mark-ready-button').",
+                    "uk": "Select cases via [data-testid=case-row][data-entity-key={key}] getByTestId('case-row-checkbox'); click getByTestId('case-list-mark-ready-button')."
                   },
                   "expected_result": {
                     "en": "Selected cases status becomes ready.",
@@ -3410,8 +3410,8 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Fill getByLabel(/Search cases|Пошук кейсів/i) with a unique token from title.",
-                    "uk": "Fill getByLabel(/Search cases|Пошук кейсів/i) with a unique token from title."
+                    "en": "Fill getByTestId('case-list-search-input') with a unique token from title.",
+                    "uk": "Fill getByTestId('case-list-search-input') with a unique token from title."
                   },
                   "expected_result": {
                     "en": "Matching case visible; unrelated cases hidden.",
@@ -3828,8 +3828,8 @@
               "steps": [
                 {
                   "action": {
-                    "en": "Select a case in run; click getByRole('group',{name:'Result status'}).getByRole('button',{name:'Passed'}).",
-                    "uk": "Select a case in run; click getByRole('group',{name:'Result status'}).getByRole('button',{name:'Passed'})."
+                    "en": "Select a case in run; click getByTestId('execution-pass-button').",
+                    "uk": "Select a case in run; click getByTestId('execution-pass-button')."
                   },
                   "expected_result": {
                     "en": "Status pill shows Passed; history entry created.",
@@ -6785,12 +6785,12 @@
             },
             {
               "action": {
-                "en": "Close menu; in .case-list-panel click Folders|Теки (.folders-drawer-toggle).",
-                "uk": "Close menu; in .case-list-panel click Folders|Теки (.folders-drawer-toggle)."
+                "en": "Close menu; in getByTestId('case-list-panel') click getByTestId('case-list-folders-toggle').",
+                "uk": "Close menu; in getByTestId('case-list-panel') click getByTestId('case-list-folders-toggle')."
               },
               "expected_result": {
-                "en": "#case-folder-drawer slides open with .folder-tree; [data-testid=folder-all-cases] visible.",
-                "uk": "#case-folder-drawer slides open with .folder-tree; [data-testid=folder-all-cases] visible."
+                "en": "getByTestId('case-list-folders-drawer') opens with getByTestId('folder-tree'); getByTestId('folder-all-cases') visible.",
+                "uk": "getByTestId('case-list-folders-drawer') opens with getByTestId('folder-tree'); getByTestId('folder-all-cases') visible."
               },
               "data": {
                 "en": "",
@@ -7705,12 +7705,82 @@
         {
           "key": "VQA-167",
           "title": {
+            "en": "Stable data-testid attrs avoid PII and support Playwright",
+            "uk": "Стабільні data-testid без PII для Playwright"
+          },
+          "description": {
+            "en": "UI exposes kebab-case data-testid; list rows use data-entity-id/key/index; never emails/secrets in data-*.",
+            "uk": "UI exposes kebab-case data-testid; list rows use data-entity-id/key/index; never emails/secrets in data-*."
+          },
+          "precondition": {
+            "en": "Built frontend without VITE_STRIP_TEST_IDS; admin session.",
+            "uk": "Built frontend without VITE_STRIP_TEST_IDS; admin session."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "a11y",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Open login; locate getByTestId('login-email-input') and getByTestId('login-submit-button').",
+                "uk": "Open login; locate getByTestId('login-email-input') and getByTestId('login-submit-button')."
+              },
+              "expected_result": {
+                "en": "Controls found by static test ids (not by email value in attributes).",
+                "uk": "Controls found by static test ids (not by email value in attributes)."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "After login open Cases; inspect a case-row: data-testid=case-row with data-entity-id (UUID) and data-entity-key (e.g. VQA-001).",
+                "uk": "After login open Cases; inspect a case-row: data-testid=case-row with data-entity-id (UUID) and data-entity-key (e.g. VQA-001)."
+              },
+              "expected_result": {
+                "en": "No data-* attribute contains '@', JWT, or password/token secret material.",
+                "uk": "No data-* attribute contains '@', JWT, or password/token secret material."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Run frontend unit tests for testing/security.ts and e2e test-id-audit.spec.ts (or npm run check:test-ids).",
+                "uk": "Run frontend unit tests for testing/security.ts and e2e test-id-audit.spec.ts (or npm run check:test-ids)."
+              },
+              "expected_result": {
+                "en": "Checks fail if PII/secrets appear in test attrs or interactive controls lack ids.",
+                "uk": "Checks fail if PII/secrets appear in test attrs or interactive controls lack ids."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:test-id-audit.spec.ts"
+        },
+        {
+          "key": "VQA-168",
+          "title": {
             "en": "Project switcher changes active project context",
             "uk": "Перемикач проєктів змінює активний контекст"
           },
           "description": {
-            "en": ".project-select switches cases/runs scope.",
-            "uk": ".project-select switches cases/runs scope."
+            "en": "getByTestId('header-project-select') switches cases/runs scope.",
+            "uk": "getByTestId('header-project-select') switches cases/runs scope."
           },
           "precondition": {
             "en": "User member of ≥2 projects (Kyiv + Vulyk QA).",
@@ -7729,8 +7799,8 @@
           "steps": [
             {
               "action": {
-                "en": "Select Kyiv Open-Air Concert 2026 then Vulyk QA in .project-select.",
-                "uk": "Select Kyiv Open-Air Concert 2026 then Vulyk QA in .project-select."
+                "en": "Select Kyiv Open-Air Concert 2026 then Vulyk QA in getByTestId('header-project-select').",
+                "uk": "Select Kyiv Open-Air Concert 2026 then Vulyk QA in getByTestId('header-project-select')."
               },
               "expected_result": {
                 "en": "Folder tree and case keys switch (KC-* vs VQA-*).",
@@ -7745,7 +7815,7 @@
           "external_key": "e2e:sample-project.spec.ts"
         },
         {
-          "key": "VQA-168",
+          "key": "VQA-169",
           "title": {
             "en": "Demo user membership on sample projects is TAE",
             "uk": "Demo-користувач має роль TAE на sample-проєктах"
@@ -7786,7 +7856,7 @@
           ]
         },
         {
-          "key": "VQA-169",
+          "key": "VQA-170",
           "title": {
             "en": "Idempotent re-seed does not duplicate sample projects",
             "uk": "Ідемпотентний повторний сід не дублює sample-проєкти"

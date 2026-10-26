@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 
 function passwordLooksStrong(password: string): boolean {
   if (password.length < 8) return false
@@ -42,7 +43,11 @@ export function ChangePassword() {
 
   return (
     <div className="login-shell">
-      <form className="login-panel" onSubmit={(e) => void onSubmit(e)}>
+      <form
+        className="login-panel"
+        onSubmit={(e) => void onSubmit(e)}
+        {...testIdProps(TestIds.changePasswordPanel)}
+      >
         <div className="brand">
           <span className="brand-mark">Vulyk</span>
           <span className="brand-tag">{t('password.title')}</span>
@@ -57,6 +62,7 @@ export function ChangePassword() {
               onChange={(e) => setCurrentPassword(e.target.value)}
               autoComplete="current-password"
               required={requireCurrent}
+              {...testIdProps(TestIds.changePasswordCurrentInput)}
             />
           </label>
         )}
@@ -69,6 +75,7 @@ export function ChangePassword() {
             required
             minLength={8}
             autoComplete="new-password"
+            {...testIdProps(TestIds.changePasswordNewInput)}
           />
           <span className="muted" style={{ fontSize: '0.85rem' }}>
             {t('setup.passwordHint')}
@@ -83,13 +90,19 @@ export function ChangePassword() {
             required
             minLength={8}
             autoComplete="new-password"
+            {...testIdProps(TestIds.changePasswordConfirmInput)}
           />
         </label>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.changePasswordError)}>
+            {error}
+          </p>
+        )}
         <button
           className="btn"
           type="submit"
           disabled={busy || !passwordLooksStrong(newPassword)}
+          {...testIdProps(TestIds.changePasswordSubmitButton)}
         >
           {busy ? t('login.working') : t('password.submit')}
         </button>
@@ -98,6 +111,7 @@ export function ChangePassword() {
           className="btn secondary"
           style={{ marginTop: '0.5rem' }}
           onClick={() => void logout()}
+          {...testIdProps(TestIds.changePasswordSignOutButton)}
         >
           {t('nav.signOut')}
         </button>

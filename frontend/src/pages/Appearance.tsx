@@ -1,5 +1,6 @@
 import { StatusBadge } from '../components/StatusBadge'
 import { useI18n } from '../i18n'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 import { useAppearance } from '../theme/appearance'
 import { FONT_SIZE_STEPS, type Density, type ThemeChoice } from '../theme/tokens'
 
@@ -24,7 +25,7 @@ export function Appearance() {
   } = useAppearance()
 
   return (
-    <div className="appearance-page">
+    <div className="appearance-page" {...testIdProps(TestIds.appearancePage)}>
       <header>
         <h2>{t('appearance.title')}</h2>
         <p className="muted">{t('appearance.subtitle')}</p>
@@ -36,6 +37,7 @@ export function Appearance() {
           <select
             value={prefs.theme}
             onChange={(e) => void setTheme(e.target.value as ThemeChoice)}
+            {...testIdProps(TestIds.appearanceThemeSelect)}
           >
             {THEMES.map((theme) => (
               <option key={theme} value={theme}>
@@ -52,14 +54,20 @@ export function Appearance() {
           className="font-size-steps"
           role="group"
           aria-label={t('appearance.fontSize')}
+          {...testIdProps(TestIds.appearanceFontSizeSelect)}
         >
-          {FONT_SIZE_STEPS.map((step) => (
+          {FONT_SIZE_STEPS.map((step, index) => (
             <button
               key={step}
               type="button"
               className="btn secondary"
               aria-pressed={prefs.fontSize === step}
               onClick={() => void setFontSize(step)}
+              {...listItemProps(TestIds.appearanceFontSizeItem, {
+                entityId: String(step),
+                entityKey: String(step),
+                index,
+              })}
             >
               {step}%
             </button>
@@ -73,6 +81,7 @@ export function Appearance() {
           <select
             value={prefs.density}
             onChange={(e) => void setDensity(e.target.value as Density)}
+            {...testIdProps(TestIds.appearanceDensitySelect)}
           >
             {DENSITIES.map((d) => (
               <option key={d} value={d}>
@@ -100,6 +109,7 @@ export function Appearance() {
                 v === 'system' ? null : v === 'on' ? true : false,
               )
             }}
+            {...testIdProps(TestIds.appearanceReducedMotionCheckbox)}
           >
             <option value="system">{t('appearance.reducedMotion.system')}</option>
             <option value="on">{t('appearance.reducedMotion.on')}</option>

@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 export class LoginPage {
   readonly page: Page
@@ -10,27 +11,31 @@ export class LoginPage {
 
   constructor(page: Page) {
     this.page = page
-    this.panel = page.locator('.login-panel')
-    this.email = page.getByLabel(/^Email$/i)
-    this.password = page.getByLabel(/Password|Пароль/i)
-    this.submit = page.locator('.login-panel button[type="submit"]')
-    this.error = page.locator('.login-panel .error')
+    this.panel = page.getByTestId(TestIds.loginPanel)
+    this.email = page.getByTestId(TestIds.loginEmailInput)
+    this.password = page.getByTestId(TestIds.loginPasswordInput)
+    this.submit = page.getByTestId(TestIds.loginSubmitButton)
+    this.error = page.getByTestId(TestIds.loginError)
   }
 
   async goto() {
     await this.page.goto('/')
-    await expect(this.panel.or(this.page.locator('.app-shell')).first()).toBeVisible({
+    await expect(
+      this.panel.or(this.page.getByTestId(TestIds.appShell)).first(),
+    ).toBeVisible({
       timeout: 60_000,
     })
   }
 
   async login(email: string, password: string) {
     await this.goto()
-    if (await this.page.locator('.app-shell').isVisible()) return
+    if (await this.page.getByTestId(TestIds.appShell).isVisible()) return
     await this.email.fill(email)
     await this.password.fill(password)
     await this.submit.click()
-    await expect(this.page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
+    await expect(this.page.getByTestId(TestIds.appShell)).toBeVisible({
+      timeout: 60_000,
+    })
   }
 
   async expectLoginVisible() {
@@ -38,14 +43,14 @@ export class LoginPage {
   }
 
   async switchToRegister() {
-    await this.page.getByRole('button', { name: /Create an account/i }).click()
+    await this.page.getByTestId(TestIds.loginRegisterToggle).click()
   }
 
   async register(email: string, password: string, displayName: string) {
     await this.switchToRegister()
-    await this.page.getByLabel(/Display name/i).fill(displayName)
+    await this.page.getByTestId(TestIds.loginDisplayNameInput).fill(displayName)
     await this.email.fill(email)
     await this.password.fill(password)
-    await this.page.getByRole('button', { name: /^Register$/i }).click()
+    await this.page.getByTestId(TestIds.loginSubmitButton).click()
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n'
 import { casePath } from '../lib/caseUrls'
+import { TestIds, testIdProps } from '../testing'
 import { useToast } from './ToastProvider'
 
 type Props = {
@@ -8,7 +9,6 @@ type Props = {
   /** Optional: also offer “copy link” via long-press / secondary control. */
   showCopyLink?: boolean
   className?: string
-  testIdPrefix?: string
 }
 
 async function writeClipboard(text: string): Promise<void> {
@@ -61,7 +61,6 @@ export function CaseKeyBadge({
   caseKey,
   showCopyLink = true,
   className = '',
-  testIdPrefix = 'case-detail',
 }: Props) {
   const { t } = useI18n()
   const { toast } = useToast()
@@ -106,11 +105,11 @@ export function CaseKeyBadge({
       <button
         type="button"
         className="badge case-key-badge"
-        data-testid={`${testIdPrefix}-key-badge`}
         title={t('cases.copyKeyTooltip', { key: caseKey })}
         aria-label={t('cases.copyKeyAria', { key: caseKey })}
         onClick={() => void copyKey()}
         onKeyDown={onKeyDown}
+        {...testIdProps(TestIds.caseDetailKeyBadge)}
       >
         <span className="case-key-text">{caseKey}</span>
         <CopyIcon />
@@ -119,10 +118,10 @@ export function CaseKeyBadge({
         <button
           type="button"
           className="case-key-copy-link"
-          data-testid={`${testIdPrefix}-copy-link`}
           title={t('cases.copyLinkTooltip', { key: caseKey })}
           aria-label={t('cases.copyLinkAria', { key: caseKey })}
           onClick={() => void copyLink()}
+          {...testIdProps(TestIds.caseDetailCopyLink)}
         >
           {t('cases.copyLink')}
         </button>

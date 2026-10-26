@@ -17,6 +17,7 @@ import { useAuth } from '../auth'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Tab =
   | 'users'
@@ -27,6 +28,30 @@ type Tab =
   | 'tokens'
   | 'settings'
   | 'sso'
+
+/** Maps admin tab ids → Playwright test ids. Reserved future tabs live in TestIds. */
+const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
+  users: TestIds.adminTabUsers,
+  roles: TestIds.adminTabRoles,
+  projects: TestIds.adminTabProjects,
+  integrations: TestIds.adminTabIntegrations,
+  llm: TestIds.adminTabLlm,
+  tokens: TestIds.adminTabTokens,
+  settings: TestIds.adminTabSettings,
+  sso: TestIds.adminTabSso,
+}
+
+/** Reserved for upcoming admin tabs/actions (keep imported so keys stay discoverable). */
+export const ADMIN_RESERVED_TEST_IDS = {
+  tabLists: TestIds.adminTabLists,
+  tabCustomFields: TestIds.adminTabCustomFields,
+  tabConfig: TestIds.adminTabConfig,
+  listsAddButton: TestIds.adminListsAddButton,
+  customFieldsAddButton: TestIds.adminCustomFieldsAddButton,
+  configExportButton: TestIds.adminConfigExportButton,
+  configImportButton: TestIds.adminConfigImportButton,
+  configImportInput: TestIds.adminConfigImportInput,
+} as const
 
 type Props = {
   projects: Project[]
@@ -114,7 +139,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
   }, [load])
 
   return (
-    <div className="admin">
+    <div className="admin" {...testIdProps(TestIds.adminPage)}>
       <div className="panel">
         <h2>{t('admin.title')}</h2>
         <p className="muted">{t('admin.subtitle')}</p>
@@ -127,12 +152,17 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
               className={tab === id ? 'active' : undefined}
               aria-selected={tab === id}
               onClick={() => setTab(id)}
+              {...testIdProps(ADMIN_TAB_TEST_IDS[id])}
             >
               {label}
             </button>
           ))}
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <p className="error" {...testIdProps(TestIds.adminError)}>
+            {error}
+          </p>
+        )}
       </div>
 
       {tab === 'users' && (
@@ -262,7 +292,7 @@ function UsersPanel({
     <div className="panel admin-grid">
       <div>
         <h3>Users</h3>
-        <table className="table">
+        <table className="table" {...testIdProps(TestIds.adminUserList)}>
           <thead>
             <tr>
               <th>Email</th>
@@ -271,8 +301,15 @@ function UsersPanel({
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
-              <tr key={u.id}>
+            {users.map((u, index) => (
+              <tr
+                key={u.id}
+                {...listItemProps(TestIds.adminUserRow, {
+                  // UUID only — never put email/PII in data-entity-*
+                  entityId: u.id,
+                  index,
+                })}
+              >
                 <td>{u.email}</td>
                 <td>{u.display_name}</td>
                 <td>{u.is_system_admin ? 'yes' : '—'}</td>
@@ -290,6 +327,7 @@ function UsersPanel({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
+            {...testIdProps(TestIds.adminUserEmailInput)}
           />
         </label>
         <label className="field">
@@ -298,6 +336,7 @@ function UsersPanel({
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             required
+            {...testIdProps(TestIds.adminUserDisplayNameInput)}
           />
         </label>
         <label className="field">
@@ -308,6 +347,7 @@ function UsersPanel({
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
             required
+            {...testIdProps(TestIds.adminUserPasswordInput)}
           />
         </label>
         <label className="check">
@@ -315,10 +355,15 @@ function UsersPanel({
             type="checkbox"
             checked={systemAdmin}
             onChange={(e) => setSystemAdmin(e.target.checked)}
+            {...testIdProps(TestIds.adminUserSystemAdminCheckbox)}
           />
           System admin
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminUserCreateButton)}
+        >
           Create user
         </button>
       </form>
@@ -381,8 +426,14 @@ function RolesPanel({
             </tr>
           </thead>
           <tbody>
-            {memberships.map((m) => (
-              <tr key={m.id}>
+            {memberships.map((m, index) => (
+              <tr
+                key={m.id}
+                {...listItemProps(TestIds.adminMembershipRow, {
+                  entityId: m.id,
+                  index,
+                })}
+              >
                 <td>
                   {m.display_name} <span className="muted">({m.email})</span>
                 </td>
@@ -407,6 +458,7 @@ function RolesPanel({
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 required
+                {...testIdProps(TestIds.adminRoleUserSelect)}
               >
                 <option value="">Select…</option>
                 {users.map((u) => (
@@ -423,6 +475,7 @@ function RolesPanel({
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 required
+                {...testIdProps(TestIds.adminRoleUserSelect)}
               />
             </label>
           )}
@@ -431,6 +484,7 @@ function RolesPanel({
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as ProjectRole)}
+              {...testIdProps(TestIds.adminRoleSelect)}
             >
               {PROJECT_ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -439,7 +493,11 @@ function RolesPanel({
               ))}
             </select>
           </label>
-          <button className="btn" type="submit">
+          <button
+            className="btn"
+            type="submit"
+            {...testIdProps(TestIds.adminRoleSaveButton)}
+          >
             Save membership
           </button>
         </form>
@@ -482,7 +540,7 @@ function ProjectsPanel({
     <div className="panel admin-grid">
       <div>
         <h3>Projects</h3>
-        <table className="table">
+        <table className="table" {...testIdProps(TestIds.adminProjectList)}>
           <thead>
             <tr>
               <th>Key</th>
@@ -490,8 +548,15 @@ function ProjectsPanel({
             </tr>
           </thead>
           <tbody>
-            {projects.map((p) => (
-              <tr key={p.id}>
+            {projects.map((p, index) => (
+              <tr
+                key={p.id}
+                {...listItemProps(TestIds.adminProjectRow, {
+                  entityId: p.id,
+                  entityKey: p.key,
+                  index,
+                })}
+              >
                 <td>
                   <span className="badge">{p.key}</span>
                 </td>
@@ -509,6 +574,7 @@ function ProjectsPanel({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            {...testIdProps(TestIds.adminProjectNameInput)}
           />
         </label>
         <label className="field">
@@ -518,6 +584,7 @@ function ProjectsPanel({
             onChange={(e) => setKey(e.target.value.toUpperCase())}
             pattern="[A-Z][A-Z0-9_]{1,31}"
             placeholder="Derived from name when empty"
+            {...testIdProps(TestIds.adminProjectKeyInput)}
           />
         </label>
         <label className="field">
@@ -525,9 +592,14 @@ function ProjectsPanel({
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            {...testIdProps(TestIds.adminProjectDescriptionInput)}
           />
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminProjectCreateButton)}
+        >
           Create project
         </button>
       </form>
@@ -646,6 +718,7 @@ function AutomationRepoPanel({
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
+            {...testIdProps(TestIds.adminAutomationProviderSelect)}
           >
             <option value="github">GitHub</option>
             <option value="gitlab">GitLab</option>
@@ -659,6 +732,7 @@ function AutomationRepoPanel({
             onChange={(e) => setRemoteUrl(e.target.value)}
             placeholder="https://github.com/org/repo.git"
             required
+            {...testIdProps(TestIds.adminAutomationUrlInput)}
           />
         </label>
         <label className="field">
@@ -667,6 +741,7 @@ function AutomationRepoPanel({
             value={branch}
             onChange={(e) => setBranch(e.target.value)}
             required
+            {...testIdProps(TestIds.adminAutomationBranchInput)}
           />
         </label>
         <label className="field">
@@ -675,6 +750,7 @@ function AutomationRepoPanel({
             value={subpath}
             onChange={(e) => setSubpath(e.target.value)}
             placeholder="e2e"
+            {...testIdProps(TestIds.adminAutomationSubpathInput)}
           />
         </label>
         <label className="field">
@@ -685,10 +761,16 @@ function AutomationRepoPanel({
             onChange={(e) => setToken(e.target.value)}
             autoComplete="off"
             placeholder={t('admin.automationTokenHint')}
+            {...testIdProps(TestIds.adminAutomationTokenInput)}
           />
         </label>
         <div className="btn-row">
-          <button className="btn" type="submit" disabled={busy}>
+          <button
+            className="btn"
+            type="submit"
+            disabled={busy}
+            {...testIdProps(TestIds.adminAutomationSaveButton)}
+          >
             {t('admin.automationSave')}
           </button>
           <button
@@ -696,6 +778,7 @@ function AutomationRepoPanel({
             type="button"
             disabled={busy}
             onClick={() => void onTest()}
+            {...testIdProps(TestIds.adminAutomationTestButton)}
           >
             {t('admin.automationTest')}
           </button>
@@ -704,6 +787,7 @@ function AutomationRepoPanel({
             type="button"
             disabled={busy}
             onClick={() => void onReindex()}
+            {...testIdProps(TestIds.adminAutomationReindexButton)}
           >
             {t('admin.automationReindex')}
           </button>
@@ -751,7 +835,7 @@ function IntegrationsPanel({
     <div className="panel admin-grid">
       <div>
         <h3>Integrations</h3>
-        <table className="table">
+        <table className="table" {...testIdProps(TestIds.adminIntegrationList)}>
           <thead>
             <tr>
               <th>Kind</th>
@@ -760,8 +844,15 @@ function IntegrationsPanel({
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
-              <tr key={row.id}>
+            {items.map((row, index) => (
+              <tr
+                key={row.id}
+                {...listItemProps(TestIds.adminIntegrationRow, {
+                  entityId: row.id,
+                  entityKey: row.kind,
+                  index,
+                })}
+              >
                 <td>{row.kind}</td>
                 <td>{row.name}</td>
                 <td>{row.enabled ? 'yes' : 'no'}</td>
@@ -781,7 +872,11 @@ function IntegrationsPanel({
         <h3>Add placeholder</h3>
         <label className="field">
           <span>Kind</span>
-          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+            {...testIdProps(TestIds.adminIntegrationKindSelect)}
+          >
             <option value="openproject">openproject</option>
             <option value="jira_cloud">jira_cloud</option>
             <option value="jira_dc">jira_dc</option>
@@ -793,9 +888,14 @@ function IntegrationsPanel({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            {...testIdProps(TestIds.adminIntegrationNameInput)}
           />
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminIntegrationCreateButton)}
+        >
           Save
         </button>
       </form>
@@ -866,9 +966,15 @@ function LlmPanel({
           Resolution: project provider → global default → mock only if none
           exist.
         </p>
-        <ul className="plain-list">
-          {configs.map((c) => (
-            <li key={c.id}>
+        <ul className="plain-list" {...testIdProps(TestIds.adminLlmList)}>
+          {configs.map((c, index) => (
+            <li
+              key={c.id}
+              {...listItemProps(TestIds.adminLlmRow, {
+                entityId: c.id,
+                index,
+              })}
+            >
               <strong>{c.name}</strong> · {c.provider}
               {c.model ? ` · ${c.model}` : ''}
               {c.project_id == null ? ' · global' : ''}
@@ -880,6 +986,7 @@ function LlmPanel({
                 onClick={() =>
                   void api.deleteLlmConfig(projectId, c.id).then(onChanged)
                 }
+                {...testIdProps(TestIds.adminLlmDeleteButton)}
               >
                 Delete
               </button>
@@ -899,6 +1006,7 @@ function LlmPanel({
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
+            {...testIdProps(TestIds.adminLlmProviderSelect)}
           >
             {providers.map((p) => (
               <option key={p.id} value={p.id}>
@@ -913,15 +1021,24 @@ function LlmPanel({
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            {...testIdProps(TestIds.adminLlmNameInput)}
           />
         </label>
         <label className="field">
           <span>Model</span>
-          <input value={model} onChange={(e) => setModel(e.target.value)} />
+          <input
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
+            {...testIdProps(TestIds.adminLlmModelInput)}
+          />
         </label>
         <label className="field">
           <span>Base URL</span>
-          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+          <input
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            {...testIdProps(TestIds.adminLlmBaseUrlInput)}
+          />
         </label>
         <label className="field">
           <span>API key</span>
@@ -930,6 +1047,7 @@ function LlmPanel({
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             autoComplete="off"
+            {...testIdProps(TestIds.adminLlmApiKeyInput)}
           />
         </label>
         <label className="check">
@@ -937,6 +1055,7 @@ function LlmPanel({
             type="checkbox"
             checked={isDefault}
             onChange={(e) => setIsDefault(e.target.checked)}
+            {...testIdProps(TestIds.adminLlmDefaultCheckbox)}
           />
           {isGlobal ? 'Global default' : 'Default for this project'}
         </label>
@@ -945,10 +1064,15 @@ function LlmPanel({
             type="checkbox"
             checked={isGlobal}
             onChange={(e) => setIsGlobal(e.target.checked)}
+            {...testIdProps(TestIds.adminLlmGlobalCheckbox)}
           />
           Global (all projects)
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminLlmSaveButton)}
+        >
           Save provider
         </button>
       </form>
@@ -990,20 +1114,27 @@ function TokensPanel({
           Use as <code>VULYK_API_TOKEN</code>. Secrets are shown once.
         </p>
         {secretOnce && (
-          <p className="token-secret">
+          <p className="token-secret" {...testIdProps(TestIds.adminTokenSecret)}>
             Copy now: <code>{secretOnce}</code>
           </p>
         )}
-        <ul className="plain-list">
-          {tokens.map((t) => (
-            <li key={t.id}>
-              <strong>{t.name}</strong> · {t.token_prefix}…
-              {t.revoked_at ? ' · revoked' : ''}
-              {!t.revoked_at && (
+        <ul className="plain-list" {...testIdProps(TestIds.adminTokenList)}>
+          {tokens.map((tok, index) => (
+            <li
+              key={tok.id}
+              {...listItemProps(TestIds.adminTokenRow, {
+                entityId: tok.id,
+                index,
+              })}
+            >
+              <strong>{tok.name}</strong> · {tok.token_prefix}…
+              {tok.revoked_at ? ' · revoked' : ''}
+              {!tok.revoked_at && (
                 <button
                   type="button"
                   className="linkish"
-                  onClick={() => void api.revokeToken(t.id).then(onChanged)}
+                  onClick={() => void api.revokeToken(tok.id).then(onChanged)}
+                  {...testIdProps(TestIds.adminTokenRevokeButton)}
                 >
                   Revoke
                 </button>
@@ -1020,9 +1151,14 @@ function TokensPanel({
             value={tokenName}
             onChange={(e) => setTokenName(e.target.value)}
             required
+            {...testIdProps(TestIds.adminTokenNameInput)}
           />
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminTokenCreateButton)}
+        >
           Generate
         </button>
       </form>
@@ -1063,7 +1199,9 @@ function SettingsPanel({
   if (!settings) {
     return (
       <div className="panel">
-        <p className="muted">Loading settings…</p>
+        <p className="muted" {...testIdProps(TestIds.adminLoading)}>
+          Loading settings…
+        </p>
       </div>
     )
   }
@@ -1095,11 +1233,16 @@ function SettingsPanel({
           <input
             value={instanceName}
             onChange={(e) => setInstanceName(e.target.value)}
+            {...testIdProps(TestIds.adminSettingsInstanceNameInput)}
           />
         </label>
         <label className="field">
           <span>{t('setup.baseUrl')}</span>
-          <input value={baseUrl} onChange={(e) => setBaseUrl(e.target.value)} />
+          <input
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            {...testIdProps(TestIds.adminSettingsBaseUrlInput)}
+          />
         </label>
         <label className="field">
           <span>{t('setup.locale')}</span>
@@ -1107,6 +1250,7 @@ function SettingsPanel({
             value={locale}
             aria-label={t('setup.locale')}
             onChange={(e) => setLocale(e.target.value)}
+            {...testIdProps(TestIds.adminSettingsLocaleSelect)}
           >
             <option value="en">English</option>
             <option value="uk">Українська</option>
@@ -1120,6 +1264,7 @@ function SettingsPanel({
           <input
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
+            {...testIdProps(TestIds.adminSettingsTimezoneInput)}
           />
         </label>
         <label className="field">
@@ -1127,6 +1272,7 @@ function SettingsPanel({
           <select
             value={defaultTheme}
             onChange={(e) => setDefaultTheme(e.target.value)}
+            {...testIdProps(TestIds.adminSettingsThemeSelect)}
           >
             <option value="system">{t('appearance.theme.system')}</option>
             <option value="light">{t('appearance.theme.light')}</option>
@@ -1144,6 +1290,7 @@ function SettingsPanel({
             onChange={(e) =>
               setRegistrationMode(e.target.value as RegistrationMode)
             }
+            {...testIdProps(TestIds.adminSettingsRegistrationSelect)}
           >
             <option value="open">{t('setup.modeOpen')}</option>
             <option value="invite">{t('setup.modeInvite')}</option>
@@ -1155,6 +1302,7 @@ function SettingsPanel({
           <select
             value={defaultRole}
             onChange={(e) => setDefaultRole(e.target.value as ProjectRole)}
+            {...testIdProps(TestIds.adminSettingsDefaultRoleSelect)}
           >
             {PROJECT_ROLES.map((r) => (
               <option key={r} value={r}>
@@ -1163,7 +1311,11 @@ function SettingsPanel({
             ))}
           </select>
         </label>
-        <button className="btn" type="submit">
+        <button
+          className="btn"
+          type="submit"
+          {...testIdProps(TestIds.adminSettingsSaveButton)}
+        >
           {t('common.save')}
         </button>
       </form>
@@ -1198,7 +1350,7 @@ function SsoPanel({
         Enable or disable configured OIDC providers. Client secrets are managed
         server-side.
       </p>
-      <table className="table">
+      <table className="table" {...testIdProps(TestIds.adminSsoList)}>
         <thead>
           <tr>
             <th>Key</th>
@@ -1209,8 +1361,15 @@ function SsoPanel({
           </tr>
         </thead>
         <tbody>
-          {providers.map((p) => (
-            <tr key={p.id}>
+          {providers.map((p, index) => (
+            <tr
+              key={p.id}
+              {...listItemProps(TestIds.adminSsoRow, {
+                entityId: p.id,
+                entityKey: p.provider_key,
+                index,
+              })}
+            >
               <td>
                 <code>{p.provider_key}</code>
               </td>
@@ -1222,6 +1381,7 @@ function SsoPanel({
                   type="button"
                   className="btn secondary"
                   onClick={() => void toggleEnabled(p)}
+                  {...testIdProps(TestIds.adminSsoToggleButton)}
                 >
                   {p.enabled ? 'Disable' : 'Enable'}
                 </button>

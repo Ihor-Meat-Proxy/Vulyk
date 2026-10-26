@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Toast = {
   id: number
@@ -40,10 +41,17 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="app-toasts"
         role="status"
         aria-live="polite"
-        data-testid="app-toasts"
+        {...testIdProps(TestIds.appToasts)}
       >
-        {items.map((item) => (
-          <div key={item.id} className="app-toast" data-testid="app-toast">
+        {items.map((item, index) => (
+          <div
+            key={item.id}
+            className="app-toast"
+            {...listItemProps(TestIds.appToast, {
+              entityId: String(item.id),
+              index,
+            })}
+          >
             {item.message}
           </div>
         ))}

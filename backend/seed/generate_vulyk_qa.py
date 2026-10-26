@@ -101,11 +101,11 @@ def build() -> dict:
                     steps=[
                         step(
                             "Open the UI root URL (e.g. http://localhost:5173/) while setup is incomplete.",
-                            "Setup wizard is shown (or redirect to setup); getByLabel(/Setup token|Setup-токен/i) is visible.",
+                            "Setup wizard is shown (or redirect to setup); getByTestId('setup-token-input') is visible.",
                         ),
                         step(
                             "Fill Setup token, Display name, Admin email, Admin password (≥8 chars with letter+digit), locale en, timezone UTC, registration open; click Complete setup.",
-                            "Setup completes; user lands in app shell (.app-shell) or login; setup_completed is true.",
+                            "Setup completes; user lands in app shell (data-testid=app-shell) or login; setup_completed is true.",
                             "admin@example.com / Str0ngPass1",
                         ),
                         step(
@@ -237,7 +237,7 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Open login panel; fill Email and Password; submit.",
-                                    ".app-shell is visible; getByRole('navigation', {name: 'Primary'}) contains Cases|Кейси.",
+                                    "getByTestId('app-shell') is visible; getByTestId('nav-link-cases') is visible.",
                                     "admin@vulyk.local / admin (or changed password)",
                                 ),
                             ],
@@ -253,8 +253,8 @@ def build() -> dict:
                             external_key="e2e:auth.spec.ts",
                             steps=[
                                 step(
-                                    "Fill Email with admin@vulyk.local and Password with definitely-wrong-password; submit.",
-                                    "Login error is visible; .app-shell count is 0.",
+                                    "Fill getByTestId('login-email-input') with admin@vulyk.local and getByTestId('login-password-input') with definitely-wrong-password; click getByTestId('login-submit-button').",
+                                    "getByTestId('login-error') is visible; getByTestId('app-shell') count is 0.",
                                 ),
                             ],
                         ),
@@ -389,7 +389,7 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Open login; click the SSO provider button for the mock OIDC provider.",
-                                    "Browser redirects to IdP (or mock); after callback user is authenticated in .app-shell.",
+                                    "Browser redirects to IdP (or mock); after callback user is authenticated (getByTestId('app-shell')).",
                                 ),
                             ],
                         ),
@@ -439,11 +439,11 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Click logout control from the shell.",
-                                    "Login panel visible; getByLabel(/^Email$/i) is present; .app-shell gone.",
+                                    "getByTestId('login-panel') and getByTestId('login-email-input') visible; app-shell gone.",
                                 ),
                                 step(
                                     "Sign back in with admin credentials.",
-                                    ".app-shell visible again within timeout.",
+                                    "getByTestId('app-shell') visible again within timeout.",
                                     ADMIN,
                                 ),
                             ],
@@ -794,7 +794,7 @@ def build() -> dict:
                     external_key="e2e:projects-cases.spec.ts",
                     steps=[
                         step(
-                            "Create case with title only via getByRole('button', {name: /Create case|Створити кейс/i}).",
+                            "Create case with title only via getByTestId('case-list-new-title-input') + getByTestId('case-list-new-case-button').",
                             "New case key is PREFIX-(n+1) vs previous max.",
                         ),
                         step(
@@ -1034,7 +1034,7 @@ def build() -> dict:
                                     "Parent case_count equals sum of descendant directs; direct_case_count is cases with suite_id exactly that folder.",
                                 ),
                                 step(
-                                    "In .folder-tree find [data-testid=folder-count-{parentId}]; check text and title.",
+                                    "In getByTestId('folder-tree') find [data-testid=folder-node][data-entity-id={parentId}] [data-testid=folder-node-count]; check text and title.",
                                     "Visible text is recursive total; title matches '{recursive} ({direct} direct)'.",
                                 ),
                             ],
@@ -1067,7 +1067,7 @@ def build() -> dict:
                             tags=["regression", "e2e", "api", "folders"],
                             steps=[
                                 step(
-                                    "With a folder selected, enable checkbox Direct only|Лише прямі in .case-list-panel.",
+                                    "With a folder selected, enable getByTestId('case-list-direct-only-checkbox') in getByTestId('case-list-panel').",
                                     "List total drops to direct_case_count; GET cases?suite_id=&direct_only=true matches.",
                                 ),
                             ],
@@ -1332,7 +1332,7 @@ def build() -> dict:
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
-                                    "Select cases via getByLabel('Select {key}'); click Mark ready.",
+                                    "Select cases via [data-testid=case-row][data-entity-key={key}] getByTestId('case-row-checkbox'); click getByTestId('case-list-mark-ready-button').",
                                     "Selected cases status becomes ready.",
                                 ),
                             ],
@@ -1353,7 +1353,7 @@ def build() -> dict:
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
-                                    "Fill getByLabel(/Search cases|Пошук кейсів/i) with a unique token from title.",
+                                    "Fill getByTestId('case-list-search-input') with a unique token from title.",
                                     "Matching case visible; unrelated cases hidden.",
                                 ),
                             ],
@@ -1517,7 +1517,7 @@ def build() -> dict:
                             external_key="e2e:plans-runs.spec.ts",
                             steps=[
                                 step(
-                                    "Select a case in run; click getByRole('group',{name:'Result status'}).getByRole('button',{name:'Passed'}).",
+                                    "Select a case in run; click getByTestId('execution-pass-button').",
                                     "Status pill shows Passed; history entry created.",
                                 ),
                             ],
@@ -2614,8 +2614,8 @@ def build() -> dict:
                             "Primary nav is visible; no Folders|Теки suite list / .suite-block in the app sidebar.",
                         ),
                         step(
-                            "Close menu; in .case-list-panel click Folders|Теки (.folders-drawer-toggle).",
-                            "#case-folder-drawer slides open with .folder-tree; [data-testid=folder-all-cases] visible.",
+                            "Close menu; in getByTestId('case-list-panel') click getByTestId('case-list-folders-toggle').",
+                            "getByTestId('case-list-folders-drawer') opens with getByTestId('folder-tree'); getByTestId('folder-all-cases') visible.",
                         ),
                         step(
                             "Select All cases or a folder; or click Close / .case-tree-backdrop.",
@@ -2946,16 +2946,39 @@ def build() -> dict:
                 ],
             ),
             case(
+                "Stable data-testid attrs avoid PII and support Playwright",
+                title_uk="Стабільні data-testid без PII для Playwright",
+                desc_en="UI exposes kebab-case data-testid; list rows use data-entity-id/key/index; never emails/secrets in data-*.",
+                pre_en="Built frontend without VITE_STRIP_TEST_IDS; admin session.",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "a11y"],
+                external_key="e2e:test-id-audit.spec.ts",
+                steps=[
+                    step(
+                        "Open login; locate getByTestId('login-email-input') and getByTestId('login-submit-button').",
+                        "Controls found by static test ids (not by email value in attributes).",
+                    ),
+                    step(
+                        "After login open Cases; inspect a case-row: data-testid=case-row with data-entity-id (UUID) and data-entity-key (e.g. VQA-001).",
+                        "No data-* attribute contains '@', JWT, or password/token secret material.",
+                    ),
+                    step(
+                        "Run frontend unit tests for testing/security.ts and e2e test-id-audit.spec.ts (or npm run check:test-ids).",
+                        "Checks fail if PII/secrets appear in test attrs or interactive controls lack ids.",
+                    ),
+                ],
+            ),
+            case(
                 "Project switcher changes active project context",
                 title_uk="Перемикач проєктів змінює активний контекст",
-                desc_en=".project-select switches cases/runs scope.",
+                desc_en="getByTestId('header-project-select') switches cases/runs scope.",
                 pre_en="User member of ≥2 projects (Kyiv + Vulyk QA).",
                 priority="high",
                 tags=["smoke", "regression", "e2e", "projects"],
                 external_key="e2e:sample-project.spec.ts",
                 steps=[
                     step(
-                        "Select Kyiv Open-Air Concert 2026 then Vulyk QA in .project-select.",
+                        "Select Kyiv Open-Air Concert 2026 then Vulyk QA in getByTestId('header-project-select').",
                         "Folder tree and case keys switch (KC-* vs VQA-*).",
                     )
                 ],

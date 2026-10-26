@@ -1,6 +1,7 @@
 import { expect, type APIRequestContext, type Page } from '@playwright/test'
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   ADMIN_EMAIL,
   ADMIN_PASSWORD,
@@ -149,14 +150,10 @@ export async function loginAsDemo(page: Page): Promise<void> {
 }
 
 export async function logout(page: Page): Promise<void> {
-  const gear = page.getByRole('button', {
-    name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
-  })
+  const gear = page.getByTestId(TestIds.headerGearMenu)
   await expect(gear).toBeVisible()
   await gear.click()
-  const signOut = page.getByRole('menuitem', {
-    name: /Sign out|Вийти|Se déconnecter|Cerrar sesión|Abmelden/i,
-  })
+  const signOut = page.getByTestId(TestIds.headerGearSignOut)
   await expect(signOut).toBeVisible()
   // Wait for the logout request to finish before any navigation. A premature
   // page.goto('/login') aborts the fetch, leaves the session cookie, and the
@@ -173,7 +170,7 @@ export async function logout(page: Page): Promise<void> {
   await page.evaluate(() => {
     localStorage.removeItem('vulyk.authToken')
   })
-  const panel = page.locator('.login-panel')
+  const panel = page.getByTestId(TestIds.loginPanel)
   try {
     await expect(panel).toBeVisible({ timeout: 10_000 })
   } catch {

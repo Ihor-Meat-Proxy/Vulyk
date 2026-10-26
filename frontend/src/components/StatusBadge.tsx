@@ -1,5 +1,6 @@
 import { statusClass } from '../api'
 import { useI18n } from '../i18n'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 import { StatusIcon } from './StatusIcon'
 
 type Props = {
@@ -51,6 +52,7 @@ type ButtonProps = {
   disabled?: boolean
   onClick?: () => void
   className?: string
+  'data-testid'?: string
 }
 
 export function StatusActionButton({
@@ -58,10 +60,12 @@ export function StatusActionButton({
   disabled,
   onClick,
   className,
+  'data-testid': dataTestId,
 }: ButtonProps) {
   const { t } = useI18n()
   const key = statusLabelKey(status)
   const label = key ? t(key) : status
+  const statusKey = status.toLowerCase()
 
   return (
     <button
@@ -70,6 +74,13 @@ export function StatusActionButton({
       disabled={disabled}
       onClick={onClick}
       data-status={status}
+      {...(dataTestId
+        ? testIdProps(dataTestId)
+        : listItemProps(TestIds.statusBadge, {
+            entityId: statusKey,
+            entityKey: statusKey,
+            index: 0,
+          }))}
     >
       <StatusIcon status={status} />
       <span className="status-label">{label}</span>

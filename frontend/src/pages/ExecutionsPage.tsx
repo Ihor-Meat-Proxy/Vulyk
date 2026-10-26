@@ -13,6 +13,7 @@ import { IterationDashboard } from '../components/IterationDashboard'
 import { RunDetailsDrawer } from '../components/RunDetailsDrawer'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -136,7 +137,7 @@ export function ExecutionsPage({ projectId }: Props) {
   }
 
   return (
-    <div className="executions-page">
+    <div className="executions-page" {...testIdProps(TestIds.executionsPage)}>
       <header className="executions-page-header">
         <h1 style={{ margin: 0 }}>{t('executions.title')}</h1>
         <p className="muted" style={{ margin: '0.25rem 0 0' }}>
@@ -144,9 +145,15 @@ export function ExecutionsPage({ projectId }: Props) {
         </p>
       </header>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <p className="error" {...testIdProps(TestIds.executionsError)}>
+          {error}
+        </p>
+      ) : null}
       {loading && tree.length === 0 ? (
-        <p className="muted">{t('common.loading')}</p>
+        <p className="muted" {...testIdProps(TestIds.executionsLoading)}>
+          {t('common.loading')}
+        </p>
       ) : null}
 
       <div className="executions-layout">
@@ -161,7 +168,12 @@ export function ExecutionsPage({ projectId }: Props) {
 
         <div className="executions-content">
           {!selectedId || !dashboard ? (
-            <div className="panel empty">{t('executions.selectIteration')}</div>
+            <div
+              className="panel empty"
+              {...testIdProps(TestIds.executionsEmpty)}
+            >
+              {t('executions.selectIteration')}
+            </div>
           ) : (
             <>
               <IterationDashboard

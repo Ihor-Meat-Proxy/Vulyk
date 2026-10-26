@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   createApiToken,
   createCase,
@@ -133,7 +134,7 @@ test('requirements can be created', async ({ page }) => {
 
 test('reports page and CSV export', async ({ page }) => {
   await loginAsAdmin(page)
-  const select = page.locator('.project-select')
+  const select = page.getByTestId(TestIds.headerProjectSelect)
   const options = await select.locator('option').allTextContents()
   const idx = options.findIndex((o) => o.includes(projectKey))
   if (idx >= 0) await select.selectOption({ index: idx })

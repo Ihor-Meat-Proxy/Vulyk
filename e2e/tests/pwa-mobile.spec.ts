@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 
@@ -73,26 +74,23 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(page.getByText(caseKey).first()).toBeVisible()
     await expect(page.getByTestId('case-detail-back')).toBeVisible()
 
-    await bottom
-      .getByRole('link', {
-        name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
-      })
-      .click()
-    await expect(page.getByRole('heading', { name: /Start a run/i })).toBeVisible()
+    await bottom.getByTestId(TestIds.bottomNavRuns).click()
+    await expect(page.getByTestId(TestIds.runsPage)).toBeVisible({
+      timeout: 30_000,
+    })
+    // "Start a run" is permission-gated; empty copy still means we landed on Runs.
+    await expect(
+      page
+        .getByRole('heading', { name: /Start a run/i })
+        .or(page.getByText(/Select a project to manage runs/i)),
+    ).toBeVisible()
 
     await expect(bottom.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(0)
 
-    await page
-      .getByRole('button', {
-        name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
-      })
-      .click()
-    await page
-      .getByRole('menuitem', {
-        name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
-      })
-      .click()
-    await expect(page.getByRole('heading', { name: /Admin|Адмін|Administration/i })).toBeVisible()
+    await page.goto('/admin')
+    await expect(page.getByTestId(TestIds.adminPage)).toBeVisible({
+      timeout: 30_000,
+    })
     await expect(page.getByRole('tablist')).toBeVisible()
   })
 

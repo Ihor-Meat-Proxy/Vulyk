@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -151,8 +152,20 @@ export function ExecutionPage({ projectId }: Props) {
   }, [projectId, runId, caseId])
 
   if (!projectId) return <p className="muted">Select a project first.</p>
-  if (loading) return <p className="muted">{t('common.loading')}</p>
-  if (error && !runDetail) return <p className="error">{error}</p>
+  if (loading) {
+    return (
+      <p className="muted" {...testIdProps(TestIds.executionsLoading)}>
+        {t('common.loading')}
+      </p>
+    )
+  }
+  if (error && !runDetail) {
+    return (
+      <p className="error" {...testIdProps(TestIds.executionsError)}>
+        {error}
+      </p>
+    )
+  }
   if (!runDetail || !runId) return <p className="muted">Run not found.</p>
 
   const run = runDetail.run
@@ -187,11 +200,21 @@ export function ExecutionPage({ projectId }: Props) {
     const execNumber =
       results.findIndex((r) => r.case_id === caseId) + 1 || 1
     return (
-      <div className="panel execution-case-page">
+      <div
+        className="panel execution-case-page"
+        {...testIdProps(TestIds.executionPage)}
+      >
         <p style={{ marginTop: 0 }}>
-          <Link to={`/executions/runs/${runId}`}>← {suiteShell.name}</Link>
+          <Link
+            to={`/executions/runs/${runId}`}
+            {...testIdProps(TestIds.executionSuiteLink)}
+          >
+            ← {suiteShell.name}
+          </Link>
           {' · '}
-          <Link to={backHref}>{t('executions.back')}</Link>
+          <Link to={backHref} {...testIdProps(TestIds.executionBackLink)}>
+            {t('executions.back')}
+          </Link>
         </p>
         {error ? <p className="error">{error}</p> : null}
         <div className="detail-header">
@@ -204,6 +227,7 @@ export function ExecutionPage({ projectId }: Props) {
           <span className="badge">{active.item.case_key}</span>
           <Link
             to={`/cases/${encodeURIComponent(active.item.case_key || active.item.item.case_id)}`}
+            {...testIdProps(TestIds.executionCaseTitleLink)}
           >
             {active.item.case_title}
           </Link>
@@ -314,9 +338,14 @@ export function ExecutionPage({ projectId }: Props) {
 
   // Suite focus
   return (
-    <div className="panel execution-suite-page">
+    <div
+      className="panel execution-suite-page"
+      {...testIdProps(TestIds.executionPage)}
+    >
       <p style={{ marginTop: 0 }}>
-        <Link to={backHref}>← {t('executions.back')}</Link>
+        <Link to={backHref} {...testIdProps(TestIds.executionBackLink)}>
+          ← {t('executions.back')}
+        </Link>
       </p>
       {error ? <p className="error">{error}</p> : null}
       <div className="detail-header">
@@ -367,6 +396,7 @@ export function ExecutionPage({ projectId }: Props) {
                   {row.case_id ? (
                     <Link
                       to={`/executions/runs/${runId}/cases/${row.case_id}`}
+                      {...testIdProps(TestIds.executionResultOpenLink)}
                     >
                       {t('executions.executionView')}
                     </Link>
