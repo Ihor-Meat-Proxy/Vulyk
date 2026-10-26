@@ -216,6 +216,57 @@ async fn dashboard_summary_trends_coverage_flaky_and_export() {
         .unwrap();
     assert_eq!(coverage["total_requirements"], 1);
     assert_eq!(coverage["covered_requirements"], 1);
+    // Single linked case with results → 100% link coverage (not a binary stub).
+    let row0 = &coverage["rows"][0];
+    assert_eq!(row0["linked_cases"], 1);
+    assert_eq!(row0["cases_with_results"], 1);
+    assert!((row0["coverage_percent"].as_f64().unwrap() - 100.0).abs() < 0.01);
+
+    // Link a second case with no results → row coverage must drop to 50%, not stay 100%.
+    let case_c: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .json(&serde_json::json!({ "title": "Untouched", "status": "ready" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let case_c_id = case_c["case"]["id"].as_str().unwrap();
+    client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/requirements:link"
+        ))
+        .json(&serde_json::json!({
+            "case_id": case_c_id,
+            "requirement_id": req["id"]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+    let coverage2: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/reports/coverage"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let row = &coverage2["rows"][0];
+    assert_eq!(row["linked_cases"], 2);
+    assert_eq!(row["cases_with_results"], 1);
+    assert!(
+        (row["coverage_percent"].as_f64().unwrap() - 50.0).abs() < 0.01,
+        "expected 50% coverage for 1/2 linked cases with results, got {row:?}"
+    );
 
     let flaky: Value = client
         .get(format!("{base}/api/v1/projects/{project_id}/reports/flaky"))
