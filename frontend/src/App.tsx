@@ -22,9 +22,11 @@ import { Login } from './pages/Login'
 import { ExecutionPage } from './pages/ExecutionPage'
 import { ExecutionsPage } from './pages/ExecutionsPage'
 import { Runs } from './pages/Runs'
+import { CoverageDetail } from './pages/CoverageDetail'
 import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { RunDetail } from './pages/RunDetail'
+import { RunReportDetail } from './pages/RunReportDetail'
 import { RunsPage } from './pages/RunsPage'
 import { Settings } from './pages/Settings'
 import { SetupWizard } from './pages/SetupWizard'
@@ -274,6 +276,14 @@ export default function App() {
           <Route
             path="reports"
             element={<Reports projectId={activeProjectId} />}
+          />
+          <Route
+            path="reports/runs/:runId"
+            element={<RunReportDetail projectId={activeProjectId} />}
+          />
+          <Route
+            path="reports/coverage"
+            element={<CoverageDetail projectId={activeProjectId} />}
           />
           <Route
             path="admin"

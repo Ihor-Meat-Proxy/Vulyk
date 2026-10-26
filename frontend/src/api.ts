@@ -1167,6 +1167,152 @@ export type ProjectDashboard = {
   flaky: FlakyReport
 }
 
+export type RunReportDetail = {
+  run_id: string
+  project_id: string
+  name: string
+  description: string
+  status: string
+  source: string
+  source_kind: string
+  external_ref: string | null
+  created_by_name: string | null
+  environment: Record<string, unknown>
+  artifacts: unknown
+  meta: Record<string, unknown>
+  branch: string | null
+  commit: string | null
+  pipeline_url: string | null
+  environment_label: string | null
+  started_at: string | null
+  finished_at: string | null
+  duration_ms: number | null
+  counts: StatusCounts
+  pass_rate: number
+}
+
+export type RunResultDefect = {
+  id: string
+  external_key: string | null
+  external_url: string
+  title: string
+  status: string
+}
+
+export type RunResultAttachment = {
+  id: string
+  filename: string
+  content_type: string
+  size_bytes: number
+}
+
+export type RunCaseResultRow = {
+  case_id: string
+  case_key: string
+  case_title: string
+  folder_path: string
+  suite_id: string | null
+  priority: string
+  status: string
+  run_item_id: string | null
+  result_id: string | null
+  assignee: string | null
+  executed_by_name: string | null
+  duration_ms: number | null
+  comment: string
+  attachment_count: number
+  defect_count: number
+  defects: RunResultDefect[]
+  attachments: RunResultAttachment[]
+  previous_status: string | null
+  comparison: string | null
+}
+
+export type RunCaseResultsPage = {
+  items: RunCaseResultRow[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export type RunResultStepRow = {
+  position: number
+  action: string
+  expected_result: string
+  actual_result: string
+  status: string
+  comment: string
+}
+
+export type RunResultCommentEntry = {
+  result_id: string
+  status: string
+  message: string
+  executed_at: string
+  executed_by_name: string | null
+}
+
+export type RunCaseResultExpand = {
+  case_id: string
+  run_item_id: string | null
+  result_id: string | null
+  steps: RunResultStepRow[]
+  comment_history: RunResultCommentEntry[]
+}
+
+export type RunResultGroup = {
+  key: string
+  label: string
+  counts: StatusCounts
+  pass_rate: number
+}
+
+export type RunResultGroups = {
+  group_by: string
+  groups: RunResultGroup[]
+}
+
+export type CoverageLinkedCase = {
+  case_id: string
+  case_key: string
+  title: string
+  latest_status: string | null
+}
+
+export type CoverageDetailRow = {
+  requirement_id: string
+  external_key: string | null
+  title: string
+  source: string
+  covered: boolean
+  linked_cases: CoverageLinkedCase[]
+  cases_passed: number
+  cases_failed: number
+  pass_percent: number
+}
+
+export type RequirementCoverageDetail = {
+  project_id: string
+  total_requirements: number
+  covered_requirements: number
+  uncovered_requirements: number
+  coverage_percent: number
+  covered: CoverageDetailRow[]
+  uncovered: CoverageDetailRow[]
+}
+
+export type RunResultsParams = {
+  status?: string
+  folder?: string
+  suite_id?: string
+  priority?: string
+  assignee?: string
+  q?: string
+  sort?: string
+  limit?: number
+  offset?: number
+}
+
 const defaultMapping = (): FieldMapping => ({
   title: 'title',
   key: 'key',
@@ -1978,6 +2124,48 @@ export const api = {
     request<RunSummaryReport>(
       `/api/v1/projects/${projectId}/reports/runs/${runId}/summary`,
     ),
+  getRunReportDetail: (projectId: string, runId: string) =>
+    request<RunReportDetail>(
+      `/api/v1/projects/${projectId}/reports/runs/${runId}`,
+    ),
+  getRunCaseResults: (projectId: string, runId: string, params: RunResultsParams = {}) => {
+    const qs = new URLSearchParams()
+    if (params.status) qs.set('status', params.status)
+    if (params.folder) qs.set('folder', params.folder)
+    if (params.suite_id) qs.set('suite_id', params.suite_id)
+    if (params.priority) qs.set('priority', params.priority)
+    if (params.assignee) qs.set('assignee', params.assignee)
+    if (params.q) qs.set('q', params.q)
+    if (params.sort) qs.set('sort', params.sort)
+    qs.set('limit', String(params.limit ?? 50))
+    qs.set('offset', String(params.offset ?? 0))
+    return request<RunCaseResultsPage>(
+      `/api/v1/projects/${projectId}/reports/runs/${runId}/results?${qs}`,
+    )
+  },
+  getRunCaseExpand: (projectId: string, runId: string, caseId: string) =>
+    request<RunCaseResultExpand>(
+      `/api/v1/projects/${projectId}/reports/runs/${runId}/cases/${caseId}`,
+    ),
+  getRunResultGroups: (
+    projectId: string,
+    runId: string,
+    params: Omit<RunResultsParams, 'sort' | 'limit' | 'offset'> & {
+      group_by?: 'folder' | 'status'
+    } = {},
+  ) => {
+    const qs = new URLSearchParams()
+    if (params.group_by) qs.set('group_by', params.group_by)
+    if (params.status) qs.set('status', params.status)
+    if (params.folder) qs.set('folder', params.folder)
+    if (params.suite_id) qs.set('suite_id', params.suite_id)
+    if (params.priority) qs.set('priority', params.priority)
+    if (params.assignee) qs.set('assignee', params.assignee)
+    if (params.q) qs.set('q', params.q)
+    return request<RunResultGroups>(
+      `/api/v1/projects/${projectId}/reports/runs/${runId}/groups?${qs}`,
+    )
+  },
   getTrends: (projectId: string, granularity: 'run' | 'day' = 'run', limit = 20) =>
     request<PassFailTrends>(
       `/api/v1/projects/${projectId}/reports/trends?granularity=${granularity}&limit=${limit}`,
@@ -1986,19 +2174,39 @@ export const api = {
     request<RequirementCoverageReport>(
       `/api/v1/projects/${projectId}/reports/coverage`,
     ),
+  getCoverageDetail: (projectId: string) =>
+    request<RequirementCoverageDetail>(
+      `/api/v1/projects/${projectId}/reports/coverage/detail`,
+    ),
   getFlaky: (projectId: string, lookbackRuns = 20, limit = 50) =>
     request<FlakyReport>(
       `/api/v1/projects/${projectId}/reports/flaky?lookback_runs=${lookbackRuns}&limit=${limit}`,
     ),
   downloadReportExport: async (
     projectId: string,
-    opts: { format: 'csv' | 'pdf'; report?: string; runId?: string },
+    opts: {
+      format: 'csv' | 'pdf'
+      report?: string
+      runId?: string
+      status?: string
+      folder?: string
+      priority?: string
+      assignee?: string
+      q?: string
+      sort?: string
+    },
   ) => {
     const qs = new URLSearchParams({
       format: opts.format,
       report: opts.report ?? 'dashboard',
     })
     if (opts.runId) qs.set('run_id', opts.runId)
+    if (opts.status) qs.set('status', opts.status)
+    if (opts.folder) qs.set('folder', opts.folder)
+    if (opts.priority) qs.set('priority', opts.priority)
+    if (opts.assignee) qs.set('assignee', opts.assignee)
+    if (opts.q) qs.set('q', opts.q)
+    if (opts.sort) qs.set('sort', opts.sort)
     const token = getStoredToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`

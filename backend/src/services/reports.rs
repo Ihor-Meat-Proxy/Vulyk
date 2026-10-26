@@ -8,12 +8,12 @@ use crate::models::{
 };
 
 #[derive(sqlx::FromRow)]
-struct CountRow {
-    status: String,
-    count: i64,
+pub struct CountRow {
+    pub status: String,
+    pub count: i64,
 }
 
-fn empty_counts() -> StatusCounts {
+pub fn empty_counts() -> StatusCounts {
     StatusCounts {
         total: 0,
         passed: 0,
@@ -27,7 +27,7 @@ fn empty_counts() -> StatusCounts {
     }
 }
 
-fn accumulate(counts: &mut StatusCounts, status: &str, n: i64) {
+pub fn accumulate(counts: &mut StatusCounts, status: &str, n: i64) {
     counts.total += n;
     match status.to_ascii_lowercase().as_str() {
         "passed" => counts.passed += n,
@@ -42,7 +42,7 @@ fn accumulate(counts: &mut StatusCounts, status: &str, n: i64) {
     }
 }
 
-fn from_rows(rows: &[CountRow]) -> StatusCounts {
+pub fn from_rows(rows: &[CountRow]) -> StatusCounts {
     let mut counts = empty_counts();
     for row in rows {
         accumulate(&mut counts, &row.status, row.count);
@@ -75,28 +75,29 @@ pub async fn run_summary(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("run {run_id}")))?;
 
-    // Prefer run_items when present (manual execution); fall back to test_results.
-    let item_rows = sqlx::query_as::<_, CountRow>(
+    // Prefer ingested test_results when present (CI / bulk upload). Otherwise use
+    // run_items (manual execution progress, including untested placeholders).
+    let result_rows = sqlx::query_as::<_, CountRow>(
         r#"SELECT status, COUNT(*)::bigint AS count
-           FROM run_items WHERE run_id = $1
+           FROM test_results WHERE run_id = $1
            GROUP BY status"#,
     )
     .bind(run_id)
     .fetch_all(pool)
     .await?;
 
-    let counts = if item_rows.iter().any(|r| r.count > 0) {
-        from_rows(&item_rows)
+    let counts = if result_rows.iter().any(|r| r.count > 0) {
+        from_rows(&result_rows)
     } else {
-        let result_rows = sqlx::query_as::<_, CountRow>(
+        let item_rows = sqlx::query_as::<_, CountRow>(
             r#"SELECT status, COUNT(*)::bigint AS count
-               FROM test_results WHERE run_id = $1
+               FROM run_items WHERE run_id = $1
                GROUP BY status"#,
         )
         .bind(run_id)
         .fetch_all(pool)
         .await?;
-        from_rows(&result_rows)
+        from_rows(&item_rows)
     };
 
     let pass_rate = counts.pass_rate();

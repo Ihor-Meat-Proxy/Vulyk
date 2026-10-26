@@ -54,7 +54,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 ## Requirements & coverage
 
 - **Requirements** tracks manual or ALM-synced requirements and links them to cases.
-- **Reports** shows run summaries, pass/fail trends, requirement coverage, flaky detection, and CSV/PDF export.
+- **Reports** shows run summaries, pass/fail trends, requirement coverage, flaky detection, and CSV/PDF export. Click a summary card, trend row, or bar segment to open a deep-linkable run report (`/reports/runs/{id}`) with filters, grouping, expandable steps, and filtered CSV/PDF export. KPI cards drill into the case list, runs list, or requirement coverage detail. Backspace returns to Reports when you are not typing in a field.
 
 ## Language & settings
 

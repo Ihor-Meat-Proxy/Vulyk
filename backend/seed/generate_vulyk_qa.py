@@ -101,11 +101,11 @@ def build() -> dict:
                     steps=[
                         step(
                             "Open the UI root URL (e.g. http://localhost:5173/) while setup is incomplete.",
-                            "Setup wizard is shown (or redirect to setup); getByTestId('setup-token-input') is visible.",
+                            "Setup wizard is shown (or redirect to setup); getByLabel(/Setup token|Setup-токен/i) is visible.",
                         ),
                         step(
                             "Fill Setup token, Display name, Admin email, Admin password (≥8 chars with letter+digit), locale en, timezone UTC, registration open; click Complete setup.",
-                            "Setup completes; user lands in app shell (data-testid=app-shell) or login; setup_completed is true.",
+                            "Setup completes; user lands in app shell (.app-shell) or login; setup_completed is true.",
                             "admin@example.com / Str0ngPass1",
                         ),
                         step(
@@ -237,7 +237,7 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Open login panel; fill Email and Password; submit.",
-                                    "getByTestId('app-shell') is visible; getByTestId('nav-link-cases') is visible.",
+                                    ".app-shell is visible; getByRole('navigation', {name: 'Primary'}) contains Cases|Кейси.",
                                     "admin@vulyk.local / admin (or changed password)",
                                 ),
                             ],
@@ -253,8 +253,8 @@ def build() -> dict:
                             external_key="e2e:auth.spec.ts",
                             steps=[
                                 step(
-                                    "Fill getByTestId('login-email-input') with admin@vulyk.local and getByTestId('login-password-input') with definitely-wrong-password; click getByTestId('login-submit-button').",
-                                    "getByTestId('login-error') is visible; getByTestId('app-shell') count is 0.",
+                                    "Fill Email with admin@vulyk.local and Password with definitely-wrong-password; submit.",
+                                    "Login error is visible; .app-shell count is 0.",
                                 ),
                             ],
                         ),
@@ -389,7 +389,7 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Open login; click the SSO provider button for the mock OIDC provider.",
-                                    "Browser redirects to IdP (or mock); after callback user is authenticated (getByTestId('app-shell')).",
+                                    "Browser redirects to IdP (or mock); after callback user is authenticated in .app-shell.",
                                 ),
                             ],
                         ),
@@ -439,11 +439,11 @@ def build() -> dict:
                             steps=[
                                 step(
                                     "Click logout control from the shell.",
-                                    "getByTestId('login-panel') and getByTestId('login-email-input') visible; app-shell gone.",
+                                    "Login panel visible; getByLabel(/^Email$/i) is present; .app-shell gone.",
                                 ),
                                 step(
                                     "Sign back in with admin credentials.",
-                                    "getByTestId('app-shell') visible again within timeout.",
+                                    ".app-shell visible again within timeout.",
                                     ADMIN,
                                 ),
                             ],
@@ -794,7 +794,7 @@ def build() -> dict:
                     external_key="e2e:projects-cases.spec.ts",
                     steps=[
                         step(
-                            "Create case with title only via getByTestId('case-list-new-title-input') + getByTestId('case-list-new-case-button').",
+                            "Create case with title only via getByRole('button', {name: /Create case|Створити кейс/i}).",
                             "New case key is PREFIX-(n+1) vs previous max.",
                         ),
                         step(
@@ -1034,7 +1034,7 @@ def build() -> dict:
                                     "Parent case_count equals sum of descendant directs; direct_case_count is cases with suite_id exactly that folder.",
                                 ),
                                 step(
-                                    "In getByTestId('folder-tree') find [data-testid=folder-node][data-entity-id={parentId}] [data-testid=folder-node-count]; check text and title.",
+                                    "In .folder-tree find [data-testid=folder-count-{parentId}]; check text and title.",
                                     "Visible text is recursive total; title matches '{recursive} ({direct} direct)'.",
                                 ),
                             ],
@@ -1067,7 +1067,7 @@ def build() -> dict:
                             tags=["regression", "e2e", "api", "folders"],
                             steps=[
                                 step(
-                                    "With a folder selected, enable getByTestId('case-list-direct-only-checkbox') in getByTestId('case-list-panel').",
+                                    "With a folder selected, enable checkbox Direct only|Лише прямі in .case-list-panel.",
                                     "List total drops to direct_case_count; GET cases?suite_id=&direct_only=true matches.",
                                 ),
                             ],
@@ -1332,7 +1332,7 @@ def build() -> dict:
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
-                                    "Select cases via [data-testid=case-row][data-entity-key={key}] getByTestId('case-row-checkbox'); click getByTestId('case-list-mark-ready-button').",
+                                    "Select cases via getByLabel('Select {key}'); click Mark ready.",
                                     "Selected cases status becomes ready.",
                                 ),
                             ],
@@ -1353,7 +1353,7 @@ def build() -> dict:
                             external_key="e2e:projects-cases.spec.ts",
                             steps=[
                                 step(
-                                    "Fill getByTestId('case-list-search-input') with a unique token from title.",
+                                    "Fill getByLabel(/Search cases|Пошук кейсів/i) with a unique token from title.",
                                     "Matching case visible; unrelated cases hidden.",
                                 ),
                             ],
@@ -1517,7 +1517,7 @@ def build() -> dict:
                             external_key="e2e:plans-runs.spec.ts",
                             steps=[
                                 step(
-                                    "Select a case in run; click getByTestId('execution-pass-button').",
+                                    "Select a case in run; click getByRole('group',{name:'Result status'}).getByRole('button',{name:'Passed'}).",
                                     "Status pill shows Passed; history entry created.",
                                 ),
                             ],
@@ -1753,6 +1753,120 @@ def build() -> dict:
                         step(
                             "GET …/reports/trends.",
                             "200 with time series points suitable for charts.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Open run report from summary card",
+                    title_uk="Відкрити звіт прогону з картки summary",
+                    desc_en="Clicking a Recent run summary navigates to /reports/runs/{runId} with breadcrumbs.",
+                    desc_uk="Клік по Recent run summary відкриває /reports/runs/{runId} з хлібними крихтами.",
+                    pre_en="Reports page with at least one run summary.",
+                    pre_uk="Сторінка Reports з хоча б одним summary прогону.",
+                    priority="critical",
+                    tags=["smoke", "regression", "e2e", "reports"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "Open Reports, click a summary card (data-testid=reports-run-summary-item with data-entity-id).",
+                            "URL is /reports/runs/{uuid}; breadcrumb Reports is visible; run header KPIs render.",
+                            action_uk="Відкрийте Reports, клікніть картку summary (data-testid=reports-run-summary-item з data-entity-id).",
+                            expected_uk="URL /reports/runs/{uuid}; видимі хлібні крихти Reports; KPI заголовка прогону відображаються.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Filter run results by failed bar segment",
+                    title_uk="Фільтр результатів прогону сегментом Failed",
+                    desc_en="Clicking the Failed segment on a summary bar opens the run report pre-filtered to failed.",
+                    desc_uk="Клік по сегменту Failed на барі summary відкриває звіт прогону з фільтром failed.",
+                    pre_en="Run with both passed and failed cases.",
+                    pre_uk="Прогін із passed і failed кейсами.",
+                    priority="high",
+                    tags=["regression", "e2e", "reports"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "On Reports, click the Failed segment (data-testid …-seg-failed) of a summary bar.",
+                            "Run detail loads with ?status=failed; results table shows only failed rows.",
+                            action_uk="На Reports клікніть сегмент Failed (data-testid …-seg-failed) на барі summary.",
+                            expected_uk="Деталі прогону з ?status=failed; у таблиці лише failed рядки.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Expand case row for steps and comment history",
+                    title_uk="Розгортання рядка кейсу: кроки та історія коментарів",
+                    desc_en="Expandable rows load step-by-step results and comment history for the case in this run.",
+                    desc_uk="Розгортання рядка завантажує покрокові результати й історію коментарів кейсу в цьому прогоні.",
+                    pre_en="Open a run report with case results that have steps.",
+                    pre_uk="Відкритий звіт прогону з кейсами, що мають кроки.",
+                    priority="high",
+                    tags=["regression", "e2e", "reports"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "Click the expand control on a results row (data-testid=reports-run-row-expand with data-entity-id).",
+                            "Detail panel shows steps (action/expected/actual/status) and comment history.",
+                            action_uk="Натисніть контроль розгортання рядка (data-testid=reports-run-row-expand з data-entity-id).",
+                            expected_uk="Панель показує кроки (дія/очікувано/фактично/статус) та історію коментарів.",
+                        ),
+                    ],
+                ),
+                case(
+                    "KPI cards drill to cases, runs, and coverage",
+                    title_uk="KPI картки ведуть до кейсів, прогонів і покриття",
+                    desc_en="Cases KPI → case list, Runs → runs list, Requirements/Coverage → coverage drill-down.",
+                    desc_uk="KPI Cases → список кейсів, Runs → прогони, Requirements/Coverage → деталі покриття.",
+                    pre_en="Reports dashboard with KPIs.",
+                    pre_uk="Дашборд Reports з KPI.",
+                    priority="high",
+                    tags=["regression", "e2e", "reports"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "Click reports-kpi-cases, then back; click reports-kpi-runs; click reports-kpi-coverage.",
+                            "Routes are /, /runs, and /reports/coverage respectively with covered/uncovered sections.",
+                            action_uk="Клік reports-kpi-cases, назад; reports-kpi-runs; reports-kpi-coverage.",
+                            expected_uk="Маршрути /, /runs і /reports/coverage; секції covered/uncovered.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Export filtered run results CSV/PDF",
+                    title_uk="Експорт відфільтрованих результатів прогону CSV/PDF",
+                    desc_en="From the run report, Export CSV/PDF downloads exactly the filtered per-case results.",
+                    desc_uk="Зі звіту прогону Export CSV/PDF завантажує саме відфільтровані результати по кейсах.",
+                    pre_en="Run report open; export_reports permission.",
+                    pre_uk="Відкритий звіт прогону; дозвіл export_reports.",
+                    priority="high",
+                    tags=["regression", "e2e", "reports", "export"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "Apply a status filter, click Export CSV (reports-run-export-csv), then Export PDF.",
+                            "Downloads start; CSV has case_key header and only filtered rows; PDF starts with %PDF.",
+                            action_uk="Застосуйте фільтр статусу, натисніть Export CSV (reports-run-export-csv), потім Export PDF.",
+                            expected_uk="Завантаження починається; CSV з case_key і лише відфільтровані рядки; PDF починається з %PDF.",
+                        ),
+                    ],
+                ),
+                case(
+                    "Backspace returns to Reports when not typing",
+                    title_uk="Backspace повертає до Reports, якщо не в полі вводу",
+                    desc_en="On run report and coverage pages, Backspace navigates to /reports unless focus is in an input.",
+                    desc_uk="На сторінках звіту прогону й покриття Backspace веде на /reports, якщо фокус не в полі вводу.",
+                    pre_en="Run report or coverage page open.",
+                    pre_uk="Відкрита сторінка звіту прогону або покриття.",
+                    priority="medium",
+                    tags=["regression", "e2e", "reports", "a11y"],
+                    external_key="e2e:reports-drilldown.spec.ts",
+                    steps=[
+                        step(
+                            "Focus the page body (not a search input) and press Backspace.",
+                            "Navigates to /reports; repeating while typing in a filter does not navigate.",
+                            action_uk="Сфокусуйте тіло сторінки (не поле пошуку) і натисніть Backspace.",
+                            expected_uk="Перехід на /reports; під час введення у фільтрі навігації немає.",
                         ),
                     ],
                 ),
@@ -2614,8 +2728,8 @@ def build() -> dict:
                             "Primary nav is visible; no Folders|Теки suite list / .suite-block in the app sidebar.",
                         ),
                         step(
-                            "Close menu; in getByTestId('case-list-panel') click getByTestId('case-list-folders-toggle').",
-                            "getByTestId('case-list-folders-drawer') opens with getByTestId('folder-tree'); getByTestId('folder-all-cases') visible.",
+                            "Close menu; in .case-list-panel click Folders|Теки (.folders-drawer-toggle).",
+                            "#case-folder-drawer slides open with .folder-tree; [data-testid=folder-all-cases] visible.",
                         ),
                         step(
                             "Select All cases or a folder; or click Close / .case-tree-backdrop.",
@@ -2946,39 +3060,16 @@ def build() -> dict:
                 ],
             ),
             case(
-                "Stable data-testid attrs avoid PII and support Playwright",
-                title_uk="Стабільні data-testid без PII для Playwright",
-                desc_en="UI exposes kebab-case data-testid; list rows use data-entity-id/key/index; never emails/secrets in data-*.",
-                pre_en="Built frontend without VITE_STRIP_TEST_IDS; admin session.",
-                priority="high",
-                tags=["smoke", "regression", "e2e", "a11y"],
-                external_key="e2e:test-id-audit.spec.ts",
-                steps=[
-                    step(
-                        "Open login; locate getByTestId('login-email-input') and getByTestId('login-submit-button').",
-                        "Controls found by static test ids (not by email value in attributes).",
-                    ),
-                    step(
-                        "After login open Cases; inspect a case-row: data-testid=case-row with data-entity-id (UUID) and data-entity-key (e.g. VQA-001).",
-                        "No data-* attribute contains '@', JWT, or password/token secret material.",
-                    ),
-                    step(
-                        "Run frontend unit tests for testing/security.ts and e2e test-id-audit.spec.ts (or npm run check:test-ids).",
-                        "Checks fail if PII/secrets appear in test attrs or interactive controls lack ids.",
-                    ),
-                ],
-            ),
-            case(
                 "Project switcher changes active project context",
                 title_uk="Перемикач проєктів змінює активний контекст",
-                desc_en="getByTestId('header-project-select') switches cases/runs scope.",
+                desc_en=".project-select switches cases/runs scope.",
                 pre_en="User member of ≥2 projects (Kyiv + Vulyk QA).",
                 priority="high",
                 tags=["smoke", "regression", "e2e", "projects"],
                 external_key="e2e:sample-project.spec.ts",
                 steps=[
                     step(
-                        "Select Kyiv Open-Air Concert 2026 then Vulyk QA in getByTestId('header-project-select').",
+                        "Select Kyiv Open-Air Concert 2026 then Vulyk QA in .project-select.",
                         "Folder tree and case keys switch (KC-* vs VQA-*).",
                     )
                 ],

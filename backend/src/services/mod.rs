@@ -7,5 +7,6 @@ pub mod ingest;
 pub mod jobs;
 pub mod reports;
 pub mod results;
+pub mod run_reports;
 pub mod runs;
 pub mod suites;

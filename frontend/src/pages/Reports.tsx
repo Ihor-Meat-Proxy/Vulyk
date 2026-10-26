@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   api,
   type FlakyReport,
@@ -8,7 +9,8 @@ import {
   type RunSummaryReport,
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
-import { TestIds, listItemProps, testIdProps } from '../testing'
+import { useI18n } from '../i18n'
+import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -22,35 +24,86 @@ function CountsBar({
   passed,
   failed,
   other,
+  runId,
+  onSegmentClick,
+  segPassedId,
+  segFailedId,
+  segOtherId,
 }: {
   passed: number
   failed: number
   other: number
+  runId?: string | null
+  onSegmentClick?: (
+    status: 'passed' | 'failed' | 'other',
+    runId: string,
+  ) => void
+  segPassedId: string
+  segFailedId: string
+  segOtherId: string
 }) {
+  const { t } = useI18n()
   const total = Math.max(passed + failed + other, 1)
+  const clickable = Boolean(runId && onSegmentClick)
+
+  const seg = (
+    status: 'passed' | 'failed' | 'other',
+    count: number,
+    className: string,
+    testId: string,
+  ) => {
+    const width = count === 0 ? '0%' : `${(count / total) * 100}%`
+    if (!clickable || !runId || count === 0) {
+      return (
+        <span
+          className={`trend-seg ${className}`}
+          style={{ width }}
+          {...(runId != null
+            ? listItemProps(testId, { entityId: runId, index: 0 })
+            : testIdProps(testId))}
+        />
+      )
+    }
+    return (
+      <button
+        type="button"
+        className={`trend-seg ${className} clickable`}
+        style={{ width }}
+        aria-label={`${status} ${count}`}
+        {...(runId != null
+          ? listItemProps(testId, { entityId: runId, index: 0 })
+          : testIdProps(testId))}
+        onClick={(e) => {
+          e.stopPropagation()
+          onSegmentClick?.(status, runId)
+        }}
+      />
+    )
+  }
+
   return (
     <div>
       <div
         className="trend-bar"
         role="img"
-        aria-label={`Passed ${passed}, Failed ${failed}, Other ${other}`}
+        aria-label={`${t('status.passed')} ${passed}, ${t('status.failed')} ${failed}, ${t('reports.other')} ${other}`}
       >
-        <span className="trend-seg passed" style={{ width: `${(passed / total) * 100}%` }} />
-        <span className="trend-seg failed" style={{ width: `${(failed / total) * 100}%` }} />
-        <span className="trend-seg other" style={{ width: `${(other / total) * 100}%` }} />
+        {seg('passed', passed, 'passed', segPassedId)}
+        {seg('failed', failed, 'failed', segFailedId)}
+        {seg('other', other, 'other', segOtherId)}
       </div>
       <div className="progress-legend">
         <span className="progress-legend-item">
           <span className="progress-legend-swatch passed" aria-hidden />
-          Passed {passed}
+          {t('status.passed')} {passed}
         </span>
         <span className="progress-legend-item">
           <span className="progress-legend-swatch failed" aria-hidden />
-          Failed {failed}
+          {t('status.failed')} {failed}
         </span>
         <span className="progress-legend-item">
           <span className="progress-legend-swatch skipped" aria-hidden />
-          Other {other}
+          {t('reports.other')} {other}
         </span>
       </div>
     </div>
@@ -58,15 +111,37 @@ function CountsBar({
 }
 
 export function Reports({ projectId }: Props) {
+  const { t } = useI18n()
+  const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canExport = can('export_reports')
   const [dash, setDash] = useState<ProjectDashboard | null>(null)
   const [trends, setTrends] = useState<PassFailTrends | null>(null)
-  const [coverage, setCoverage] = useState<RequirementCoverageReport | null>(null)
+  const [coverage, setCoverage] = useState<RequirementCoverageReport | null>(
+    null,
+  )
   const [flaky, setFlaky] = useState<FlakyReport | null>(null)
-  const [selectedSummary, setSelectedSummary] = useState<RunSummaryReport | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+
+  const openRun = useCallback(
+    (runId: string, status?: string) => {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : ''
+      navigate(`/reports/runs/${runId}${qs}`)
+    },
+    [navigate],
+  )
+
+  const onSegmentClick = useCallback(
+    (bucket: 'passed' | 'failed' | 'other', runId: string) => {
+      if (bucket === 'other') {
+        openRun(runId)
+        return
+      }
+      openRun(runId, bucket)
+    },
+    [openRun],
+  )
 
   const refresh = useCallback(async () => {
     if (!projectId) {
@@ -78,17 +153,16 @@ export function Reports({ projectId }: Props) {
     }
     setBusy(true)
     try {
-      const [d, t, c, f] = await Promise.all([
+      const [d, tnd, c, f] = await Promise.all([
         api.getDashboard(projectId),
         api.getTrends(projectId, 'run', 12),
         api.getCoverage(projectId),
         api.getFlaky(projectId),
       ])
       setDash(d)
-      setTrends(t)
+      setTrends(tnd)
       setCoverage(c)
       setFlaky(f)
-      setSelectedSummary(d.recent_run_summaries[0] ?? null)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -102,11 +176,7 @@ export function Reports({ projectId }: Props) {
   }, [refresh])
 
   if (!projectId) {
-    return (
-      <div className="reports-page" {...testIdProps(TestIds.reportsPage)}>
-        <p className="muted">Select a project first.</p>
-      </div>
-    )
+    return <p className="muted">{t('reports.selectProject')}</p>
   }
 
   const onExport = async (
@@ -125,10 +195,8 @@ export function Reports({ projectId }: Props) {
     <div className="reports-page" {...testIdProps(TestIds.reportsPage)}>
       <div className="panel-header">
         <div>
-          <h2>Reports</h2>
-          <p className="muted">
-            Run summaries, pass/fail trends, requirement coverage, and flaky detection.
-          </p>
+          <h2 {...testIdProps(TestIds.reportsTitle)}>{t('reports.title')}</h2>
+          <p className="muted">{t('reports.subtitle')}</p>
         </div>
         <div className="topbar-actions">
           <button
@@ -138,7 +206,7 @@ export function Reports({ projectId }: Props) {
             disabled={busy}
             {...testIdProps(TestIds.reportsRefreshButton)}
           >
-            Refresh
+            {t('reports.refresh')}
           </button>
           {canExport && (
             <button
@@ -147,7 +215,7 @@ export function Reports({ projectId }: Props) {
               onClick={() => void onExport('csv')}
               {...testIdProps(TestIds.reportsExportButton)}
             >
-              Export CSV
+              {t('reports.exportCsv')}
             </button>
           )}
           {canExport && (
@@ -157,7 +225,7 @@ export function Reports({ projectId }: Props) {
               onClick={() => void onExport('pdf')}
               {...testIdProps(TestIds.reportsExportPdfButton)}
             >
-              Export PDF
+              {t('reports.exportPdf')}
             </button>
           )}
         </div>
@@ -168,55 +236,74 @@ export function Reports({ projectId }: Props) {
           {error}
         </p>
       )}
+
       {busy && !dash && (
         <p className="muted" {...testIdProps(TestIds.reportsLoading)}>
-          Loading…
-        </p>
-      )}
-      {!busy && dash && dash.total_runs === 0 && !dash.recent_run_summaries.length && (
-        <p className="muted" {...testIdProps(TestIds.reportsEmpty)}>
-          No report data yet.
+          {t('common.loading')}
         </p>
       )}
 
       {dash && (
-        <section className="report-kpis" aria-label="Project summary">
-          <div className="kpi">
-            <span className="kpi-label">Cases</span>
+        <section
+          className="report-kpis"
+          aria-label={t('reports.kpis')}
+          {...testIdProps(TestIds.reportsKpis)}
+        >
+          <Link
+            to="/"
+            className="kpi kpi-link"
+            {...testIdProps(TestIds.reportsKpiCases)}
+          >
+            <span className="kpi-label">{t('reports.kpiCases')}</span>
             <span className="kpi-value">{dash.total_cases}</span>
-          </div>
-          <div className="kpi">
-            <span className="kpi-label">Runs</span>
+          </Link>
+          <Link
+            to="/runs"
+            className="kpi kpi-link"
+            {...testIdProps(TestIds.reportsKpiRuns)}
+          >
+            <span className="kpi-label">{t('reports.kpiRuns')}</span>
             <span className="kpi-value">{dash.total_runs}</span>
-          </div>
-          <div className="kpi">
-            <span className="kpi-label">Requirements</span>
+          </Link>
+          <Link
+            to="/reports/coverage"
+            className="kpi kpi-link"
+            {...testIdProps(TestIds.reportsKpiRequirements)}
+          >
+            <span className="kpi-label">{t('reports.kpiRequirements')}</span>
             <span className="kpi-value">{dash.total_requirements}</span>
-          </div>
-          <div className="kpi">
-            <span className="kpi-label">Coverage</span>
-            <span className="kpi-value">{pct(dash.coverage.coverage_percent)}</span>
-          </div>
+          </Link>
+          <Link
+            to="/reports/coverage"
+            className="kpi kpi-link"
+            {...testIdProps(TestIds.reportsKpiCoverage)}
+          >
+            <span className="kpi-label">{t('reports.kpiCoverage')}</span>
+            <span className="kpi-value">
+              {pct(dash.coverage.coverage_percent)}
+            </span>
+          </Link>
         </section>
       )}
 
       <div className="reports-grid">
-        <section className="panel">
-          <h3>Recent run summaries</h3>
+        <section className="panel" {...testIdProps(TestIds.reportsSummaries)}>
+          <h3>{t('reports.recentSummaries')}</h3>
           {!dash?.recent_run_summaries.length && (
-            <p className="muted">No runs yet. Create a run and ingest results to see summaries.</p>
+            <p className="muted" {...testIdProps(TestIds.reportsEmpty)}>
+              {t('reports.noRuns')}
+            </p>
           )}
           <ul className="report-list">
-            {dash?.recent_run_summaries.map((s, index) => (
+            {dash?.recent_run_summaries.map((s: RunSummaryReport, idx) => (
               <li key={s.run_id}>
                 <button
                   type="button"
-                  className={selectedSummary?.run_id === s.run_id ? 'active' : undefined}
-                  onClick={() => setSelectedSummary(s)}
                   {...listItemProps(TestIds.reportsRunSummaryItem, {
                     entityId: s.run_id,
-                    index,
+                    index: idx,
                   })}
+                  onClick={() => openRun(s.run_id)}
                 >
                   <strong>{s.name}</strong>
                   <span className="muted">
@@ -225,61 +312,54 @@ export function Reports({ projectId }: Props) {
                   <CountsBar
                     passed={s.counts.passed}
                     failed={s.counts.failed + s.counts.error}
-                    other={s.counts.skipped + s.counts.blocked + s.counts.untested}
+                    other={
+                      s.counts.skipped + s.counts.blocked + s.counts.untested
+                    }
+                    runId={s.run_id}
+                    onSegmentClick={onSegmentClick}
+                    segPassedId={TestIds.reportsSummarySegPassed}
+                    segFailedId={TestIds.reportsSummarySegFailed}
+                    segOtherId={TestIds.reportsSummarySegOther}
                   />
                 </button>
               </li>
             ))}
           </ul>
-          {selectedSummary && (
-            <div className="report-detail">
-              <h4>{selectedSummary.name}</h4>
-              <p className="muted">Status: {selectedSummary.status}</p>
-              <dl className="counts-dl">
-                <div>
-                  <dt>Passed</dt>
-                  <dd>{selectedSummary.counts.passed}</dd>
-                </div>
-                <div>
-                  <dt>Failed</dt>
-                  <dd>{selectedSummary.counts.failed}</dd>
-                </div>
-                <div>
-                  <dt>Skipped</dt>
-                  <dd>{selectedSummary.counts.skipped}</dd>
-                </div>
-                <div>
-                  <dt>Pass rate</dt>
-                  <dd>{pct(selectedSummary.pass_rate)}</dd>
-                </div>
-              </dl>
-              <button
-                type="button"
-                className="btn secondary"
-                onClick={() => void onExport('csv', 'run', selectedSummary.run_id)}
-                {...testIdProps(TestIds.reportsExportRunButton)}
-              >
-                Export this run (CSV)
-              </button>
-            </div>
-          )}
         </section>
 
-        <section className="panel">
-          <h3>Pass / fail trends</h3>
-          {!trends?.points.length && <p className="muted">No trend data yet.</p>}
+        <section className="panel" {...testIdProps(TestIds.reportsTrends)}>
+          <h3>{t('reports.trends')}</h3>
+          {!trends?.points.length && (
+            <p className="muted">{t('reports.noTrends')}</p>
+          )}
           <ul className="trend-list">
             {trends?.points.map((p, idx) => (
               <li key={`${p.bucket}-${p.run_id ?? idx}`}>
-                <div className="trend-row">
-                  <span>{p.run_name ?? p.bucket}</span>
-                  <span className="muted">{pct(p.pass_rate)}</span>
-                </div>
-                <CountsBar
-                  passed={p.counts.passed}
-                  failed={p.counts.failed + p.counts.error}
-                  other={p.counts.skipped + p.counts.blocked}
-                />
+                <button
+                  type="button"
+                  className="trend-row-btn"
+                  disabled={!p.run_id}
+                  {...listItemProps(TestIds.reportsTrendItem, {
+                    entityId: p.run_id ?? `bucket-${idx}`,
+                    index: idx,
+                  })}
+                  onClick={() => p.run_id && openRun(p.run_id)}
+                >
+                  <div className="trend-row">
+                    <span>{p.run_name ?? p.bucket}</span>
+                    <span className="muted">{pct(p.pass_rate)}</span>
+                  </div>
+                  <CountsBar
+                    passed={p.counts.passed}
+                    failed={p.counts.failed + p.counts.error}
+                    other={p.counts.skipped + p.counts.blocked}
+                    runId={p.run_id}
+                    onSegmentClick={onSegmentClick}
+                    segPassedId={TestIds.reportsTrendSegPassed}
+                    segFailedId={TestIds.reportsTrendSegFailed}
+                    segOtherId={TestIds.reportsTrendSegOther}
+                  />
+                </button>
               </li>
             ))}
           </ul>
@@ -289,23 +369,26 @@ export function Reports({ projectId }: Props) {
             onClick={() => void onExport('csv', 'trends')}
             {...testIdProps(TestIds.reportsExportTrendsButton)}
           >
-            Export trends CSV
+            {t('reports.exportTrendsCsv')}
           </button>
         </section>
 
-        <section className="panel">
-          <h3>Coverage by requirement</h3>
+        <section
+          className="panel"
+          {...testIdProps(TestIds.reportsCoveragePreview)}
+        >
+          <h3>{t('reports.coverageByRequirement')}</h3>
           {!coverage?.rows.length && (
-            <p className="muted">No requirements linked yet.</p>
+            <p className="muted">{t('reports.noRequirements')}</p>
           )}
           <table className="data-table">
             <thead>
               <tr>
-                <th>Requirement</th>
-                <th>Linked</th>
-                <th>Passed</th>
-                <th>Failed</th>
-                <th>Pass %</th>
+                <th>{t('reports.colRequirement')}</th>
+                <th>{t('reports.colLinked')}</th>
+                <th>{t('status.passed')}</th>
+                <th>{t('status.failed')}</th>
+                <th>{t('reports.passRate')}</th>
               </tr>
             </thead>
             <tbody>
@@ -323,32 +406,57 @@ export function Reports({ projectId }: Props) {
               ))}
             </tbody>
           </table>
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => void onExport('csv', 'coverage')}
-            {...testIdProps(TestIds.reportsExportCoverageButton)}
-          >
-            Export coverage CSV
-          </button>
+          <div className="topbar-actions">
+            <Link
+              to="/reports/coverage"
+              className="btn secondary"
+              {...testIdProps(TestIds.reportsCoverageDrilldown)}
+            >
+              {t('reports.openCoverage')}
+            </Link>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => void onExport('csv', 'coverage')}
+              {...testIdProps(TestIds.reportsExportCoverageButton)}
+            >
+              {t('reports.exportCoverageCsv')}
+            </button>
+          </div>
         </section>
 
-        <section className="panel">
-          <h3>Flaky tests</h3>
+        <section className="panel" {...testIdProps(TestIds.reportsFlaky)}>
+          <h3>{t('reports.flaky')}</h3>
           <p className="muted">
-            Cases that both passed and failed across the last{' '}
-            {flaky?.lookback_runs ?? '—'} runs.
+            {t('reports.flakyHelp', {
+              count: String(flaky?.lookback_runs ?? '—'),
+            })}
           </p>
-          {!flaky?.cases.length && <p className="muted">No flaky cases detected.</p>}
+          {!flaky?.cases.length && (
+            <p className="muted">{t('reports.noFlaky')}</p>
+          )}
           <ul className="report-list">
-            {flaky?.cases.map((c) => (
-              <li key={c.case_id}>
+            {flaky?.cases.map((c, idx) => (
+              <li
+                key={c.case_id}
+                {...listItemProps(TestIds.reportsFlakyItem, {
+                  entityId: c.case_id,
+                  entityKey: c.case_key,
+                  index: idx,
+                })}
+              >
                 <strong>
-                  {c.case_key} — {c.title}
+                  <Link
+                    to={`/cases/${encodeURIComponent(c.case_key)}`}
+                    {...listChildProps(TestIds.reportsFlakyItem, 'link')}
+                  >
+                    {c.case_key}
+                  </Link>{' '}
+                  — {c.title}
                 </strong>
                 <span className="muted">
-                  flake {c.flake_score.toFixed(2)} · {c.passes}P / {c.failures}F over{' '}
-                  {c.runs_seen} runs · {c.last_statuses.join(' → ')}
+                  flake {c.flake_score.toFixed(2)} · {c.passes}P / {c.failures}F
+                  over {c.runs_seen} runs · {c.last_statuses.join(' → ')}
                 </span>
               </li>
             ))}
@@ -359,7 +467,7 @@ export function Reports({ projectId }: Props) {
             onClick={() => void onExport('csv', 'flaky')}
             {...testIdProps(TestIds.reportsExportFlakyButton)}
           >
-            Export flaky CSV
+            {t('reports.exportFlakyCsv')}
           </button>
         </section>
       </div>
