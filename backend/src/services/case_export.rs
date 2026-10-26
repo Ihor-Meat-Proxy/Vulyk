@@ -28,6 +28,8 @@ const FONT_BOLD: &[u8] = include_bytes!("../../assets/fonts/DejaVuSans-Bold.ttf"
 
 const DEFAULT_RESULTS: i64 = 5;
 const MAX_RESULTS: i64 = 50;
+/// Max cases accepted by `POST …/cases/export` (ZIP of PDFs). Keeps memory bounded.
+pub const MAX_BULK_EXPORT_CASES: usize = 100;
 const COMMENT_MAX: usize = 160;
 
 /// Supported UI locales for PDF field labels.
@@ -1132,6 +1134,19 @@ pub async fn export_case_pdf_bytes(
     Ok((filename, bytes))
 }
 
+/// Validate bulk export `case_ids` length (shared by handler tests).
+pub fn validate_bulk_case_ids(case_ids: &[Uuid]) -> AppResult<()> {
+    if case_ids.is_empty() {
+        return Err(AppError::BadRequest("case_ids required".into()));
+    }
+    if case_ids.len() > MAX_BULK_EXPORT_CASES {
+        return Err(AppError::BadRequest(format!(
+            "case_ids exceeds maximum of {MAX_BULK_EXPORT_CASES}"
+        )));
+    }
+    Ok(())
+}
+
 pub async fn export_cases_bulk(
     pool: &sqlx::PgPool,
     project_id: Uuid,
@@ -1139,9 +1154,7 @@ pub async fn export_cases_bulk(
     results_limit: i64,
     locale: ExportLocale,
 ) -> AppResult<(String, &'static str, Vec<u8>)> {
-    if case_ids.is_empty() {
-        return Err(AppError::BadRequest("case_ids required".into()));
-    }
+    validate_bulk_case_ids(case_ids)?;
     if case_ids.len() == 1 {
         let (filename, bytes) =
             export_case_pdf_bytes(pool, project_id, case_ids[0], results_limit, locale).await?;
@@ -1325,5 +1338,19 @@ mod tests {
             locale: None,
         };
         assert_eq!(q3.results_limit(), 5);
+    }
+
+    #[test]
+    fn bulk_export_rejects_empty_and_oversized_case_ids() {
+        assert!(validate_bulk_case_ids(&[]).is_err());
+        let ok = vec![uuid::Uuid::nil(); MAX_BULK_EXPORT_CASES];
+        assert!(validate_bulk_case_ids(&ok).is_ok());
+        let too_many = vec![uuid::Uuid::nil(); MAX_BULK_EXPORT_CASES + 1];
+        let err = validate_bulk_case_ids(&too_many).expect_err("must reject");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("maximum") || msg.contains("case_ids"),
+            "unexpected error: {msg}"
+        );
     }
 }
