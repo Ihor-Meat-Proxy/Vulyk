@@ -167,6 +167,88 @@ PY
 BASE_HEALTH="$(curl -fsS "${API_URL}/health")"
 log "Base health: ${BASE_HEALTH}"
 
+log "Snapshotting settings, requirements, runs, and inserting encrypted LLM secret..."
+python3 - <<'PY'
+import json, os, urllib.request, hashlib, secrets
+from pathlib import Path
+
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:
+    # Fallback: use openssl-free pure approach via PyNaCl-less AES - install cryptography if missing
+    import subprocess, sys
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "cryptography"])
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+api = os.environ["VULYK_API_URL"]
+db_url = os.environ["DATABASE_URL"]
+secrets_key = os.environ.get("VULYK_SECRETS_KEY", "upgrade-ci-secrets")
+key = hashlib.sha256(secrets_key.encode()).digest()
+plain = "sk-upgrade-ci-must-survive"
+nonce = secrets.token_bytes(12)
+ct = AESGCM(key).encrypt(nonce, plain.encode(), None)
+# AESGCM returns ct||tag combined; store as-is
+Path("/tmp/vulyk-upgrade-secret-plain.txt").write_text(plain)
+
+# Prefer API insert for llm config (auth optional in this job)
+projects = json.load(urllib.request.urlopen(f"{api}/api/v1/projects"))
+items = projects["items"] if isinstance(projects, dict) else projects
+assert items, "expected projects"
+pid = items[0]["id"]
+body = json.dumps({
+    "provider": "openrouter",
+    "name": "upgrade-ci-secret",
+    "api_key": plain,
+    "base_url": "https://openrouter.ai/api/v1",
+    "model": "openai/gpt-4o-mini",
+    "is_default": False,
+}).encode()
+req = urllib.request.Request(
+    f"{api}/api/v1/projects/{pid}/llm/configs",
+    data=body,
+    headers={"Content-Type": "application/json"},
+    method="POST",
+)
+try:
+    with urllib.request.urlopen(req) as r:
+        cfg = json.load(r)
+    Path("/tmp/vulyk-upgrade-llm-config-id.txt").write_text(cfg["id"])
+    print("llm config created via API", cfg["id"])
+except Exception as e:
+    print("API llm insert failed, using SQL fallback:", e)
+    import subprocess
+    hex_ct = ct.hex()
+    hex_nonce = nonce.hex()
+    sql = f"""
+    INSERT INTO llm_configs (project_id, provider, name, model, base_url, api_key_ciphertext, api_key_nonce, is_default)
+    VALUES ('{pid}'::uuid, 'openrouter', 'upgrade-ci-secret', 'openai/gpt-4o-mini',
+            'https://openrouter.ai/api/v1', decode('{hex_ct}','hex'), decode('{hex_nonce}','hex'), false)
+    RETURNING id;
+    """
+    out = subprocess.check_output(["psql", db_url, "-Atc", sql], text=True).strip()
+    Path("/tmp/vulyk-upgrade-llm-config-id.txt").write_text(out.splitlines()[-1])
+    print("llm config created via SQL", out)
+
+# Counts that must survive
+import subprocess
+snap = {}
+for label, q in [
+    ("requirements", "SELECT COUNT(*) FROM requirements"),
+    ("test_runs", "SELECT COUNT(*) FROM test_runs"),
+    ("system_settings", "SELECT COUNT(*) FROM system_settings"),
+    ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
+    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+]:
+    try:
+        snap[label] = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    except Exception:
+        # table may not exist on very old bases
+        snap[label] = -1
+        print(f"skip count {label}")
+Path("/tmp/vulyk-upgrade-entity-counts-before.json").write_text(json.dumps(snap))
+print("entity snapshot", snap)
+PY
+
 stop_api
 log "Building HEAD API..."
 cargo build -p vulyk-api --release
@@ -177,7 +259,7 @@ export VULYK_AUTO_MIGRATE=false
 ./target/release/vulyk-api migrate run
 ./target/release/vulyk-api version
 
-log "Starting HEAD API (auto-migrate off)..."
+log "Starting HEAD API (auto-migrate off) - same VULYK_SECRETS_KEY must still decrypt..."
 ./target/release/vulyk-api > /tmp/vulyk-upgrade-head.log 2>&1 &
 echo $! > /tmp/vulyk-upgrade-api.pid
 if ! wait_health; then
@@ -189,13 +271,28 @@ HEAD_HEALTH="$(curl -fsS "${API_URL}/health")"
 log "Head health: ${HEAD_HEALTH}"
 python3 -c 'import json,sys; h=json.loads(sys.argv[1]); assert h.get("status")=="ok", h; assert h.get("version"), h; print("version", h["version"])' "${HEAD_HEALTH}"
 
-log "Verifying projects and case counts..."
+log "Verifying projects, case counts, entities, and encrypted secret decrypt..."
 curl -fsS "${API_URL}/api/v1/projects" > /tmp/vulyk-upgrade-projects-after.json
 python3 - <<'PY'
-import json, os, urllib.request, sys
+import json, os, urllib.request, sys, subprocess, hashlib
+from pathlib import Path
+
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:
+    import subprocess as sp
+    sp.check_call([sys.executable, "-m", "pip", "install", "-q", "cryptography"])
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 api = os.environ["VULYK_API_URL"]
+db_url = os.environ["DATABASE_URL"]
+secrets_key = os.environ.get("VULYK_SECRETS_KEY", "upgrade-ci-secrets")
+key = hashlib.sha256(secrets_key.encode()).digest()
+plain_expected = Path("/tmp/vulyk-upgrade-secret-plain.txt").read_text()
+
 before_keys = [k for k in open("/tmp/vulyk-upgrade-project-keys.txt").read().splitlines() if k]
 before_counts = json.load(open("/tmp/vulyk-upgrade-case-counts-before.json"))
+before_entities = json.load(open("/tmp/vulyk-upgrade-entity-counts-before.json"))
 after = json.load(open("/tmp/vulyk-upgrade-projects-after.json"))
 items = after["items"] if isinstance(after, dict) else after
 after_keys = sorted(p["key"] for p in items)
@@ -213,6 +310,45 @@ for p in items:
         print(f"case count dropped for {p['key']}: {prev} -> {total}", file=sys.stderr)
         sys.exit(1)
     print(f"ok {p['key']}: cases={total} (before={prev})")
+
+for label, q in [
+    ("requirements", "SELECT COUNT(*) FROM requirements"),
+    ("test_runs", "SELECT COUNT(*) FROM test_runs"),
+    ("system_settings", "SELECT COUNT(*) FROM system_settings"),
+    ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
+    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+]:
+    prev = before_entities.get(label, -1)
+    if prev < 0:
+        continue
+    try:
+        now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    except Exception as e:
+        print(f"count failed for {label}: {e}", file=sys.stderr)
+        sys.exit(1)
+    if now < prev:
+        print(f"{label} count dropped: {prev} -> {now}", file=sys.stderr)
+        sys.exit(1)
+    print(f"ok {label}: {now} (before={prev})")
+
+cfg_id = Path("/tmp/vulyk-upgrade-llm-config-id.txt").read_text().strip()
+row = subprocess.check_output(
+    ["psql", db_url, "-Atc",
+     f"SELECT encode(api_key_ciphertext,'hex') || ',' || encode(api_key_nonce,'hex') FROM llm_configs WHERE id = '{cfg_id}'::uuid"],
+    text=True,
+).strip()
+if not row or "," not in row:
+    print("encrypted llm row missing after upgrade", file=sys.stderr)
+    sys.exit(1)
+hex_ct, hex_nonce = row.split(",", 1)
+ct = bytes.fromhex(hex_ct)
+nonce = bytes.fromhex(hex_nonce)
+# cryptography AESGCM decrypt expects ciphertext+tag together (as stored)
+plain = AESGCM(key).decrypt(nonce, ct, None).decode()
+if plain != plain_expected:
+    print(f"secret decrypt mismatch: {plain!r} != {plain_expected!r}", file=sys.stderr)
+    sys.exit(1)
+print("ok encrypted secret decrypts with preserved VULYK_SECRETS_KEY")
 print("upgrade data integrity OK")
 PY
 

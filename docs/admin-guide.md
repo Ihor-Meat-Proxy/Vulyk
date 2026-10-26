@@ -40,8 +40,8 @@ helm upgrade --install vulyk deploy/helm/vulyk \
   --set secrets.create=true \
   --set auth.required=true \
   --set setup.adminPassword=change-me-admin1 \
-  --set image.api=ghcr.io/example/vulyk-api:0.2.0 \
-  --set image.web=ghcr.io/example/vulyk-web:0.2.0
+  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.1.0 \
+  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.1.0
 ```
 
 Chart path: [`deploy/helm/vulyk`](../deploy/helm/vulyk). Auth is **required by default**. A setup Job runs `vulyk-api setup --yes`. Provide Secret keys:

@@ -4,42 +4,307 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver to release (e.g. 0.1.0). Tag vX.Y.Z must exist or will be created from the selected ref."
+        required: true
+        type: string
+      create_tag:
+        description: "Create and push the vX.Y.Z tag on this ref if missing"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
 
 jobs:
-  release:
-    name: GitHub Release
+  version:
+    name: Resolve version
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+      owner_lc: ${{ steps.meta.outputs.owner_lc }}
+      api_image: ${{ steps.meta.outputs.api_image }}
+      web_image: ${{ steps.meta.outputs.web_image }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Extract changelog section
-        id: notes
+      - name: Resolve version / tag
+        id: meta
         env:
-          TAG: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          CREATE_TAG: ${{ github.event.inputs.create_tag }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          # Pull the matching ## [VERSION] section from CHANGELOG.md when present
-          python3 - <<'PY' > /tmp/release-notes.md
+          set -euo pipefail
+          owner_lc="$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')"
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ]; then
+            raw="${INPUT_VERSION}"
+            raw="${raw#v}"
+            tag="v${raw}"
+            version="${raw}"
+            if [ "${CREATE_TAG}" = "true" ]; then
+              if git rev-parse "${tag}" >/dev/null 2>&1; then
+                echo "Tag ${tag} already exists"
+              else
+                git config user.name "github-actions[bot]"
+                git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                git tag -a "${tag}" -m "Release ${tag}"
+                git push origin "${tag}"
+              fi
+            elif ! git rev-parse "${tag}" >/dev/null 2>&1; then
+              echo "::error::Tag ${tag} does not exist. Push the tag or set create_tag=true."
+              exit 1
+            fi
+          else
+            tag="${REF_NAME}"
+            version="${tag#v}"
+          fi
+          file_ver="$(tr -d '[:space:]' < VERSION)"
+          if [ "${file_ver}" != "${version}" ]; then
+            echo "::error::VERSION file is ${file_ver} but release tag resolves to ${version}. Bump VERSION (and Cargo/frontend/Helm/CHANGELOG) before tagging."
+            exit 1
+          fi
+          chmod +x scripts/check-version.sh
+          ./scripts/check-version.sh
+          {
+            echo "version=${version}"
+            echo "tag=${tag}"
+            echo "owner_lc=${owner_lc}"
+            echo "api_image=ghcr.io/${owner_lc}/vulyk-api"
+            echo "web_image=ghcr.io/${owner_lc}/vulyk-web"
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    name: CI (reusable)
+    needs: version
+    uses: ./.github/workflows/ci.yml
+
+  docker:
+    name: Build & push GHCR images
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Docker metadata (API)
+        id: meta_api
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ needs.version.outputs.api_image }}
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+            type=raw,value=latest
+      - name: Docker metadata (web)
+        id: meta_web
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ needs.version.outputs.web_image }}
+          tags: |
+            type=raw,value=${{ needs.version.outputs.version }}
+            type=raw,value=latest
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta_api.outputs.tags }}
+          labels: ${{ steps.meta_api.outputs.labels }}
+          cache-from: type=gha,scope=vulyk-api
+          cache-to: type=gha,mode=max,scope=vulyk-api
+      - name: Build and push web image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: frontend/Dockerfile
+          push: true
+          tags: ${{ steps.meta_web.outputs.tags }}
+          labels: ${{ steps.meta_web.outputs.labels }}
+          cache-from: type=gha,scope=vulyk-web
+          cache-to: type=gha,mode=max,scope=vulyk-web
+
+  artifacts:
+    name: Build release artifacts
+    needs: [version, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Build Linux API binary
+        run: cargo build --release -p vulyk-api -p vulyk-cli
+      - name: Stage binaries
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp target/release/vulyk-api "dist/vulyk-api-linux-amd64"
+          cp target/release/vulyk "dist/vulyk-cli-linux-amd64"
+          chmod +x dist/vulyk-api-linux-amd64 dist/vulyk-cli-linux-amd64
+          tar -C dist -czf "dist/vulyk-api-linux-amd64-${VERSION}.tar.gz" vulyk-api-linux-amd64
+          tar -C dist -czf "dist/vulyk-cli-linux-amd64-${VERSION}.tar.gz" vulyk-cli-linux-amd64
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Pack frontend dist
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          tar -C frontend -czf "dist/vulyk-frontend-${VERSION}.tar.gz" dist
+      - name: Pack install / compose bundle
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          API_IMAGE: ${{ needs.version.outputs.api_image }}
+          WEB_IMAGE: ${{ needs.version.outputs.web_image }}
+        run: |
+          set -euo pipefail
+          bundle="dist/vulyk-compose-${VERSION}"
+          mkdir -p "${bundle}"
+          cp docker-compose.yml docker-compose.prod.yml docker-compose.dev.yml "${bundle}/"
+          cp .env.example "${bundle}/"
+          cp VERSION CHANGELOG.md LICENSE README.md "${bundle}/"
+          mkdir -p "${bundle}/scripts"
+          cp scripts/install.sh "${bundle}/scripts/"
+          chmod +x "${bundle}/scripts/install.sh"
+          cat > "${bundle}/RELEASE.txt" <<EOF
+          Vulyk ${VERSION}
+
+          GHCR images (pull these or use ./scripts/install.sh --version ${VERSION}):
+            ${API_IMAGE}:${VERSION}
+            ${WEB_IMAGE}:${VERSION}
+            ${API_IMAGE}:latest
+            ${WEB_IMAGE}:latest
+
+          Quick start from this archive:
+            ./scripts/install.sh compose --yes --version ${VERSION}
+            # or production:
+            ./scripts/install.sh prod --yes --version ${VERSION} --admin-password='…'
+
+          Source build (no --version):
+            ./scripts/install.sh compose --yes
+
+          Docs: https://github.com/${{ github.repository }}/blob/v${VERSION}/docs/guides/releasing.md
+          EOF
+          # Strip leading indentation from heredoc
+          python3 -c "from pathlib import Path; p=Path('${bundle}/RELEASE.txt'); p.write_text('\n'.join(l.lstrip() for l in p.read_text().splitlines())+'\n')"
+          tar -C dist -czf "dist/vulyk-compose-${VERSION}.tar.gz" "vulyk-compose-${VERSION}"
+      - name: Checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          rm -f SHA256SUMS
+          # Only archive artifacts + leave bare binaries out of checksum set for clarity
+          sha256sum vulyk-*-*.tar.gz | tee SHA256SUMS
+      - name: Upload artifact staging
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: |
+            dist/vulyk-api-linux-amd64-*.tar.gz
+            dist/vulyk-cli-linux-amd64-*.tar.gz
+            dist/vulyk-frontend-*.tar.gz
+            dist/vulyk-compose-*.tar.gz
+            dist/SHA256SUMS
+
+  github-release:
+    name: GitHub Release
+    needs: [version, docker, artifacts]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag }}
+          fetch-depth: 0
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: release-artifacts
+          path: dist
+      - name: Extract changelog section
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          TAG: ${{ needs.version.outputs.tag }}
+          API_IMAGE: ${{ needs.version.outputs.api_image }}
+          WEB_IMAGE: ${{ needs.version.outputs.web_image }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/changelog-section.md
           import pathlib, re, os
-          tag = os.environ["TAG"]
-          version = tag[1:] if tag.startswith("v") else tag
+          version = os.environ["VERSION"]
           text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
           pattern = rf"## \[{re.escape(version)}\].*?(?=\n## |\Z)"
           m = re.search(pattern, text, flags=re.S)
           if m:
               print(m.group(0).strip())
           else:
-              print(f"Vulyk {tag}\n\nSee CHANGELOG.md for details.")
+              print(f"## [{version}]\n\nSee CHANGELOG.md for details.")
           PY
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Install"
+            echo
+            echo "### Docker (GHCR)"
+            echo
+            echo '```bash'
+            echo "./scripts/install.sh compose --yes --version ${VERSION}"
+            echo "# or upgrade an existing Compose install:"
+            echo "./scripts/install.sh upgrade --yes --version ${VERSION}"
+            echo '```'
+            echo
+            echo "Images:"
+            echo
+            echo "- \`${API_IMAGE}:${VERSION}\` / \`${API_IMAGE}:latest\`"
+            echo "- \`${WEB_IMAGE}:${VERSION}\` / \`${WEB_IMAGE}:latest\`"
+            echo
+            echo "### Changelog"
+            echo
+            cat /tmp/changelog-section.md
+          } > /tmp/release-notes.md
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Vulyk ${{ github.ref_name }}
+          tag_name: ${{ needs.version.outputs.tag }}
+          name: Vulyk ${{ needs.version.outputs.tag }}
           body_path: /tmp/release-notes.md
           generate_release_notes: true
           draft: false
           prerelease: false
+          files: |
+            dist/vulyk-api-linux-amd64-*.tar.gz
+            dist/vulyk-cli-linux-amd64-*.tar.gz
+            dist/vulyk-frontend-*.tar.gz
+            dist/vulyk-compose-*.tar.gz
+            dist/SHA256SUMS

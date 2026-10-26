@@ -45,6 +45,7 @@ no colliding version prefixes.
 4. **Expand / contract for breaking changes.** Add new columns/tables first (expand), deploy dual-write/read code, then remove old shapes in a later migration (contract). Avoid one-shot renames that break rolling deploys.
 5. **Data migrations must be idempotent.** Use `WHERE` guards, `ON CONFLICT`, or `IF NOT EXISTS` so re-runs (or repair) are safe.
 6. **Keep migrations small and reviewable.** Large backfills may use batched SQL; document runtime expectations in the PR.
+7. **Never destroy operator data on upgrade.** Migrations must be additive/backward-compatible. Operator upgrades take a verified backup first and auto-roll back on migrate/health failure — see [docs/guides/upgrade.md](docs/guides/upgrade.md#data-safety-guarantees). The Upgrade CI job must keep passing (sample data + encrypted secrets survive).
 
 Local helpers:
 
@@ -64,7 +65,10 @@ Interactive UI must expose stable `data-testid` attributes. Convention, list/row
 - Add SQLx migrations under `backend/migrations/` (follow the rules above).
 - Annotate routes with `utoipa` so `/api/docs` stays accurate.
 - Update architecture notes if you change plugin contracts.
-- When bumping the release version, keep Cargo crate versions and `frontend/package.json` aligned; update `CHANGELOG.md`.
+- When bumping the release version, update the root `VERSION` file,
+  `[workspace.package].version` in `Cargo.toml`, `frontend/package.json`, Helm
+  `appVersion`, and `CHANGELOG.md`, then run `./scripts/check-version.sh`. Tag
+  `vX.Y.Z` on `main` to publish (see [docs/guides/releasing.md](docs/guides/releasing.md)).
 
 ## Parallel workstreams
 

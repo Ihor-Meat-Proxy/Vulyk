@@ -64,18 +64,35 @@ helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namesp
 
 Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it deploy/…-api -- vulyk-api setup`.
 
+## Releases
+
+Install a published version from GHCR (no local Rust/Node build):
+
+```bash
+./scripts/install.sh compose --yes --version 0.1.0
+./scripts/install.sh prod --yes --version 0.1.0
+```
+
+Maintainers: bump `VERSION`, tag `vX.Y.Z`, and the Release workflow publishes GHCR
+images + GitHub Release artifacts. Guide: [docs/guides/releasing.md](docs/guides/releasing.md).
+
 ## Upgrading
 
 Keep the Postgres volume; never run `docker compose down -v` (the `-v` flag deletes data).
 
 ```bash
-./scripts/install.sh upgrade --yes              # backup → pull → rebuild → migrate → health
-./scripts/install.sh upgrade --yes --to=v0.1.0  # pin a tag
-./scripts/install.sh backup
-./scripts/install.sh restore ./backups/vulyk-….sql.gz --yes
+./scripts/install.sh upgrade --yes                    # verified backup → pull/rebuild → migrate → health
+./scripts/install.sh upgrade --yes --version 0.1.0    # published GHCR images
+./scripts/install.sh upgrade --yes --to=v0.1.0        # git tag + source rebuild
+./scripts/install.sh backup                           # verified bundle (DB + env/secrets)
+./scripts/install.sh restore ./backups/vulyk-…/ --yes
 ```
 
-Helm runs `vulyk-api migrate run` as a pre-upgrade Job. Full guide: [docs/guides/upgrade.md](docs/guides/upgrade.md).
+Upgrades **never** regenerate `.env` / secrets / admin password; on failure they
+auto-roll back to previous images + DB dump. Guarantees:
+[docs/guides/upgrade.md](docs/guides/upgrade.md#data-safety-guarantees).
+
+Helm runs `vulyk-api migrate run` as a pre-upgrade Job.
 
 ## Documentation
 
@@ -84,6 +101,7 @@ Helm runs `vulyk-api migrate run` as a pre-upgrade Job. Full guide: [docs/guides
 | [docs/architecture.md](docs/architecture.md) | Product plan, ERD, workstreams W0–W11 |
 | [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
 | [docs/admin-guide.md](docs/admin-guide.md) | Deploy, backups, perf smoke, Helm |
+| [docs/guides/releasing.md](docs/guides/releasing.md) | Version bump, tags, GHCR, install `--version` |
 | [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, backups, migrate CLI, Helm hooks |
 | [docs/api.md](docs/api.md) | API overview + OpenAPI link |
 | [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth, roles, registration, seeding |

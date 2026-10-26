@@ -4,12 +4,23 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
 
 jobs:
+  version:
+    name: Version alignment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check-version.sh
+        run: |
+          chmod +x scripts/check-version.sh
+          ./scripts/check-version.sh
+
   backend:
     name: Backend (fmt, clippy, test)
     runs-on: ubuntu-latest
@@ -89,8 +100,10 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Install psql client
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Install psql client + cryptography
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          python3 -m pip install -q cryptography
       - name: Resolve base SHA
         id: base
         run: |
@@ -262,13 +275,15 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/ci-upgrade-test.sh
+          bash -n scripts/check-version.sh
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
-            scripts/check-migrations.sh scripts/ci-upgrade-test.sh
+            scripts/check-migrations.sh scripts/ci-upgrade-test.sh scripts/check-version.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
           if grep -nP '[^\x00-\x7F]' scripts/*.sh; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
             exit 1
           fi
+          ./scripts/check-version.sh
           ./scripts/install.sh check
 
   install-script-macos:
@@ -291,6 +306,8 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/ci-upgrade-test.sh
+          bash -n scripts/check-version.sh
+          ./scripts/check-version.sh
           ./scripts/install.sh check
 
   helm:

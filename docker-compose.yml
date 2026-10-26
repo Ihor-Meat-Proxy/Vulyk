@@ -21,6 +21,9 @@ services:
       retries: 10
 
   api:
+    # Default local tag; release installs set VULYK_API_IMAGE to a GHCR tag and
+    # `docker compose pull` (see ./scripts/install.sh --version).
+    image: ${VULYK_API_IMAGE:-vulyk-api:local}
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -51,6 +54,7 @@ services:
         condition: service_healthy
 
   web:
+    image: ${VULYK_WEB_IMAGE:-vulyk-web:local}
     build:
       context: ./frontend
       dockerfile: Dockerfile
