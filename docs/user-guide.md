@@ -83,7 +83,8 @@ System admins can open **Admin settings → Updates** to:
 2. Click **Check for updates** (or rely on an optional periodic interval).
 3. Read release notes when a newer version exists.
 4. On Docker Compose with the **updater sidecar** enabled (`VULYK_UPDATER_TOKEN` + Compose profile `updates`), click **Update now**. That runs the same verified-backup → migrate → health path as `./scripts/install.sh upgrade --version`, with automatic rollback on failure. Progress and logs appear on the page.
-5. On Kubernetes or installs without the sidecar, **Update now** is hidden and a **manual upgrade command** is shown instead.
+5. After a successful upgrade, a **Roll back to vX.Y.Z** button appears for `VULYK_ROLLBACK_RETENTION_DAYS` (default 7). Confirm by typing `ROLLBACK` — post-upgrade data is lost. The page also lists **version backups** (last N installed versions) with download.
+6. On Kubernetes or installs without the sidecar, **Update now** / one-click rollback are hidden and **manual** `install.sh upgrade` / `rollback` commands are shown instead.
 
 Details: [guides/in-app-updates.md](guides/in-app-updates.md) and [guides/upgrade.md](guides/upgrade.md#data-safety-guarantees).
 

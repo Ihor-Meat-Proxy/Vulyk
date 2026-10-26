@@ -108,6 +108,15 @@ async fn updates_status_requires_admin_and_reports_manual() {
             .contains("install.sh"),
         "manual command should mention install.sh"
     );
+    assert!(
+        body["rollback_command"]
+            .as_str()
+            .unwrap_or("")
+            .contains("rollback"),
+        "rollback_command present"
+    );
+    assert!(body["version_backups"].is_array());
+    assert!(body["retention"]["rollback_days"].as_i64().unwrap_or(0) >= 1);
 
     let apply = client
         .post(format!("{base}/api/v1/admin/updates/apply"))
@@ -121,6 +130,28 @@ async fn updates_status_requires_admin_and_reports_manual() {
         reqwest::StatusCode::BAD_REQUEST,
         "apply without sidecar must fail"
     );
+
+    let rollback = client
+        .post(format!("{base}/api/v1/admin/updates/rollback"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({ "confirm": "ROLLBACK" }))
+        .send()
+        .await
+        .expect("rollback");
+    assert_eq!(
+        rollback.status(),
+        reqwest::StatusCode::BAD_REQUEST,
+        "rollback without sidecar must fail"
+    );
+
+    let bad_confirm = client
+        .post(format!("{base}/api/v1/admin/updates/rollback"))
+        .bearer_auth(&token)
+        .json(&serde_json::json!({ "confirm": "yes" }))
+        .send()
+        .await
+        .expect("bad confirm");
+    assert_eq!(bad_confirm.status(), reqwest::StatusCode::BAD_REQUEST);
 }
 
 #[tokio::test]

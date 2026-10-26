@@ -731,6 +731,33 @@ export type UpdateJob = {
   finished_at: string | null
 }
 
+export type VersionBackupInfo = {
+  id: string
+  version: string | null
+  from_version: string | null
+  to_version: string | null
+  roles: string[]
+  created_at: string | null
+  expires_at: string | null
+  size_bytes: number
+  in_progress: boolean
+}
+
+export type RollbackPointInfo = {
+  id: string
+  version: string
+  from_version: string | null
+  to_version: string | null
+  expires_at: string | null
+  created_at: string | null
+  size_bytes: number
+}
+
+export type VersionBackupRetention = {
+  rollback_days: number
+  version_count: number
+}
+
 export type UpdatesStatus = {
   current_version: string
   latest_version: string | null
@@ -741,8 +768,12 @@ export type UpdatesStatus = {
   check_interval_hours: number
   capability: UpdatesCapability
   manual_command: string
+  rollback_command: string
   github_repo: string
   active_job: UpdateJob | null
+  rollback: RollbackPointInfo | null
+  version_backups: VersionBackupInfo[]
+  retention: VersionBackupRetention
 }
 
 export type UpdatesPreferences = {
@@ -1498,10 +1529,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ version }),
     }),
+  applyAdminRollback: (body: { confirm: string; version?: string }) =>
+    request<{ job: UpdateJob }>('/api/v1/admin/updates/rollback', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   listAdminUpdateJobs: () =>
     request<{ items: UpdateJob[] }>('/api/v1/admin/updates/jobs'),
   getAdminUpdateJob: (jobId: string) =>
     request<UpdateJob>(`/api/v1/admin/updates/jobs/${jobId}`),
+  listAdminVersionBackups: () =>
+    request<{
+      items: VersionBackupInfo[]
+      rollback: RollbackPointInfo | null
+      retention: VersionBackupRetention
+    }>('/api/v1/admin/updates/version-backups'),
+  downloadAdminVersionBackupUrl: (backupId: string) =>
+    `/api/v1/admin/updates/version-backups/${encodeURIComponent(backupId)}/download`,
   getAdminUpdatesPreferences: () =>
     request<UpdatesPreferences>('/api/v1/admin/updates/preferences'),
   updateAdminUpdatesPreferences: (body: { check_interval_hours: number }) =>

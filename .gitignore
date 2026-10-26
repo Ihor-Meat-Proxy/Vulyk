@@ -26,6 +26,8 @@ pgdata/
 
 # Local DB backups from ./scripts/install.sh backup|upgrade
 /backups/
+# Version / rollback points (separate from content backups)
+/version-backups/
 
 # Playwright
 e2e/test-results/
@@ -39,3 +41,4 @@ e2e/.mock-oidc.pid
 
 # Lighthouse
 frontend/lighthouse-report.json
+__pycache__/

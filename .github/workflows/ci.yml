@@ -296,6 +296,7 @@ jobs:
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
             exit 1
           fi
+          python3 scripts/test-version-backups.py -q
           ./scripts/check-version.sh
           ./scripts/install.sh check
 

@@ -13,7 +13,9 @@ in-app one-click updater that wraps the same flow.
 | Guarantee | Behavior |
 |-----------|----------|
 | **Verified backup first** | Before touching images or schema, create a timestamped bundle under `./backups/` (never overwritten). Includes gzip SQL dump, `.env` / `.env.prod`, image pins, and optional attachments volume archive. The dump is **integrity-checked** (`gzip -t`) and **restored into a temporary database** before the upgrade continues. |
-| **Retention** | Keep the last `VULYK_BACKUP_RETENTION` bundles (default **10**). Older bundles are pruned; current upgrade’s bundle is never overwritten. |
+| **Retention** | Keep the last `VULYK_BACKUP_RETENTION` ad-hoc bundles under `./backups/` (default **10**). Older bundles are pruned; current upgrade’s bundle is never overwritten. |
+| **Post-upgrade rollback point** | After a **successful** upgrade, the pre-upgrade verified bundle is also registered under `./version-backups/` as a **rollback point** for `VULYK_ROLLBACK_RETENTION_DAYS` (default **7**), plus a **version snapshot** counted in `VULYK_VERSION_BACKUP_COUNT` (default **3**). Separate from content backups (#30). |
+| **Safe operator rollback** | `./scripts/install.sh rollback [--version X] --confirm=ROLLBACK` takes a fresh backup of the current state, restores previous images + DB, health-checks, and writes an audit event. Typed `ROLLBACK` confirmation is required (data created after the upgrade is lost). Never deletes a rollback point while `in_progress`. |
 | **Config preservation** | Upgrade **does not** regenerate `.env`, `VULYK_JWT_SECRET`, `VULYK_SECRETS_KEY`, `POSTGRES_PASSWORD`, or admin password. Only **missing** additive keys get defaults (with a warning). Missing critical secrets abort or warn loudly. |
 | **Pre-flight** | Free disk (`VULYK_MIN_FREE_MB`, default 2048), current `/health` version, `migrate status` on current and new image. **Blocks** when the DB schema is newer than the binary. **Blocks** semver downgrades unless `--allow-downgrade` (prefer restore-from-backup). |
 | **Additive migrations** | Production migrations are forward-only, expand/contract safe, and applied in a transaction under a Postgres advisory lock (`vulyk-api migrate run`). |
@@ -25,18 +27,34 @@ flowchart TD
   A[Pre-flight: disk, version, migrate status] --> B{Downgrade or schema newer?}
   B -->|yes| Z[Abort — restore matching backup]
   B -->|no| C[Snapshot running images as :rollback]
-  C --> D[Verified backup bundle]
+  C --> D[Verified backup under ./backups]
   D --> E[Pull GHCR or rebuild]
   E --> F[migrate status on NEW image]
   F --> G[migrate run]
   G --> H[compose up + /health]
-  H -->|ok| I[Done — config untouched]
+  H -->|ok| I[Register ./version-backups rollback + version snapshot]
+  I --> J[Prune expired rollbacks / old versions]
   E -->|fail| R[Auto-rollback]
   F -->|fail| R
   G -->|fail| R
   H -->|fail| R
   R --> S[Restore DB + previous images]
   S --> T[Print restore hint]
+```
+
+### Version-backup lifecycle
+
+```mermaid
+flowchart LR
+  U[Successful upgrade A to B] --> VB["version-backups/vb-A-…"]
+  VB --> RoleR[role: rollback expires in N days]
+  VB --> RoleV[role: version keep last M]
+  RoleR -->|expired and not in_progress| DropR[Drop rollback role]
+  RoleV -->|beyond M and not current and not unexpired rollback| DropV[Delete bundle]
+  Admin[Admin Updates / install.sh rollback] -->|typed ROLLBACK| Fresh[Fresh backup of B]
+  Fresh --> Restore[Restore images + DB from vb-A]
+  Restore --> Health[/health OK]
+  Health --> Audit[audit_events + version-backups/audit.log]
 ```
 
 ## Critical warning
@@ -62,6 +80,10 @@ individual services (`docker compose stop api web`).
 
 # Skip backup only when you already have an off-box dump (NOT recommended)
 ./scripts/install.sh upgrade --yes --no-backup
+
+# Within N days of a successful upgrade: restore the pre-upgrade point
+./scripts/install.sh rollback --confirm=ROLLBACK
+./scripts/install.sh rollback --version 0.1.0 --confirm=ROLLBACK
 ```
 
 What it does:
@@ -78,6 +100,17 @@ What it does:
 7. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
 8. **Start** stack and **health-check** `/health` (includes `version`)
 9. **On failure** — automatic DB restore + previous images, then clear restore hints
+10. **On success** — copy the pre-upgrade bundle into `./version-backups/` as a
+    rollback point (`VULYK_ROLLBACK_RETENTION_DAYS`) and a version snapshot
+    (`VULYK_VERSION_BACKUP_COUNT`); prune expired / excess points (never while
+    a rollback is in progress; never the current version’s snapshot)
+
+Operator rollback (`install.sh rollback`) always:
+
+1. Requires typed confirmation `ROLLBACK` (warns that post-upgrade data is lost)
+2. Takes a **fresh** verified backup of the current state first
+3. Restores previous image pins + DB from the version-backup bundle
+4. Health-checks `/health` and appends an audit record
 
 Publishing releases and first-time `--version` installs:
 [releasing.md](releasing.md).
@@ -101,7 +134,10 @@ they are copied from the bundle. Always keep an off-box copy of `VULYK_SECRETS_K
 | Variable | Compose dev | Compose prod | Meaning |
 |----------|-------------|--------------|---------|
 | `VULYK_AUTO_MIGRATE` | `true` (default) | `false` | Apply migrations on API startup |
-| `VULYK_BACKUP_RETENTION` | `10` | `10` | Backup bundles to keep under `./backups/` |
+| `VULYK_BACKUP_RETENTION` | `10` | `10` | Ad-hoc backup bundles to keep under `./backups/` |
+| `VULYK_VERSION_BACKUP_DIR` | `./version-backups` | same | Version / rollback points (**not** content backups) |
+| `VULYK_ROLLBACK_RETENTION_DAYS` | `7` | `7` | How long a post-upgrade rollback point stays usable |
+| `VULYK_VERSION_BACKUP_COUNT` | `3` | `3` | Keep one verified snapshot per last N installed versions |
 | `VULYK_MIN_FREE_MB` | `2048` | `2048` | Minimum free disk before upgrade |
 
 Prod Compose expects migrations from `install.sh upgrade` (or
@@ -194,9 +230,11 @@ Setup Job is **post-install only** (not re-run on every upgrade).
 ## CI coverage
 
 The **Upgrade (base → PR)** job (`scripts/ci-upgrade-test.sh`) installs the PR base
-with sample data, upgrades to HEAD, and asserts projects/cases, requirements, runs,
+with sample data, upgrades to HEAD, asserts projects/cases, requirements, runs,
 settings, custom fields, and an encrypted LLM API key still decrypt with the same
-`VULYK_SECRETS_KEY`.
+`VULYK_SECRETS_KEY`, then restores the pre-upgrade dump (rollback) and asserts the
+post-upgrade marker is gone while pre-upgrade data/config match. Prune/expiry of
+`./version-backups/` is covered by `scripts/test-version-backups.py`.
 
 ## Related
 
