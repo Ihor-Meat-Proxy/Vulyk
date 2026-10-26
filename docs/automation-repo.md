@@ -4,7 +4,7 @@ Per-project Git connection used when generating automation code so the model can
 
 ## Connect
 
-**Admin → Integrations → Automation repo** (requires `manage_automation_repo`):
+Gear → **Admin settings** → **Integrations** → **Automation repo** (requires `manage_automation_repo`):
 
 | Field | Notes |
 |-------|--------|

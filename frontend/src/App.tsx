@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom'
 import { api, type Project, type Suite } from './api'
 import { useAuth } from './auth'
 import { Layout } from './components/Layout'
@@ -20,6 +26,7 @@ import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { RunDetail } from './pages/RunDetail'
 import { RunsPage } from './pages/RunsPage'
+import { Settings } from './pages/Settings'
 import { SetupWizard } from './pages/SetupWizard'
 import { getStoredToken } from './token'
 
@@ -27,6 +34,7 @@ const PROJECT_KEY = 'vulyk.selectedProjectId'
 
 export default function App() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { status, loading: authLoading, user } = useAuth()
   const { t } = useI18n()
   const [projects, setProjects] = useState<Project[]>([])
@@ -43,10 +51,13 @@ export default function App() {
   const needsSetup =
     Boolean(status?.setup_required) && !status?.authenticated
 
+  const wantsLoginPage = location.pathname === '/login'
+
   const needsLogin =
     !needsSetup &&
     (Boolean(status?.bootstrap_available) ||
-      (Boolean(status?.auth_required) && !status?.authenticated))
+      (Boolean(status?.auth_required) && !status?.authenticated) ||
+      (wantsLoginPage && !status?.authenticated))
 
   const needsPasswordChange =
     Boolean(status?.authenticated && user?.must_change_password)
@@ -170,6 +181,10 @@ export default function App() {
     return <ChangePassword />
   }
 
+  if (wantsLoginPage && status?.authenticated) {
+    return <Navigate to="/" replace />
+  }
+
   return (
     <>
       {bootError && (
@@ -260,6 +275,7 @@ export default function App() {
             }
           />
           <Route path="appearance" element={<Appearance />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

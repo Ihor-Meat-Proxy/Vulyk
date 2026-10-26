@@ -90,6 +90,7 @@ test.describe('sample project seed', () => {
     expect(names).toMatch(/LLM/i)
     expect(names).toMatch(/MCP/i)
     expect(names).toMatch(/Appearance|Вигляд/i)
+    expect(names).toMatch(/Header|Шапка|settings|налаштування/i)
     expect(names).toMatch(/PWA/i)
     expect(names).toMatch(/Performance|Продуктивність/i)
 

@@ -27,12 +27,27 @@ struct Localized {
     en: String,
     #[serde(default)]
     uk: String,
+    #[serde(default)]
+    fr: String,
+    #[serde(default)]
+    es: String,
+    #[serde(default)]
+    de: String,
 }
 
 impl Localized {
     fn pick(&self, locale: &str) -> &str {
-        if locale.eq_ignore_ascii_case("uk") && !self.uk.is_empty() {
-            &self.uk
+        let base = locale.to_ascii_lowercase();
+        let base = base.split(['-', '_']).next().unwrap_or(&base);
+        let chosen = match base {
+            "uk" => &self.uk,
+            "fr" => &self.fr,
+            "es" => &self.es,
+            "de" => &self.de,
+            _ => &self.en,
+        };
+        if !chosen.is_empty() {
+            chosen
         } else {
             &self.en
         }
@@ -535,10 +550,7 @@ async fn insert_run(
         let history = if result.history.is_empty() {
             vec![SeedHistory {
                 status: status.clone(),
-                message: Localized {
-                    en: result.comment.en.clone(),
-                    uk: result.comment.uk.clone(),
-                },
+                message: result.comment.clone(),
             }]
         } else {
             result
@@ -546,10 +558,7 @@ async fn insert_run(
                 .iter()
                 .map(|h| SeedHistory {
                     status: h.status.clone(),
-                    message: Localized {
-                        en: h.message.en.clone(),
-                        uk: h.message.uk.clone(),
-                    },
+                    message: h.message.clone(),
                 })
                 .collect()
         };

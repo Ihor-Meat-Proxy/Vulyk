@@ -75,10 +75,11 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 2. Change the admin password if the default was used.
 3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled):
    - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, and two example runs (dress rehearsal + ticketing smoke).
-   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~140+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n, appearance, PWA, performance), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
-4. Create additional projects and memberships under **Admin**.
-5. Mint API tokens for CI/MCP.
+   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~160+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). i18n cases cover globe menu EN/UK/FR/ES/DE, persistence, `--locale`, formatting, key fallback, and graceful API errors. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
+4. Create additional projects and memberships under gear → **Admin settings**.
+5. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens).
 6. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.
+7. Set instance **default locale** (`en` / `uk` / `fr` / `es` / `de`) and theme under Admin settings (or `--locale` / `VULYK_DEFAULT_LOCALE` at first-run).
 
 ## Backups
 
@@ -137,8 +138,14 @@ Seeds ~100k cases (SQL when `DATABASE_URL`+`psql` available) and asserts list/se
 
 ## Install script platforms
 
-`scripts/install.sh` supports **Linux**, **macOS**, and **WSL2**. Native Windows is not supported — use WSL2.
+`scripts/install.sh` supports **Linux**, **macOS**, and **WSL2**. Native Windows is not supported — use WSL2. The script is written for **bash 3.2+** (macOS system bash) — avoid bash-4-only features; `./scripts/install.sh check` runs `bash -n` as a syntax self-check.
 
 Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`.
 
-First-run flags: `--admin-email=`, `--admin-password=`, `--locale=`, `--timezone=`, `--registration-mode=`, `--seed-demo=`, `--yes`.
+First-run flags: `--admin-email=`, `--admin-password=`, `--locale=en|uk|fr|es|de`, `--timezone=`, `--registration-mode=`, `--seed-demo=`, `--yes`.
+
+If Compose started without completing setup, re-run:
+
+```bash
+./scripts/install.sh setup --yes
+```

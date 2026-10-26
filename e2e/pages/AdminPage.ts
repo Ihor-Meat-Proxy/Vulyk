@@ -1,11 +1,20 @@
 import { expect, type Page } from '@playwright/test'
+import { openUserMenu, userMenuItem } from '../fixtures/header'
 
 export class AdminPage {
   constructor(readonly page: Page) {}
 
   async open() {
-    await this.page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /Admin|Адмін/i }).click()
-    await expect(this.page.getByRole('heading', { name: /^Admin$|Адмін/i })).toBeVisible()
+    await openUserMenu(this.page)
+    await userMenuItem(
+      this.page,
+      /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
+    ).click()
+    await expect(
+      this.page.getByRole('heading', {
+        name: /^Admin$|Адмін|Administration/i,
+      }),
+    ).toBeVisible()
   }
 
   async openTab(name: string | RegExp) {

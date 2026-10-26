@@ -24,7 +24,7 @@ export function CaseList({
   onSelectSuite,
   onSuitesChanged,
 }: Props) {
-  const { t } = useI18n()
+  const { t, formatNumber } = useI18n()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canCreate = can('create_edit_cases')
@@ -414,7 +414,7 @@ export function CaseList({
             </label>
           )}
           <span className="muted">
-            {total.toLocaleString()} {t('cases.count')}
+            {formatNumber(total)} {t('cases.count')}
             {pending || loading ? ` · ${t('common.loading')}` : ''}
           </span>
         </div>
@@ -519,8 +519,8 @@ export function CaseList({
                   disabled={loading}
                   onClick={() => setOffset(cases.length)}
                 >
-                  {t('cases.loadMore')} ({cases.length.toLocaleString()} /{' '}
-                  {total.toLocaleString()})
+                  {t('cases.loadMore')} ({formatNumber(cases.length)} /{' '}
+                  {formatNumber(total)})
                 </button>
               </div>
             )}

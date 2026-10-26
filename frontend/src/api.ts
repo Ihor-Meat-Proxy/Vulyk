@@ -543,6 +543,9 @@ export type UserPreferences = {
   font_size: number
   density: string
   reduced_motion: boolean | null
+  notify_email?: boolean
+  notify_in_app?: boolean
+  notify_run_updates?: boolean
 }
 
 export type UpdatePreferences = {
@@ -550,6 +553,9 @@ export type UpdatePreferences = {
   font_size?: number
   density?: string
   reduced_motion?: boolean | null
+  notify_email?: boolean
+  notify_in_app?: boolean
+  notify_run_updates?: boolean
 }
 
 export type UserPublic = {

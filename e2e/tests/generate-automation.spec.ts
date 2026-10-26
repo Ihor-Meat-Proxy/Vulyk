@@ -148,8 +148,14 @@ test('Admin Integrations shows Automation repo controls', async ({
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: /Admin|Адмін/i })
+    .getByRole('button', {
+      name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
+    })
+    .click()
+  await page
+    .getByRole('menuitem', {
+      name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
+    })
     .click()
   await page.getByRole('tab', { name: /Integrations|Інтеграції/i }).click()
   await expect(

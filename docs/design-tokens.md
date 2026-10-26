@@ -54,9 +54,12 @@ Per-theme badge pairs: `--status-*-fg` / `--status-*-bg` / solid `--status-*` fo
 
 ## User & instance preferences
 
-- **User:** `PATCH /api/v1/auth/me` with `preferences: { theme, font_size, density, reduced_motion }` (stored in `users.preferences` JSONB).
-- **Instance default theme:** Admin → Settings → Default theme (`system_settings.default_theme`), also on `GET /api/v1/auth/status` as `default_theme`.
-- **Local:** `localStorage['vulyk.appearance']` for pre-login and instant apply.
+- **User appearance:** gear → **Appearance**, or `PATCH /api/v1/auth/me` with `preferences: { theme, font_size, density, reduced_motion }` (stored in `users.preferences` JSONB).
+- **User locale:** globe menu or gear → **My settings**; `PATCH /api/v1/auth/me` with `locale` (`en` / `uk` / `fr` / `es` / `de`). Anonymous sessions keep `localStorage['vulyk.locale']`.
+- **Instance defaults:** gear → **Admin settings** → default theme / locale (`system_settings`); also on `GET /api/v1/auth/status` as `default_theme` / `default_locale`.
+- **Local appearance:** `localStorage['vulyk.appearance']` for pre-login and instant apply.
 - **Reduced motion:** user override or `prefers-reduced-motion: reduce` → `data-reduced-motion="true"`.
+
+Missing UI translation keys fall back to English, then to the key string. Seeded sample content uses bilingual fields with English fallback for `fr` / `es` / `de` when those locale strings are empty.
 
 See [user-guide.md](./user-guide.md#appearance) for the UI walkthrough.

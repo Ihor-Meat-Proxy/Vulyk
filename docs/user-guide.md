@@ -7,9 +7,9 @@ Vulyk is a test management system: organize cases into nested folders, plan and 
 1. Open the UI (default `http://localhost:5173`).
 2. On a fresh install, **Create the first admin** (bootstrap).
 3. Later visits use **Sign in** with email/password.
-4. Personal API tokens for CLI/MCP live under **Admin → Tokens**.
+4. Personal API tokens for CLI/MCP live under gear → **My settings** (or **Admin settings → Tokens** for admins managing others).
 
-When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the UI runs in open mode without a login wall unless bootstrap is still available.
+When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the UI runs in open mode without a login wall unless bootstrap is still available. The gear menu shows an **Open mode** badge.
 
 ## Demo sample data
 
@@ -18,7 +18,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~140–200 cases with Playwright-oriented steps (incl. single Cases-page folder tree behaviours), requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~160+ cases with Playwright-oriented steps (folder tree, i18n/locales, header menus, executions, …), requirements per area, smoke + regression runs |
 
 Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local` / `admin` (forced password change), `user@vulyk.local` / `user` (TAE on sample projects). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
 
@@ -53,16 +53,22 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 - **Requirements** tracks manual or ALM-synced requirements and links them to cases.
 - **Reports** shows run summaries, pass/fail trends, requirement coverage, flaky detection, and CSV/PDF export.
 
+## Language & settings
+
+- **Language:** click the globe icon in the header. The menu lists **English**, **Українська**, **Français**, **Español**, and **Deutsch** (checkmark on the current locale). Choice is saved on your account when signed in, and in `localStorage` (`vulyk.locale`) for anonymous / open-mode sessions. Dates and numbers use locale-aware formatting (`Intl`).
+- **User menu:** the gear icon opens profile actions — **My settings** (`/settings`: name, language, timezone, notifications, password, personal API tokens), **Appearance**, **Admin settings** (admins only), Help/API docs, and **Log out** (or **Sign in** when anonymous). Auth mode (**Open mode** / **Auth required**) appears as a badge inside this menu, not as top-bar text.
+- Instance default locale/theme are set under gear → **Admin settings** (or at first-run setup with `--locale`).
+
 ## Appearance
 
-Open **Appearance** from the top bar (or go to `/appearance`).
+Open **Appearance** from the gear user menu (or go to `/appearance`). It is not in the left nav.
 
 - **Theme:** System (follows `prefers-color-scheme`, and high contrast when `prefers-contrast: more`), Light, Dark, High contrast (WCAG AAA), or Sepia / night warm (low blue).
 - **Font size:** step buttons from 87% to 138%.
 - **Density:** Comfortable or Compact spacing.
 - **Reduced motion:** Follow system, always reduce, or allow motion (also honours `prefers-reduced-motion`).
 
-Preferences are saved to your account when signed in and mirrored in the browser so the chosen theme applies before the app paints (no flash of the wrong theme). An admin can set the **instance default theme** under **Admin → Settings**.
+Preferences are saved to your account when signed in and mirrored in the browser so the chosen theme applies before the app paints (no flash of the wrong theme). An admin can set the **instance default theme** under gear → **Admin settings**.
 
 Result statuses (**Passed**, **Failed**, **Blocked**, **Skipped**, **Retest**, **Untested**) use a colour-blind-safe Okabe–Ito palette with an **icon and label** everywhere (badges, run execution, charts). Charts also use hatch patterns plus a text legend.
 

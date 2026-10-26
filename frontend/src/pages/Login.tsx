@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
+import { LanguageMenu } from '../components/LanguageMenu'
 import { useI18n } from '../i18n'
 
 export function Login() {
@@ -40,6 +41,9 @@ export function Login() {
 
   return (
     <div className="login-shell">
+      <div className="login-shell-actions">
+        <LanguageMenu />
+      </div>
       <form className="login-panel" onSubmit={(e) => void onSubmit(e)}>
         <div className="brand">
           <span className="brand-mark">

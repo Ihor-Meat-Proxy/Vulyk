@@ -90,17 +90,26 @@ test('setup token protection + wizard locale/timezone', async ({
       .or(page.getByText(/Setup complete|Готово/i)),
   ).toBeVisible({ timeout: 15_000 })
 
-  // Locale switch + timezone display in admin settings
+  // Locale switch via globe menu + timezone display in admin settings
   // Sign in as original seeded admin (still present)
   await loginAsAdmin(page)
-  await page.getByLabel(/Language|Мова|locale/i).selectOption('uk')
+  await page
+    .getByRole('button', { name: /^(Language|Мова|Langue|Idioma|Sprache)$/i })
+    .click()
+  await page.getByRole('menuitemradio', { name: 'Українська' }).click()
   await expect(
     page.getByRole('navigation', { name: 'Primary' }).getByRole('link').first(),
   ).toContainText(/Кейси|Cases/)
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: /Admin|Адмін/i })
+    .getByRole('button', {
+      name: /User menu|Меню користувача|Menu utilisateur|Menú de usuario|Benutzermenü/i,
+    })
+    .click()
+  await page
+    .getByRole('menuitem', {
+      name: /Admin settings|Адмін-налаштування|Paramètres d.administration|Ajustes de administración|Admin-Einstellungen/i,
+    })
     .click()
   await page.getByRole('tab', { name: /Settings|Налаштування/i }).click()
   await expect(
@@ -151,4 +160,6 @@ test('setup CLI --help is available', async () => {
           },
         )
   expect(out).toMatch(/Complete first-run instance setup|admin-email|--yes/i)
+  expect(out).toMatch(/--locale/i)
+  expect(out).toMatch(/en|uk|fr|es|de/i)
 })

@@ -22,7 +22,7 @@ export class SetupPage {
     email: string
     password: string
     displayName?: string
-    locale?: 'en' | 'uk'
+    locale?: 'en' | 'uk' | 'fr' | 'es' | 'de'
     timezone?: string
     registrationMode?: 'open' | 'invite' | 'disabled'
   }) {
@@ -38,17 +38,23 @@ export class SetupPage {
       .fill(opts.password)
     if (opts.locale) {
       await this.page
-        .getByLabel(/Default locale|Мова за замовчуванням/i)
+        .getByLabel(
+          /Default locale|Мова за замовчуванням|Langue par défaut|Idioma predeterminado|Standardsprache/i,
+        )
         .selectOption(opts.locale)
     }
     if (opts.timezone) {
       await this.page
-        .getByLabel(/Default timezone|Часовий пояс/i)
+        .getByLabel(
+          /Default timezone|Часовий пояс|Fuseau horaire|Zona horaria|Zeitzone/i,
+        )
         .fill(opts.timezone)
     }
     if (opts.registrationMode) {
       await this.page
-        .getByLabel(/Registration mode|Режим реєстрації/i)
+        .getByLabel(
+          /Registration mode|Режим реєстрації|Mode d.inscription|Modo de registro|Registrierungsmodus/i,
+        )
         .selectOption(opts.registrationMode)
     }
   }

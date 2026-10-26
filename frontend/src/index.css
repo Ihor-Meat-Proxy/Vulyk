@@ -363,8 +363,7 @@ select {
   margin: 0.5rem 0;
 }
 
-select.project-select,
-select.locale-select {
+select.project-select {
   border: 1px solid var(--line);
   background: var(--bg-elevated);
   border-radius: 0.4rem;
@@ -375,33 +374,193 @@ select.locale-select {
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-.user-chip {
+.project-field {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  color: var(--ink-muted);
-  font-size: 0.92rem;
+  gap: 0.45rem;
 }
 
-.appearance-link {
+.topbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.icon-menu {
+  position: relative;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 0.45rem;
+  background: var(--bg-elevated);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.icon-btn:hover,
+.icon-btn[aria-expanded='true'] {
+  border-color: var(--accent);
   color: var(--accent);
-  font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 0.15em;
 }
 
-@media (max-width: 860px) {
-  .appearance-link,
-  .desktop-only {
-    display: none;
-  }
+.icon-btn:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.icon-menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 40;
+  min-width: 14rem;
+  margin: 0;
+  padding: 0.35rem;
+  list-style: none;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.icon-menu-panel button,
+.icon-menu-panel a.user-menu-item,
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.icon-menu-panel button:hover,
+.icon-menu-panel button:focus-visible,
+.icon-menu-panel a.user-menu-item:hover,
+.icon-menu-panel a.user-menu-item:focus-visible,
+.user-menu-item:hover,
+.user-menu-item:focus-visible {
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+  outline: none;
+}
+
+.icon-menu-panel button.is-active {
+  font-weight: 600;
+}
+
+.icon-menu-check {
+  width: 1rem;
+  text-align: center;
+  color: var(--accent);
+}
+
+.user-menu-panel {
+  min-width: 16.5rem;
+  padding: 0.5rem;
+}
+
+.user-menu-header {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem 0.65rem;
+}
+
+.user-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.user-menu-identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.user-menu-identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-mode {
+  padding: 0 0.5rem 0.55rem;
+}
+
+.mode-badge {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.3rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.user-menu-sep {
+  height: 1px;
+  margin: 0.35rem 0.35rem;
+  background: var(--line);
+}
+
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0.35rem 0;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 42rem;
+}
+
+.notice {
+  color: var(--accent);
+  margin: 0.25rem 0;
+}
+
+.login-shell-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.35rem;
+  z-index: 2;
 }
 
 .login-shell {
+  position: relative;
+
   min-height: 100vh;
   display: grid;
   place-items: center;
@@ -2047,6 +2206,16 @@ select.locale-select {
 
   .topbar-actions {
     width: 100%;
+    justify-content: space-between;
+  }
+
+  .project-field {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .project-field-label {
+    display: none;
   }
 
   .project-select {
@@ -2054,9 +2223,8 @@ select.locale-select {
     width: 100%;
   }
 
-  .user-chip {
-    width: 100%;
-    justify-content: space-between;
+  .topbar-icons {
+    flex-shrink: 0;
   }
 
   .step {

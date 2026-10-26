@@ -100,6 +100,7 @@ pub struct ChangePasswordRequest {
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateMeRequest {
     pub display_name: Option<String>,
+    /// UI locale: `en`, `uk`, `fr`, `es`, or `de`.
     pub locale: Option<String>,
     pub timezone: Option<String>,
     pub preferences: Option<UpdatePreferences>,
