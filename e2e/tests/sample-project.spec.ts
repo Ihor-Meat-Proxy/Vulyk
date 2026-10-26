@@ -124,9 +124,14 @@ test.describe('sample project seed', () => {
     const idx = options.findIndex((o) => /Vulyk QA/i.test(o))
     expect(idx, 'Vulyk QA in project switcher').toBeGreaterThanOrEqual(0)
     await select.selectOption({ index: idx })
+    // Sole folder UI is the Cases SquashTM tree — not a sidebar Folders section.
+    await expect(page.locator('.sidebar .suite-block')).toHaveCount(0)
     await expect(
       page.getByRole('region', { name: /Case folders|Теки кейсів/i }),
     ).toBeVisible({ timeout: 30_000 })
+    await expect(
+      page.locator('.folder-tree').getByTestId('folder-all-cases'),
+    ).toBeVisible({ timeout: 20_000 })
     await expect(
       page
         .locator('.folder-tree')

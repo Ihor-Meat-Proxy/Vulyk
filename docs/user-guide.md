@@ -18,7 +18,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~130–200 cases with Playwright-oriented steps, requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~140–200 cases with Playwright-oriented steps (incl. single Cases-page folder tree behaviours), requirements per area, smoke + regression runs |
 
 Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local` / `admin` (forced password change), `user@vulyk.local` / `user` (TAE on sample projects). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
 
