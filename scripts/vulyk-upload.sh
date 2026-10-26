@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Upload JUnit XML, Vulyk JSON, Playwright JSON, or pytest JSON results to Vulyk.
-# Supports CI lifecycle: --open-run → upload → --close-run (also on failure).
+# Supports CI lifecycle: --open-run -> upload -> --close-run (also on failure).
 # Used by the GitHub Action and GitLab CI template (no Rust toolchain required).
 set -euo pipefail
 
@@ -8,7 +8,7 @@ usage() {
   cat <<'EOF'
 Usage:
   vulyk-upload.sh --open-run [metadata options]
-  vulyk-upload.sh --file PATH [--format auto|junit|…] [options]
+  vulyk-upload.sh --file PATH [--format auto|junit|...] [options]
   vulyk-upload.sh --close-run [--cancelled] [options]
 
 Options:
@@ -143,7 +143,7 @@ PY
 )"
 }
 
-# ── open CI run ─────────────────────────────────────────────────────────────
+# - open CI run -
 if [[ "${OPEN_RUN}" -eq 1 ]]; then
   resolve_project_id
   if [[ -z "${SUITE_NAME}" ]]; then
@@ -197,7 +197,7 @@ print(d.get("id") or d.get("run_id") or (d.get("run") or {}).get("id") or "")')"
   exit 0
 fi
 
-# ── close CI run ────────────────────────────────────────────────────────────
+# - close CI run -
 if [[ "${CLOSE_RUN}" -eq 1 ]]; then
   if [[ -z "${RUN_ID}" ]]; then
     echo "error: --run-id required for --close-run" >&2
