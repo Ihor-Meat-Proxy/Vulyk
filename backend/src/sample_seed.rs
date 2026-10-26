@@ -894,4 +894,3 @@ mod seed_file_tests {
         assert_eq!(seed.runs.len(), 2);
     }
 }
-
