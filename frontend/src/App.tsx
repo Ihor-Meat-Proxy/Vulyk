@@ -58,7 +58,6 @@ export default function App() {
     let list = await api.listProjects()
     if (list.length === 0 && (!status?.auth_required || status.authenticated)) {
       const demo = await api.createProject({
-        key: 'DEMO',
         name: 'Demo project',
         description: 'Seeded by the Vulyk UI for local exploration.',
       })

@@ -834,7 +834,7 @@ export const api = {
 
   listProjects: () => request<Project[]>('/api/v1/projects'),
   createProject: (body: {
-    key: string
+    key?: string
     name: string
     description?: string
     case_key_prefix?: string
@@ -1120,6 +1120,7 @@ export const api = {
       base_url?: string
       api_key?: string
       is_default?: boolean
+      global?: boolean
     },
   ) =>
     request<LlmConfig>(`/api/v1/projects/${projectId}/llm/configs`, {

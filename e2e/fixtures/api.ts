@@ -64,7 +64,7 @@ export async function loginApi(
 export async function createProject(
   request: APIRequestContext,
   token: string,
-  body: { key: string; name: string; description?: string },
+  body: { key?: string; name: string; description?: string },
 ) {
   return apiJson<{ id: string; key: string; name: string }>(
     request,

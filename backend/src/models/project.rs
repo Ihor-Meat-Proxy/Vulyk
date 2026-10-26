@@ -19,8 +19,10 @@ pub struct Project {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateProject {
-    /// Uppercase project key, e.g. DEMO
-    pub key: String,
+    /// Uppercase project key, e.g. DEMO. Derived from `name` (same initials rules as
+    /// `case_key_prefix`) when omitted.
+    #[serde(default)]
+    pub key: Option<String>,
     pub name: String,
     #[serde(default)]
     pub description: String,

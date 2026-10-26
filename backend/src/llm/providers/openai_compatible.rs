@@ -60,17 +60,36 @@ impl LlmProvider for OpenAiCompatible {
         if let Some(key) = &self.api_key {
             builder = builder.bearer_auth(key);
         }
-        let resp = builder.send().await.map_err(http_err)?;
+        let resp = builder.send().await.map_err(|e| {
+            AppError::BadRequest(format!(
+                "LLM call failed via {} / {} (network): {e}",
+                self.id, self.model
+            ))
+        })?;
         let status = resp.status();
-        let body = resp.text().await.map_err(http_err)?;
+        let body = resp.text().await.map_err(|e| {
+            AppError::BadRequest(format!(
+                "LLM call failed via {} / {} (read body): {e}",
+                self.id, self.model
+            ))
+        })?;
         if !status.is_success() {
+            let rate_hint = if status.as_u16() == 429 {
+                " Rate limited — wait and retry, or switch off free-tier models."
+            } else {
+                ""
+            };
+            // Surface the real provider failure; never silently fall back to mock.
             return Err(AppError::BadRequest(format!(
-                "{} chat failed ({status}): {body}",
-                self.id
+                "LLM call failed via {} / {} (HTTP {status}): {body}{rate_hint}",
+                self.id, self.model
             )));
         }
         let parsed: ChatCompletion = serde_json::from_str(&body).map_err(|e| {
-            AppError::BadRequest(format!("invalid {} response: {e}; body={body}", self.id))
+            AppError::BadRequest(format!(
+                "invalid {} / {} response: {e}; body={body}",
+                self.id, self.model
+            ))
         })?;
         let text = parsed
             .choices
@@ -83,8 +102,4 @@ impl LlmProvider for OpenAiCompatible {
             model: self.model.clone(),
         })
     }
-}
-
-fn http_err(e: reqwest::Error) -> AppError {
-    AppError::BadRequest(format!("LLM HTTP error: {e}"))
 }

@@ -65,6 +65,9 @@ pub struct CreateLlmConfig {
     pub extra: Value,
     #[serde(default)]
     pub is_default: bool,
+    /// When true, store as a global config (`project_id IS NULL`) available to all projects.
+    #[serde(default)]
+    pub global: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

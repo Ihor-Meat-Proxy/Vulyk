@@ -11,7 +11,10 @@ use crate::auth::{
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
-use crate::services::case_keys::{unique_prefix, unique_prefix_for_name, validate_prefix};
+use crate::services::case_keys::{
+    unique_key_for_name, unique_prefix, unique_prefix_for_name, validate_prefix,
+    validate_project_key,
+};
 
 const PROJECT_COLS: &str =
     "id, key, name, description, case_key_prefix, next_case_number, created_at, updated_at";
@@ -89,15 +92,22 @@ pub async fn create_project(
         return Err(AppError::Unauthorized("authentication required".into()));
     }
 
-    let key = body.key.trim().to_uppercase();
-    if key.len() < 2 {
-        return Err(AppError::BadRequest(
-            "project key must be at least 2 characters".into(),
-        ));
-    }
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name is required".into()));
     }
+
+    let key = if let Some(raw) = body
+        .key
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
+        let validated = validate_project_key(raw)?;
+        // Explicit keys must be unique; DB unique constraint is the final guard.
+        validated
+    } else {
+        unique_key_for_name(&state.pool, body.name.trim()).await?
+    };
 
     let prefix = if let Some(raw) = body.case_key_prefix.as_ref() {
         let validated = validate_prefix(raw)?;

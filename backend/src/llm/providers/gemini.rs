@@ -77,8 +77,14 @@ impl LlmProvider for GeminiProvider {
             .await
             .map_err(|e| AppError::BadRequest(format!("gemini body: {e}")))?;
         if !status.is_success() {
+            let rate_hint = if status.as_u16() == 429 {
+                " Rate limited — wait and retry, or switch models."
+            } else {
+                ""
+            };
             return Err(AppError::BadRequest(format!(
-                "gemini failed ({status}): {body}"
+                "LLM call failed via gemini / {} (HTTP {status}): {body}{rate_hint}",
+                self.model
             )));
         }
         let parsed: GeminiResponse = serde_json::from_str(&body)
