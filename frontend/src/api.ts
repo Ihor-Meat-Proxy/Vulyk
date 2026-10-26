@@ -787,6 +787,74 @@ export type IntegrationSetting = {
   updated_at: string
 }
 
+export type BackupDestination = {
+  id: string
+  name: string
+  kind: string
+  config: Record<string, unknown>
+  enabled: boolean
+  has_secrets: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type BackupPolicy = {
+  id: string
+  project_id: string | null
+  destination_id: string
+  schedule: string
+  debounce_minutes: number
+  retain_count: number | null
+  retain_days: number | null
+  pack_mode: string
+  include_attachments: boolean
+  enabled: boolean
+  last_scheduled_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type BackupRun = {
+  id: string
+  policy_id: string | null
+  destination_id: string | null
+  project_id: string | null
+  status: string
+  trigger: string
+  remote_path: string | null
+  local_path: string | null
+  size_bytes: number
+  duration_ms: number | null
+  error: string | null
+  summary: Record<string, unknown>
+  checksum_sha256: string | null
+  started_at: string
+  finished_at: string | null
+  created_at: string
+}
+
+export type BackupTestResult = {
+  ok: boolean
+  message: string
+}
+
+export type RestorePreview = {
+  dry_run: boolean
+  mode: string
+  schema_version: string
+  project_key: string
+  counts: Record<string, number>
+  conflicts: { entity: string; key: string; detail: string }[]
+  custom_field_mappings: {
+    archive_key: string
+    archive_name: string
+    action: string
+    target_key: string | null
+  }[]
+  warnings: string[]
+  applied: boolean
+}
+
 export type ProviderKindInfo = {
   id: string
   name: string
@@ -1442,6 +1510,97 @@ export const api = {
     project_id?: string | null
   }) =>
     request<IntegrationSetting>('/api/v1/admin/integrations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  listBackupDestinations: () =>
+    request<BackupDestination[]>('/api/v1/admin/backups/destinations'),
+  createBackupDestination: (body: {
+    name: string
+    kind: string
+    config?: Record<string, unknown>
+    secrets?: Record<string, unknown>
+    enabled?: boolean
+  }) =>
+    request<BackupDestination>('/api/v1/admin/backups/destinations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  deleteBackupDestination: (id: string) =>
+    request<void>(`/api/v1/admin/backups/destinations/${id}`, {
+      method: 'DELETE',
+    }),
+  testBackupDestination: (id: string) =>
+    request<BackupTestResult>(`/api/v1/admin/backups/destinations/${id}/test`, {
+      method: 'POST',
+    }),
+  listBackupPolicies: () =>
+    request<BackupPolicy[]>('/api/v1/admin/backups/policies'),
+  createBackupPolicy: (body: {
+    project_id?: string | null
+    destination_id: string
+    schedule?: string
+    debounce_minutes?: number
+    retain_count?: number | null
+    retain_days?: number | null
+    pack_mode?: string
+    include_attachments?: boolean
+    enabled?: boolean
+  }) =>
+    request<BackupPolicy>('/api/v1/admin/backups/policies', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listBackupRuns: (opts?: { project_id?: string; limit?: number }) => {
+    const qs = new URLSearchParams()
+    if (opts?.project_id) qs.set('project_id', opts.project_id)
+    if (opts?.limit) qs.set('limit', String(opts.limit))
+    const q = qs.toString()
+    return request<BackupRun[]>(
+      `/api/v1/admin/backups/runs${q ? `?${q}` : ''}`,
+    )
+  },
+  runBackupNow: (body: {
+    destination_id: string
+    project_id?: string | null
+    pack_mode?: string
+    include_attachments?: boolean
+  }) =>
+    request<BackupRun>('/api/v1/admin/backups/run', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  downloadBackupRun: async (id: string) => {
+    const token = getStoredToken()
+    const headers: Record<string, string> = {}
+    if (token) headers.Authorization = `Bearer ${token}`
+    const res = await fetch(
+      `${API_BASE}/api/v1/admin/backups/runs/${id}/download`,
+      { headers, credentials: 'include' },
+    )
+    if (!res.ok) throw new Error((await res.text()) || res.statusText)
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') ?? ''
+    const match = /filename="?([^"]+)"?/.exec(disposition)
+    const filename = match?.[1] ?? 'backup.zip'
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+  restoreBackup: (body: {
+    run_id?: string
+    archive?: unknown
+    mode?: string
+    conflict?: string
+    target_project_id?: string
+    new_project_key?: string
+    dry_run?: boolean
+  }) =>
+    request<RestorePreview>('/api/v1/admin/backups/restore', {
       method: 'POST',
       body: JSON.stringify(body),
     }),

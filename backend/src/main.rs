@@ -106,6 +106,7 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
     sso::sync_from_env(&pool, &secrets).await?;
 
     jobs::spawn_worker(pool.clone());
+    vulyk_api::services::backup::spawn_scheduler(pool.clone(), secrets.clone());
 
     let state = AppState {
         pool,

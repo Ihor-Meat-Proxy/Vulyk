@@ -8214,6 +8214,469 @@
           ]
         }
       ]
+    },
+    {
+      "name": {
+        "en": "23. Content backups",
+        "uk": "23. Контентні бекапи"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-176",
+          "title": {
+            "en": "Admin Backups tab is visible to system admin",
+            "uk": "Admin Backups tab is visible to system admin"
+          },
+          "description": {
+            "en": "System admin can open Admin → Backups and see destinations, policies, and history sections.",
+            "uk": "System admin can open Admin → Backups and see destinations, policies, and history sections."
+          },
+          "precondition": {
+            "en": "Logged in as system admin; at least one project exists.",
+            "uk": "Logged in as system admin; at least one project exists."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Open Admin page and locate the Backups tab (data-testid admin-backups-tab).",
+                "uk": "Open Admin page and locate the Backups tab (data-testid admin-backups-tab)."
+              },
+              "expected_result": {
+                "en": "Backups tab is visible and selectable.",
+                "uk": "Backups tab is visible and selectable."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Click the Backups tab.",
+                "uk": "Click the Backups tab."
+              },
+              "expected_result": {
+                "en": "Backups panel renders with destinations and history regions (admin-backups-panel).",
+                "uk": "Backups panel renders with destinations and history regions (admin-backups-panel)."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-backups-tab"
+        },
+        {
+          "key": "VQA-177",
+          "title": {
+            "en": "Create local filesystem backup destination",
+            "uk": "Create local filesystem backup destination"
+          },
+          "description": {
+            "en": "Admin can create a local destination with a path; secrets are not required; Test connection succeeds.",
+            "uk": "Admin can create a local destination with a path; secrets are not required; Test connection succeeds."
+          },
+          "precondition": {
+            "en": "Admin → Backups open; write access to VULYK_CONTENT_BACKUP_DIR or configured path.",
+            "uk": "Admin → Backups open; write access to VULYK_CONTENT_BACKUP_DIR or configured path."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Click Add destination and choose kind local.",
+                "uk": "Click Add destination and choose kind local."
+              },
+              "expected_result": {
+                "en": "Local destination form appears (admin-backups-dest-form).",
+                "uk": "Local destination form appears (admin-backups-dest-form)."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Enter name Local volume and path ./data/content-backups; save.",
+                "uk": "Enter name Local volume and path ./data/content-backups; save."
+              },
+              "expected_result": {
+                "en": "Destination appears in the list with kind local; has_secrets is false.",
+                "uk": "Destination appears in the list with kind local; has_secrets is false."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Click Test connection for the new destination.",
+                "uk": "Click Test connection for the new destination."
+              },
+              "expected_result": {
+                "en": "Result shows ok with message containing local.",
+                "uk": "Result shows ok with message containing local."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-178",
+          "title": {
+            "en": "Manual Back up now creates a successful run",
+            "uk": "Manual Back up now creates a successful run"
+          },
+          "description": {
+            "en": "Triggering Back up now for a project writes a ZIP archive and a success history row.",
+            "uk": "Triggering Back up now for a project writes a ZIP archive and a success history row."
+          },
+          "precondition": {
+            "en": "Local destination exists; project has at least one case.",
+            "uk": "Local destination exists; project has at least one case."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Select destination and project; click Back up now (admin-backups-run-now).",
+                "uk": "Select destination and project; click Back up now (admin-backups-run-now)."
+              },
+              "expected_result": {
+                "en": "Request starts; UI shows running or refreshes history.",
+                "uk": "Request starts; UI shows running or refreshes history."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Wait for the newest history row.",
+                "uk": "Wait for the newest history row."
+              },
+              "expected_result": {
+                "en": "Row status is success; size_bytes > 0; destination matches; duration_ms set.",
+                "uk": "Row status is success; size_bytes > 0; destination matches; duration_ms set."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Click Download on the run.",
+                "uk": "Click Download on the run."
+              },
+              "expected_result": {
+                "en": "Browser downloads a .zip whose archive.json has schema_version content-1.0.",
+                "uk": "Browser downloads a .zip whose archive.json has schema_version content-1.0."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-backups-run"
+        },
+        {
+          "key": "VQA-179",
+          "title": {
+            "en": "Restore preview dry-run shows counts without mutating",
+            "uk": "Restore preview dry-run shows counts without mutating"
+          },
+          "description": {
+            "en": "Restore preview (dry_run) reports case/requirement counts and conflicts without writing data.",
+            "uk": "Restore preview (dry_run) reports case/requirement counts and conflicts without writing data."
+          },
+          "precondition": {
+            "en": "Successful backup run exists; target project selected.",
+            "uk": "Successful backup run exists; target project selected."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Click Restore on a successful run and leave dry run checked.",
+                "uk": "Click Restore on a successful run and leave dry run checked."
+              },
+              "expected_result": {
+                "en": "Restore wizard opens (admin-backups-restore).",
+                "uk": "Restore wizard opens (admin-backups-restore)."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Choose mode merge and conflict skip; submit preview.",
+                "uk": "Choose mode merge and conflict skip; submit preview."
+              },
+              "expected_result": {
+                "en": "Preview returns counts and conflicts; applied=false; case count unchanged.",
+                "uk": "Preview returns counts and conflicts; applied=false; case count unchanged."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-180",
+          "title": {
+            "en": "Restore into new project preserves case keys and tombstones",
+            "uk": "Restore into new project preserves case keys and tombstones"
+          },
+          "description": {
+            "en": "Importing an archive as new_project creates a project with original case keys and never reissues tombstoned numbers.",
+            "uk": "Importing an archive as new_project creates a project with original case keys and never reissues tombstoned numbers."
+          },
+          "precondition": {
+            "en": "Archive includes cases and tombstones; admin privileges.",
+            "uk": "Archive includes cases and tombstones; admin privileges."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Run restore with mode new_project and dry_run false.",
+                "uk": "Run restore with mode new_project and dry_run false."
+              },
+              "expected_result": {
+                "en": "New project created; cases exist with original keys.",
+                "uk": "New project created; cases exist with original keys."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Confirm next_case_number is greater than max imported and tombstoned numbers.",
+                "uk": "Confirm next_case_number is greater than max imported and tombstoned numbers."
+              },
+              "expected_result": {
+                "en": "Allocation of a new case skips retired numbers.",
+                "uk": "Allocation of a new case skips retired numbers."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-181",
+          "title": {
+            "en": "Scheduled backup skips when content unchanged",
+            "uk": "Scheduled backup skips when content unchanged"
+          },
+          "description": {
+            "en": "Change detection marks clean projects as skipped on schedule tick.",
+            "uk": "Change detection marks clean projects as skipped on schedule tick."
+          },
+          "precondition": {
+            "en": "Policy schedule=hourly; watermark advanced by a prior successful backup; no edits since.",
+            "uk": "Policy schedule=hourly; watermark advanced by a prior successful backup; no edits since."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Ensure last successful backup watermark is current.",
+                "uk": "Ensure last successful backup watermark is current."
+              },
+              "expected_result": {
+                "en": "backup_change_watermarks.last_success_at is set.",
+                "uk": "backup_change_watermarks.last_success_at is set."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Invoke scheduler tick (or wait for interval with no edits).",
+                "uk": "Invoke scheduler tick (or wait for interval with no edits)."
+              },
+              "expected_result": {
+                "en": "A backup_runs row with status skipped and reason no_changes is recorded.",
+                "uk": "A backup_runs row with status skipped and reason no_changes is recorded."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-182",
+          "title": {
+            "en": "GitHub destination Test connection with mock token",
+            "uk": "GitHub destination Test connection with mock token"
+          },
+          "description": {
+            "en": "Destination kind github validates owner/repo/token via Test connection (mocked in CI).",
+            "uk": "Destination kind github validates owner/repo/token via Test connection (mocked in CI)."
+          },
+          "precondition": {
+            "en": "Admin can create destinations; mock GitHub API available in tests.",
+            "uk": "Admin can create destinations; mock GitHub API available in tests."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Create github destination with owner, repo, branch, path and secrets.token.",
+                "uk": "Create github destination with owner, repo, branch, path and secrets.token."
+              },
+              "expected_result": {
+                "en": "Destination saved; has_secrets true; token masked in UI.",
+                "uk": "Destination saved; has_secrets true; token masked in UI."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Click Test connection against mock that returns 200 for the repo.",
+                "uk": "Click Test connection against mock that returns 200 for the repo."
+              },
+              "expected_result": {
+                "en": "ok=true.",
+                "uk": "ok=true."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-183",
+          "title": {
+            "en": "Backup failure notifies system admins",
+            "uk": "Backup failure notifies system admins"
+          },
+          "description": {
+            "en": "Failed backup writes a notifications row for each system admin.",
+            "uk": "Failed backup writes a notifications row for each system admin."
+          },
+          "precondition": {
+            "en": "Destination configured to fail (invalid path or mock 500).",
+            "uk": "Destination configured to fail (invalid path or mock 500)."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "backup",
+            "regression",
+            "vulyk-qa",
+            "type:functional"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Trigger Back up now to a failing destination.",
+                "uk": "Trigger Back up now to a failing destination."
+              },
+              "expected_result": {
+                "en": "backup_runs status=failed with error text.",
+                "uk": "backup_runs status=failed with error text."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            },
+            {
+              "action": {
+                "en": "Query notifications for system admin.",
+                "uk": "Query notifications for system admin."
+              },
+              "expected_result": {
+                "en": "Row kind backup_failed references the run_id.",
+                "uk": "Row kind backup_failed references the run_id."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "requirements": [

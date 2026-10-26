@@ -88,6 +88,8 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 
 Preferred path: [guides/upgrade.md](guides/upgrade.md) (`./scripts/install.sh upgrade|backup|restore`).
 
+For **portable project content** (cases, requirements, custom fields) to GitHub/GitLab/Nextcloud/Drive/local — not a full DB dump — see [guides/backup.md](guides/backup.md) and Admin → **Backups**.
+
 ### Compose / VM Postgres
 
 ```bash

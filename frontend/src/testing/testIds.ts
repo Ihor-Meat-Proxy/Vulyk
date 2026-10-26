@@ -464,6 +464,7 @@ export const TestIds = {
   adminTabLists: 'admin-tab-lists',
   adminTabCustomFields: 'admin-tab-custom-fields',
   adminTabConfig: 'admin-tab-config',
+  adminTabBackups: 'admin-tab-backups',
   adminUserEmailInput: 'admin-user-email-input',
   adminUserDisplayNameInput: 'admin-user-display-name-input',
   adminUserPasswordInput: 'admin-user-password-input',

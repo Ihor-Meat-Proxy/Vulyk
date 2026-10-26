@@ -20,6 +20,7 @@ import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
+import { BackupsPanel } from './admin/BackupsPanel'
 
 type Tab =
   | 'users'
@@ -30,6 +31,7 @@ type Tab =
   | 'tokens'
   | 'settings'
   | 'sso'
+  | 'backups'
 
 /** Maps admin tab ids → Playwright test ids. Reserved future tabs live in TestIds. */
 const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
@@ -41,6 +43,7 @@ const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
   tokens: TestIds.adminTabTokens,
   settings: TestIds.adminTabSettings,
   sso: TestIds.adminTabSso,
+  backups: TestIds.adminTabBackups,
 }
 
 /** Reserved for upcoming admin tabs/actions (keep imported so keys stay discoverable). */
@@ -90,6 +93,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       list.push({ id: 'users', label: t('admin.users') })
       list.push({ id: 'settings', label: t('admin.settings') })
       list.push({ id: 'sso', label: t('admin.sso') })
+      list.push({ id: 'backups', label: t('admin.backups') })
     }
     if (isSystemAdmin || canAutomationRepo) {
       list.push({ id: 'integrations', label: t('admin.integrations') })
@@ -240,6 +244,9 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
           onChanged={load}
           onError={setError}
         />
+      )}
+      {tab === 'backups' && isSystemAdmin && (
+        <BackupsPanel projects={projects} onError={setError} />
       )}
     </div>
   )
