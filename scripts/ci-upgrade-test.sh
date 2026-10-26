@@ -55,6 +55,14 @@ trap cleanup EXIT
 
 log "Building base API at ${BASE_SHA}..."
 git archive "${BASE_SHA}" | tar -x -C "${WORKDIR}"
+# Sample seed JSON is compiled into the binary (`include_str!`). Prefer HEAD's
+# seed files when building base so a key-uniqueness hotfix can still run this
+# job while origin/main tip cannot seed itself.
+if [[ -d "${ROOT}/backend/seed" ]]; then
+  mkdir -p "${WORKDIR}/backend/seed"
+  cp -a "${ROOT}/backend/seed/." "${WORKDIR}/backend/seed/"
+  log "Overlaid HEAD sample seed JSON onto base build tree"
+fi
 # Reuse workspace target dir for faster incremental builds when possible
 mkdir -p "${WORKDIR}/target"
 if [[ -d "${ROOT}/target" ]]; then
