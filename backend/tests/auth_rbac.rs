@@ -487,9 +487,9 @@ async fn cross_project_results_and_jobs_are_forbidden() {
     let _ = insert_admin(&pool, &admin_a, password).await;
     let token_a = login(&client, &base, &admin_a, password).await;
 
-    let admin_b = unique_email("admin-b");
-    let _ = insert_user(&pool, &admin_b, password, true, false).await;
-    let token_b = login(&client, &base, &admin_b, password).await;
+    let outsider = unique_email("outsider");
+    let _ = insert_user(&pool, &outsider, password, false, false).await;
+    let token_b = login(&client, &base, &outsider, password).await;
 
     let key = format!(
         "I{}",
