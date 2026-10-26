@@ -81,7 +81,8 @@ test('admin lists, custom fields, and config export', async ({ page, request }) 
   })
 
   // Add an item via the dedicated Add-item form in the detail pane.
-  const addItemBtn = /Add item|Додати елемент|Ajouter|Añadir|Element hinzufügen|Hinzufügen/i
+  const addItemBtn =
+    /Add item|Додати елемент|Ajouter un élément|Añadir elemento|Eintrag hinzufügen/i
   const addForm = page.locator('form').filter({ has: page.getByRole('button', { name: addItemBtn }) })
   await addForm.locator('input').fill('Safari')
   await addForm.getByRole('button', { name: addItemBtn }).click()
