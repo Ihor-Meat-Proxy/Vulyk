@@ -82,6 +82,7 @@ impl ProjectRole {
                 ManageCiConfig,
                 LlmAssist,
                 ManageLlmConfig,
+                ManageAutomationRepo,
                 ManageApiTokens,
             ],
             Self::TestArchitect => &[
@@ -101,6 +102,7 @@ impl ProjectRole {
                 Comment,
                 LlmAssist,
                 ManageLlmConfig,
+                ManageAutomationRepo,
             ],
             Self::TestAutomationEngineer => &[
                 ViewProject,
@@ -115,6 +117,7 @@ impl ProjectRole {
                 TriggerCi,
                 ManageCiConfig,
                 LlmAssist,
+                ManageAutomationRepo,
                 ManageApiTokens,
             ],
             Self::Developer => &[
@@ -126,6 +129,7 @@ impl ProjectRole {
                 ManageAttachments,
                 Comment,
                 TriggerCi,
+                LlmAssist,
             ],
             Self::Viewer => &[ViewProject, ViewReports, ExportReports],
         }
@@ -187,6 +191,8 @@ pub enum Permission {
     ManageCiConfig,
     LlmAssist,
     ManageLlmConfig,
+    /// Connect / re-index the project's test automation Git repository.
+    ManageAutomationRepo,
     ManageApiTokens,
 }
 
@@ -217,6 +223,7 @@ impl Permission {
             Self::ManageCiConfig => "manage_ci_config",
             Self::LlmAssist => "llm_assist",
             Self::ManageLlmConfig => "manage_llm_config",
+            Self::ManageAutomationRepo => "manage_automation_repo",
             Self::ManageApiTokens => "manage_api_tokens",
         }
     }

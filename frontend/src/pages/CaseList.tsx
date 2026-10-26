@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState, useTransition } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { api, type Suite, type TestCase } from '../api'
 import { CaseFolderTree } from '../components/CaseFolderTree'
 import { CaseStatusIcon } from '../components/CaseStatusIcon'
@@ -25,11 +25,13 @@ export function CaseList({
   onSuitesChanged,
 }: Props) {
   const { t } = useI18n()
+  const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canCreate = can('create_edit_cases')
   const canBulkEdit = can('create_edit_cases')
   const canManageFolders = can('manage_suites')
   const canDeleteCases = can('delete_cases')
+  const canLlm = can('llm_assist')
 
   const [cases, setCases] = useState<TestCase[]>([])
   const [treeCases, setTreeCases] = useState<TestCase[]>([])
@@ -342,25 +344,40 @@ export function CaseList({
           </span>
         </div>
 
-        {canBulkEdit && selected.size > 0 && (
+        {(canBulkEdit || canLlm) && selected.size > 0 && (
           <div className="bulk-bar">
             <span>
               {selected.size} {t('cases.selected')}
             </span>
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={() => void bulkStatus('ready')}
-            >
-              {t('cases.markReady')}
-            </button>
-            <button
-              type="button"
-              className="btn secondary"
-              onClick={() => void bulkStatus('deprecated')}
-            >
-              {t('cases.deprecate')}
-            </button>
+            {canBulkEdit && (
+              <>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void bulkStatus('ready')}
+                >
+                  {t('cases.markReady')}
+                </button>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  onClick={() => void bulkStatus('deprecated')}
+                >
+                  {t('cases.deprecate')}
+                </button>
+              </>
+            )}
+            {canLlm && (
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() =>
+                  navigate(`/generate?cases=${[...selected].join(',')}`)
+                }
+              >
+                {t('cases.generateAutomation')}
+              </button>
+            )}
             <button
               type="button"
               className="btn secondary"
@@ -391,7 +408,7 @@ export function CaseList({
               className="case-virtual"
               renderRow={(c) => (
                 <div className="table-row">
-                  {canBulkEdit ? (
+                  {canBulkEdit || canLlm ? (
                     <input
                       type="checkbox"
                       checked={selected.has(c.id)}

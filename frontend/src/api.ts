@@ -506,6 +506,31 @@ export type GeneratedCaseDraft = {
   priority: string
 }
 
+export type ContextFileRef = {
+  path: string
+  language: string
+  score: number
+  reason: string
+}
+
+export type AutomationRepo = {
+  id: string
+  project_id: string
+  provider: string
+  remote_url: string
+  branch: string
+  subpath: string
+  has_token: boolean
+  index_status: string
+  last_indexed_at: string | null
+  last_index_error: string | null
+  commit_sha: string | null
+  file_count: number
+  chunk_count: number
+  created_at: string
+  updated_at: string
+}
+
 export type ApiTokenPublic = {
   id: string
   name: string
@@ -1138,6 +1163,7 @@ export const api = {
       count?: number
       persist?: boolean
       suite_id?: string
+      config_id?: string
     },
   ) =>
     request<{
@@ -1151,17 +1177,60 @@ export const api = {
     }),
   generateCode: (
     projectId: string,
-    body: { case_ids: string[]; framework: string },
+    body: { case_ids: string[]; framework: string; config_id?: string },
   ) =>
-    request<{ provider: string; model: string; framework: string; code: string }>(
-      `/api/v1/projects/${projectId}/llm/generate-code`,
-      { method: 'POST', body: JSON.stringify(body) },
-    ),
+    request<{
+      provider: string
+      model: string
+      framework: string
+      code: string
+      context_files: ContextFileRef[]
+    }>(`/api/v1/projects/${projectId}/llm/generate-code`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   askTests: (projectId: string, question: string) =>
     request<{ provider: string; model: string; answer: string }>(
       `/api/v1/projects/${projectId}/llm/ask`,
       { method: 'POST', body: JSON.stringify({ question }) },
     ),
+
+  getAutomationRepo: (projectId: string) =>
+    request<AutomationRepo>(`/api/v1/projects/${projectId}/automation-repo`),
+  upsertAutomationRepo: (
+    projectId: string,
+    body: {
+      provider: string
+      remote_url: string
+      branch?: string
+      subpath?: string
+      token?: string
+    },
+  ) =>
+    request<AutomationRepo>(`/api/v1/projects/${projectId}/automation-repo`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteAutomationRepo: (projectId: string) =>
+    request<void>(`/api/v1/projects/${projectId}/automation-repo`, {
+      method: 'DELETE',
+    }),
+  testAutomationRepo: (projectId: string) =>
+    request<{ ok: boolean; message: string; commit_sha: string | null }>(
+      `/api/v1/projects/${projectId}/automation-repo/test`,
+      { method: 'POST', body: '{}' },
+    ),
+  reindexAutomationRepo: (projectId: string) =>
+    request<{
+      status: string
+      commit_sha: string | null
+      file_count: number
+      chunk_count: number
+      error: string | null
+    }>(`/api/v1/projects/${projectId}/automation-repo/reindex`, {
+      method: 'POST',
+      body: '{}',
+    }),
 
   listTokens: () => request<ApiTokenPublic[]>('/api/v1/tokens'),
   createToken: (name: string) =>

@@ -1,3 +1,4 @@
+pub mod automation_repo;
 pub mod case_keys;
 pub mod cases;
 pub mod ingest;
