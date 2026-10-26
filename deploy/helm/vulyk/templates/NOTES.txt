@@ -17,7 +17,9 @@ Vulyk {{ .Chart.AppVersion }} installed as release {{ .Release.Name }}.
        vulyk-api setup --yes --admin-email={{ .Values.setup.adminEmail }}
 4. Secrets are expected in Secret/{{ include "vulyk.secretName" . }}
    (DATABASE_URL, VULYK_JWT_SECRET, VULYK_SECRETS_KEY[, POSTGRES_PASSWORD, VULYK_ADMIN_PASSWORD]).
-5. Docs: docs/guides/first-run-setup.md · docs/auth-and-rbac.md · docs/guides/sso.md
+5. Migrations: {{ if .Values.migrate.enabled }}pre-upgrade Job + API initContainer run `vulyk-api migrate run`
+   (VULYK_AUTO_MIGRATE={{ .Values.migrate.autoMigrate }}).{{ else }}migrate.enabled=false — run migrations yourself.{{ end }}
+6. Docs: docs/guides/upgrade.md · docs/guides/first-run-setup.md · docs/admin-guide.md
 
 {{- if .Values.ingress.enabled }}
 Ingress host: http{{ if .Values.ingress.tls }}s{{ end }}://{{ .Values.ingress.host }}
@@ -27,4 +29,5 @@ Port-forward the UI:
   kubectl port-forward svc/{{ include "vulyk.fullname" . }}-api {{ .Values.service.apiPort }}:{{ .Values.service.apiPort }}
 {{- end }}
 
-Backups: see docs/admin-guide.md (pg_dump against the PostgreSQL service).
+Backups: take a pg_dump (and VolumeSnapshot) BEFORE helm upgrade. See docs/guides/upgrade.md.
+Postgres PVC keepOnUninstall={{ .Values.postgresql.persistence.keepOnUninstall }} (helm.sh/resource-policy=keep).

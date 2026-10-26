@@ -1,6 +1,16 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const rootDir = dirname(fileURLToPath(import.meta.url))
+const pkgVersion = (
+  JSON.parse(readFileSync(join(rootDir, 'package.json'), 'utf8')) as {
+    version: string
+  }
+).version
 
 const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512] as const
 
@@ -20,6 +30,9 @@ const icons = iconSizes.flatMap((size) => [
 ])
 
 export default defineConfig({
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(pkgVersion),
+  },
   plugins: [
     react(),
     VitePWA({

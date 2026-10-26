@@ -24,6 +24,9 @@ frontend/dist/
 *.log
 pgdata/
 
+# Local DB backups from ./scripts/install.sh backup|upgrade
+/backups/
+
 # Playwright
 e2e/test-results/
 e2e/playwright-report/

@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # Install / bootstrap Vulyk on Linux, macOS, or WSL2.
 # Verified modes: compose | prod | dev | setup | check | helm-template | perf-smoke
+#                 upgrade | backup | restore
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
+
+BACKUP_DIR="${ROOT}/backups"
+BACKUP_RETENTION="${VULYK_BACKUP_RETENTION:-10}"
+UPGRADE_TO=""
+NO_BACKUP=0
+RESTORE_FILE=""
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -67,6 +74,9 @@ Modes:
   check           Verify local toolchain (rustc, cargo, node, docker/helm optional)
   helm-template   Render the Helm chart (requires helm) as a dry-run validation
   perf-smoke      Seed ~100k cases and check list/search latency (needs running API)
+  upgrade         Safe upgrade: backup, pull, rebuild, migrate, health-check
+  backup          pg_dump to ./backups/vulyk-<version>-<timestamp>.sql.gz
+  restore FILE    Restore a backup (confirmation required unless --yes)
 
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
@@ -79,10 +89,14 @@ First-run options (compose / prod / dev / setup):
   --base-url=URL
   --yes, -y                Non-interactive (use flags/env; skip prompts)
 
+Upgrade / backup options:
+  --to=TAG|BRANCH          Checkout tag or branch before rebuilding (upgrade)
+  --no-backup              Skip automatic pg_dump (upgrade only; not recommended)
+
 Environment equivalents:
   VULYK_ADMIN_EMAIL, VULYK_ADMIN_PASSWORD, VULYK_DEFAULT_LOCALE,
   VULYK_DEFAULT_TIMEZONE, VULYK_REGISTRATION_MODE, VULYK_INSTANCE_NAME,
-  VULYK_SEED_DEMO, VULYK_BASE_URL
+  VULYK_SEED_DEMO, VULYK_BASE_URL, VULYK_BACKUP_RETENTION
 
 Written into .env (compose/dev) or .env.prod (prod). Defaults:
   compose/dev: seed demo=1, registration=open, admin@vulyk.local / admin
@@ -93,7 +107,16 @@ After compose/prod/dev, if setup did not complete automatically:
   # or: docker compose run --rm api vulyk-api setup --yes ...
   # or: cargo run -p vulyk-api -- setup ...
 
-See docs/guides/first-run-setup.md
+Upgrade (keeps the named Postgres volume; never runs docker compose down -v):
+  ./scripts/install.sh upgrade --yes
+  ./scripts/install.sh upgrade --yes --to=v0.2.0
+  ./scripts/install.sh backup
+  ./scripts/install.sh restore ./backups/vulyk-0.1.0-20260101T120000Z.sql.gz
+
+WARNING: never run 'docker compose down -v' on a data you care about -
+the -v flag deletes named volumes (Postgres data).
+
+See docs/guides/first-run-setup.md and docs/guides/upgrade.md
 
 Environment:
   Linux, macOS (bash 3.2+), and WSL2 are supported. Native Windows is not - use WSL2.
@@ -153,6 +176,17 @@ parse_args() {
       --base-url=*)
         BASE_URL="${arg#*=}"
         ;;
+      --to=*)
+        UPGRADE_TO="${arg#*=}"
+        ;;
+      --to)
+        [[ $# -gt 0 ]] || die "--to requires a tag or branch"
+        UPGRADE_TO="$1"
+        shift
+        ;;
+      --no-backup)
+        NO_BACKUP=1
+        ;;
       --*=*)
         die "unknown option: $arg (try --help)"
         ;;
@@ -160,7 +194,11 @@ parse_args() {
         die "unknown option: $arg (try --help)"
         ;;
       *)
-        die "unexpected argument: $arg (try --help)"
+        if [[ "${MODE}" == "restore" && -z "${RESTORE_FILE}" ]]; then
+          RESTORE_FILE="${arg}"
+        else
+          die "unexpected argument: $arg (try --help)"
+        fi
         ;;
     esac
   done
@@ -496,6 +534,326 @@ run_setup_cli() {
 }
 
 # ---------------------------------------------------------------------------
+# Compose helpers (upgrade / backup / restore)
+# ---------------------------------------------------------------------------
+detect_compose_files() {
+  # Sets COMPOSE_FILES (array of -f args) and COMPOSE_ENV_FILE
+  COMPOSE_FILES=()
+  COMPOSE_ENV_FILE=""
+  if [[ -f .env.prod ]] && { [[ -f docker-compose.prod.yml ]]; }; then
+    # Prefer prod when .env.prod exists and stack looks prod-oriented
+    if docker compose -f docker-compose.prod.yml --env-file .env.prod ps -q db >/dev/null 2>&1 \
+      && [[ -n "$(docker compose -f docker-compose.prod.yml --env-file .env.prod ps -q db 2>/dev/null || true)" ]]; then
+      COMPOSE_FILES=(-f docker-compose.prod.yml)
+      COMPOSE_ENV_FILE=".env.prod"
+      return 0
+    fi
+  fi
+  if [[ -f docker-compose.yml ]]; then
+    COMPOSE_FILES=(-f docker-compose.yml)
+    if [[ -f .env ]]; then
+      COMPOSE_ENV_FILE=".env"
+    fi
+  fi
+}
+
+compose_cmd() {
+  resolve_compose
+  [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose plugin or docker-compose required"
+  detect_compose_files
+  [[ ${#COMPOSE_FILES[@]} -gt 0 ]] || die "no docker-compose.yml found"
+  if [[ -n "${COMPOSE_ENV_FILE}" ]]; then
+    "${COMPOSE[@]}" "${COMPOSE_FILES[@]}" --env-file "${COMPOSE_ENV_FILE}" "$@"
+  else
+    "${COMPOSE[@]}" "${COMPOSE_FILES[@]}" "$@"
+  fi
+}
+
+current_git_version() {
+  if command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git describe --tags --always --dirty 2>/dev/null || git rev-parse --short HEAD 2>/dev/null || echo "unknown"
+  else
+    echo "unknown"
+  fi
+}
+
+api_reported_version() {
+  local url="${VULYK_API_URL:-http://127.0.0.1:8080}"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsS "${url}/health" 2>/dev/null | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+  fi
+}
+
+disk_free_mb() {
+  # Portable: prefer df -Pk (POSIX), fall back to df -m
+  local avail
+  avail="$(df -Pk "${ROOT}" 2>/dev/null | awk 'NR==2 {print int($4/1024)}')"
+  if [[ -z "${avail}" || "${avail}" -eq 0 ]]; then
+    avail="$(df -m "${ROOT}" 2>/dev/null | awk 'NR==2 {print $4}')"
+  fi
+  echo "${avail:-0}"
+}
+
+ensure_backup_dir() {
+  mkdir -p "${BACKUP_DIR}"
+}
+
+prune_old_backups() {
+  local keep="${BACKUP_RETENTION}"
+  local count
+  ensure_backup_dir
+  count=0
+  # Portable (bash 3.2 / macOS): glob + mtime sort via ls -t
+  shopt -s nullglob 2>/dev/null || true
+  local -a files=( "${BACKUP_DIR}"/vulyk-*.sql.gz )
+  count="${#files[@]}"
+  if [[ "${count}" -le "${keep}" ]]; then
+    return 0
+  fi
+  log "Pruning backups (keep last ${keep})..."
+  # shellcheck disable=SC2207
+  files=( $(ls -t "${BACKUP_DIR}"/vulyk-*.sql.gz 2>/dev/null) )
+  local idx
+  idx="${keep}"
+  while [[ "${idx}" -lt "${#files[@]}" ]]; do
+    rm -f "${files[$idx]}"
+    log "Removed old backup: ${files[$idx]}"
+    idx=$((idx + 1))
+  done
+}
+
+wait_for_db() {
+  local _
+  for _ in $(seq 1 60); do
+    if compose_cmd exec -T db pg_isready -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  die "Postgres is not ready (pg_isready timed out)"
+}
+
+run_pg_dump_backup() {
+  local version_label="$1"
+  local ts out
+  ensure_backup_dir
+  ts="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null || date +%Y%m%dT%H%M%S)"
+  version_label="$(printf '%s' "${version_label}" | tr -c 'A-Za-z0-9._-' '_')"
+  out="${BACKUP_DIR}/vulyk-${version_label}-${ts}.sql.gz"
+  log "Creating backup: ${out}"
+  wait_for_db
+  # Plain SQL gzip so restore works with psql (no custom-format tools required)
+  if ! compose_cmd exec -T db \
+    pg_dump -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" --no-owner --no-acl \
+    | gzip -c >"${out}"; then
+    rm -f "${out}"
+    die "pg_dump failed"
+  fi
+  [[ -s "${out}" ]] || die "backup file is empty: ${out}"
+  prune_old_backups
+  log "Backup OK: ${out}"
+  printf '%s\n' "${out}"
+}
+
+confirm_or_yes() {
+  local prompt="$1"
+  if [[ "${ASSUME_YES}" -eq 1 ]]; then
+    return 0
+  fi
+  if [[ ! -t 0 ]]; then
+    die "refusing non-interactive restore without --yes"
+  fi
+  local reply
+  printf '%s [y/N]: ' "${prompt}" >&2
+  read -r reply || true
+  case "$(printf '%s' "${reply}" | tr '[:upper:]' '[:lower:]')" in
+    y|yes) return 0 ;;
+    *) die "aborted" ;;
+  esac
+}
+
+cmd_backup() {
+  resolve_compose
+  [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for backup"
+  need_cmd gzip
+  local ver
+  ver="$(api_reported_version)"
+  [[ -n "${ver}" ]] || ver="$(current_git_version)"
+  run_pg_dump_backup "${ver}"
+}
+
+cmd_restore() {
+  local file="${RESTORE_FILE:-}"
+  [[ -n "${file}" ]] || die "usage: ./scripts/install.sh restore <backup.sql.gz>"
+  [[ -f "${file}" ]] || die "backup not found: ${file}"
+  resolve_compose
+  [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for restore"
+  need_cmd gzip
+  confirm_or_yes "Restore ${file} into the running Postgres (DESTROYS current DB data)?"
+  wait_for_db
+  log "Stopping API/web so connections drop..."
+  compose_cmd stop api web 2>/dev/null || true
+  log "Restoring..."
+  # Drop/recreate public schema then apply dump
+  compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1 \
+    -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO ${POSTGRES_USER:-vulyk}; GRANT ALL ON SCHEMA public TO public;"
+  gzip -dc "${file}" | compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1
+  log "Restore complete. Starting stack..."
+  compose_cmd up -d
+  log "Done. Verify: curl -fsS \${VULYK_API_URL:-http://127.0.0.1:8080}/health"
+}
+
+print_restore_hint() {
+  local backup_file="${1:-}"
+  cat <<EOF >&2
+
+========================================================================
+UPGRADE FAILED - Postgres data volume was NOT removed.
+Never run: docker compose down -v   (the -v flag DELETES your database)
+
+To restore from backup:
+  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-VERSION-TIMESTAMP.sql.gz} --yes
+
+See docs/guides/upgrade.md
+========================================================================
+EOF
+}
+
+cmd_upgrade() {
+  local backup_file="" ver free_mb pending_rc=0
+  resolve_compose
+  [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for upgrade"
+  need_cmd git
+  need_cmd curl
+  need_cmd gzip
+  need_cmd docker
+
+  log "Upgrade preflight..."
+  docker info >/dev/null 2>&1 || die "Docker daemon not reachable"
+  free_mb="$(disk_free_mb)"
+  log "Free disk: ${free_mb} MB"
+  if [[ "${free_mb}" -gt 0 && "${free_mb}" -lt 1024 ]]; then
+    warn "Less than 1 GB free disk; upgrade may fail"
+    if [[ "${ASSUME_YES}" -eq 0 ]]; then
+      confirm_or_yes "Continue with low disk space?"
+    fi
+  fi
+
+  ver="$(api_reported_version)"
+  [[ -n "${ver}" ]] || ver="$(current_git_version)"
+  log "Current version: ${ver}"
+  log "Git HEAD: $(current_git_version)"
+
+  # Ensure DB is up for status / backup (do not start new API yet)
+  detect_compose_files
+  log "Ensuring database is running..."
+  compose_cmd up -d db
+  wait_for_db
+
+  # Load env for POSTGRES_* when using prod
+  if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    # shellcheck source=/dev/null
+    source "${COMPOSE_ENV_FILE}"
+    set +a
+  fi
+
+  log "Migration status (current image, if available)..."
+  set +e
+  compose_cmd run --rm --no-deps api vulyk-api migrate status
+  pending_rc=$?
+  set -e
+  if [[ "${pending_rc}" -eq 2 ]]; then
+    die "database schema is newer than the current API binary (refusing upgrade)"
+  fi
+
+  if [[ "${NO_BACKUP}" -eq 1 ]]; then
+    warn "Skipping backup (--no-backup)"
+  else
+    backup_file="$(run_pg_dump_backup "${ver}")"
+  fi
+
+  if [[ "${ASSUME_YES}" -eq 0 ]]; then
+    confirm_or_yes "Proceed with upgrade${UPGRADE_TO:+ to ${UPGRADE_TO}}?"
+  fi
+
+  if [[ -n "${UPGRADE_TO}" ]]; then
+    log "Checking out ${UPGRADE_TO}..."
+    git fetch --tags --prune origin 2>/dev/null || git fetch --tags --prune 2>/dev/null || true
+    git checkout "${UPGRADE_TO}" || die "git checkout ${UPGRADE_TO} failed"
+  else
+    log "Pulling latest for current branch..."
+    if git rev-parse --abbrev-ref HEAD >/dev/null 2>&1; then
+      local branch
+      branch="$(git rev-parse --abbrev-ref HEAD)"
+      if [[ "${branch}" != "HEAD" ]]; then
+        git pull --ff-only origin "${branch}" 2>/dev/null \
+          || git pull --ff-only 2>/dev/null \
+          || warn "git pull failed (continuing with local tree)"
+      fi
+    fi
+  fi
+
+  log "Stopping API/web (keeping database volume)..."
+  # NEVER use down -v - volumes must be preserved
+  compose_cmd stop api web 2>/dev/null || true
+
+  log "Rebuilding images..."
+  if ! compose_cmd build api web; then
+    print_restore_hint "${backup_file}"
+    die "image build failed"
+  fi
+
+  log "Running migrations (one-shot, before starting API)..."
+  if ! compose_cmd run --rm --no-deps \
+    -e VULYK_AUTO_MIGRATE=false \
+    api vulyk-api migrate run; then
+    print_restore_hint "${backup_file}"
+    die "migrate run failed"
+  fi
+
+  log "Starting updated stack..."
+  if ! compose_cmd up -d; then
+    print_restore_hint "${backup_file}"
+    die "compose up failed"
+  fi
+
+  log "Health check..."
+  local health_url
+  health_url="${VULYK_API_URL:-http://127.0.0.1:8080}/health"
+  # Prod may use a different published port
+  if [[ -n "${API_PORT:-}" ]]; then
+    health_url="http://127.0.0.1:${API_PORT}/health"
+  fi
+  for _ in $(seq 1 90); do
+    if curl -fsS "${health_url}" >/dev/null 2>&1; then
+      local new_ver
+      new_ver="$(api_reported_version)"
+      log "Upgrade complete."
+      log "Health: ${health_url} OK (version=${new_ver:-unknown})"
+      if [[ -n "${backup_file}" ]]; then
+        log "Backup kept at: ${backup_file}"
+      fi
+      cat <<EOF
+
+Next:
+  curl -fsS ${health_url}
+  ./scripts/install.sh backup     # optional extra backup after upgrade
+
+WARNING: do not run 'docker compose down -v' - that deletes Postgres data.
+EOF
+      return 0
+    fi
+    sleep 2
+  done
+  print_restore_hint "${backup_file}"
+  die "API health check failed after upgrade"
+}
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 OS="$(detect_os)"
@@ -504,7 +862,7 @@ log "Detected OS: ${OS}"
 parse_args "$@"
 
 case "${MODE}" in
-  compose|prod|dev|setup|check|helm-template|perf-smoke)
+  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore)
     ;;
   -h|--help|help)
     usage
@@ -514,6 +872,21 @@ case "${MODE}" in
     die "unknown mode: ${MODE} (try --help)"
     ;;
 esac
+
+if [[ "${MODE}" == "backup" ]]; then
+  cmd_backup
+  exit 0
+fi
+
+if [[ "${MODE}" == "restore" ]]; then
+  cmd_restore
+  exit 0
+fi
+
+if [[ "${MODE}" == "upgrade" ]]; then
+  cmd_upgrade
+  exit 0
+fi
 
 if [[ "${MODE}" == "check" || "${MODE}" == "dev" || "${MODE}" == "perf-smoke" ]]; then
   need_cmd rustc
@@ -563,7 +936,15 @@ if [[ "${MODE}" == "helm-template" ]]; then
   grep -q 'kind: Deployment' /tmp/vulyk-helm-render.yaml \
     || die "Helm render missing Deployments"
   grep -q 'kind: Job' /tmp/vulyk-helm-render.yaml \
-    || die "Helm render missing setup Job"
+    || die "Helm render missing Job"
+  grep -q 'component: migrate' /tmp/vulyk-helm-render.yaml \
+    || die "Helm render missing migrate Job"
+  grep -q 'migrate", "run"' /tmp/vulyk-helm-render.yaml \
+    || die "Helm render missing migrate run args"
+  grep -q 'VULYK_AUTO_MIGRATE: "false"' /tmp/vulyk-helm-render.yaml \
+    || die "Helm render missing VULYK_AUTO_MIGRATE=false"
+  grep -q 'helm.sh/resource-policy: keep' /tmp/vulyk-helm-render.yaml \
+    || die "Helm render missing PVC keep policy"
   grep -q 'VULYK_REGISTRATION_MODE' /tmp/vulyk-helm-render.yaml \
     || die "Helm render missing VULYK_REGISTRATION_MODE"
   log "Helm chart rendered OK -> /tmp/vulyk-helm-render.yaml"
@@ -660,7 +1041,9 @@ If setup did not complete via env seed, run:
 
 Logs:  docker compose -f docker-compose.prod.yml logs -f
 Stop:  docker compose -f docker-compose.prod.yml down
-Backups: see docs/admin-guide.md
+       (NEVER use down -v - that deletes Postgres volumes)
+Upgrade: ./scripts/install.sh upgrade --yes
+Backups: ./scripts/install.sh backup  (see docs/guides/upgrade.md)
 EOF
   print_setup_next_steps "prod"
   exit 0
@@ -689,7 +1072,9 @@ If setup did not complete automatically (or you need to re-run first-time config
   # or: docker compose run --rm api vulyk-api setup --yes
 
 For production hardening: ./scripts/install.sh prod
+Upgrade: ./scripts/install.sh upgrade --yes
 Logs:  docker compose logs -f
 Stop:  docker compose down
+       (NEVER use down -v - that deletes the Postgres volume)
 EOF
 print_setup_next_steps "compose"

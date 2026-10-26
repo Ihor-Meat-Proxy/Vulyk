@@ -64,6 +64,19 @@ helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namesp
 
 Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it deploy/…-api -- vulyk-api setup`.
 
+## Upgrading
+
+Keep the Postgres volume; never run `docker compose down -v` (the `-v` flag deletes data).
+
+```bash
+./scripts/install.sh upgrade --yes              # backup → pull → rebuild → migrate → health
+./scripts/install.sh upgrade --yes --to=v0.1.0  # pin a tag
+./scripts/install.sh backup
+./scripts/install.sh restore ./backups/vulyk-….sql.gz --yes
+```
+
+Helm runs `vulyk-api migrate run` as a pre-upgrade Job. Full guide: [docs/guides/upgrade.md](docs/guides/upgrade.md).
+
 ## Documentation
 
 | Doc | Description |
@@ -71,6 +84,7 @@ Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it de
 | [docs/architecture.md](docs/architecture.md) | Product plan, ERD, workstreams W0–W11 |
 | [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
 | [docs/admin-guide.md](docs/admin-guide.md) | Deploy, backups, perf smoke, Helm |
+| [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, backups, migrate CLI, Helm hooks |
 | [docs/api.md](docs/api.md) | API overview + OpenAPI link |
 | [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth, roles, registration, seeding |
 | [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md) | Compose / Helm / CLI / wizard |

@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extract changelog section
+        id: notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Pull the matching ## [VERSION] section from CHANGELOG.md when present
+          python3 - <<'PY' > /tmp/release-notes.md
+          import pathlib, re, os
+          tag = os.environ["TAG"]
+          version = tag[1:] if tag.startswith("v") else tag
+          text = pathlib.Path("CHANGELOG.md").read_text(encoding="utf-8")
+          pattern = rf"## \[{re.escape(version)}\].*?(?=\n## |\Z)"
+          m = re.search(pattern, text, flags=re.S)
+          if m:
+              print(m.group(0).strip())
+          else:
+              print(f"Vulyk {tag}\n\nSee CHANGELOG.md for details.")
+          PY
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Vulyk ${{ github.ref_name }}
+          body_path: /tmp/release-notes.md
+          generate_release_notes: true
+          draft: false
+          prerelease: false

@@ -2,6 +2,7 @@
 # First-run: set VULYK_ADMIN_* in .env (./scripts/install.sh compose) or run:
 #   docker compose run --rm api vulyk-api setup --yes
 #   # or: ./scripts/install.sh setup
+# Upgrade: ./scripts/install.sh upgrade --yes  (never `docker compose down -v`)
 services:
   db:
     image: postgres:16-alpine
@@ -40,6 +41,8 @@ services:
       VULYK_REGISTRATION_MODE: ${VULYK_REGISTRATION_MODE:-open}
       VULYK_SEED_DEMO: ${VULYK_SEED_DEMO:-1}
       VULYK_SEED_SAMPLE: ${VULYK_SEED_SAMPLE:-1}
+      # Dev default: migrate on API startup. Prod / upgrade path uses migrate run.
+      VULYK_AUTO_MIGRATE: ${VULYK_AUTO_MIGRATE:-true}
       VULYK_BASE_URL: ${VULYK_BASE_URL:-http://localhost:8080}
     ports:
       - "8080:8080"

@@ -20,7 +20,15 @@ env:
   VULYK_JWT_TTL_HOURS: "12"
   VULYK_SESSION_TTL_HOURS: "168"
 
+# Schema migrations as a Helm pre-install/pre-upgrade Job (`vulyk-api migrate run`).
+# Take a logical backup (pg_dump) before `helm upgrade` — see docs/guides/upgrade.md.
+migrate:
+  enabled: true
+  # API pods should not auto-migrate when the Job owns upgrades (replicas race).
+  autoMigrate: false
+
 # First-run setup (Job + env seeding on API). Prefer secretRef for passwords.
+# Setup Job is post-install only (not post-upgrade).
 setup:
   enabled: true
   adminEmail: admin@vulyk.local
@@ -63,6 +71,9 @@ postgresql:
     enabled: true
     size: 20Gi
     storageClass: ""
+    # Annotate the PVC with helm.sh/resource-policy=keep so uninstall does not
+    # delete Postgres data. Set false only for ephemeral demo clusters.
+    keepOnUninstall: true
 
 service:
   apiPort: 8080
