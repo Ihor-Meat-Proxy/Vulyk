@@ -1,47 +1,41 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api'
+
+function stubBrowserGlobals() {
+  const store = new Map<string, string>()
+  const g = globalThis as typeof globalThis & {
+    localStorage: Storage
+    document: Document
+  }
+  g.localStorage = {
+    getItem: (k: string) => store.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      store.set(k, v)
+    },
+    removeItem: (k: string) => {
+      store.delete(k)
+    },
+    clear: () => store.clear(),
+    key: () => null,
+    length: 0,
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  g.document = {
+    createElement: () => ({
+      href: '',
+      download: '',
+      click: () => undefined,
+    }),
+  } as any
+  URL.createObjectURL = vi.fn(() => 'blob:mock') as typeof URL.createObjectURL
+  URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL
+}
 
 describe('case PDF export API helpers', () => {
   const originalFetch = globalThis.fetch
-  const store = new Map<string, string>()
-
-  beforeEach(() => {
-    const g = globalThis as typeof globalThis & {
-      localStorage: Storage
-      document: {
-        createElement: (tag: string) => {
-          href: string
-          download: string
-          click: () => void
-        }
-      }
-    }
-    g.localStorage = {
-      getItem: (k: string) => store.get(k) ?? null,
-      setItem: (k: string, v: string) => {
-        store.set(k, v)
-      },
-      removeItem: (k: string) => {
-        store.delete(k)
-      },
-      clear: () => store.clear(),
-      key: () => null,
-      length: 0,
-    }
-    g.document = {
-      createElement: () => ({
-        href: '',
-        download: '',
-        click: () => undefined,
-      }),
-    }
-    URL.createObjectURL = vi.fn(() => 'blob:mock') as typeof URL.createObjectURL
-    URL.revokeObjectURL = vi.fn() as typeof URL.revokeObjectURL
-  })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    store.clear()
     vi.restoreAllMocks()
   })
 
@@ -51,6 +45,7 @@ describe('case PDF export API helpers', () => {
   })
 
   it('downloadCasePdf requests export.pdf with results and locale', async () => {
+    stubBrowserGlobals()
     globalThis.fetch = vi.fn(async () => {
       return new Response(new Blob(['%PDF'], { type: 'application/pdf' }), {
         status: 200,
@@ -77,6 +72,7 @@ describe('case PDF export API helpers', () => {
   })
 
   it('exportCases posts bulk export body', async () => {
+    stubBrowserGlobals()
     globalThis.fetch = vi.fn(async () => {
       return new Response(new Uint8Array([0x50, 0x4b]), {
         status: 200,

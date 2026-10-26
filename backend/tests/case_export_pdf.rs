@@ -46,7 +46,7 @@ async fn export_pdf_contains_key_title_cyrillic_and_mixed_results() {
 
     let key = format!(
         "XP{}",
-        &uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
     );
     let project: Value = client
         .post(format!("{base}/api/v1/projects"))
