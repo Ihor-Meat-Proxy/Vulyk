@@ -3275,9 +3275,94 @@ def build() -> dict:
     )
     suites.append(single_action)
 
+<<<<<<< HEAD
     # List-columns cases live in backend/seed/vulyk-qa.d/case-list-columns.json
     # (registered in sample_seed.rs VULYK_QA_FRAGMENTS) so keys allocate above
     # the base file without colliding with parallel PRs.
+=======
+
+    lists_fields_suite = suite(
+        "24. Lists, custom fields & config",
+        "24. Списки, кастомні поля та конфіг",
+        cases=[
+            case(
+                "Admin Lists: create Browsers option list with ordered items",
+                title_uk="Admin Lists: створити список Browsers з упорядкованими елементами",
+                desc_en="Admin → Lists creates reusable option lists (label, key, colour, description, active/deprecated).",
+                pre_en="Signed in as system admin. Open Admin via gear → Admin settings.",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "admin", "custom-fields"],
+                external_key="e2e:admin-custom-fields.spec.ts",
+                steps=[
+                    step(
+                        "Open Admin → Lists; create list key=browsers name=Browsers; add Chrome/Firefox/Safari/Edge; reorder.",
+                        "List saved; items ordered; colour/description optional; deprecate instead of hard-delete when in use.",
+                    )
+                ],
+            ),
+            case(
+                "Admin Custom fields: checkbox and multi-select on test cases",
+                title_uk="Admin Custom fields: checkbox і multi-select на тест-кейсах",
+                desc_en="Admin → Custom fields defines Automated? (checkbox) and Browsers (multi-select from list) with All projects scope.",
+                pre_en="Browsers list exists. System admin.",
+                priority="critical",
+                tags=["smoke", "regression", "e2e", "admin", "custom-fields"],
+                external_key="e2e:admin-custom-fields.spec.ts",
+                steps=[
+                    step(
+                        "Create fields automated (checkbox) and browsers (multi_select → Browsers list), scope All projects, show in list/filters.",
+                        "Fields appear on case create/edit/detail for every project; editors can set values; only Admin manages definitions.",
+                    )
+                ],
+            ),
+            case(
+                "Custom field scope selected projects and hide-keep values",
+                title_uk="Scope кастомного поля Selected projects і hide-keep значень",
+                desc_en="Narrowing scope hides the field but retains stored values with a warning.",
+                pre_en="Field exists with values on two projects.",
+                priority="high",
+                tags=["regression", "admin", "custom-fields", "e2e"],
+                external_key="e2e:admin-custom-fields.spec.ts",
+                steps=[
+                    step(
+                        "Change scope from All to Selected (one project) with acknowledge; open the other project's case.",
+                        "Warning shown; field hidden on excluded project; previously stored value still in DB/history.",
+                    )
+                ],
+            ),
+            case(
+                "Custom fields on requirements and bulk edit",
+                title_uk="Кастомні поля на вимогах і bulk edit",
+                desc_en="Entity=requirement or both; case list columns/filters; bulk set values.",
+                pre_en="Field with entity=both or requirement; cases selected on Cases page.",
+                priority="medium",
+                tags=["regression", "admin", "custom-fields"],
+                steps=[
+                    step(
+                        "Edit requirement custom fields; filter cases by Automated?; bulk-set Browsers on selected cases.",
+                        "Values persist; list columns/filters honour show_in_list / show_in_filters.",
+                    )
+                ],
+            ),
+            case(
+                "Config export and import dry-run",
+                title_uk="Експорт і імпорт конфігурації (dry-run)",
+                desc_en="Admin → Export/import and `vulyk-api config export|import` produce versioned JSON/YAML without secrets.",
+                pre_en="System admin; lists and custom fields seeded.",
+                priority="high",
+                tags=["smoke", "regression", "e2e", "admin", "config"],
+                external_key="e2e:admin-custom-fields.spec.ts",
+                steps=[
+                    step(
+                        "Export all projects JSON; import with dry-run preview; apply merge by key.",
+                        "Bundle includes lists, fields, project settings; secrets omitted; preview shows create/update; import idempotent.",
+                    )
+                ],
+            ),
+        ],
+    )
+    suites.append(lists_fields_suite)
+>>>>>>> 44d71fb (feat(admin): seed Browsers/Automated fields, QA cases, tests, docs, CLI)
 
     requirements = [
         {

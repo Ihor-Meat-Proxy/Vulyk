@@ -41,6 +41,15 @@ pub fn draft_from_row(
     let suite_name = get_mapped_owned(row, &mapping.suite).filter(|s| !s.is_empty());
     let steps = parse_steps_field(row, &mapping.steps);
 
+    let mut custom_fields = std::collections::HashMap::new();
+    for (field_key, source_key) in &mapping.custom_fields {
+        if let Some(raw) = get_mapped_owned(row, source_key) {
+            // Prefer JSON parse for arrays/bools; otherwise store as string.
+            let value = serde_json::from_str::<Value>(&raw).unwrap_or(Value::String(raw));
+            custom_fields.insert(field_key.clone(), value);
+        }
+    }
+
     ImportCaseDraft {
         key,
         title,
@@ -52,6 +61,7 @@ pub fn draft_from_row(
         steps,
         external_id: defaults.external_id,
         source_fields: row.clone(),
+        custom_fields,
     }
 }
 

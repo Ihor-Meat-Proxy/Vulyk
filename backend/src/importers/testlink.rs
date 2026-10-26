@@ -74,6 +74,7 @@ fn parse_xml(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             steps,
             external_id,
             source_fields: json!({ "name": name }),
+            custom_fields: Default::default(),
         });
     }
     if cases.is_empty() {

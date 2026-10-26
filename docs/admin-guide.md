@@ -146,11 +146,57 @@ Seeds ~100k cases (SQL when `DATABASE_URL`+`psql` available) and asserts list/se
 - [guides/sso.md](guides/sso.md) — Google, Entra, GitHub, GitLab, Nextcloud
 - [guides/first-run-setup.md](guides/first-run-setup.md) — Compose / Helm / CLI / wizard
 
+## Lists, custom fields & config export
+
+### Option lists (Admin → Lists)
+
+Reusable named value lists (e.g. **Browsers**, **Test type**, **Components**) with ordered items: label, optional key/value, colour, description, active/deprecated. Items that are in use are **deprecated** instead of hard-deleted. Only system admins manage lists; editors consume them via custom fields.
+
+Sample seed creates a global **Browsers** list (Chrome, Firefox, Safari, Edge).
+
+### Custom fields (Admin → Custom fields)
+
+Field types: checkbox, dropdown / multi-select (from an option list), text, long text, number, date, URL.
+
+Settings: name, key, entity (`test_case` / `requirement` / `both`), type, option list, default, required, help text, display order, show in list columns / filters, active.
+
+**Scope**
+
+- **All projects** — applied to every existing project and any project created later.
+- **Selected projects** — pick projects now; for a new project, add the field later from **Fields available to add** (project custom-fields API) or Admin.
+
+Per-project override of required/default is optional. Narrowing scope **hides** the field but **keeps stored values** (API warns; UI confirms with `acknowledge_hide_values`).
+
+Values appear on case/requirement create/edit/detail, list columns & filters, bulk edit, case history snapshots, Chat/Generate context, importers (map external fields), and OpenAPI. Storage uses a typed JSONB values table with GIN / expression indexes for filtering at 20k+ cases.
+
+RBAC: only **Admin** manages field definitions and lists; project editors set values (`CreateEditCases`).
+
+Sample seed adds **Automated?** (checkbox) and **Browsers** (multi-select) with All-projects scope.
+
+### Config export / import (Admin → Export / import)
+
+Export a versioned JSON/YAML bundle (projects settings, custom fields + scopes, option lists, optional memberships by email, registration/SSO without secrets or passphrase-wrapped markers, LLM providers without keys, integrations without tokens, appearance defaults, locales/timezone, automation repos without tokens). Optionally include case/requirement/run data.
+
+Import supports dry-run preview (create/update/conflict), merge or replace, mapping by key, idempotent apply.
+
+```bash
+# CLI
+vulyk-api config export -o vulyk-config.json --format json
+vulyk-api config import -i vulyk-config.json --dry-run
+vulyk-api config import -i vulyk-config.json --yes --strategy merge
+
+# install.sh wrappers
+./scripts/install.sh config-export -o vulyk-config.json
+./scripts/install.sh config-import -i vulyk-config.json --dry-run
+```
+
+API: `POST /api/v1/admin/config/export`, `/import/preview`, `/import` (system admin).
+
 ## Install script platforms
 
 `scripts/install.sh` supports **Linux**, **macOS**, and **WSL2**. Native Windows is not supported — use WSL2. The script is written for **bash 3.2+** (macOS system bash) — avoid bash-4-only features; `./scripts/install.sh check` runs `bash -n` as a syntax self-check.
 
-Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`, `upgrade`, `backup`, `restore`.
+Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`, `upgrade`, `backup`, `restore`, `config-export`, `config-import`.
 
 First-run flags: `--admin-email=`, `--admin-password=`, `--locale=en|uk|fr|es|de`, `--timezone=`, `--registration-mode=`, `--seed-demo=`, `--yes`.
 

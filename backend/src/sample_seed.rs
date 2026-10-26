@@ -529,6 +529,7 @@ async fn seed_one_sample(
         if project_key == "KYIV_CONCERT_2026" {
             let _ = ensure_sample_executions(pool, id).await;
         }
+        let _ = ensure_sample_custom_fields(pool, id).await;
         return Ok(Some(id));
     }
 
@@ -598,6 +599,7 @@ async fn seed_one_sample(
     if project_key == "KYIV_CONCERT_2026" {
         ensure_sample_executions(pool, project_id).await?;
     }
+    ensure_sample_custom_fields(pool, project_id).await?;
 
     // Align monotonic counter with highest seeded PREFIX-N number.
     sqlx::query(
@@ -927,6 +929,97 @@ async fn insert_run(
         }
     }
 
+    Ok(())
+}
+
+/// Seed shared Browsers option list + Automated? checkbox and Browsers multi-select
+/// on the sample project (idempotent; scope=all so new projects inherit automatically).
+async fn ensure_sample_custom_fields(pool: &PgPool, project_id: Uuid) -> AppResult<()> {
+    // Browsers list (global)
+    let list_id: Uuid = match sqlx::query_scalar::<_, Uuid>(
+        "SELECT id FROM option_lists WHERE key = 'browsers'",
+    )
+    .fetch_optional(pool)
+    .await?
+    {
+        Some(id) => id,
+        None => {
+            let id: Uuid = sqlx::query_scalar(
+                r#"INSERT INTO option_lists (key, name, description, active)
+                   VALUES ('browsers', 'Browsers', 'Target browsers for manual/automated coverage', TRUE)
+                   RETURNING id"#,
+            )
+            .fetch_one(pool)
+            .await?;
+            let items = [
+                ("chrome", "Chrome", "#4285F4", 0),
+                ("firefox", "Firefox", "#FF7139", 1),
+                ("safari", "Safari", "#000000", 2),
+                ("edge", "Edge", "#0078D4", 3),
+            ];
+            for (key, label, colour, sort) in items {
+                sqlx::query(
+                    r#"INSERT INTO option_list_items
+                         (list_id, key, label, value, colour, sort_order, active)
+                       VALUES ($1, $2, $3, $2, $4, $5, TRUE)"#,
+                )
+                .bind(id)
+                .bind(key)
+                .bind(label)
+                .bind(colour)
+                .bind(sort)
+                .execute(pool)
+                .await?;
+            }
+            id
+        }
+    };
+
+    // Automated? checkbox — all projects
+    let automated_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM custom_field_definitions WHERE key = 'automated')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !automated_exists {
+        sqlx::query(
+            r#"INSERT INTO custom_field_definitions
+                 (key, name, field_type, entity, default_value, required, help_text,
+                  sort_order, show_in_list, show_in_filters, active, scope)
+               VALUES (
+                 'automated', 'Automated?', 'checkbox', 'test_case', 'false'::jsonb, FALSE,
+                 'Whether this case has automated coverage',
+                 10, TRUE, TRUE, TRUE, 'all'
+               )"#,
+        )
+        .execute(pool)
+        .await?;
+    }
+
+    // Browsers multi-select — all projects
+    let browsers_exists: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM custom_field_definitions WHERE key = 'browsers')",
+    )
+    .fetch_one(pool)
+    .await?;
+    if !browsers_exists {
+        sqlx::query(
+            r#"INSERT INTO custom_field_definitions
+                 (key, name, field_type, entity, option_list_id, default_value, required,
+                  help_text, sort_order, show_in_list, show_in_filters, active, scope)
+               VALUES (
+                 'browsers', 'Browsers', 'multi_select', 'test_case', $1, '[]'::jsonb, FALSE,
+                 'Browsers this case should cover',
+                 20, TRUE, TRUE, TRUE, 'all'
+               )"#,
+        )
+        .bind(list_id)
+        .execute(pool)
+        .await?;
+    }
+
+    // Touch project so callers know fields apply (all-scope needs no junction row).
+    let _ = project_id;
     Ok(())
 }
 

@@ -134,6 +134,7 @@ fn parse_xml_as_cases(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             steps: Vec::new(),
             external_id: reference.map(str::to_string),
             source_fields: json!({ "name": name }),
+            custom_fields: Default::default(),
         });
     }
     if cases.is_empty() {

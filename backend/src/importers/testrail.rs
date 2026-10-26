@@ -143,6 +143,7 @@ fn parse_xml(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             steps: Vec::new(),
             external_id: id,
             source_fields: json!({}),
+            custom_fields: Default::default(),
         });
     }
     if cases.is_empty() {

@@ -116,6 +116,35 @@ pub async fn persist_cases(
         }
 
         tx.commit().await?;
+
+        if !draft.custom_fields.is_empty() {
+            let mut pairs = Vec::new();
+            for (field_key, value) in &draft.custom_fields {
+                let field_id: Option<Uuid> = sqlx::query_scalar(
+                    "SELECT id FROM custom_field_definitions WHERE key = $1 AND active",
+                )
+                .bind(field_key)
+                .fetch_optional(pool)
+                .await?;
+                if let Some(fid) = field_id {
+                    pairs.push((fid, value.clone()));
+                } else {
+                    warnings.push(format!(
+                        "row {idx}: unknown custom field key '{field_key}', skipped"
+                    ));
+                }
+            }
+            if !pairs.is_empty() {
+                if let Err(e) = crate::services::custom_fields::set_case_values(
+                    pool, project_id, case_id, &pairs,
+                )
+                .await
+                {
+                    warnings.push(format!("row {idx}: custom fields: {e}"));
+                }
+            }
+        }
+
         created_cases += 1;
         case_ids.push(case_id);
     }
