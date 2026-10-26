@@ -158,13 +158,28 @@ export async function logout(page: Page): Promise<void> {
     name: /Sign out|Вийти|Se déconnecter|Cerrar sesión|Abmelden/i,
   })
   await expect(signOut).toBeVisible()
-  await signOut.click()
-  // auth_required → login panel immediately; open mode may keep the shell.
+  // Wait for the logout request to finish before any navigation. A premature
+  // page.goto('/login') aborts the fetch, leaves the session cookie, and the
+  // app redirects authenticated users away from /login back to the shell.
+  await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/v1/auth/logout') &&
+        r.request().method() === 'POST',
+      { timeout: 15_000 },
+    ),
+    signOut.click(),
+  ])
+  await page.evaluate(() => {
+    localStorage.removeItem('vulyk.authToken')
+  })
   const panel = page.locator('.login-panel')
-  if (!(await panel.isVisible().catch(() => false))) {
+  try {
+    await expect(panel).toBeVisible({ timeout: 10_000 })
+  } catch {
     await page.goto('/login')
+    await expect(panel).toBeVisible({ timeout: 30_000 })
   }
-  await expect(panel).toBeVisible({ timeout: 30_000 })
 }
 
 /** Create a user and assign a project role via API (admin token). */
