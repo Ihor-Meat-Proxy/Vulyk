@@ -34,6 +34,10 @@ services:
       VULYK_AUTH_REQUIRED: "false"
       VULYK_JWT_SECRET: vulyk-compose-dev-secret
       VULYK_LLM_MOCK: "1"
+      # Optional one-click updates (Admin → Updates). Leave token empty to disable.
+      VULYK_UPDATER_URL: ${VULYK_UPDATER_URL:-http://updater:9091}
+      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
+      VULYK_GITHUB_REPO: ${VULYK_GITHUB_REPO:-Ihor-Meat-Proxy/Vulyk}
       # DX defaults — override via .env; password "admin" forces must_change_password
       VULYK_ADMIN_EMAIL: ${VULYK_ADMIN_EMAIL:-admin@vulyk.local}
       VULYK_ADMIN_PASSWORD: ${VULYK_ADMIN_PASSWORD:-admin}
@@ -64,6 +68,24 @@ services:
       - "5173:80"
     depends_on:
       - api
+
+  # Privileged upgrade helper (Docker socket). API never mounts the socket.
+  # Disabled unless VULYK_UPDATER_TOKEN is set (profile: updates).
+  updater:
+    profiles: ["updates"]
+    build:
+      context: ./deploy/updater
+      dockerfile: Dockerfile
+    environment:
+      VULYK_ROOT: /vulyk
+      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:?set VULYK_UPDATER_TOKEN to enable updater}
+      VULYK_UPDATER_BIND: 0.0.0.0:9091
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - .:/vulyk
+    working_dir: /vulyk
+    depends_on:
+      - db
 
 volumes:
   vulyk_pg:

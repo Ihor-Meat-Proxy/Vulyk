@@ -717,6 +717,38 @@ export type UpdateInstanceSettings = {
   allowed_email_domains?: string[]
 }
 
+export type UpdatesCapability = 'compose_updater' | 'manual_only'
+
+export type UpdateJob = {
+  id: string
+  target_version: string
+  status: string
+  progress: number
+  message: string
+  log_text: string
+  created_at: string
+  updated_at: string
+  finished_at: string | null
+}
+
+export type UpdatesStatus = {
+  current_version: string
+  latest_version: string | null
+  latest_notes: string | null
+  latest_url: string | null
+  update_available: boolean
+  last_checked_at: string | null
+  check_interval_hours: number
+  capability: UpdatesCapability
+  manual_command: string
+  github_repo: string
+  active_job: UpdateJob | null
+}
+
+export type UpdatesPreferences = {
+  check_interval_hours: number
+}
+
 export type SsoProviderAdmin = {
   id: string
   provider_key: string
@@ -1455,6 +1487,25 @@ export const api = {
     request<InstanceSettings>('/api/v1/admin/settings'),
   updateAdminSettings: (body: UpdateInstanceSettings) =>
     request<InstanceSettings>('/api/v1/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  getAdminUpdates: () => request<UpdatesStatus>('/api/v1/admin/updates'),
+  checkAdminUpdates: () =>
+    request<UpdatesStatus>('/api/v1/admin/updates/check', { method: 'POST' }),
+  applyAdminUpdate: (version: string) =>
+    request<{ job: UpdateJob }>('/api/v1/admin/updates/apply', {
+      method: 'POST',
+      body: JSON.stringify({ version }),
+    }),
+  listAdminUpdateJobs: () =>
+    request<{ items: UpdateJob[] }>('/api/v1/admin/updates/jobs'),
+  getAdminUpdateJob: (jobId: string) =>
+    request<UpdateJob>(`/api/v1/admin/updates/jobs/${jobId}`),
+  getAdminUpdatesPreferences: () =>
+    request<UpdatesPreferences>('/api/v1/admin/updates/preferences'),
+  updateAdminUpdatesPreferences: (body: { check_interval_hours: number }) =>
+    request<UpdatesPreferences>('/api/v1/admin/updates/preferences', {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
