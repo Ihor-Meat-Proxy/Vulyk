@@ -81,14 +81,18 @@ images + GitHub Release artifacts. Guide: [docs/guides/releasing.md](docs/guides
 Keep the Postgres volume; never run `docker compose down -v` (the `-v` flag deletes data).
 
 ```bash
-./scripts/install.sh upgrade --yes                    # backup → pull → rebuild → migrate → health
+./scripts/install.sh upgrade --yes                    # verified backup → pull/rebuild → migrate → health
 ./scripts/install.sh upgrade --yes --version 0.1.0    # published GHCR images
 ./scripts/install.sh upgrade --yes --to=v0.1.0        # git tag + source rebuild
-./scripts/install.sh backup
-./scripts/install.sh restore ./backups/vulyk-….sql.gz --yes
+./scripts/install.sh backup                           # verified bundle (DB + env/secrets)
+./scripts/install.sh restore ./backups/vulyk-…/ --yes
 ```
 
-Helm runs `vulyk-api migrate run` as a pre-upgrade Job. Full guide: [docs/guides/upgrade.md](docs/guides/upgrade.md).
+Upgrades **never** regenerate `.env` / secrets / admin password; on failure they
+auto-roll back to previous images + DB dump. Guarantees:
+[docs/guides/upgrade.md](docs/guides/upgrade.md#data-safety-guarantees).
+
+Helm runs `vulyk-api migrate run` as a pre-upgrade Job.
 
 ## Documentation
 

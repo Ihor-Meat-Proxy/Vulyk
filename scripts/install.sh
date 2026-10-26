@@ -9,14 +9,21 @@ cd "${ROOT}"
 
 BACKUP_DIR="${ROOT}/backups"
 BACKUP_RETENTION="${VULYK_BACKUP_RETENTION:-10}"
+# Minimum free disk (MB) before upgrade/backup. Override with VULYK_MIN_FREE_MB.
+MIN_FREE_MB="${VULYK_MIN_FREE_MB:-2048}"
 UPGRADE_TO=""
 RELEASE_VERSION=""
 NO_BACKUP=0
+ALLOW_DOWNGRADE=0
 RESTORE_FILE=""
 # Override via env or --version (GHCR). Default owner derived from git remote when possible.
 VULYK_GHCR_OWNER="${VULYK_GHCR_OWNER:-}"
 VULYK_GHCR_API_IMAGE="${VULYK_GHCR_API_IMAGE:-}"
 VULYK_GHCR_WEB_IMAGE="${VULYK_GHCR_WEB_IMAGE:-}"
+# Snapshot of images before an upgrade (for auto-rollback).
+PREV_API_IMAGE=""
+PREV_WEB_IMAGE=""
+LAST_BACKUP_BUNDLE=""
 
 log() { printf '==> %s\n' "$*"; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
@@ -80,8 +87,8 @@ Modes:
   helm-template   Render the Helm chart (requires helm) as a dry-run validation
   perf-smoke      Seed ~100k cases and check list/search latency (needs running API)
   upgrade         Safe upgrade: backup, pull, rebuild, migrate, health-check
-  backup          pg_dump to ./backups/vulyk-<version>-<timestamp>.sql.gz
-  restore FILE    Restore a backup (confirmation required unless --yes)
+  backup          Verified backup bundle under ./backups/vulyk-<version>-<timestamp>/
+  restore PATH    Restore a backup bundle or legacy .sql.gz (confirmation unless --yes)
 
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
@@ -97,7 +104,9 @@ First-run options (compose / prod / dev / setup):
 Upgrade / backup / release options:
   --version=X.Y.Z          Use published GHCR images for this semver (compose/prod/upgrade)
   --to=TAG|BRANCH          Checkout tag or branch and rebuild from source (upgrade)
-  --no-backup              Skip automatic pg_dump (upgrade only; not recommended)
+  --no-backup              Skip automatic backup bundle (upgrade only; NOT recommended)
+  --allow-downgrade        Permit target version < current (still refuses schema-newer DB;
+                           prefer restore-from-backup instead)
 
 Environment equivalents:
   VULYK_ADMIN_EMAIL, VULYK_ADMIN_PASSWORD, VULYK_DEFAULT_LOCALE,
@@ -206,6 +215,9 @@ parse_args() {
         ;;
       --no-backup)
         NO_BACKUP=1
+        ;;
+      --allow-downgrade)
+        ALLOW_DOWNGRADE=1
         ;;
       --*=*)
         die "unknown option: $arg (try --help)"
@@ -397,27 +409,59 @@ env_upsert() {
   fi
 }
 
+# Only add missing keys; never overwrite existing values (upgrade / re-run safe).
+env_add_if_missing() {
+  local file="$1" key="$2" value="$3"
+  touch "${file}"
+  if grep -qE "^${key}=" "${file}" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s=%s\n' "${key}" "${value}" >>"${file}"
+  warn "Added missing config key ${key} to ${file} (default only; existing keys untouched)"
+}
+
+# Write first-run setup keys. When preserve_existing=1, never overwrite keys that
+# are already set (upgrade / re-run safe). Secrets are never regenerated here.
 write_setup_env() {
   local env_file="$1"
+  local preserve_existing="${2:-0}"
   touch "${env_file}"
-  env_upsert "${env_file}" "VULYK_ADMIN_EMAIL" "${ADMIN_EMAIL}"
-  env_upsert "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
-  env_upsert "${env_file}" "VULYK_DEFAULT_LOCALE" "${DEFAULT_LOCALE}"
-  env_upsert "${env_file}" "VULYK_DEFAULT_TIMEZONE" "${DEFAULT_TIMEZONE}"
-  env_upsert "${env_file}" "VULYK_REGISTRATION_MODE" "${REGISTRATION_MODE}"
-  env_upsert "${env_file}" "VULYK_INSTANCE_NAME" "${INSTANCE_NAME}"
-  env_upsert "${env_file}" "VULYK_SEED_DEMO" "${SEED_DEMO}"
-  if [[ -n "${BASE_URL}" ]]; then
-    env_upsert "${env_file}" "VULYK_BASE_URL" "${BASE_URL}"
+  if [[ "${preserve_existing}" -eq 1 ]]; then
+    env_add_if_missing "${env_file}" "VULYK_ADMIN_EMAIL" "${ADMIN_EMAIL}"
+    # Never fill in admin password on re-run — empty would be dangerous; skip if unset
+    if [[ -n "${ADMIN_PASSWORD}" ]]; then
+      env_add_if_missing "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
+    fi
+    env_add_if_missing "${env_file}" "VULYK_DEFAULT_LOCALE" "${DEFAULT_LOCALE}"
+    env_add_if_missing "${env_file}" "VULYK_DEFAULT_TIMEZONE" "${DEFAULT_TIMEZONE}"
+    env_add_if_missing "${env_file}" "VULYK_REGISTRATION_MODE" "${REGISTRATION_MODE}"
+    env_add_if_missing "${env_file}" "VULYK_INSTANCE_NAME" "${INSTANCE_NAME}"
+    env_add_if_missing "${env_file}" "VULYK_SEED_DEMO" "${SEED_DEMO}"
+    if [[ -n "${BASE_URL}" ]]; then
+      env_add_if_missing "${env_file}" "VULYK_BASE_URL" "${BASE_URL}"
+    fi
+    log "Preserved existing settings in ${env_file} (only missing keys added)"
+  else
+    env_upsert "${env_file}" "VULYK_ADMIN_EMAIL" "${ADMIN_EMAIL}"
+    env_upsert "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
+    env_upsert "${env_file}" "VULYK_DEFAULT_LOCALE" "${DEFAULT_LOCALE}"
+    env_upsert "${env_file}" "VULYK_DEFAULT_TIMEZONE" "${DEFAULT_TIMEZONE}"
+    env_upsert "${env_file}" "VULYK_REGISTRATION_MODE" "${REGISTRATION_MODE}"
+    env_upsert "${env_file}" "VULYK_INSTANCE_NAME" "${INSTANCE_NAME}"
+    env_upsert "${env_file}" "VULYK_SEED_DEMO" "${SEED_DEMO}"
+    if [[ -n "${BASE_URL}" ]]; then
+      env_upsert "${env_file}" "VULYK_BASE_URL" "${BASE_URL}"
+    fi
+    log "Wrote first-run settings to ${env_file}"
   fi
   chmod 600 "${env_file}" 2>/dev/null || true
-  log "Wrote first-run settings to ${env_file}"
 }
 
 ensure_prod_env() {
   local env_file="${1:-.env.prod}"
   if [[ -f "${env_file}" ]]; then
-    log "Using existing ${env_file}"
+    log "Using existing ${env_file} (will not regenerate secrets or overwrite admin settings)"
+    write_setup_env "${env_file}" 1
   else
     log "Generating $env_file with random secrets..."
     cat >"${env_file}" <<EOF
@@ -433,22 +477,26 @@ WEB_PORT=80
 EOF
     chmod 600 "${env_file}" || true
     log "Wrote $env_file (mode 600)."
+    write_setup_env "${env_file}" 0
   fi
-  write_setup_env "${env_file}"
 }
 
 ensure_compose_env() {
   local env_file="${1:-.env}"
-  if [[ ! -f "${env_file}" ]]; then
+  if [[ -f "${env_file}" ]]; then
+    log "Using existing ${env_file} (will not overwrite secrets or admin settings)"
+    write_setup_env "${env_file}" 1
+  else
     log "Creating ${env_file}..."
     cat >"${env_file}" <<EOF
 # Generated by scripts/install.sh - local/dev Compose
 VULYK_AUTH_REQUIRED=false
 VULYK_JWT_SECRET=vulyk-compose-dev-secret
+VULYK_SECRETS_KEY=vulyk-compose-dev-secrets
 VULYK_LLM_MOCK=1
 EOF
+    write_setup_env "${env_file}" 0
   fi
-  write_setup_env "${env_file}"
 }
 
 print_setup_next_steps() {
@@ -683,28 +731,50 @@ ensure_backup_dir() {
   mkdir -p "${BACKUP_DIR}"
 }
 
+# Prune oldest backup bundles (directories) and legacy flat *.sql.gz files.
+# Never overwrites an existing bundle; timestamps make names unique.
 prune_old_backups() {
   local keep="${BACKUP_RETENTION}"
-  local count
   ensure_backup_dir
-  count=0
-  # Portable (bash 3.2 / macOS): glob + mtime sort via ls -t
   shopt -s nullglob 2>/dev/null || true
-  local -a files=( "${BACKUP_DIR}"/vulyk-*.sql.gz )
-  count="${#files[@]}"
-  if [[ "${count}" -le "${keep}" ]]; then
-    return 0
-  fi
-  log "Pruning backups (keep last ${keep})..."
-  # shellcheck disable=SC2207
-  files=( $(ls -t "${BACKUP_DIR}"/vulyk-*.sql.gz 2>/dev/null) )
-  local idx
-  idx="${keep}"
-  while [[ "${idx}" -lt "${#files[@]}" ]]; do
-    rm -f "${files[$idx]}"
-    log "Removed old backup: ${files[$idx]}"
-    idx=$((idx + 1))
+  local -a bundles=()
+  local -a legacy=()
+  local path
+  for path in "${BACKUP_DIR}"/vulyk-*; do
+    [[ -e "${path}" ]] || continue
+    if [[ -d "${path}" ]]; then
+      bundles+=("${path}")
+    elif [[ -f "${path}" && "${path}" == *.sql.gz ]]; then
+      legacy+=("${path}")
+    fi
   done
+  # shellcheck disable=SC2207
+  if [[ "${#bundles[@]}" -gt 0 ]]; then
+    bundles=( $(ls -dt "${bundles[@]}" 2>/dev/null) )
+  fi
+  # shellcheck disable=SC2207
+  if [[ "${#legacy[@]}" -gt 0 ]]; then
+    legacy=( $(ls -t "${legacy[@]}" 2>/dev/null) )
+  fi
+  local idx
+  if [[ "${#bundles[@]}" -gt "${keep}" ]]; then
+    log "Pruning backup bundles (keep last ${keep})..."
+    idx="${keep}"
+    while [[ "${idx}" -lt "${#bundles[@]}" ]]; do
+      rm -rf "${bundles[$idx]}"
+      log "Removed old backup bundle: ${bundles[$idx]}"
+      idx=$((idx + 1))
+    done
+  fi
+  if [[ "${#legacy[@]}" -gt "${keep}" ]]; then
+    log "Pruning legacy .sql.gz backups (keep last ${keep})..."
+    idx="${keep}"
+    while [[ "${idx}" -lt "${#legacy[@]}" ]]; do
+      rm -f "${legacy[$idx]}"
+      log "Removed old legacy backup: ${legacy[$idx]}"
+      idx=$((idx + 1))
+    done
+  fi
 }
 
 wait_for_db() {
@@ -718,26 +788,311 @@ wait_for_db() {
   die "Postgres is not ready (pg_isready timed out)"
 }
 
-run_pg_dump_backup() {
+# Compare dotted semver-ish strings: echo -1 / 0 / 1 for a<b / a==b / a>b.
+semver_cmp() {
+  local a="${1#v}" b="${2#v}"
+  python3 - "$a" "$b" <<'PY'
+import sys
+def parts(s):
+    out=[]
+    for p in s.split("."):
+        num=""
+        rest=p
+        while rest and rest[0].isdigit():
+            num+=rest[0]; rest=rest[1:]
+        out.append((int(num or 0), rest))
+    return out
+a,b=sys.argv[1],sys.argv[2]
+pa,pb=parts(a),parts(b)
+n=max(len(pa),len(pb))
+pa+=[(0,"")]*(n-len(pa)); pb+=[(0,"")]*(n-len(pb))
+for x,y in zip(pa,pb):
+    if x<y: print(-1); raise SystemExit
+    if x>y: print(1); raise SystemExit
+print(0)
+PY
+}
+
+# Integrity-check a gzip SQL dump by restoring into a temporary database, then drop it.
+verify_sql_dump() {
+  local dump="$1"
+  local verify_db ts
+  [[ -f "${dump}" ]] || die "dump not found: ${dump}"
+  log "Verifying backup dump (gzip + restore into temp DB)..."
+  gzip -t "${dump}" || die "gzip integrity check failed: ${dump}"
+  ts="$(date -u +%Y%m%d%H%M%S 2>/dev/null || date +%Y%m%d%H%M%S)"
+  verify_db="vulyk_verify_${ts}"
+  compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d postgres -v ON_ERROR_STOP=1 \
+    -c "DROP DATABASE IF EXISTS ${verify_db};" \
+    -c "CREATE DATABASE ${verify_db} OWNER ${POSTGRES_USER:-vulyk};" \
+    >/dev/null
+  if ! gzip -dc "${dump}" | compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${verify_db}" -v ON_ERROR_STOP=1 -q >/dev/null; then
+    compose_cmd exec -T db \
+      psql -U "${POSTGRES_USER:-vulyk}" -d postgres -c "DROP DATABASE IF EXISTS ${verify_db};" \
+      >/dev/null 2>&1 || true
+    die "backup restore verification failed (dump may be corrupt): ${dump}"
+  fi
+  local mig_count
+  mig_count="$(compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${verify_db}" -Atc \
+    "SELECT COUNT(*) FROM _sqlx_migrations;" 2>/dev/null | tr -d '[:space:]')"
+  compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d postgres -c "DROP DATABASE IF EXISTS ${verify_db};" \
+    >/dev/null
+  [[ -n "${mig_count}" && "${mig_count}" -gt 0 ]] \
+    || die "verified dump has no _sqlx_migrations rows: ${dump}"
+  log "Backup verified (migrations=${mig_count})"
+}
+
+# Resolve docker volume name for attachments (project-prefixed).
+attachments_volume_name() {
+  local proj
+  proj="$(docker compose ls -q 2>/dev/null | head -n1 || true)"
+  if [[ -z "${proj}" ]]; then
+    proj="$(basename "${ROOT}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')"
+  fi
+  # Prefer known compose volume names
+  local cand
+  for cand in "${proj}_vulyk_attachments" vulyk_attachments "${proj}_vulyk_pg_data"; do
+    if docker volume inspect "${cand}" >/dev/null 2>&1; then
+      if [[ "${cand}" == *attachments* ]]; then
+        printf '%s' "${cand}"
+        return 0
+      fi
+    fi
+  done
+  for cand in $(docker volume ls -q 2>/dev/null | grep -E 'vulyk_attachments$' || true); do
+    printf '%s' "${cand}"
+    return 0
+  done
+  return 1
+}
+
+# Full upgrade backup bundle: DB dump (verified) + env/config + image pins + attachments.
+# Prints the bundle directory path on stdout (last line); logs go to stderr via log().
+run_full_backup() {
   local version_label="$1"
-  local ts out
+  local ts bundle dump
   ensure_backup_dir
   ts="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null || date +%Y%m%dT%H%M%S)"
   version_label="$(printf '%s' "${version_label}" | tr -c 'A-Za-z0-9._-' '_')"
-  out="${BACKUP_DIR}/vulyk-${version_label}-${ts}.sql.gz"
-  log "Creating backup: ${out}"
+  bundle="${BACKUP_DIR}/vulyk-${version_label}-${ts}"
+  if [[ -e "${bundle}" ]]; then
+    die "backup path already exists (refusing overwrite): ${bundle}"
+  fi
+  mkdir -p "${bundle}/config"
+  dump="${bundle}/db.sql.gz"
+  log "Creating verified backup bundle: ${bundle}"
   wait_for_db
-  # Plain SQL gzip so restore works with psql (no custom-format tools required)
   if ! compose_cmd exec -T db \
     pg_dump -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" --no-owner --no-acl \
-    | gzip -c >"${out}"; then
-    rm -f "${out}"
+    | gzip -c >"${dump}"; then
+    rm -rf "${bundle}"
     die "pg_dump failed"
   fi
-  [[ -s "${out}" ]] || die "backup file is empty: ${out}"
+  [[ -s "${dump}" ]] || { rm -rf "${bundle}"; die "backup dump is empty"; }
+  verify_sql_dump "${dump}"
+
+  # Config / secrets — copy only; never regenerate
+  local f
+  for f in .env .env.prod; do
+    if [[ -f "${ROOT}/${f}" ]]; then
+      cp -p "${ROOT}/${f}" "${bundle}/config/${f}"
+      chmod 600 "${bundle}/config/${f}" 2>/dev/null || true
+      log "Copied ${f} into backup (includes VULYK_SECRETS_KEY / JWT when set)"
+    fi
+  done
+  {
+    echo "# Image pins at backup time"
+    echo "VULYK_API_IMAGE=${VULYK_API_IMAGE:-}"
+    echo "VULYK_WEB_IMAGE=${VULYK_WEB_IMAGE:-}"
+    echo "BACKUP_VERSION_LABEL=${version_label}"
+    echo "BACKUP_CREATED_UTC=${ts}"
+  } >"${bundle}/config/image-state.env"
+  chmod 600 "${bundle}/config/image-state.env" 2>/dev/null || true
+
+  # Warn loudly if secrets key missing from active env
+  if [[ -n "${COMPOSE_ENV_FILE:-}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    if ! grep -qE '^VULYK_SECRETS_KEY=.' "${COMPOSE_ENV_FILE}"; then
+      warn "VULYK_SECRETS_KEY is missing or empty in ${COMPOSE_ENV_FILE} — encrypted secrets may not decrypt after restore"
+    fi
+    if ! grep -qE '^VULYK_JWT_SECRET=.' "${COMPOSE_ENV_FILE}"; then
+      warn "VULYK_JWT_SECRET is missing or empty in ${COMPOSE_ENV_FILE}"
+    fi
+  fi
+
+  # Attachments volume (optional; content also lives in DB today)
+  local vol
+  if vol="$(attachments_volume_name)"; then
+    log "Archiving attachments volume ${vol}..."
+    if docker run --rm \
+      -v "${vol}:/data:ro" \
+      -v "${bundle}:/out" \
+      alpine:3.20 \
+      tar -czf /out/attachments.tar.gz -C /data . >/dev/null 2>&1; then
+      log "Attachments archive OK"
+    else
+      warn "Could not archive attachments volume (continuing; DB dump still has BYTEA attachments)"
+    fi
+  else
+    log "No attachments volume found (OK if using DB-stored attachments only)"
+  fi
+
+  (
+    cd "${bundle}"
+    if command -v sha256sum >/dev/null 2>&1; then
+      find . -type f ! -name SHA256SUMS -print0 2>/dev/null | xargs -0 sha256sum >SHA256SUMS 2>/dev/null || true
+    elif command -v shasum >/dev/null 2>&1; then
+      find . -type f ! -name SHA256SUMS -print0 2>/dev/null | xargs -0 shasum -a 256 >SHA256SUMS 2>/dev/null || true
+    fi
+  )
+  cat >"${bundle}/MANIFEST.txt" <<EOF
+Vulyk backup bundle
+created_utc=${ts}
+version_label=${version_label}
+db=db.sql.gz (gzip SQL; verified via temp-DB restore)
+config=config/ (.env / .env.prod / image-state.env — never regenerate on upgrade)
+attachments=attachments.tar.gz (optional volume archive)
+retention=${BACKUP_RETENTION}
+EOF
   prune_old_backups
-  log "Backup OK: ${out}"
-  printf '%s\n' "${out}"
+  log "Backup bundle OK: ${bundle}"
+  LAST_BACKUP_BUNDLE="${bundle}"
+  printf '%s\n' "${bundle}"
+}
+
+# Backward-compatible wrapper name used by older docs.
+run_pg_dump_backup() {
+  run_full_backup "$1"
+}
+
+# Merge additive defaults into an existing env file during upgrade. Never touches
+# secrets, admin password, or any key that is already set.
+merge_env_defaults_for_upgrade() {
+  local env_file="$1"
+  [[ -f "${env_file}" ]] || return 0
+  log "Merging additive config defaults into ${env_file} (existing values preserved)..."
+  # Safe additive keys only — never JWT/SECRETS/POSTGRES_PASSWORD/ADMIN_PASSWORD
+  env_add_if_missing "${env_file}" "VULYK_AUTO_MIGRATE" "false"
+  env_add_if_missing "${env_file}" "VULYK_JWT_TTL_HOURS" "12"
+  env_add_if_missing "${env_file}" "VULYK_SESSION_TTL_HOURS" "168"
+  env_add_if_missing "${env_file}" "API_PORT" "8080"
+  env_add_if_missing "${env_file}" "WEB_PORT" "80"
+  local missing=0
+  if ! grep -qE '^VULYK_SECRETS_KEY=.' "${env_file}"; then
+    warn "CRITICAL: VULYK_SECRETS_KEY missing in ${env_file} — encrypted LLM/SSO tokens will not decrypt"
+    missing=1
+  fi
+  if ! grep -qE '^VULYK_JWT_SECRET=.' "${env_file}"; then
+    warn "CRITICAL: VULYK_JWT_SECRET missing in ${env_file}"
+    missing=1
+  fi
+  if [[ "${env_file}" == *.prod ]] || grep -qE '^POSTGRES_PASSWORD=' "${env_file}" 2>/dev/null; then
+    if ! grep -qE '^POSTGRES_PASSWORD=.' "${env_file}"; then
+      warn "CRITICAL: POSTGRES_PASSWORD missing in ${env_file}"
+      missing=1
+    fi
+  fi
+  if [[ "${missing}" -eq 1 && "${ASSUME_YES}" -eq 0 ]]; then
+    confirm_or_yes "Continue upgrade with missing critical secrets?"
+  elif [[ "${missing}" -eq 1 ]]; then
+    warn "Continuing with --yes despite missing critical secrets"
+  fi
+}
+
+resolve_sql_dump_from_backup() {
+  local path="$1"
+  if [[ -d "${path}" && -f "${path}/db.sql.gz" ]]; then
+    printf '%s' "${path}/db.sql.gz"
+  elif [[ -f "${path}" ]]; then
+    printf '%s' "${path}"
+  else
+    die "backup not found: ${path}"
+  fi
+}
+
+restore_db_from_dump() {
+  local dump="$1"
+  dump="$(resolve_sql_dump_from_backup "${dump}")"
+  wait_for_db
+  log "Restoring database from ${dump}..."
+  compose_cmd stop api web 2>/dev/null || true
+  compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1 \
+    -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO ${POSTGRES_USER:-vulyk}; GRANT ALL ON SCHEMA public TO public;"
+  gzip -dc "${dump}" | compose_cmd exec -T db \
+    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1
+  log "Database restore complete"
+}
+
+# Capture currently running api/web image refs and tag them for rollback.
+snapshot_running_images_for_rollback() {
+  PREV_API_IMAGE=""
+  PREV_WEB_IMAGE=""
+  local api_id web_id
+  api_id="$(compose_cmd ps -q api 2>/dev/null || true)"
+  web_id="$(compose_cmd ps -q web 2>/dev/null || true)"
+  if [[ -n "${api_id}" ]]; then
+    PREV_API_IMAGE="$(docker inspect -f '{{.Config.Image}}' "${api_id}" 2>/dev/null || true)"
+    if [[ -n "${PREV_API_IMAGE}" ]]; then
+      docker tag "${PREV_API_IMAGE}" "vulyk-api:rollback" 2>/dev/null || true
+      PREV_API_IMAGE="vulyk-api:rollback"
+    fi
+  fi
+  if [[ -n "${web_id}" ]]; then
+    PREV_WEB_IMAGE="$(docker inspect -f '{{.Config.Image}}' "${web_id}" 2>/dev/null || true)"
+    if [[ -n "${PREV_WEB_IMAGE}" ]]; then
+      docker tag "${PREV_WEB_IMAGE}" "vulyk-web:rollback" 2>/dev/null || true
+      PREV_WEB_IMAGE="vulyk-web:rollback"
+    fi
+  fi
+  # Prefer explicit env pins when set (release installs)
+  if [[ -n "${VULYK_API_IMAGE:-}" && "${VULYK_API_IMAGE}" != "vulyk-api:local" ]]; then
+    # Keep rollback tag as primary; also remember env pin in image-state via backup
+    :
+  fi
+  log "Rollback images snapshotted: api=${PREV_API_IMAGE:-none} web=${PREV_WEB_IMAGE:-none}"
+}
+
+auto_rollback_upgrade() {
+  local backup_path="${1:-}"
+  local reason="${2:-upgrade failed}"
+  warn "AUTO-ROLLBACK: ${reason}"
+  if [[ -z "${backup_path}" ]]; then
+    print_restore_hint ""
+    die "${reason} (no backup available for automatic rollback)"
+  fi
+  if [[ -n "${PREV_API_IMAGE}" ]]; then
+    export VULYK_API_IMAGE="${PREV_API_IMAGE}"
+  fi
+  if [[ -n "${PREV_WEB_IMAGE}" ]]; then
+    export VULYK_WEB_IMAGE="${PREV_WEB_IMAGE}"
+  fi
+  if [[ -n "${COMPOSE_ENV_FILE:-}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    if [[ -n "${PREV_API_IMAGE}" ]]; then
+      env_upsert "${COMPOSE_ENV_FILE}" "VULYK_API_IMAGE" "${PREV_API_IMAGE}"
+    fi
+    if [[ -n "${PREV_WEB_IMAGE}" ]]; then
+      env_upsert "${COMPOSE_ENV_FILE}" "VULYK_WEB_IMAGE" "${PREV_WEB_IMAGE}"
+    fi
+  fi
+  set +e
+  restore_db_from_dump "${backup_path}"
+  local rc=$?
+  set -e
+  if [[ "${rc}" -ne 0 ]]; then
+    print_restore_hint "${backup_path}"
+    die "${reason}; automatic DB restore also failed — restore manually from ${backup_path}"
+  fi
+  log "Starting previous images after rollback..."
+  if ! compose_cmd up -d; then
+    print_restore_hint "${backup_path}"
+    die "${reason}; rolled back DB but failed to start previous images"
+  fi
+  print_restore_hint "${backup_path}"
+  die "${reason} — automatic rollback applied (previous images + DB restore). Verify /health."
 }
 
 confirm_or_yes() {
@@ -761,33 +1116,57 @@ cmd_backup() {
   resolve_compose
   [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for backup"
   need_cmd gzip
+  need_cmd docker
+  detect_compose_files
+  if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    # shellcheck source=/dev/null
+    source "${COMPOSE_ENV_FILE}"
+    set +a
+  fi
   local ver
   ver="$(api_reported_version)"
   [[ -n "${ver}" ]] || ver="$(current_git_version)"
-  run_pg_dump_backup "${ver}"
+  run_full_backup "${ver}"
 }
 
 cmd_restore() {
   local file="${RESTORE_FILE:-}"
-  [[ -n "${file}" ]] || die "usage: ./scripts/install.sh restore <backup.sql.gz>"
-  [[ -f "${file}" ]] || die "backup not found: ${file}"
+  [[ -n "${file}" ]] || die "usage: ./scripts/install.sh restore <backup-bundle-dir|backup.sql.gz>"
+  [[ -e "${file}" ]] || die "backup not found: ${file}"
   resolve_compose
   [[ ${#COMPOSE[@]} -gt 0 ]] || die "Docker Compose required for restore"
   need_cmd gzip
+  detect_compose_files
+  if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    # shellcheck disable=SC1091
+    set -a
+    # shellcheck source=/dev/null
+    source "${COMPOSE_ENV_FILE}"
+    set +a
+  fi
   confirm_or_yes "Restore ${file} into the running Postgres (DESTROYS current DB data)?"
-  wait_for_db
-  log "Stopping API/web so connections drop..."
-  compose_cmd stop api web 2>/dev/null || true
-  log "Restoring..."
-  # Drop/recreate public schema then apply dump
-  compose_cmd exec -T db \
-    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1 \
-    -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO ${POSTGRES_USER:-vulyk}; GRANT ALL ON SCHEMA public TO public;"
-  gzip -dc "${file}" | compose_cmd exec -T db \
-    psql -U "${POSTGRES_USER:-vulyk}" -d "${POSTGRES_DB:-vulyk}" -v ON_ERROR_STOP=1
-  log "Restore complete. Starting stack..."
+  # Prefer restoring config from bundle without overwriting unless user confirms
+  if [[ -d "${file}/config" ]]; then
+    local cfg
+    for cfg in .env .env.prod; do
+      if [[ -f "${file}/config/${cfg}" ]]; then
+        if [[ -f "${ROOT}/${cfg}" ]]; then
+          warn "Keeping existing ${cfg} (bundle also has a copy at ${file}/config/${cfg})"
+        else
+          cp -p "${file}/config/${cfg}" "${ROOT}/${cfg}"
+          chmod 600 "${ROOT}/${cfg}" 2>/dev/null || true
+          log "Restored missing ${cfg} from backup bundle"
+        fi
+      fi
+    done
+  fi
+  restore_db_from_dump "${file}"
+  log "Starting stack..."
   compose_cmd up -d
   log "Done. Verify: curl -fsS \${VULYK_API_URL:-http://127.0.0.1:8080}/health"
+  log "If encrypted secrets fail to decrypt, restore VULYK_SECRETS_KEY from the backup config/ copy."
 }
 
 print_restore_hint() {
@@ -799,15 +1178,18 @@ UPGRADE FAILED - Postgres data volume was NOT removed.
 Never run: docker compose down -v   (the -v flag DELETES your database)
 
 To restore from backup:
-  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-VERSION-TIMESTAMP.sql.gz} --yes
+  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-VERSION-TIMESTAMP}/ --yes
 
-See docs/guides/upgrade.md
+Manual DB-only restore (legacy .sql.gz also supported):
+  ./scripts/install.sh restore ${backup_file:-./backups/vulyk-….sql.gz} --yes
+
+See docs/guides/upgrade.md (Data-safety guarantees)
 ========================================================================
 EOF
 }
 
 cmd_upgrade() {
-  local backup_file="" ver free_mb pending_rc=0 target_label=""
+  local backup_file="" ver free_mb pending_rc=0 target_label="" cmp=0
 
   if [[ -n "${RELEASE_VERSION}" && -n "${UPGRADE_TO}" ]]; then
     die "use either --version (GHCR images) or --to (git + source build), not both"
@@ -827,6 +1209,7 @@ cmd_upgrade() {
   need_cmd curl
   need_cmd gzip
   need_cmd docker
+  need_cmd python3
 
   if [[ -z "${RELEASE_VERSION}" ]]; then
     need_cmd git
@@ -835,12 +1218,9 @@ cmd_upgrade() {
   log "Upgrade preflight..."
   docker info >/dev/null 2>&1 || die "Docker daemon not reachable"
   free_mb="$(disk_free_mb)"
-  log "Free disk: ${free_mb} MB"
-  if [[ "${free_mb}" -gt 0 && "${free_mb}" -lt 1024 ]]; then
-    warn "Less than 1 GB free disk; upgrade may fail"
-    if [[ "${ASSUME_YES}" -eq 0 ]]; then
-      confirm_or_yes "Continue with low disk space?"
-    fi
+  log "Free disk: ${free_mb} MB (minimum ${MIN_FREE_MB} MB)"
+  if [[ "${free_mb}" -gt 0 && "${free_mb}" -lt "${MIN_FREE_MB}" ]]; then
+    die "Insufficient free disk (${free_mb} MB < ${MIN_FREE_MB} MB). Free space or set VULYK_MIN_FREE_MB."
   fi
 
   ver="$(api_reported_version)"
@@ -850,6 +1230,18 @@ cmd_upgrade() {
     log "Git HEAD: $(current_git_version)"
   fi
   log "Target: ${target_label}"
+
+  # Block app-version downgrades unless explicitly allowed (schema-newer still always blocked).
+  if [[ -n "${RELEASE_VERSION}" && "${ver}" =~ ^[0-9]+\.[0-9]+ ]]; then
+    cmp="$(semver_cmp "${RELEASE_VERSION}" "${ver}")"
+    if [[ "${cmp}" -lt 0 ]]; then
+      if [[ "${ALLOW_DOWNGRADE}" -eq 1 ]]; then
+        warn "Target ${RELEASE_VERSION} < current ${ver} (--allow-downgrade). Prefer restore-from-backup."
+      else
+        die "Refusing downgrade ${ver} -> ${RELEASE_VERSION}. Restore a matching backup, or pass --allow-downgrade."
+      fi
+    fi
+  fi
 
   # Ensure DB is up for status / backup (do not start new API yet)
   detect_compose_files
@@ -870,6 +1262,8 @@ cmd_upgrade() {
       [[ -n "${saved_api_image}" ]] && export VULYK_API_IMAGE="${saved_api_image}"
       [[ -n "${saved_web_image}" ]] && export VULYK_WEB_IMAGE="${saved_web_image}"
     fi
+    # Additive defaults only — never regenerate secrets / admin password / user settings
+    merge_env_defaults_for_upgrade "${COMPOSE_ENV_FILE}"
   fi
 
   log "Migration status (current image, if available)..."
@@ -878,13 +1272,15 @@ cmd_upgrade() {
   pending_rc=$?
   set -e
   if [[ "${pending_rc}" -eq 2 ]]; then
-    die "database schema is newer than the current API binary (refusing upgrade)"
+    die "database schema is newer than the current API binary (refusing upgrade — restore matching backup)"
   fi
 
+  snapshot_running_images_for_rollback
+
   if [[ "${NO_BACKUP}" -eq 1 ]]; then
-    warn "Skipping backup (--no-backup)"
+    warn "Skipping backup (--no-backup) — data loss risk if migrate/health fails"
   else
-    backup_file="$(run_pg_dump_backup "${ver}")"
+    backup_file="$(run_full_backup "${ver}")"
   fi
 
   if [[ "${ASSUME_YES}" -eq 0 ]]; then
@@ -893,6 +1289,7 @@ cmd_upgrade() {
 
   if [[ -n "${RELEASE_VERSION}" ]]; then
     if [[ -n "${COMPOSE_ENV_FILE}" ]]; then
+      # Only upsert image pins — never rewrite secrets/admin via write_setup_env
       persist_release_images_env "${COMPOSE_ENV_FILE}"
     fi
   elif [[ -n "${UPGRADE_TO}" ]]; then
@@ -919,29 +1316,36 @@ cmd_upgrade() {
   if [[ -n "${RELEASE_VERSION}" ]]; then
     log "Pulling release images (no local rebuild)..."
     if ! pull_release_images; then
-      print_restore_hint "${backup_file}"
-      die "image pull failed"
+      auto_rollback_upgrade "${backup_file}" "image pull failed"
     fi
   else
     log "Rebuilding images..."
     if ! compose_cmd build api web; then
-      print_restore_hint "${backup_file}"
-      die "image build failed"
+      auto_rollback_upgrade "${backup_file}" "image build failed"
     fi
+  fi
+
+  log "Pre-flight migrate status on NEW image (before applying)..."
+  set +e
+  compose_cmd run --rm --no-deps \
+    -e VULYK_AUTO_MIGRATE=false \
+    api vulyk-api migrate status
+  pending_rc=$?
+  set -e
+  if [[ "${pending_rc}" -eq 2 ]]; then
+    auto_rollback_upgrade "${backup_file}" "new image cannot migrate (schema newer than binary)"
   fi
 
   log "Running migrations (one-shot, before starting API)..."
   if ! compose_cmd run --rm --no-deps \
     -e VULYK_AUTO_MIGRATE=false \
     api vulyk-api migrate run; then
-    print_restore_hint "${backup_file}"
-    die "migrate run failed"
+    auto_rollback_upgrade "${backup_file}" "migrate run failed"
   fi
 
   log "Starting updated stack..."
   if ! compose_cmd up -d; then
-    print_restore_hint "${backup_file}"
-    die "compose up failed"
+    auto_rollback_upgrade "${backup_file}" "compose up failed"
   fi
 
   log "Health check..."
@@ -970,13 +1374,13 @@ Next:
   ./scripts/install.sh backup     # optional extra backup after upgrade
 
 WARNING: do not run 'docker compose down -v' - that deletes Postgres data.
+Config (.env / secrets / admin password) was NOT regenerated.
 EOF
       return 0
     fi
     sleep 2
   done
-  print_restore_hint "${backup_file}"
-  die "API health check failed after upgrade"
+  auto_rollback_upgrade "${backup_file}" "API health check failed after upgrade"
 }
 
 # ---------------------------------------------------------------------------

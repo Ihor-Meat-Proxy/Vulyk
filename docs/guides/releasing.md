@@ -110,15 +110,15 @@ Private packages: `echo $CR_PAT | docker login ghcr.io -u USER --password-stdin`
 ### Upgrade to a release
 
 ```bash
-# Preferred: pull published images (keeps Postgres volume)
+# Preferred: pull published images (keeps Postgres volume + verified backup/rollback)
 ./scripts/install.sh upgrade --yes --version 0.1.0
 
 # Alternative: checkout a git tag and rebuild from source
 ./scripts/install.sh upgrade --yes --to=v0.1.0
 ```
 
-Do **not** pass both `--version` and `--to`. Full upgrade semantics:
-[upgrade.md](upgrade.md).
+Do **not** pass both `--version` and `--to`. Upgrades never regenerate secrets or
+`.env`; see [upgrade.md — data-safety guarantees](upgrade.md#data-safety-guarantees).
 
 ### Still supported: build from source
 

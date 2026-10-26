@@ -1,8 +1,43 @@
 # Upgrading Vulyk
 
-Safe upgrades keep the **Postgres named volume / PVC**. Schema changes are
+Safe upgrades keep the **Postgres named volume / PVC** and **never regenerate**
+secrets, `.env`, admin passwords, or user/instance settings. Schema changes are
 forward-only SQLx migrations. Prefer the install script or Helm migrate Job over
 hand-editing the database.
+
+## Data-safety guarantees
+
+These apply to `./scripts/install.sh upgrade` / `backup` / `restore` and to any
+in-app one-click updater that wraps the same flow.
+
+| Guarantee | Behavior |
+|-----------|----------|
+| **Verified backup first** | Before touching images or schema, create a timestamped bundle under `./backups/` (never overwritten). Includes gzip SQL dump, `.env` / `.env.prod`, image pins, and optional attachments volume archive. The dump is **integrity-checked** (`gzip -t`) and **restored into a temporary database** before the upgrade continues. |
+| **Retention** | Keep the last `VULYK_BACKUP_RETENTION` bundles (default **10**). Older bundles are pruned; current upgrade’s bundle is never overwritten. |
+| **Config preservation** | Upgrade **does not** regenerate `.env`, `VULYK_JWT_SECRET`, `VULYK_SECRETS_KEY`, `POSTGRES_PASSWORD`, or admin password. Only **missing** additive keys get defaults (with a warning). Missing critical secrets abort or warn loudly. |
+| **Pre-flight** | Free disk (`VULYK_MIN_FREE_MB`, default 2048), current `/health` version, `migrate status` on current and new image. **Blocks** when the DB schema is newer than the binary. **Blocks** semver downgrades unless `--allow-downgrade` (prefer restore-from-backup). |
+| **Additive migrations** | Production migrations are forward-only, expand/contract safe, and applied in a transaction under a Postgres advisory lock (`vulyk-api migrate run`). |
+| **Auto-rollback** | If image pull/build, migrate, compose up, or health check fails: restore the verified DB dump, re-pin previous `vulyk-api:rollback` / `vulyk-web:rollback` images, restart, and print restore instructions. The Postgres volume is never removed (`down -v` is forbidden). |
+| **Encrypted secrets** | LLM / SSO / automation tokens stay encrypted at rest under `VULYK_SECRETS_KEY`. That key must survive upgrades (copied in the backup bundle). CI asserts decrypt-after-upgrade. |
+
+```mermaid
+flowchart TD
+  A[Pre-flight: disk, version, migrate status] --> B{Downgrade or schema newer?}
+  B -->|yes| Z[Abort — restore matching backup]
+  B -->|no| C[Snapshot running images as :rollback]
+  C --> D[Verified backup bundle]
+  D --> E[Pull GHCR or rebuild]
+  E --> F[migrate status on NEW image]
+  F --> G[migrate run]
+  G --> H[compose up + /health]
+  H -->|ok| I[Done — config untouched]
+  E -->|fail| R[Auto-rollback]
+  F -->|fail| R
+  G -->|fail| R
+  H -->|fail| R
+  R --> S[Restore DB + previous images]
+  S --> T[Print restore hint]
+```
 
 ## Critical warning
 
@@ -16,7 +51,7 @@ individual services (`docker compose stop api web`).
 ### Recommended: `./scripts/install.sh upgrade`
 
 ```bash
-# Backup → pull/rebuild → migrate run → up → health check
+# Verified backup → pull/rebuild → migrate run → up → health check
 ./scripts/install.sh upgrade --yes
 
 # Preferred: upgrade to a published release (GHCR images, no local build)
@@ -25,23 +60,24 @@ individual services (`docker compose stop api web`).
 # Or pin a git tag/branch and rebuild from source
 ./scripts/install.sh upgrade --yes --to=v0.1.0
 
-# Skip backup only when you already have an off-box dump
+# Skip backup only when you already have an off-box dump (NOT recommended)
 ./scripts/install.sh upgrade --yes --no-backup
 ```
 
 What it does:
 
-1. **Preflight** — Docker, free disk, current version (`/health` + git)
-2. **Migration status** — `vulyk-api migrate status` (lists pending)
-3. **Backup** — `pg_dump` → `./backups/vulyk-<version>-<timestamp>.sql.gz`
-   (retention via `VULYK_BACKUP_RETENTION`, default 10)
-4. **Target** — `--version` pulls GHCR images; `--to` checks out git; else
+1. **Preflight** — Docker, free disk, current version (`/health` + git), downgrade guard
+2. **Migration status** — `vulyk-api migrate status` (lists pending; exit 2 = schema newer)
+3. **Snapshot images** — tag running api/web as `:rollback` for automatic recovery
+4. **Verified backup bundle** — `./backups/vulyk-<version>-<timestamp>/` with
+   `db.sql.gz` (temp-DB verified), `config/` (env + secrets), optional
+   `attachments.tar.gz`, `SHA256SUMS` (retention via `VULYK_BACKUP_RETENTION`)
+5. **Target** — `--version` pulls GHCR images; `--to` checks out git; else
    `git pull --ff-only` + local rebuild (do not combine `--version` and `--to`)
-5. **Stop API/web only** (DB volume untouched)
-6. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
-7. **Start** stack and **health-check** `/health` (includes `version`)
-
-On failure it **stops**, keeps the volume, and prints a restore command.
+6. **Stop API/web only** (DB volume untouched); **merge missing env keys only**
+7. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
+8. **Start** stack and **health-check** `/health` (includes `version`)
+9. **On failure** — automatic DB restore + previous images, then clear restore hints
 
 Publishing releases and first-time `--version` installs:
 [releasing.md](releasing.md).
@@ -50,15 +86,23 @@ Publishing releases and first-time `--version` installs:
 
 ```bash
 ./scripts/install.sh backup
+# Bundle dir, e.g. ./backups/vulyk-0.1.0-20261026T120000Z/
+./scripts/install.sh restore ./backups/vulyk-0.1.0-20261026T120000Z/ --yes
+# Legacy flat dumps still work:
 ./scripts/install.sh restore ./backups/vulyk-0.1.0-20260101T120000Z.sql.gz --yes
 ```
+
+Restore **does not** overwrite an existing `.env` / `.env.prod` if present (avoids
+clobbering a newer secret you intentionally rotated). If those files are missing,
+they are copied from the bundle. Always keep an off-box copy of `VULYK_SECRETS_KEY`.
 
 ### Environment
 
 | Variable | Compose dev | Compose prod | Meaning |
 |----------|-------------|--------------|---------|
 | `VULYK_AUTO_MIGRATE` | `true` (default) | `false` | Apply migrations on API startup |
-| `VULYK_BACKUP_RETENTION` | `10` | `10` | Gzipped dumps to keep under `./backups/` |
+| `VULYK_BACKUP_RETENTION` | `10` | `10` | Backup bundles to keep under `./backups/` |
+| `VULYK_MIN_FREE_MB` | `2048` | `2048` | Minimum free disk before upgrade |
 
 Prod Compose expects migrations from `install.sh upgrade` (or
 `docker compose run --rm api vulyk-api migrate run`) before the API serves
@@ -75,23 +119,26 @@ vulyk-api migrate run          # apply pending (Postgres advisory lock)
 
 Downgrade protection: if the database has migrations the binary does not know,
 the API and `migrate run` refuse to proceed. Restore a matching backup or deploy
-a newer binary.
+a newer binary. App-level semver downgrades via `--version` are refused unless
+`--allow-downgrade` is set — restoring a backup is the supported path.
 
 ## Production checklist
 
-1. Schedule / take a backup (`install.sh backup` or `pg_dump -Fc` off-box).
+1. Schedule / take a backup (`install.sh backup` or off-box `pg_dump` + env copy).
 2. Read the release notes / changelog for the target tag.
-3. Run `./scripts/install.sh upgrade --yes --version X.Y.Z` (or `--to=vX.Y.Z` for a source rebuild).
-4. Confirm `/health` returns `"status":"ok"` and the expected `"version"`.
-5. Spot-check sample projects / critical cases.
-6. Keep the backup until the next successful upgrade.
-
-Also back up attachment volumes and secrets (`VULYK_JWT_SECRET`,
-`VULYK_SECRETS_KEY`) — see [admin-guide.md](../admin-guide.md).
+3. Confirm free disk and that `VULYK_SECRETS_KEY` / JWT / Postgres password are set.
+4. Run `./scripts/install.sh upgrade --yes --version X.Y.Z` (or `--to=vX.Y.Z`).
+5. Confirm `/health` returns `"status":"ok"` and the expected `"version"`.
+6. Spot-check sample projects, encrypted LLM/SSO configs, and critical cases.
+7. Keep the backup bundle until the next successful upgrade.
 
 ## Helm / Kubernetes
 
 Chart path: [`deploy/helm/vulyk`](../../deploy/helm/vulyk).
+
+In-app one-click update is **Compose-oriented**. On Kubernetes, use Helm + your
+own PVC/VolumeSnapshot backups; the Admin UI will show the manual upgrade command
+instead of **Update now**.
 
 ### Migrate Job (pre-upgrade hook)
 
@@ -106,6 +153,7 @@ API pods set `VULYK_AUTO_MIGRATE=false` (see `values.yaml` → `migrate.autoMigr
 ```bash
 kubectl exec -n vulyk deploy/vulyk-postgresql -- \
   pg_dump -U vulyk -d vulyk -Fc > "vulyk-$(date -u +%Y%m%dT%H%M%SZ).dump"
+# Also back up Secrets (VULYK_SECRETS_KEY, JWT) and attachment PVCs.
 ```
 
 Prefer VolumeSnapshots for large PVCs in addition to logical dumps.
@@ -142,6 +190,13 @@ Setup Job is **post-install only** (not re-run on every upgrade).
   Release artifacts). See [releasing.md](releasing.md).
 - `/health` and `/ready` include `"version"`. The UI sidebar footer shows the same
   value from `/health`.
+
+## CI coverage
+
+The **Upgrade (base → PR)** job (`scripts/ci-upgrade-test.sh`) installs the PR base
+with sample data, upgrades to HEAD, and asserts projects/cases, requirements, runs,
+settings, custom fields, and an encrypted LLM API key still decrypt with the same
+`VULYK_SECRETS_KEY`.
 
 ## Related
 
