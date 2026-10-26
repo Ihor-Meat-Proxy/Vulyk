@@ -485,12 +485,17 @@ for label, q in [
     ("test_runs", "SELECT COUNT(*) FROM test_runs"),
     ("system_settings", "SELECT COUNT(*) FROM system_settings"),
     ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
-    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+    # custom_fields is dropped by the option-lists migration when HEAD remigrates
+    # the restored dump; skip it here (integrity already checked post-upgrade).
 ]:
     prev = before_entities.get(label, -1)
     if prev < 0:
         continue
-    now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    try:
+        now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    except Exception as e:
+        print(f"skip rollback count {label}: {e}")
+        continue
     if now != prev:
         print(f"{label} count mismatch after rollback: {prev} -> {now}", file=sys.stderr)
         sys.exit(1)

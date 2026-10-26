@@ -563,8 +563,6 @@ async fn attach_list_custom_fields(
     Ok(())
 }
 
-
-
 #[utoipa::path(
     get,
     path = "/api/v1/projects/{project_id}/cases/search",

@@ -146,10 +146,10 @@ export class CasesPage {
   }
 
   async createFolder(name: string) {
-    this.page.once('dialog', async (dialog) => {
-      await dialog.accept(name)
-    })
+    const dialogPromise = this.page.waitForEvent('dialog')
     await this.folderTree().getByTestId(TestIds.folderTreeNewButton).click()
+    const dialog = await dialogPromise
+    await dialog.accept(name)
   }
 
   async editSteps(action: string, expected: string) {

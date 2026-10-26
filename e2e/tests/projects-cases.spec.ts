@@ -92,9 +92,8 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
   })
   await expect(page.getByText('Open app')).toBeVisible({ timeout: 20_000 })
 
-  page.once('dialog', async (d) => {
-    await d.accept()
-  })
+  // Save exited edit mode, so Back must not prompt; a leftover once('dialog')
+  // handler would steal the later createFolder prompt.
   await page.getByTestId(TestIds.caseDetailBackLink).click()
   await expect(page).toHaveURL(/\/$/)
 
