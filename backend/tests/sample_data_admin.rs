@@ -181,7 +181,10 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
         .fetch_one(&pool)
         .await
         .expect("user project");
-    assert_eq!(user_still, 1, "user-created project must survive sample remove");
+    assert_eq!(
+        user_still, 1,
+        "user-created project must survive sample remove"
+    );
 
     // Idempotent second remove
     let again: Value = client
@@ -220,7 +223,10 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
     .fetch_one(&pool)
     .await
     .expect("nightly");
-    assert!(nightly >= 10, "expected sample nightly suites, got {nightly}");
+    assert!(
+        nightly >= 10,
+        "expected sample nightly suites, got {nightly}"
+    );
 
     let wall_e: i64 = sqlx::query_scalar(
         r#"SELECT COUNT(*)::bigint FROM test_runs
@@ -229,5 +235,8 @@ async fn sample_data_remove_only_touches_sample_rows_and_requires_admin() {
     .fetch_one(&pool)
     .await
     .expect("wall-e");
-    assert_eq!(wall_e, 0, "legacy WALL-E-rror creator should not be re-seeded");
+    assert_eq!(
+        wall_e, 0,
+        "legacy WALL-E-rror creator should not be re-seeded"
+    );
 }

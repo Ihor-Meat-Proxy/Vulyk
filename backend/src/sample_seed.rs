@@ -24,21 +24,18 @@ pub struct SampleDataSummary {
 
 impl SampleDataSummary {
     pub async fn from_pool(pool: &PgPool) -> AppResult<Self> {
-        let projects: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*)::bigint FROM projects WHERE is_sample = TRUE",
-        )
-        .fetch_one(pool)
-        .await?;
-        let runs: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*)::bigint FROM test_runs WHERE is_sample = TRUE",
-        )
-        .fetch_one(pool)
-        .await?;
-        let campaigns: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*)::bigint FROM campaigns WHERE is_sample = TRUE",
-        )
-        .fetch_one(pool)
-        .await?;
+        let projects: i64 =
+            sqlx::query_scalar("SELECT COUNT(*)::bigint FROM projects WHERE is_sample = TRUE")
+                .fetch_one(pool)
+                .await?;
+        let runs: i64 =
+            sqlx::query_scalar("SELECT COUNT(*)::bigint FROM test_runs WHERE is_sample = TRUE")
+                .fetch_one(pool)
+                .await?;
+        let campaigns: i64 =
+            sqlx::query_scalar("SELECT COUNT(*)::bigint FROM campaigns WHERE is_sample = TRUE")
+                .fetch_one(pool)
+                .await?;
         let cases: i64 = sqlx::query_scalar(
             r#"SELECT COUNT(*)::bigint FROM test_cases tc
                INNER JOIN projects p ON p.id = tc.project_id
@@ -79,12 +76,11 @@ pub async fn remove_sample_data(pool: &PgPool) -> AppResult<SampleDataSummary> {
 
     for project_id in &project_ids {
         let mut tx = pool.begin().await?;
-        let keys: Vec<String> = sqlx::query_scalar(
-            "SELECT key FROM test_cases WHERE project_id = $1",
-        )
-        .bind(project_id)
-        .fetch_all(&mut *tx)
-        .await?;
+        let keys: Vec<String> =
+            sqlx::query_scalar("SELECT key FROM test_cases WHERE project_id = $1")
+                .bind(project_id)
+                .fetch_all(&mut *tx)
+                .await?;
         for key in &keys {
             crate::services::case_keys::retire_case_key(&mut tx, *project_id, key).await?;
         }
@@ -273,10 +269,7 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
 
 /// Admin re-seed: always attempt (ignores `VULYK_SEED_SAMPLE=0`). Still idempotent
 /// per project key — missing samples are created; existing ones are left alone.
-pub async fn seed_sample_projects_forced(
-    pool: &PgPool,
-    locale: &str,
-) -> AppResult<Option<Uuid>> {
+pub async fn seed_sample_projects_forced(pool: &PgPool, locale: &str) -> AppResult<Option<Uuid>> {
     let mut first_id: Option<Uuid> = None;
     for (project_key, json) in SAMPLE_SEEDS {
         let id = seed_one_sample(pool, locale, project_key, json).await?;
@@ -865,12 +858,11 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
         {"kind": "log", "label": "Job log", "url": "https://example.invalid/job.log"}
     ]);
 
-    for day in 0..15 {
-        let (kind, status_override) = suite_plan[day];
+    for (day, (kind, status_override)) in suite_plan.iter().enumerate() {
         let mut results: Vec<(Uuid, &str, i32)> = Vec::new();
         let take = 10.min(case_ids.len());
         for (i, case_id) in case_ids.iter().take(take).enumerate() {
-            let mut status = match kind {
+            let mut status = match *kind {
                 "failed" => {
                     if i == 0 || i == 5 {
                         "Failed"
@@ -909,10 +901,10 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
                 }
             };
             // Keep a flaky case (index 3) for flaky-test detection.
-            if i == 3 && kind != "in_progress" && kind != "cancelled" {
+            if i == 3 && *kind != "in_progress" && *kind != "cancelled" {
                 status = if day % 2 == 0 { "Failed" } else { "Passed" };
             }
-            if status == "Running" && kind != "in_progress" {
+            if status == "Running" && *kind != "in_progress" {
                 status = "Ready";
             }
             let ms = 800 + ((i * 337 + day * 110) % 170_000) as i32;
@@ -933,7 +925,7 @@ async fn ensure_sample_executions(pool: &PgPool, project_id: Uuid) -> AppResult<
             &results,
             env.clone(),
             artifacts.clone(),
-            status_override,
+            *status_override,
         )
         .await?;
     }

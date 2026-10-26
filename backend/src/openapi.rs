@@ -44,9 +44,7 @@ use crate::models::{
 use crate::routes::health::{HealthResponse, ReadyResponse};
 use crate::routes::instance_settings::{RoleMatrixResponse, UpdateInstanceSettings};
 use crate::routes::llm::ProviderKindInfo;
-use crate::routes::sample_data::{
-    ReseedSampleDataRequest, SampleDataStatus, SampleProjectInfo,
-};
+use crate::routes::sample_data::{ReseedSampleDataRequest, SampleDataStatus, SampleProjectInfo};
 use crate::sample_seed::SampleDataSummary;
 use crate::settings::{InstanceSettings, RegistrationMode};
 use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};

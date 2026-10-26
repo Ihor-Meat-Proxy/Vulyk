@@ -13,9 +13,7 @@ use crate::auth::RequireSystemAdmin;
 use crate::error::AppResult;
 use crate::models::Project;
 use crate::routes::AppState;
-use crate::sample_seed::{
-    remove_sample_data, seed_sample_projects_forced, SampleDataSummary,
-};
+use crate::sample_seed::{remove_sample_data, seed_sample_projects_forced, SampleDataSummary};
 
 pub fn router() -> Router<AppState> {
     Router::new()
