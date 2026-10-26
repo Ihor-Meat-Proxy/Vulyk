@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
 use crate::models::{normalize_result_status, BulkResultItem, BulkResultsResponse};
+use crate::services::case_keys::normalize_case_key;
 
 const SYNC_BATCH: usize = 500;
 
@@ -54,14 +55,16 @@ pub async fn persist_results(
                     );
                 }
                 if let Some(ref key) = row.case_key {
-                    match find_case_id(pool, project_id, key).await? {
+                    let key = normalize_case_key(key);
+                    row.case_key = Some(key.clone());
+                    match find_case_id(pool, project_id, &key).await? {
                         Some(id) => row.case_id = Some(id),
                         None => {
                             // Also try external_key match.
-                            match find_case_by_external(pool, project_id, key).await? {
+                            match find_case_by_external(pool, project_id, &key).await? {
                                 Some(id) => row.case_id = Some(id),
                                 None => {
-                                    unmatched_case_keys.push(key.clone());
+                                    unmatched_case_keys.push(key);
                                     // Design: do not persist unmatched keys as orphan results.
                                     continue;
                                 }
@@ -174,12 +177,15 @@ async fn ensure_run(pool: &PgPool, run_id: Uuid, project_id: Uuid) -> AppResult<
 }
 
 async fn find_case_id(pool: &PgPool, project_id: Uuid, key: &str) -> AppResult<Option<Uuid>> {
-    let row: Option<(Uuid,)> =
-        sqlx::query_as("SELECT id FROM test_cases WHERE project_id = $1 AND key = $2")
-            .bind(project_id)
-            .bind(key)
-            .fetch_optional(pool)
-            .await?;
+    // Keys are stored uppercase; match case-insensitively for client payloads.
+    let row: Option<(Uuid,)> = sqlx::query_as(
+        r#"SELECT id FROM test_cases
+           WHERE project_id = $1 AND upper(key) = $2"#,
+    )
+    .bind(project_id)
+    .bind(key)
+    .fetch_optional(pool)
+    .await?;
     Ok(row.map(|r| r.0))
 }
 
@@ -190,7 +196,7 @@ async fn find_case_by_external(
 ) -> AppResult<Option<Uuid>> {
     let row: Option<(Uuid,)> = sqlx::query_as(
         r#"SELECT id FROM test_cases
-           WHERE project_id = $1 AND external_key = $2"#,
+           WHERE project_id = $1 AND upper(external_key) = $2"#,
     )
     .bind(project_id)
     .bind(external_key)
