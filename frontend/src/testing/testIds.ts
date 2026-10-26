@@ -71,13 +71,16 @@ export const TestIds = {
   setupError: 'setup-error',
 
   // —— Change password ——
+  changePasswordShell: 'change-password-shell',
   changePasswordPanel: 'change-password-panel',
+  changePasswordSubtitle: 'change-password-subtitle',
   changePasswordCurrentInput: 'change-password-current-input',
   changePasswordNewInput: 'change-password-new-input',
   changePasswordConfirmInput: 'change-password-confirm-input',
   changePasswordSubmitButton: 'change-password-submit-button',
   changePasswordSignOutButton: 'change-password-sign-out-button',
   changePasswordError: 'change-password-error',
+  passwordRequirements: 'password-requirements',
 
   // —— Case list ——
   caseListPanel: 'case-list-panel',

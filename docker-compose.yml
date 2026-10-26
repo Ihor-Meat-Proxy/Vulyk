@@ -38,9 +38,13 @@ services:
       VULYK_UPDATER_URL: ${VULYK_UPDATER_URL:-http://updater:9091}
       VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
       VULYK_GITHUB_REPO: ${VULYK_GITHUB_REPO:-Ihor-Meat-Proxy/Vulyk}
-      # DX defaults — override via .env; password "admin" forces must_change_password
+      # First-run admin: set via .env (install.sh generates a random 24-char password).
+      # Empty password skips env seed (use setup wizard / CLI instead).
       VULYK_ADMIN_EMAIL: ${VULYK_ADMIN_EMAIL:-admin@vulyk.local}
-      VULYK_ADMIN_PASSWORD: ${VULYK_ADMIN_PASSWORD:-admin}
+      VULYK_ADMIN_PASSWORD: ${VULYK_ADMIN_PASSWORD:-}
+      VULYK_ADMIN_MUST_CHANGE: ${VULYK_ADMIN_MUST_CHANGE:-}
+      VULYK_PASSWORD_MIN_LENGTH: ${VULYK_PASSWORD_MIN_LENGTH:-16}
+      VULYK_DEMO_PASSWORD: ${VULYK_DEMO_PASSWORD:-vulyk-demo-user-1}
       VULYK_ADMIN_DISPLAY_NAME: ${VULYK_ADMIN_DISPLAY_NAME:-Administrator}
       VULYK_INSTANCE_NAME: ${VULYK_INSTANCE_NAME:-Vulyk}
       VULYK_DEFAULT_LOCALE: ${VULYK_DEFAULT_LOCALE:-en}

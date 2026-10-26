@@ -5,7 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use crate::auth::{hash_password, validate_password_strength, RequireSystemAdmin};
+use crate::auth::{hash_password, RequireSystemAdmin};
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateUserRequest, UpdateUserRequest, User, UserPublic};
 use crate::routes::AppState;
@@ -61,7 +61,7 @@ pub async fn create_user(
     if !email.contains('@') {
         return Err(AppError::BadRequest("valid email is required".into()));
     }
-    validate_password_strength(&body.password)?;
+    state.password_policy.validate(&body.password)?;
     let display_name = body.display_name.trim();
     if display_name.is_empty() {
         return Err(AppError::BadRequest("display_name is required".into()));
@@ -138,7 +138,7 @@ pub async fn update_user(
     let locale = body.locale.or(existing.locale);
     let timezone = body.timezone.or(existing.timezone);
     let password_hash = if let Some(password) = body.password {
-        validate_password_strength(&password)?;
+        state.password_policy.validate(&password)?;
         Some(hash_password(&password)?)
     } else {
         existing.password_hash

@@ -66,6 +66,38 @@ random_secret() {
   fi
 }
 
+# ~24-char admin password with letter + digit (meets default 16+ policy).
+random_admin_password() {
+  local raw
+  if command -v openssl >/dev/null 2>&1; then
+    raw="$(openssl rand -base64 24 | tr -d '/+=\n' | head -c 22)"
+  else
+    raw="$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n' | head -c 22)"
+  fi
+  # Guarantee letter + digit and length >= 24.
+  printf '%sA7\n' "${raw}"
+}
+
+PASSWORD_MIN_LENGTH="${VULYK_PASSWORD_MIN_LENGTH:-16}"
+# Floor matches backend PASSWORD_MIN_LENGTH_FLOOR.
+if [[ "${PASSWORD_MIN_LENGTH}" -lt 12 ]]; then
+  PASSWORD_MIN_LENGTH=12
+fi
+
+validate_admin_password() {
+  local pw="$1"
+  local len="${#pw}"
+  if [[ "${len}" -lt "${PASSWORD_MIN_LENGTH}" ]]; then
+    die "admin password must be at least ${PASSWORD_MIN_LENGTH} characters (got ${len})"
+  fi
+  if ! printf '%s' "${pw}" | grep -q '[A-Za-z]'; then
+    die "admin password must include a letter"
+  fi
+  if ! printf '%s' "${pw}" | grep -q '[0-9]'; then
+    die "admin password must include a digit"
+  fi
+}
+
 # ---------------------------------------------------------------------------
 # First-run setup options (flags + env + interactive prompts)
 # ---------------------------------------------------------------------------
@@ -123,8 +155,10 @@ Environment equivalents:
   VULYK_GHCR_OWNER, VULYK_GHCR_API_IMAGE, VULYK_GHCR_WEB_IMAGE
 
 Written into .env (compose/dev) or .env.prod (prod). Defaults:
-  compose/dev: seed demo=1, registration=open, admin@vulyk.local / admin
-  prod:        seed demo=0, registration=disabled
+  compose/dev: seed demo=1, registration=open, admin@vulyk.local + random 24-char password
+  prod:        seed demo=0, registration=disabled, random password if none given
+  Password min length: VULYK_PASSWORD_MIN_LENGTH (default 16, floor 12). Generated
+  passwords are stored in .env as VULYK_ADMIN_PASSWORD (value not printed).
 
 After compose/prod/dev, if setup did not complete automatically:
   ./scripts/install.sh setup --yes
@@ -334,10 +368,11 @@ collect_setup_options() {
   local profile="$1"
   local def_email def_password def_locale def_tz def_reg def_seed def_name
 
+  ADMIN_PASSWORD_GENERATED=0
   case "${profile}" in
     compose|dev)
       def_email="admin@vulyk.local"
-      def_password="admin"
+      def_password=""
       def_locale="en"
       def_tz="UTC"
       def_reg="open"
@@ -365,22 +400,23 @@ collect_setup_options() {
   ADMIN_EMAIL="$(prompt_default "Admin email" "${ADMIN_EMAIL:-${def_email}}")"
   if [[ -z "${ADMIN_PASSWORD}" ]]; then
     if [[ "${ASSUME_YES}" -eq 1 || ! -t 0 ]]; then
-      ADMIN_PASSWORD="${def_password}"
-      [[ -n "${ADMIN_PASSWORD}" ]] \
-        || die "admin password required (set --admin-password= or VULYK_ADMIN_PASSWORD)"
+      # Non-interactive: always generate a strong password when none was provided.
+      ADMIN_PASSWORD="$(random_admin_password)"
+      ADMIN_PASSWORD_GENERATED=1
+      log "Generated random admin password (>=${PASSWORD_MIN_LENGTH} chars); stored in .env as VULYK_ADMIN_PASSWORD"
     else
-      # Interactive: confirm; empty Enter keeps profile default when present
       local prompted
-      prompted="$(prompt_secret_confirm "Admin password" "${def_password}")"
+      prompted="$(prompt_secret_confirm "Admin password (empty = generate random)" "${def_password}")"
       if [[ -z "${prompted}" ]]; then
-        [[ -n "${def_password}" ]] || die "admin password is required"
-        ADMIN_PASSWORD="${def_password}"
-        log "Using default local admin password for ${profile}"
+        ADMIN_PASSWORD="$(random_admin_password)"
+        ADMIN_PASSWORD_GENERATED=1
+        log "Generated random admin password; stored in .env as VULYK_ADMIN_PASSWORD"
       else
         ADMIN_PASSWORD="${prompted}"
       fi
     fi
   fi
+  validate_admin_password "${ADMIN_PASSWORD}"
   DEFAULT_LOCALE="$(prompt_default "Locale (en/uk/fr/es/de)" "${DEFAULT_LOCALE:-${def_locale}}")"
   DEFAULT_TIMEZONE="$(prompt_default "Timezone" "${DEFAULT_TIMEZONE:-${def_tz}}")"
   REGISTRATION_MODE="$(prompt_default "Registration mode (open/invite/disabled)" "${REGISTRATION_MODE:-${def_reg}}")"
@@ -450,11 +486,16 @@ write_setup_env() {
     if [[ -n "${ADMIN_PASSWORD}" ]]; then
       env_add_if_missing "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
     fi
+    env_add_if_missing "${env_file}" "VULYK_PASSWORD_MIN_LENGTH" "${PASSWORD_MIN_LENGTH}"
     env_add_if_missing "${env_file}" "VULYK_DEFAULT_LOCALE" "${DEFAULT_LOCALE}"
     env_add_if_missing "${env_file}" "VULYK_DEFAULT_TIMEZONE" "${DEFAULT_TIMEZONE}"
     env_add_if_missing "${env_file}" "VULYK_REGISTRATION_MODE" "${REGISTRATION_MODE}"
     env_add_if_missing "${env_file}" "VULYK_INSTANCE_NAME" "${INSTANCE_NAME}"
     env_add_if_missing "${env_file}" "VULYK_SEED_DEMO" "${SEED_DEMO}"
+    if [[ "${SEED_DEMO}" == "1" ]]; then
+      env_add_if_missing "${env_file}" "VULYK_DEMO_EMAIL" "user@vulyk.local"
+      env_add_if_missing "${env_file}" "VULYK_DEMO_PASSWORD" "vulyk-demo-user-1"
+    fi
     if [[ -n "${BASE_URL}" ]]; then
       env_add_if_missing "${env_file}" "VULYK_BASE_URL" "${BASE_URL}"
     fi
@@ -462,11 +503,20 @@ write_setup_env() {
   else
     env_upsert "${env_file}" "VULYK_ADMIN_EMAIL" "${ADMIN_EMAIL}"
     env_upsert "${env_file}" "VULYK_ADMIN_PASSWORD" "${ADMIN_PASSWORD}"
+    if [[ "${ADMIN_PASSWORD_GENERATED:-0}" -eq 1 ]]; then
+      # First-login forced change for install-generated secrets.
+      env_upsert "${env_file}" "VULYK_ADMIN_MUST_CHANGE" "1"
+    fi
+    env_upsert "${env_file}" "VULYK_PASSWORD_MIN_LENGTH" "${PASSWORD_MIN_LENGTH}"
     env_upsert "${env_file}" "VULYK_DEFAULT_LOCALE" "${DEFAULT_LOCALE}"
     env_upsert "${env_file}" "VULYK_DEFAULT_TIMEZONE" "${DEFAULT_TIMEZONE}"
     env_upsert "${env_file}" "VULYK_REGISTRATION_MODE" "${REGISTRATION_MODE}"
     env_upsert "${env_file}" "VULYK_INSTANCE_NAME" "${INSTANCE_NAME}"
     env_upsert "${env_file}" "VULYK_SEED_DEMO" "${SEED_DEMO}"
+    if [[ "${SEED_DEMO}" == "1" ]]; then
+      env_upsert "${env_file}" "VULYK_DEMO_EMAIL" "user@vulyk.local"
+      env_upsert "${env_file}" "VULYK_DEMO_PASSWORD" "vulyk-demo-user-1"
+    fi
     if [[ -n "${BASE_URL}" ]]; then
       env_upsert "${env_file}" "VULYK_BASE_URL" "${BASE_URL}"
     fi
@@ -541,10 +591,11 @@ EOF
   if [[ "${profile}" == "compose" || "${profile}" == "dev" ]]; then
     cat <<EOF
 
-Default local credentials (when seeded):
-  Admin: ${ADMIN_EMAIL} / (password from .env - default admin)
-  Demo:  user@vulyk.local / user   (when VULYK_SEED_DEMO=1)
-  Change the default admin password on first login (must_change_password).
+Credentials (password values are never printed here):
+  Admin: ${ADMIN_EMAIL}
+  Admin password: see VULYK_ADMIN_PASSWORD in .env (or .env.prod)
+  Demo:  user@vulyk.local / see VULYK_DEMO_PASSWORD in .env (when VULYK_SEED_DEMO=1)
+  First login requires changing a generated admin password (must_change_password).
 EOF
   fi
 }
@@ -1692,7 +1743,7 @@ if [[ "${MODE}" == "helm-template" ]]; then
   helm template vulyk deploy/helm/vulyk \
     --set secrets.create=true \
     --set auth.required=true \
-    --set setup.adminPassword=change-me-admin1 \
+    --set setup.adminPassword=change-me-admin12 \
     >/tmp/vulyk-helm-render.yaml
   # Basic sanity: auth required + core resources present
   grep -q 'VULYK_AUTH_REQUIRED: "true"' /tmp/vulyk-helm-render.yaml \

@@ -43,7 +43,7 @@ test('setup token protection + wizard locale/timezone', async ({
     data: {
       setup_token: 'not-a-real-token',
       email: `wizard-${uniqueKey('').toLowerCase()}@vulyk.local`,
-      password: 'wizard-pass-1',
+      password: 'wizard-pass-123456',
       display_name: 'Wizard',
       default_locale: 'uk',
       default_timezone: 'Europe/Kyiv',
@@ -58,7 +58,7 @@ test('setup token protection + wizard locale/timezone', async ({
   await setup.fill({
     token: 'wrong-token',
     email: `wizard-bad-${uniqueKey('').toLowerCase()}@vulyk.local`,
-    password: 'wizard-pass-1',
+    password: 'wizard-pass-123456',
     locale: 'uk',
     timezone: 'Europe/Kyiv',
   })
@@ -70,7 +70,7 @@ test('setup token protection + wizard locale/timezone', async ({
   await setup.fill({
     token: SETUP_TOKEN,
     email,
-    password: 'wizard-pass-9',
+    password: 'wizard-pass-123456',
     displayName: 'Wizard Admin',
     locale: 'uk',
     timezone: 'Europe/Kyiv',

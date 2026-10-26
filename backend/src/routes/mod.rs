@@ -37,7 +37,7 @@ use sqlx::PgPool;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-use crate::auth::{bearer_middleware, AuthConfig};
+use crate::auth::{bearer_middleware, AuthConfig, LoginThrottle, PasswordPolicy};
 use crate::crypto::SecretsKey;
 use crate::openapi::ApiDoc;
 
@@ -46,6 +46,8 @@ pub struct AppState {
     pub pool: PgPool,
     pub secrets: SecretsKey,
     pub auth: AuthConfig,
+    pub login_throttle: LoginThrottle,
+    pub password_policy: PasswordPolicy,
 }
 
 pub fn app_router(state: AppState) -> Router {

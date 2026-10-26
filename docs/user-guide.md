@@ -22,7 +22,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 
 **Admin → Settings → Sample data** lists installed sample projects, **Remove sample data** (confirm, danger) deletes only `is_sample` rows (idempotent; never user-created projects), and **Re-seed sample data** restores the demos. Case keys on remove go through the retired-key path before the sample project is deleted.
 
-Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local` / `admin` (forced password change), `user@vulyk.local` / `user` (TAE on sample projects). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
+Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): admin email `admin@vulyk.local` with password from `VULYK_ADMIN_PASSWORD` in `.env` (forced change when install-generated); demo `user@vulyk.local` / `VULYK_DEMO_PASSWORD` (default `vulyk-demo-user-1`, TAE on sample projects). Password policy defaults to 16+ characters (see `VULYK_PASSWORD_MIN_LENGTH`). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
 
 ## Projects & cases
 

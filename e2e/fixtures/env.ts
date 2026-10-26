@@ -8,13 +8,13 @@ export const ADMIN_EMAIL =
 export const ADMIN_PASSWORD =
   process.env.VULYK_ADMIN_PASSWORD ??
   process.env.E2E_PASSWORD ??
-  'admin12345'
+  'admin12345678901'
 
 export const DEMO_EMAIL =
   process.env.VULYK_DEMO_EMAIL ?? 'user@vulyk.local'
 
 export const DEMO_PASSWORD =
-  process.env.VULYK_DEMO_PASSWORD ?? 'user12345'
+  process.env.VULYK_DEMO_PASSWORD ?? 'user123456789012'
 
 export const OIDC_ISSUER =
   process.env.E2E_OIDC_ISSUER ??

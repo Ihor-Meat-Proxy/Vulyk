@@ -22,6 +22,8 @@ async fn spawn_app() -> String {
             jwt_ttl_hours: 12,
             session_ttl_hours: 168,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -261,6 +263,8 @@ async fn chat_confirm_forbidden_for_developer_role() {
             jwt_ttl_hours: 12,
             session_ttl_hours: 168,
         },
+        login_throttle: vulyk_api::auth::LoginThrottle::new(),
+        password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
     let app = vulyk_api::routes::app_router(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
@@ -275,7 +279,7 @@ async fn chat_confirm_forbidden_for_developer_role() {
     let client = reqwest::Client::new();
 
     let admin_email = format!("chat-admin-{}@example.com", uuid::Uuid::new_v4().simple());
-    let password = "Password1!";
+    let password = "Password1!abcdef";
     let hash = vulyk_api::auth::hash_password(password).expect("hash");
     let _: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)

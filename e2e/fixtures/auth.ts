@@ -189,7 +189,7 @@ export async function createUserWithRole(
 ): Promise<{ email: string; password: string; userId: string; session: AuthSession }> {
   const email =
     opts.email ?? `e2e-${role.replace(/_/g, '-')}-${uniqueKey('').toLowerCase()}@vulyk.local`
-  const password = opts.password ?? 'e2e-pass-12345'
+  const password = opts.password ?? 'e2e-pass-12345678'
   const user = await createUser(request, adminToken, {
     email,
     password,

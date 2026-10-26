@@ -11,7 +11,7 @@ use serde::Deserialize;
 
 use crate::auth::{
     generate_session_token, hash_password, hash_secret, issue_jwt, session_cookie_name,
-    validate_password_strength, verify_password, AuthUser, OptionalAuthUser, RequireAuth,
+    verify_password, verify_password_for_login, AuthUser, OptionalAuthUser, RequireAuth,
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{
@@ -68,6 +68,7 @@ pub async fn auth_status(
         authenticated: auth.is_some(),
         user: auth.map(|a| UserPublic::from(a.user)),
         sso_providers,
+        password_policy: state.password_policy.public(),
     }))
 }
 
@@ -101,7 +102,7 @@ pub async fn bootstrap(
     }
 
     let email = normalize_email(&body.email)?;
-    let password = validate_password_strength(&body.password)?;
+    let password = state.password_policy.validate(&body.password)?;
     let display_name = body.display_name.trim();
     if display_name.is_empty() {
         return Err(AppError::BadRequest("display_name is required".into()));
@@ -152,7 +153,7 @@ pub async fn register(
     }
 
     let email = normalize_email(&body.email)?;
-    let password = validate_password_strength(&body.password)?;
+    let password = state.password_policy.validate(&body.password)?;
     let display_name = body.display_name.trim();
     if display_name.is_empty() {
         return Err(AppError::BadRequest("display_name is required".into()));
@@ -234,30 +235,90 @@ pub async fn register(
 )]
 pub async fn login(
     State(state): State<AppState>,
+    headers_in: HeaderMap,
     Json(body): Json<LoginRequest>,
 ) -> AppResult<(HeaderMap, Json<AuthResponse>)> {
     let email = normalize_email(&body.email)?;
+    let client_ip = client_ip_from_headers(&headers_in);
+    state
+        .login_throttle
+        .check(&email, client_ip.as_deref())?;
+
     let user = sqlx::query_as::<_, User>(&format!(
         "SELECT {USER_COLUMNS} FROM users WHERE email = $1"
     ))
     .bind(&email)
     .fetch_optional(&state.pool)
-    .await?
-    .ok_or_else(|| AppError::Unauthorized("invalid email or password".into()))?;
+    .await?;
+
+    // Always pay Argon2 verify cost (dummy hash when user/hash missing).
+    let hash = user.as_ref().and_then(|u| u.password_hash.as_deref());
+    let password_ok = verify_password_for_login(&body.password, hash);
+
+    let Some(mut user) = user else {
+        state
+            .login_throttle
+            .record_failure(&email, client_ip.as_deref());
+        return Err(AppError::Unauthorized("invalid email or password".into()));
+    };
 
     if user.disabled_at.is_some() {
+        state
+            .login_throttle
+            .record_failure(&email, client_ip.as_deref());
         return Err(AppError::Forbidden("user account is disabled".into()));
     }
 
-    let hash = user
-        .password_hash
-        .as_deref()
-        .ok_or_else(|| AppError::Unauthorized("password login not available".into()))?;
-    if !verify_password(&body.password, hash)? {
+    if user.password_hash.is_none() {
+        state
+            .login_throttle
+            .record_failure(&email, client_ip.as_deref());
+        return Err(AppError::Unauthorized("password login not available".into()));
+    }
+
+    if !password_ok {
+        state
+            .login_throttle
+            .record_failure(&email, client_ip.as_deref());
         return Err(AppError::Unauthorized("invalid email or password".into()));
     }
 
+    state
+        .login_throttle
+        .record_success(&email, client_ip.as_deref());
+
+    // Login never rejects by length; weak / legacy passwords force a change.
+    if !state.password_policy.meets(&body.password) && !user.must_change_password {
+        sqlx::query(
+            r#"UPDATE users
+               SET must_change_password = TRUE, updated_at = NOW()
+               WHERE id = $1"#,
+        )
+        .bind(user.id)
+        .execute(&state.pool)
+        .await?;
+        user.must_change_password = true;
+    }
+
     issue_auth_response(&state, user).await
+}
+
+fn client_ip_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split(',').next())
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .or_else(|| {
+            headers
+                .get("x-real-ip")
+                .and_then(|v| v.to_str().ok())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+                .map(str::to_string)
+        })
 }
 
 #[utoipa::path(
@@ -366,7 +427,7 @@ pub async fn change_password(
     RequireAuth(auth): RequireAuth,
     Json(body): Json<ChangePasswordRequest>,
 ) -> AppResult<StatusCode> {
-    let new_password = validate_password_strength(&body.new_password)?;
+    let new_password = state.password_policy.validate(&body.new_password)?;
 
     if let Some(hash) = auth.user.password_hash.as_deref() {
         let current = body.current_password.as_deref().unwrap_or("");
