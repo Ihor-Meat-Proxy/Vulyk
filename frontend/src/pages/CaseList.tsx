@@ -1,11 +1,40 @@
-import { useDeferredValue, useEffect, useState, useTransition } from 'react'
+import {
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+} from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, type Suite, type TestCase } from '../api'
+import {
+  api,
+  type CustomField,
+  type Suite,
+  type TestCase,
+} from '../api'
+import { useAuth } from '../auth'
+import {
+  clearLocalConfig,
+  defaultConfig,
+  extendWithCustomFields,
+  gridTemplateFor,
+  parseCustomFieldId,
+  readLocalConfig,
+  reorderColumns,
+  sanitizeConfig,
+  visibleColumns,
+  visibleCustomFieldIds,
+  writeLocalConfig,
+  type CaseListColumnsConfig,
+  type ResolvedColumn,
+} from '../caseListColumns'
 import { CaseFolderTree } from '../components/CaseFolderTree'
+import { CaseListColumnSettings } from '../components/CaseListColumnSettings'
 import { CaseStatusIcon } from '../components/CaseStatusIcon'
 import { VirtualList } from '../components/VirtualList'
-import { useI18n } from '../i18n'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { useI18n } from '../i18n'
 import { casePath } from '../lib/caseUrls'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
@@ -19,6 +48,31 @@ type Props = {
 
 const PAGE_SIZE = 200
 
+const COL_HEADER_TEST_IDS: Record<string, string> = {
+  key: TestIds.caseListColKey,
+  title: TestIds.caseListColTitle,
+  priority: TestIds.caseListColPriority,
+  status: TestIds.caseListColStatus,
+  automated: TestIds.caseListColAutomated,
+  last_run_status: TestIds.caseListColLastRunStatus,
+  updated_at: TestIds.caseListColUpdatedAt,
+  created_at: TestIds.caseListColCreatedAt,
+  folder: TestIds.caseListColFolder,
+  tags: TestIds.caseListColTags,
+}
+
+function formatCfValue(value: unknown): string {
+  if (value == null) return '—'
+  if (typeof value === 'boolean') return value ? 'yes' : 'no'
+  if (Array.isArray(value)) return value.map(String).join(', ')
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+function colHeaderTestId(colId: string): string {
+  return COL_HEADER_TEST_IDS[colId] ?? TestIds.caseListColCustomField
+}
+
 export function CaseList({
   projectId,
   suiteId,
@@ -26,7 +80,8 @@ export function CaseList({
   onSelectSuite,
   onSuitesChanged,
 }: Props) {
-  const { t, formatNumber } = useI18n()
+  const { t, formatNumber, formatDate } = useI18n()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canCreate = can('create_edit_cases')
@@ -34,6 +89,7 @@ export function CaseList({
   const canManageFolders = can('manage_suites')
   const canDeleteCases = can('delete_cases')
   const canLlm = can('llm_assist')
+  const showCheckbox = canBulkEdit || canLlm
 
   const [cases, setCases] = useState<TestCase[]>([])
   const [total, setTotal] = useState(0)
@@ -52,6 +108,107 @@ export function CaseList({
   const [creating, setCreating] = useState(false)
   const [treeReloadToken, setTreeReloadToken] = useState(0)
   const [treeDrawerOpen, setTreeDrawerOpen] = useState(false)
+  const [customFields, setCustomFields] = useState<CustomField[]>([])
+  const [columnConfig, setColumnConfig] =
+    useState<CaseListColumnsConfig>(defaultConfig)
+  const [sort, setSort] = useState<string>('default')
+  const [order, setOrder] = useState<'asc' | 'desc'>('asc')
+  const [dragColId, setDragColId] = useState<string | null>(null)
+
+  const registry = useMemo(
+    () =>
+      extendWithCustomFields(
+        customFields.map((f) => ({
+          id: f.id,
+          name: f.name,
+          field_type: f.field_type,
+        })),
+      ),
+    [customFields],
+  )
+
+  const visibleCols = useMemo(
+    () => visibleColumns(columnConfig, registry),
+    [columnConfig, registry],
+  )
+
+  const gridTemplate = useMemo(
+    () => gridTemplateFor(visibleCols, showCheckbox),
+    [visibleCols, showCheckbox],
+  )
+
+  const cfIds = useMemo(
+    () => visibleCustomFieldIds(columnConfig),
+    [columnConfig],
+  )
+
+  const listParams = useCallback(
+    (pageOffset: number) => ({
+      suiteId,
+      directOnly: suiteId != null && directOnly ? true : undefined,
+      q: deferredQuery || undefined,
+      tag: tag || undefined,
+      status: status || undefined,
+      sort: sort !== 'default' ? sort : undefined,
+      order: sort !== 'default' ? order : undefined,
+      cfIds: cfIds.length ? cfIds : undefined,
+      limit: PAGE_SIZE,
+      offset: pageOffset,
+    }),
+    [suiteId, directOnly, deferredQuery, tag, status, sort, order, cfIds],
+  )
+
+  const persistColumns = useCallback(
+    async (next: CaseListColumnsConfig) => {
+      if (!projectId) return
+      const withSort: CaseListColumnsConfig = {
+        ...next,
+        sort:
+          next.sort !== undefined
+            ? next.sort
+            : sort !== 'default'
+              ? sort
+              : null,
+        order:
+          next.order !== undefined
+            ? next.order
+            : sort !== 'default'
+              ? order
+              : null,
+      }
+      const sanitized = sanitizeConfig(withSort, registry)
+      setColumnConfig(sanitized)
+      writeLocalConfig(projectId, sanitized)
+      if (user) {
+        try {
+          const saved = await api.putCaseListColumns(projectId, sanitized)
+          const again = sanitizeConfig(saved, registry)
+          setColumnConfig(again)
+          writeLocalConfig(projectId, again)
+        } catch {
+          /* localStorage already written */
+        }
+      }
+    },
+    [projectId, registry, user, sort, order],
+  )
+
+  const resetColumns = useCallback(async () => {
+    if (!projectId) return
+    const defaults = sanitizeConfig(defaultConfig(), registry)
+    setColumnConfig(defaults)
+    setSort('default')
+    setOrder('asc')
+    clearLocalConfig(projectId)
+    if (user) {
+      try {
+        const saved = await api.resetCaseListColumns(projectId)
+        setColumnConfig(sanitizeConfig(saved, registry))
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [projectId, registry, user])
 
   useEffect(() => {
     if (!treeDrawerOpen) return
@@ -61,6 +218,7 @@ export function CaseList({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [treeDrawerOpen])
+
 
   // Restore list scroll after returning from case detail (Backspace / back link).
   useEffect(() => {
@@ -91,13 +249,73 @@ export function CaseList({
     setTreeDrawerOpen(false)
   }
 
+  const userId = user?.id ?? null
+
+  // Load custom fields + column prefs when project (or signed-in user) changes.
+  useEffect(() => {
+    if (!projectId) {
+      setCustomFields([])
+      setColumnConfig(defaultConfig())
+      return
+    }
+    let cancelled = false
+    const local = readLocalConfig(projectId)
+    api
+      .listCustomFields(projectId)
+      .then((fields) => {
+        if (cancelled) return
+        setCustomFields(fields)
+        const reg = extendWithCustomFields(
+          fields.map((f) => ({
+            id: f.id,
+            name: f.name,
+            field_type: f.field_type,
+          })),
+        )
+        const apply = (cfg: CaseListColumnsConfig) => {
+          const sanitized = sanitizeConfig(cfg, reg)
+          setColumnConfig(sanitized)
+          if (sanitized.sort) setSort(sanitized.sort)
+          if (sanitized.order === 'asc' || sanitized.order === 'desc') {
+            setOrder(sanitized.order)
+          }
+        }
+        if (userId) {
+          api
+            .getCaseListColumns(projectId)
+            .then((remote) => {
+              if (cancelled) return
+              apply(remote.columns?.length ? remote : local ?? defaultConfig())
+            })
+            .catch(() => {
+              if (!cancelled) apply(local ?? defaultConfig())
+            })
+        } else {
+          apply(local ?? defaultConfig())
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCustomFields([])
+          setColumnConfig(
+            sanitizeConfig(
+              local ?? defaultConfig(),
+              extendWithCustomFields([]),
+            ),
+          )
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectId, userId])
+
   useEffect(() => {
     setOffset(0)
     setSelected(new Set())
-  }, [projectId, suiteId, deferredQuery, tag, status, directOnly])
+  }, [projectId, suiteId, deferredQuery, tag, status, directOnly, sort, order, cfIds.join(',')])
 
   useEffect(() => {
-    // Direct-only only applies when a folder is selected.
     if (suiteId == null) setDirectOnly(false)
   }, [suiteId])
 
@@ -111,15 +329,7 @@ export function CaseList({
     let cancelled = false
     setLoading(true)
     api
-      .listCases(projectId, {
-        suiteId,
-        directOnly: suiteId != null && directOnly ? true : undefined,
-        q: deferredQuery || undefined,
-        tag: tag || undefined,
-        status: status || undefined,
-        limit: PAGE_SIZE,
-        offset,
-      })
+      .listCases(projectId, listParams(offset))
       .then((page) => {
         if (cancelled) return
         startTransition(() => {
@@ -139,9 +349,8 @@ export function CaseList({
     return () => {
       cancelled = true
     }
-  }, [projectId, suiteId, deferredQuery, tag, status, offset, directOnly])
+  }, [projectId, listParams, offset])
 
-  // Unfiltered project total for the tree "All cases" badge (never from a capped tree fetch).
   useEffect(() => {
     if (!projectId) return
     let cancelled = false
@@ -171,21 +380,28 @@ export function CaseList({
 
   const reloadList = async () => {
     if (!projectId) return
-    const page = await api.listCases(projectId, {
-      suiteId,
-      directOnly: suiteId != null && directOnly ? true : undefined,
-      q: deferredQuery || undefined,
-      tag: tag || undefined,
-      status: status || undefined,
-      limit: PAGE_SIZE,
-      offset: 0,
-    })
+    const page = await api.listCases(projectId, listParams(0))
     setOffset(0)
     setCases(page.items)
     setTotal(page.total)
     const all = await api.listCases(projectId, { limit: 1, offset: 0 })
     setProjectCaseTotal(all.total)
     bumpTree()
+  }
+
+  const toggleSort = (colId: string) => {
+    const def = registry.find((c) => c.id === colId)
+    if (!def?.sortable) return
+    const nextSort = colId
+    const nextOrder =
+      sort === colId ? (order === 'asc' ? 'desc' : 'asc') : 'asc'
+    setSort(nextSort)
+    setOrder(nextOrder)
+    void persistColumns({
+      ...columnConfig,
+      sort: nextSort,
+      order: nextOrder,
+    })
   }
 
   const createCase = async () => {
@@ -315,6 +531,110 @@ export function CaseList({
       onSuitesChanged()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const columnLabel = (col: ResolvedColumn) =>
+    col.label ?? (col.labelKey ? t(col.labelKey) : col.id)
+
+  const renderCell = (col: ResolvedColumn, c: TestCase) => {
+    switch (col.id) {
+      case 'key':
+        return (
+          <Link to={casePath(c.key)} {...testIdProps(TestIds.caseRowKey)}>
+            <span className="badge">{c.key}</span>
+          </Link>
+        )
+      case 'title':
+        return (
+          <Link to={casePath(c.key)} {...testIdProps(TestIds.caseRowTitle)}>
+            {c.title}
+          </Link>
+        )
+      case 'priority':
+        return (
+          <span
+            className={`priority-label priority-${c.priority}`}
+            {...testIdProps(TestIds.caseRowPriority)}
+          >
+            <span
+              className={`priority-bar inline priority-${c.priority}`}
+              aria-hidden
+            />
+            {c.priority}
+          </span>
+        )
+      case 'status':
+        return (
+          <span
+            className={`status-pill status-${c.status}`}
+            {...testIdProps(TestIds.caseRowStatus)}
+          >
+            <CaseStatusIcon status={c.status} />
+            {c.status}
+          </span>
+        )
+      case 'automated':
+        return (
+          <span {...testIdProps(TestIds.caseRowAutomated)}>
+            {c.automated
+              ? t('cases.automatedYes')
+              : t('cases.automatedNo')}
+          </span>
+        )
+      case 'last_run_status':
+        return (
+          <span {...testIdProps(TestIds.caseRowLastRunStatus)}>
+            {c.last_run_status
+              ? c.last_run_status
+              : t('cases.lastRunNone')}
+          </span>
+        )
+      case 'updated_at':
+        return (
+          <span {...testIdProps(TestIds.caseRowUpdatedAt)}>
+            {formatDate(c.updated_at)}
+          </span>
+        )
+      case 'created_at':
+        return (
+          <span {...testIdProps(TestIds.caseRowCreatedAt)}>
+            {formatDate(c.created_at)}
+          </span>
+        )
+      case 'folder':
+        return (
+          <span {...testIdProps(TestIds.caseRowFolder)}>
+            {c.folder_name || t('cases.unfiled')}
+          </span>
+        )
+      case 'tags':
+        return (
+          <span
+            className="case-tags-cell"
+            {...testIdProps(TestIds.caseRowTags)}
+          >
+            {(c.tag_names ?? []).join(', ') || '—'}
+          </span>
+        )
+      default: {
+        const fieldId = parseCustomFieldId(col.id)
+        if (!fieldId) {
+          return <span {...testIdProps(TestIds.caseRowCustomField)}>—</span>
+        }
+        const cf = (c.custom_fields ?? []).find((f) => f.field_id === fieldId)
+        return (
+          <span
+            {...listItemProps(TestIds.caseRowCustomField, {
+              entityId: fieldId,
+              entityKey: col.id,
+              index: 0,
+            })}
+          >
+            {formatCfValue(cf?.value)}
+          </span>
+        )
+      }
     }
   }
 
@@ -449,6 +769,12 @@ export function CaseList({
               {t('folders.directOnly')}
             </label>
           )}
+          <CaseListColumnSettings
+            config={columnConfig}
+            registry={registry}
+            onChange={(next) => void persistColumns(next)}
+            onReset={() => void resetColumns()}
+          />
           <span className="muted">
             {formatNumber(total)} {t('cases.count')}
             {pending || loading ? ` · ${t('common.loading')}` : ''}
@@ -519,20 +845,63 @@ export function CaseList({
           </div>
         ) : (
           <>
-            <div className="table-head">
-              <span />
-              <span {...testIdProps(TestIds.caseListColKey)}>
-                {t('cases.colKey')}
-              </span>
-              <span {...testIdProps(TestIds.caseListColTitle)}>
-                {t('cases.colTitle')}
-              </span>
-              <span {...testIdProps(TestIds.caseListColPriority)}>
-                {t('cases.colPriority')}
-              </span>
-              <span {...testIdProps(TestIds.caseListColStatus)}>
-                {t('cases.colStatus')}
-              </span>
+            <div
+              className="table-head case-list-head"
+              style={{ gridTemplateColumns: gridTemplate }}
+              {...testIdProps(TestIds.caseListHead)}
+            >
+              {showCheckbox ? <span /> : null}
+              {visibleCols.map((col, colIndex) => {
+                const label = columnLabel(col)
+                const sorted = sort === col.id
+                const headerId = colHeaderTestId(col.id)
+                const headerProps =
+                  headerId === TestIds.caseListColCustomField
+                    ? listItemProps(TestIds.caseListColCustomField, {
+                        entityId: parseCustomFieldId(col.id) ?? col.id,
+                        entityKey: col.id,
+                        index: colIndex,
+                      })
+                    : testIdProps(headerId)
+                return (
+                  <div
+                    key={col.id}
+                    className={`case-col-head${sorted ? ' is-sorted' : ''}`}
+                    draggable
+                    onDragStart={() => setDragColId(col.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragColId) {
+                        void persistColumns(
+                          reorderColumns(columnConfig, dragColId, col.id),
+                        )
+                      }
+                      setDragColId(null)
+                    }}
+                    onDragEnd={() => setDragColId(null)}
+                    {...headerProps}
+                  >
+                    {col.sortable ? (
+                      <button
+                        type="button"
+                        className="case-col-sort"
+                        onClick={() => toggleSort(col.id)}
+                        aria-label={t('cases.sortBy', { column: label })}
+                        {...listItemProps(TestIds.caseListColSort, {
+                          entityId: parseCustomFieldId(col.id) ?? col.id,
+                          entityKey: col.id,
+                          index: colIndex,
+                        })}
+                      >
+                        {label}
+                        {sorted ? (order === 'asc' ? ' ↑' : ' ↓') : ''}
+                      </button>
+                    ) : (
+                      <span>{label}</span>
+                    )}
+                  </div>
+                )
+              })}
             </div>
             <div {...testIdProps(TestIds.caseListTable)}>
               <VirtualList
@@ -542,14 +911,15 @@ export function CaseList({
                 className="case-virtual"
                 renderRow={(c, index) => (
                   <div
-                    className="table-row"
+                    className="table-row case-list-row"
+                    style={{ gridTemplateColumns: gridTemplate }}
                     {...listItemProps(TestIds.caseRow, {
                       entityId: c.id,
                       entityKey: c.key,
                       index,
                     })}
                   >
-                    {canBulkEdit || canLlm ? (
+                    {showCheckbox ? (
                       <input
                         type="checkbox"
                         checked={selected.has(c.id)}
@@ -557,38 +927,15 @@ export function CaseList({
                         aria-label={`Select ${c.key}`}
                         {...testIdProps(TestIds.caseRowCheckbox)}
                       />
-                    ) : (
-                      <span />
-                    )}
-                    <Link
-                      to={casePath(c.key)}
-                      {...testIdProps(TestIds.caseRowKey)}
-                    >
-                      <span className="badge">{c.key}</span>
-                    </Link>
-                    <Link
-                      to={casePath(c.key)}
-                      {...testIdProps(TestIds.caseRowTitle)}
-                    >
-                      {c.title}
-                    </Link>
-                    <span
-                      className={`priority-label priority-${c.priority}`}
-                      {...testIdProps(TestIds.caseRowPriority)}
-                    >
-                      <span
-                        className={`priority-bar inline priority-${c.priority}`}
-                        aria-hidden
-                      />
-                      {c.priority}
-                    </span>
-                    <span
-                      className={`status-pill status-${c.status}`}
-                      {...testIdProps(TestIds.caseRowStatus)}
-                    >
-                      <CaseStatusIcon status={c.status} />
-                      {c.status}
-                    </span>
+                    ) : null}
+                    {visibleCols.map((col) => (
+                      <div
+                        key={col.id}
+                        className={`case-col case-col-${col.id}`}
+                      >
+                        {renderCell(col, c)}
+                      </div>
+                    ))}
                   </div>
                 )}
               />

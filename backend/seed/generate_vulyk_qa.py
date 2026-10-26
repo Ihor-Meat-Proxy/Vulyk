@@ -3275,6 +3275,138 @@ def build() -> dict:
     )
     suites.append(single_action)
 
+    # Appended after existing suites. Pin counter so keys stay above main max (VQA-186)
+    # even if earlier suites in this script drift vs committed JSON.
+    global _n
+    _n = max(_n, 186)
+
+    # Appended after existing suites so new keys stay above the prior max (VQA-186).
+    list_columns = suite(
+        "24. List columns",
+        "24. Стовпці списку",
+        cases=[
+            case(
+                "Open Columns settings on Cases page",
+                title_uk="Відкрити налаштування стовпців на Cases",
+                desc_en="Columns button opens the case list column dialog with hide/show and move controls.",
+                pre_en="Signed in; project selected; Cases page open.",
+                priority="critical",
+                tags=["smoke", "regression", "e2e", "cases", "columns"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "Click the Columns|Стовпці button in the Cases toolbar.",
+                        "Dialog cases.columnsSettings is visible with checkboxes and ←/→ move buttons.",
+                    ),
+                ],
+            ),
+            case(
+                "Hide Priority column and keep Title visible",
+                title_uk="Сховати Priority і залишити Title видимим",
+                desc_en="Optional columns can be hidden; Title checkbox stays disabled/checked.",
+                pre_en="Columns dialog open on Cases.",
+                priority="critical",
+                tags=["smoke", "regression", "e2e", "cases", "columns"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "Uncheck Priority in the Columns dialog; leave Title checked (disabled).",
+                        "Priority header disappears from [data-testid=case-list-head]; Title remains.",
+                    ),
+                ],
+            ),
+            case(
+                "Show Automated and Last run columns",
+                title_uk="Показати Automated і Last run",
+                desc_en="Extra columns Automated (yes/no) and Last run status can be enabled.",
+                pre_en="Cases page; at least one case with external_key and one with a result.",
+                priority="high",
+                tags=["regression", "e2e", "cases", "columns"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "In Columns dialog enable Automated and Last run; close dialog.",
+                        "Headers for Automated and Last run appear; cells show Yes/No and latest status or em dash.",
+                    ),
+                ],
+            ),
+            case(
+                "Reorder columns with keyboard Move left/right",
+                title_uk="Змінити порядок стовпців стрілками",
+                desc_en="Column settings expose accessible Move left/right controls (in addition to header drag-and-drop).",
+                pre_en="Columns dialog open; Key and Title visible.",
+                priority="high",
+                tags=["regression", "e2e", "cases", "columns", "a11y"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "Activate Move right on the Key row (aria-label contains Move … right).",
+                        "Key appears after Title (or next sibling) in the header order.",
+                    ),
+                ],
+            ),
+            case(
+                "Server-side sort by Title across pages",
+                title_uk="Серверне сортування за Title з пагінацією",
+                desc_en="Clicking a sortable header sends sort/order query params; works with Load more.",
+                pre_en="Project with enough cases to paginate (or any ≥2 cases).",
+                priority="critical",
+                tags=["smoke", "regression", "e2e", "api", "cases", "columns"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "Click the Title sort button in the case list header.",
+                        "URL/API request includes sort=title; rows reorder; Load more keeps the same sort.",
+                    ),
+                ],
+            ),
+            case(
+                "Reset columns to default",
+                title_uk="Скинути стовпці до типових",
+                desc_en="Reset restores Key/Title/Priority/Status and clears extras.",
+                pre_en="Columns customized (extra columns on, Priority hidden).",
+                priority="high",
+                tags=["regression", "e2e", "cases", "columns"],
+                external_key="e2e:case-list-columns.spec.ts",
+                steps=[
+                    step(
+                        "Open Columns; click Reset to default|Скинути до типових.",
+                        "Default four columns visible; Automated/Last run hidden again.",
+                    ),
+                ],
+            ),
+            case(
+                "Persist column prefs per project (API + localStorage)",
+                title_uk="Зберігати налаштування стовпців на проєкт",
+                desc_en="PUT /preferences/case-list-columns when signed in; localStorage vulyk.caseList.columns.{projectId} as fallback.",
+                pre_en="Signed-in user; two projects available.",
+                priority="high",
+                tags=["regression", "api", "cases", "columns"],
+                steps=[
+                    step(
+                        "Customize columns on project A; reload; switch to project B then back to A.",
+                        "Project A layout restored from API (or localStorage); project B keeps its own defaults.",
+                    ),
+                ],
+            ),
+            case(
+                "Custom field columns via registry extension",
+                title_uk="Стовпці кастомних полів через реєстр",
+                desc_en="Project custom fields (boolean/select/multi_select/…) appear as cf:<uuid> columns when defined.",
+                pre_en="Project has a custom field definition; cases have values.",
+                priority="medium",
+                tags=["regression", "api", "cases", "columns", "custom-fields"],
+                steps=[
+                    step(
+                        "Enable the custom-field column in Columns; optionally sort by cf:<uuid>.",
+                        "List rows include the field value; GET cases?cf_ids=…&sort=cf:<uuid> returns enriched items.",
+                    ),
+                ],
+            ),
+        ],
+    )
+    suites.append(list_columns)
+
     requirements = [
         {
             "external_key": "VQA-REQ-01",

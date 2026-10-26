@@ -101,7 +101,7 @@ Helm runs `vulyk-api migrate run` as a pre-upgrade Job.
 | Doc | Description |
 |-----|-------------|
 | [docs/architecture.md](docs/architecture.md) | Product plan, ERD, workstreams W0–W11 |
-| [docs/user-guide.md](docs/user-guide.md) | End-user workflows |
+| [docs/user-guide.md](docs/user-guide.md) | End-user workflows (incl. customizable Cases columns) |
 | [docs/admin-guide.md](docs/admin-guide.md) | Deploy, DB backups, perf smoke, Helm |
 | [docs/guides/releasing.md](docs/guides/releasing.md) | Version bump, tags, GHCR, install `--version` |
 | [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, backups, migrate CLI, Helm hooks |

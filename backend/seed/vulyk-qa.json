@@ -8954,6 +8954,355 @@
           ]
         }
       ]
+    },
+    {
+      "name": {
+        "en": "24. List columns",
+        "uk": "24. Стовпці списку"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-187",
+          "title": {
+            "en": "Open Columns settings on Cases page",
+            "uk": "Відкрити налаштування стовпців на Cases"
+          },
+          "description": {
+            "en": "Columns button opens the case list column dialog with hide/show and move controls.",
+            "uk": "Columns button opens the case list column dialog with hide/show and move controls."
+          },
+          "precondition": {
+            "en": "Signed in; project selected; Cases page open.",
+            "uk": "Signed in; project selected; Cases page open."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Click the Columns|Стовпці button in the Cases toolbar.",
+                "uk": "Click the Columns|Стовпці button in the Cases toolbar."
+              },
+              "expected_result": {
+                "en": "Dialog cases.columnsSettings is visible with checkboxes and ←/→ move buttons.",
+                "uk": "Dialog cases.columnsSettings is visible with checkboxes and ←/→ move buttons."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-188",
+          "title": {
+            "en": "Hide Priority column and keep Title visible",
+            "uk": "Сховати Priority і залишити Title видимим"
+          },
+          "description": {
+            "en": "Optional columns can be hidden; Title checkbox stays disabled/checked.",
+            "uk": "Optional columns can be hidden; Title checkbox stays disabled/checked."
+          },
+          "precondition": {
+            "en": "Columns dialog open on Cases.",
+            "uk": "Columns dialog open on Cases."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Uncheck Priority in the Columns dialog; leave Title checked (disabled).",
+                "uk": "Uncheck Priority in the Columns dialog; leave Title checked (disabled)."
+              },
+              "expected_result": {
+                "en": "Priority header disappears from [data-testid=case-list-head]; Title remains.",
+                "uk": "Priority header disappears from [data-testid=case-list-head]; Title remains."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-189",
+          "title": {
+            "en": "Show Automated and Last run columns",
+            "uk": "Показати Automated і Last run"
+          },
+          "description": {
+            "en": "Extra columns Automated (yes/no) and Last run status can be enabled.",
+            "uk": "Extra columns Automated (yes/no) and Last run status can be enabled."
+          },
+          "precondition": {
+            "en": "Cases page; at least one case with external_key and one with a result.",
+            "uk": "Cases page; at least one case with external_key and one with a result."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "In Columns dialog enable Automated and Last run; close dialog.",
+                "uk": "In Columns dialog enable Automated and Last run; close dialog."
+              },
+              "expected_result": {
+                "en": "Headers for Automated and Last run appear; cells show Yes/No and latest status or em dash.",
+                "uk": "Headers for Automated and Last run appear; cells show Yes/No and latest status or em dash."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-190",
+          "title": {
+            "en": "Reorder columns with keyboard Move left/right",
+            "uk": "Змінити порядок стовпців стрілками"
+          },
+          "description": {
+            "en": "Column settings expose accessible Move left/right controls (in addition to header drag-and-drop).",
+            "uk": "Column settings expose accessible Move left/right controls (in addition to header drag-and-drop)."
+          },
+          "precondition": {
+            "en": "Columns dialog open; Key and Title visible.",
+            "uk": "Columns dialog open; Key and Title visible."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "cases",
+            "columns",
+            "a11y",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Activate Move right on the Key row (aria-label contains Move … right).",
+                "uk": "Activate Move right on the Key row (aria-label contains Move … right)."
+              },
+              "expected_result": {
+                "en": "Key appears after Title (or next sibling) in the header order.",
+                "uk": "Key appears after Title (or next sibling) in the header order."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-191",
+          "title": {
+            "en": "Server-side sort by Title across pages",
+            "uk": "Серверне сортування за Title з пагінацією"
+          },
+          "description": {
+            "en": "Clicking a sortable header sends sort/order query params; works with Load more.",
+            "uk": "Clicking a sortable header sends sort/order query params; works with Load more."
+          },
+          "precondition": {
+            "en": "Project with enough cases to paginate (or any ≥2 cases).",
+            "uk": "Project with enough cases to paginate (or any ≥2 cases)."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "api",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Click the Title sort button in the case list header.",
+                "uk": "Click the Title sort button in the case list header."
+              },
+              "expected_result": {
+                "en": "URL/API request includes sort=title; rows reorder; Load more keeps the same sort.",
+                "uk": "URL/API request includes sort=title; rows reorder; Load more keeps the same sort."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-192",
+          "title": {
+            "en": "Reset columns to default",
+            "uk": "Скинути стовпці до типових"
+          },
+          "description": {
+            "en": "Reset restores Key/Title/Priority/Status and clears extras.",
+            "uk": "Reset restores Key/Title/Priority/Status and clears extras."
+          },
+          "precondition": {
+            "en": "Columns customized (extra columns on, Priority hidden).",
+            "uk": "Columns customized (extra columns on, Priority hidden)."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Open Columns; click Reset to default|Скинути до типових.",
+                "uk": "Open Columns; click Reset to default|Скинути до типових."
+              },
+              "expected_result": {
+                "en": "Default four columns visible; Automated/Last run hidden again.",
+                "uk": "Default four columns visible; Automated/Last run hidden again."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:case-list-columns.spec.ts"
+        },
+        {
+          "key": "VQA-193",
+          "title": {
+            "en": "Persist column prefs per project (API + localStorage)",
+            "uk": "Зберігати налаштування стовпців на проєкт"
+          },
+          "description": {
+            "en": "PUT /preferences/case-list-columns when signed in; localStorage vulyk.caseList.columns.{projectId} as fallback.",
+            "uk": "PUT /preferences/case-list-columns when signed in; localStorage vulyk.caseList.columns.{projectId} as fallback."
+          },
+          "precondition": {
+            "en": "Signed-in user; two projects available.",
+            "uk": "Signed-in user; two projects available."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "api",
+            "cases",
+            "columns",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Customize columns on project A; reload; switch to project B then back to A.",
+                "uk": "Customize columns on project A; reload; switch to project B then back to A."
+              },
+              "expected_result": {
+                "en": "Project A layout restored from API (or localStorage); project B keeps its own defaults.",
+                "uk": "Project A layout restored from API (or localStorage); project B keeps its own defaults."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-194",
+          "title": {
+            "en": "Custom field columns via registry extension",
+            "uk": "Стовпці кастомних полів через реєстр"
+          },
+          "description": {
+            "en": "Project custom fields (boolean/select/multi_select/…) appear as cf:<uuid> columns when defined.",
+            "uk": "Project custom fields (boolean/select/multi_select/…) appear as cf:<uuid> columns when defined."
+          },
+          "precondition": {
+            "en": "Project has a custom field definition; cases have values.",
+            "uk": "Project has a custom field definition; cases have values."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "api",
+            "cases",
+            "columns",
+            "custom-fields",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Enable the custom-field column in Columns; optionally sort by cf:<uuid>.",
+                "uk": "Enable the custom-field column in Columns; optionally sort by cf:<uuid>."
+              },
+              "expected_result": {
+                "en": "List rows include the field value; GET cases?cf_ids=…&sort=cf:<uuid> returns enriched items.",
+                "uk": "List rows include the field value; GET cases?cf_ids=…&sort=cf:<uuid> returns enriched items."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "requirements": [

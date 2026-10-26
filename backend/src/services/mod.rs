@@ -2,6 +2,7 @@ pub mod automation_repo;
 pub mod backup;
 pub mod campaigns;
 pub mod case_keys;
+pub mod case_list;
 pub mod cases;
 pub mod chat_propose;
 pub mod ingest;
