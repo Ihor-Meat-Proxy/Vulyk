@@ -17,6 +17,10 @@ pub struct TestCase {
     pub priority: String,
     pub status: String,
     pub version: i32,
+    #[serde(default)]
+    pub external_key: Option<String>,
+    #[serde(default)]
+    pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -52,7 +56,9 @@ pub struct CreateStep {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCase {
-    pub key: String,
+    /// Ignored when present — keys are allocated automatically. Kept optional for API compat.
+    #[serde(default)]
+    pub key: Option<String>,
     pub title: String,
     pub suite_id: Option<Uuid>,
     #[serde(default)]
@@ -69,12 +75,20 @@ pub struct CreateCase {
     pub tag_ids: Vec<Uuid>,
     #[serde(default)]
     pub tag_names: Vec<String>,
+    /// Original external identifier from an import (stored separately from the Vulyk key).
+    #[serde(default)]
+    pub external_key: Option<String>,
+    #[serde(default)]
+    pub sort_order: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateCase {
     pub title: Option<String>,
     pub suite_id: Option<Uuid>,
+    /// When true, clear suite_id (move case to project root / unfiled).
+    #[serde(default)]
+    pub clear_suite: bool,
     pub description: Option<String>,
     pub precondition: Option<String>,
     pub priority: Option<String>,
@@ -84,6 +98,8 @@ pub struct UpdateCase {
     pub tag_names: Option<Vec<String>>,
     #[serde(default)]
     pub change_summary: Option<String>,
+    pub sort_order: Option<i32>,
+    pub external_key: Option<String>,
 }
 
 fn default_priority() -> String {

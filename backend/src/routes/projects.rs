@@ -11,6 +11,9 @@ use crate::auth::{
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
+use crate::services::case_keys::{unique_prefix, unique_prefix_for_name, validate_prefix};
+
+const PROJECT_COLS: &str = "id, key, name, description, case_key_prefix, next_case_number, created_at, updated_at";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -31,25 +34,24 @@ pub async fn list_projects(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
 ) -> AppResult<Json<Vec<Project>>> {
-    // When auth is required and the caller is not a system admin, only show memberships.
     let projects = if state.auth.required {
         match &auth {
             Some(user) if user.is_system_admin() => {
-                sqlx::query_as::<_, Project>(
-                    r#"SELECT id, key, name, description, created_at, updated_at
-                       FROM projects ORDER BY key"#,
-                )
+                sqlx::query_as::<_, Project>(&format!(
+                    "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
+                ))
                 .fetch_all(&state.pool)
                 .await?
             }
             Some(user) => {
-                sqlx::query_as::<_, Project>(
-                    r#"SELECT p.id, p.key, p.name, p.description, p.created_at, p.updated_at
+                sqlx::query_as::<_, Project>(&format!(
+                    r#"SELECT p.id, p.key, p.name, p.description, p.case_key_prefix,
+                              p.next_case_number, p.created_at, p.updated_at
                        FROM projects p
                        INNER JOIN memberships m ON m.project_id = p.id
                        WHERE m.user_id = $1
-                       ORDER BY p.key"#,
-                )
+                       ORDER BY p.key"#
+                ))
                 .bind(user.id())
                 .fetch_all(&state.pool)
                 .await?
@@ -59,10 +61,9 @@ pub async fn list_projects(
             }
         }
     } else {
-        sqlx::query_as::<_, Project>(
-            r#"SELECT id, key, name, description, created_at, updated_at
-               FROM projects ORDER BY key"#,
-        )
+        sqlx::query_as::<_, Project>(&format!(
+            "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
+        ))
         .fetch_all(&state.pool)
         .await?
     };
@@ -99,18 +100,25 @@ pub async fn create_project(
         return Err(AppError::BadRequest("name is required".into()));
     }
 
-    let project = sqlx::query_as::<_, Project>(
-        r#"INSERT INTO projects (key, name, description)
-           VALUES ($1, $2, $3)
-           RETURNING id, key, name, description, created_at, updated_at"#,
-    )
+    let prefix = if let Some(raw) = body.case_key_prefix.as_ref() {
+        let validated = validate_prefix(raw)?;
+        unique_prefix(&state.pool, &validated, None).await?
+    } else {
+        unique_prefix_for_name(&state.pool, body.name.trim()).await?
+    };
+
+    let project = sqlx::query_as::<_, Project>(&format!(
+        r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
+           VALUES ($1, $2, $3, $4, 0)
+           RETURNING {PROJECT_COLS}"#
+    ))
     .bind(&key)
     .bind(body.name.trim())
     .bind(&body.description)
+    .bind(&prefix)
     .fetch_one(&state.pool)
     .await?;
 
-    // Headless MCP API tokens may authenticate as a synthetic principal (nil id).
     if let Some(user) = auth.filter(|u| u.id() != uuid::Uuid::nil()) {
         sqlx::query(
             r#"INSERT INTO memberships (project_id, user_id, role)
@@ -150,10 +158,9 @@ pub async fn get_project(
     )
     .await?;
 
-    let project = sqlx::query_as::<_, Project>(
-        r#"SELECT id, key, name, description, created_at, updated_at
-           FROM projects WHERE id = $1"#,
-    )
+    let project = sqlx::query_as::<_, Project>(&format!(
+        "SELECT {PROJECT_COLS} FROM projects WHERE id = $1"
+    ))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -187,10 +194,9 @@ pub async fn update_project(
     )
     .await?;
 
-    let existing = sqlx::query_as::<_, Project>(
-        r#"SELECT id, key, name, description, created_at, updated_at
-           FROM projects WHERE id = $1"#,
-    )
+    let existing = sqlx::query_as::<_, Project>(&format!(
+        "SELECT {PROJECT_COLS} FROM projects WHERE id = $1"
+    ))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -199,15 +205,40 @@ pub async fn update_project(
     let name = body.name.unwrap_or(existing.name);
     let description = body.description.unwrap_or(existing.description);
 
-    let project = sqlx::query_as::<_, Project>(
+    let case_key_prefix = if let Some(raw) = body.case_key_prefix {
+        let case_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::bigint FROM test_cases WHERE project_id = $1",
+        )
+        .bind(id)
+        .fetch_one(&state.pool)
+        .await?;
+        let tombstone_count: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*)::bigint FROM case_key_tombstones WHERE project_id = $1",
+        )
+        .bind(id)
+        .fetch_one(&state.pool)
+        .await?;
+        if case_count > 0 || tombstone_count > 0 || existing.next_case_number > 0 {
+            return Err(AppError::BadRequest(
+                "case_key_prefix can only be changed before any cases exist".into(),
+            ));
+        }
+        let validated = validate_prefix(&raw)?;
+        unique_prefix(&state.pool, &validated, Some(id)).await?
+    } else {
+        existing.case_key_prefix
+    };
+
+    let project = sqlx::query_as::<_, Project>(&format!(
         r#"UPDATE projects
-           SET name = $2, description = $3, updated_at = NOW()
+           SET name = $2, description = $3, case_key_prefix = $4, updated_at = NOW()
            WHERE id = $1
-           RETURNING id, key, name, description, created_at, updated_at"#,
-    )
+           RETURNING {PROJECT_COLS}"#
+    ))
     .bind(id)
     .bind(name)
     .bind(description)
+    .bind(case_key_prefix)
     .fetch_one(&state.pool)
     .await?;
 

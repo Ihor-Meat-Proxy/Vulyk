@@ -13,6 +13,7 @@ use crate::models::{
     CreateCase, Page, PageQuery, SetCustomFieldValue, TestCase, TestCaseDetail, UpdateCase,
 };
 use crate::routes::AppState;
+use crate::services::case_keys::{allocate_case_key, retire_case_key};
 use crate::services::cases::{
     add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
     snapshot_case,
@@ -116,12 +117,22 @@ pub async fn list_cases(
     let offset = page.offset();
 
     let total: i64 = sqlx::query_scalar(
-        r#"SELECT COUNT(DISTINCT tc.id)::bigint
+        r#"WITH RECURSIVE suite_tree AS (
+             SELECT id FROM suites WHERE id = $2
+             UNION ALL
+             SELECT s.id FROM suites s
+             INNER JOIN suite_tree st ON s.parent_id = st.id
+           )
+           SELECT COUNT(DISTINCT tc.id)::bigint
            FROM test_cases tc
            LEFT JOIN case_tags ct ON ct.case_id = tc.id
            LEFT JOIN tags tg ON tg.id = ct.tag_id
            WHERE tc.project_id = $1
-             AND ($2::uuid IS NULL OR tc.suite_id = $2)
+             AND (
+               $2::uuid IS NULL
+               OR tc.suite_id = $2
+               OR tc.suite_id IN (SELECT id FROM suite_tree)
+             )
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ($5::text IS NULL OR tg.name = $5)
@@ -142,13 +153,23 @@ pub async fn list_cases(
     .await?;
 
     let cases = sqlx::query_as::<_, TestCase>(
-        r#"SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
-                  tc.precondition, tc.priority, tc.status, tc.version, tc.created_at, tc.updated_at
+        r#"WITH RECURSIVE suite_tree AS (
+             SELECT id FROM suites WHERE id = $2
+             UNION ALL
+             SELECT s.id FROM suites s
+             INNER JOIN suite_tree st ON s.parent_id = st.id
+           )
+           SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
+                  tc.precondition, tc.priority, tc.status, tc.version, tc.external_key, tc.sort_order, tc.created_at, tc.updated_at
            FROM test_cases tc
            LEFT JOIN case_tags ct ON ct.case_id = tc.id
            LEFT JOIN tags tg ON tg.id = ct.tag_id
            WHERE tc.project_id = $1
-             AND ($2::uuid IS NULL OR tc.suite_id = $2)
+             AND (
+               $2::uuid IS NULL
+               OR tc.suite_id = $2
+               OR tc.suite_id IN (SELECT id FROM suite_tree)
+             )
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ($5::text IS NULL OR tg.name = $5)
@@ -163,7 +184,7 @@ pub async fn list_cases(
              CASE WHEN $6::text IS NOT NULL
                THEN ts_rank(tc.search_vector, plainto_tsquery('english', $6))
                ELSE 0 END DESC,
-             tc.key
+             tc.sort_order, tc.key
            LIMIT $7 OFFSET $8"#,
     )
     .bind(project_id)
@@ -240,27 +261,32 @@ pub async fn create_case(
     )
     .await?;
     ensure_project(&state.pool, project_id).await?;
-    if body.key.trim().is_empty() || body.title.trim().is_empty() {
-        return Err(AppError::BadRequest("key and title are required".into()));
+    if body.title.trim().is_empty() {
+        return Err(AppError::BadRequest("title is required".into()));
     }
 
     let mut tx = state.pool.begin().await?;
+    let (key, _number) = allocate_case_key(&mut tx, project_id).await?;
+    let sort_order = body.sort_order.unwrap_or(0);
 
     let case = sqlx::query_as::<_, TestCase>(
         r#"INSERT INTO test_cases
-             (project_id, suite_id, key, title, description, precondition, priority, status)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             (project_id, suite_id, key, title, description, precondition, priority, status,
+              external_key, sort_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, created_at, updated_at"#,
+                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(body.suite_id)
-    .bind(body.key.trim())
+    .bind(&key)
     .bind(body.title.trim())
     .bind(&body.description)
     .bind(&body.precondition)
     .bind(&body.priority)
     .bind(&body.status)
+    .bind(body.external_key.as_deref())
+    .bind(sort_order)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -299,7 +325,7 @@ pub async fn get_case(
     .await?;
     let case = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, created_at, updated_at
+                  priority, status, version, external_key, sort_order, created_at, updated_at
            FROM test_cases WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -341,7 +367,7 @@ pub async fn update_case(
 
     let existing = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, created_at, updated_at
+                  priority, status, version, external_key, sort_order, created_at, updated_at
            FROM test_cases WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -361,19 +387,26 @@ pub async fn update_case(
     .await?;
 
     let title = body.title.unwrap_or(existing.title);
-    let suite_id = body.suite_id.or(existing.suite_id);
+    let suite_id = if body.clear_suite {
+        None
+    } else {
+        body.suite_id.or(existing.suite_id)
+    };
     let description = body.description.unwrap_or(existing.description);
     let precondition = body.precondition.unwrap_or(existing.precondition);
     let priority = body.priority.unwrap_or(existing.priority);
     let status = body.status.unwrap_or(existing.status);
+    let sort_order = body.sort_order.unwrap_or(existing.sort_order);
+    let external_key = body.external_key.or(existing.external_key);
 
     let case = sqlx::query_as::<_, TestCase>(
         r#"UPDATE test_cases
            SET title = $3, suite_id = $4, description = $5, precondition = $6,
-               priority = $7, status = $8, version = version + 1, updated_at = NOW()
+               priority = $7, status = $8, sort_order = $9, external_key = $10,
+               version = version + 1, updated_at = NOW()
            WHERE project_id = $1 AND id = $2
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, created_at, updated_at"#,
+                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(case_id)
@@ -383,6 +416,8 @@ pub async fn update_case(
     .bind(precondition)
     .bind(priority)
     .bind(status)
+    .bind(sort_order)
+    .bind(external_key)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -429,14 +464,24 @@ pub async fn delete_case(
         Permission::DeleteCases,
     )
     .await?;
-    let result = sqlx::query("DELETE FROM test_cases WHERE project_id = $1 AND id = $2")
+    let mut tx = state.pool.begin().await?;
+    let key: Option<String> = sqlx::query_scalar(
+        "SELECT key FROM test_cases WHERE project_id = $1 AND id = $2",
+    )
+    .bind(project_id)
+    .bind(case_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+    let Some(key) = key else {
+        return Err(AppError::NotFound("case".into()));
+    };
+    retire_case_key(&mut tx, project_id, &key).await?;
+    sqlx::query("DELETE FROM test_cases WHERE project_id = $1 AND id = $2")
         .bind(project_id)
         .bind(case_id)
-        .execute(&state.pool)
+        .execute(&mut *tx)
         .await?;
-    if result.rows_affected() == 0 {
-        return Err(AppError::NotFound("case".into()));
-    }
+    tx.commit().await?;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
 
@@ -477,6 +522,16 @@ pub async fn bulk_cases(
     let action = body.action.as_str();
     let affected = match action {
         "delete" => {
+            let keys: Vec<(String,)> = sqlx::query_as(
+                "SELECT key FROM test_cases WHERE project_id = $1 AND id = ANY($2)",
+            )
+            .bind(project_id)
+            .bind(&body.case_ids)
+            .fetch_all(&mut *tx)
+            .await?;
+            for (key,) in &keys {
+                retire_case_key(&mut tx, project_id, key).await?;
+            }
             let res = sqlx::query("DELETE FROM test_cases WHERE project_id = $1 AND id = ANY($2)")
                 .bind(project_id)
                 .bind(&body.case_ids)
@@ -693,7 +748,7 @@ pub async fn set_custom_fields(
     .await?;
     let case = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, created_at, updated_at
+                  priority, status, version, external_key, sort_order, created_at, updated_at
            FROM test_cases WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -732,7 +787,7 @@ pub async fn set_custom_fields(
         r#"UPDATE test_cases SET version = version + 1, updated_at = NOW()
            WHERE id = $1
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, created_at, updated_at"#,
+                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
     )
     .bind(case_id)
     .fetch_one(&mut *tx)

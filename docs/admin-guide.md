@@ -73,7 +73,7 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 
 1. Complete first-run (env seed, setup Job/CLI, or web wizard + setup token).
 2. Change the admin password if the default was used.
-3. Explore the seeded sample project **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested suites, ~35 cases, requirements, and two example runs (dress rehearsal + ticketing smoke). Opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box.
+3. Explore the seeded sample project **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with automatic `KC-*` keys, requirements, and two example runs (dress rehearsal + ticketing smoke). Opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box.
 4. Create additional projects and memberships under **Admin**.
 5. Mint API tokens for CI/MCP.
 6. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.

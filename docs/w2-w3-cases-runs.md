@@ -6,6 +6,8 @@ This note documents the Case / Plan / Run surface delivered after the Phase 1 fo
 
 | Capability | API / UI |
 |------------|----------|
+| Automatic case keys | `POST .../cases` allocates `case_key_prefix-N` via atomic `UPDATE projects SET next_case_number = next_case_number + 1 RETURNING …`. Prefix derived from project name initials (stop words/years skipped); unique across projects; editable until first case. Deletes insert `case_key_tombstones` — numbers never reused. Imports store original id in `external_key`. |
+| Nested folders | Suites are unlimited-depth folders. List includes `case_count`. `DELETE .../suites/{id}?on_nonempty=move_to_parent\|delete_cases`. UI: left tree with expand/collapse, priority bar, colour-blind status icons, drag-and-drop / Move to. |
 | Steps editor | Case detail edit mode; `PUT .../cases/{id}` with `steps[]` |
 | Tags | `CRUD /projects/{id}/tags`; case create/update accepts `tag_ids` / `tag_names` |
 | Custom fields | `CRUD /projects/{id}/custom-fields`; `POST .../cases/{id}/custom-fields` |
@@ -15,7 +17,7 @@ This note documents the Case / Plan / Run surface delivered after the Phase 1 fo
 | Bulk ops | `POST .../cases/bulk` — `delete`, `set_status`, `set_priority`, `move_suite`, `add_tags`, `remove_tags`, `set_tags` |
 | Virtualised list | Frontend `VirtualList` + incremental “Load more” pages |
 
-Migrations: `003_20261025140000_case_repository_depth.sql`.
+Migrations: `003_20261025140000_case_repository_depth.sql`, `20261026150000_case_keys_and_folders.sql`.
 
 ## W3 — Plans, runs, results
 

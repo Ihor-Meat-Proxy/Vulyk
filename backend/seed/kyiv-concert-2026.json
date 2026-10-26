@@ -17,245 +17,263 @@
         "en": "Venue & Permits",
         "uk": "Майданчик і дозволи"
       },
-      "children": [],
-      "cases": [
+      "children": [
         {
-          "key": "KC-001",
-          "title": {
-            "en": "Submit city open-air event permit",
-            "uk": "Подати міський дозвіл на open-air подію"
+          "name": {
+            "en": "City permits",
+            "uk": "Міські дозволи"
           },
-          "description": {
-            "en": "Verify the organiser can file a complete permit package with Kyiv city authorities.",
-            "uk": "Перевірити подання повного пакету документів до міської влади Києва."
-          },
-          "precondition": {
-            "en": "Organiser account active; venue address and event dates confirmed.",
-            "uk": "Акаунт організатора активний; адреса майданчика та дати підтверджені."
-          },
-          "priority": "critical",
-          "status": "ready",
-          "tags": [
-            "permits",
-            "venue",
-            "smoke"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Open the permit portal and start a new open-air event application.",
-                "uk": "Відкрити портал дозволів і створити нову заявку на open-air подію."
+              "key": "KC-001",
+              "title": {
+                "en": "Submit city open-air event permit",
+                "uk": "Подати міський дозвіл на open-air подію"
               },
-              "expected_result": {
-                "en": "Blank application form loads with required fields marked.",
-                "uk": "Відкривається порожня форма з позначеними обов'язковими полями."
+              "description": {
+                "en": "Verify the organiser can file a complete permit package with Kyiv city authorities.",
+                "uk": "Перевірити подання повного пакету документів до міської влади Києва."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Organiser account active; venue address and event dates confirmed.",
+                "uk": "Акаунт організатора активний; адреса майданчика та дати підтверджені."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": [
+                "permits",
+                "venue",
+                "smoke"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open the permit portal and start a new open-air event application.",
+                    "uk": "Відкрити портал дозволів і створити нову заявку на open-air подію."
+                  },
+                  "expected_result": {
+                    "en": "Blank application form loads with required fields marked.",
+                    "uk": "Відкривається порожня форма з позначеними обов'язковими полями."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Attach venue map, capacity estimate, and noise plan; submit.",
+                    "uk": "Додати карту майданчика, оцінку місткості та план шуму; подати."
+                  },
+                  "expected_result": {
+                    "en": "Application accepted with tracking number and status Pending review.",
+                    "uk": "Заявку прийнято з номером відстеження та статусом «На розгляді»."
+                  },
+                  "data": {
+                    "en": "Venue: Hidropark amphitheatre",
+                    "uk": "Майданчик: амфітеатр Гідропарку"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Download the submitted package PDF.",
+                    "uk": "Завантажити PDF поданого пакету."
+                  },
+                  "expected_result": {
+                    "en": "PDF includes all attachments and organiser contact details.",
+                    "uk": "PDF містить усі додатки та контакти організатора."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Attach venue map, capacity estimate, and noise plan; submit.",
-                "uk": "Додати карту майданчика, оцінку місткості та план шуму; подати."
+              "key": "KC-002",
+              "title": {
+                "en": "Validate evening noise ordinance limits",
+                "uk": "Перевірити ліміти нічного шуму"
               },
-              "expected_result": {
-                "en": "Application accepted with tracking number and status Pending review.",
-                "uk": "Заявку прийнято з номером відстеження та статусом «На розгляді»."
+              "description": {
+                "en": "Confirm planned SPL levels stay within municipal evening limits.",
+                "uk": "Підтвердити, що плановані рівні SPL у межах міських вечірніх норм."
               },
-              "data": {
-                "en": "Venue: Hidropark amphitheatre",
-                "uk": "Майданчик: амфітеатр Гідропарку"
-              }
-            },
-            {
-              "action": {
-                "en": "Download the submitted package PDF.",
-                "uk": "Завантажити PDF поданого пакету."
+              "precondition": {
+                "en": "Sound engineer noise model uploaded for the venue.",
+                "uk": "Завантажено шумову модель інженера для майданчика."
               },
-              "expected_result": {
-                "en": "PDF includes all attachments and organiser contact details.",
-                "uk": "PDF містить усі додатки та контакти організатора."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "permits",
+                "noise",
+                "venue"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Import the noise model and select 22:00–23:00 window.",
+                    "uk": "Імпортувати шумову модель і обрати вікно 22:00–23:00."
+                  },
+                  "expected_result": {
+                    "en": "Boundary receptors show predicted dB(A) values.",
+                    "uk": "На межових точках відображаються прогнозовані значення дБ(A)."
+                  },
+                  "data": {
+                    "en": "Limit: 55 dB(A) at residential edge",
+                    "uk": "Ліміт: 55 дБ(A) біля житлової зони"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Run compliance check against Kyiv evening ordinance.",
+                    "uk": "Запустити перевірку відповідності вечірнім нормам Києва."
+                  },
+                  "expected_result": {
+                    "en": "Report marks pass or lists receptors over limit.",
+                    "uk": "Звіт показує проходження або перелік точок понад ліміт."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         },
         {
-          "key": "KC-002",
-          "title": {
-            "en": "Validate evening noise ordinance limits",
-            "uk": "Перевірити ліміти нічного шуму"
+          "name": {
+            "en": "Noise & neighbours",
+            "uk": "Шум і сусіди"
           },
-          "description": {
-            "en": "Confirm planned SPL levels stay within municipal evening limits.",
-            "uk": "Підтвердити, що плановані рівні SPL у межах міських вечірніх норм."
-          },
-          "precondition": {
-            "en": "Sound engineer noise model uploaded for the venue.",
-            "uk": "Завантажено шумову модель інженера для майданчика."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "permits",
-            "noise",
-            "venue"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Import the noise model and select 22:00–23:00 window.",
-                "uk": "Імпортувати шумову модель і обрати вікно 22:00–23:00."
+              "key": "KC-003",
+              "title": {
+                "en": "Confirm venue capacity sign-off",
+                "uk": "Підтвердити підписання місткості майданчика"
               },
-              "expected_result": {
-                "en": "Boundary receptors show predicted dB(A) values.",
-                "uk": "На межових точках відображаються прогнозовані значення дБ(A)."
+              "description": {
+                "en": "Fire marshal capacity figure is recorded and locked for ticket inventory.",
+                "uk": "Місткість від пожежної інспекції зафіксована й заблокована для квитків."
               },
-              "data": {
-                "en": "Limit: 55 dB(A) at residential edge",
-                "uk": "Ліміт: 55 дБ(A) біля житлової зони"
-              }
+              "precondition": {
+                "en": "Draft floor plan approved by venue manager.",
+                "uk": "Чернетку плану залу затверджено менеджером майданчика."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "venue",
+                "safety",
+                "capacity"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Enter fire marshal approved capacity and save.",
+                    "uk": "Ввести затверджену місткість і зберегти."
+                  },
+                  "expected_result": {
+                    "en": "Capacity field becomes read-only with auditor name and date.",
+                    "uk": "Поле місткості стає лише для читання з ПІБ аудитора та датою."
+                  },
+                  "data": {
+                    "en": "Capacity: 8500",
+                    "uk": "Місткість: 8500"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Attempt to raise ticket pool above signed capacity.",
+                    "uk": "Спробувати збільшити пул квитків понад підписану місткість."
+                  },
+                  "expected_result": {
+                    "en": "System rejects the change with a capacity error.",
+                    "uk": "Система відхиляє зміну з помилкою місткості."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Export capacity certificate for permit package.",
+                    "uk": "Експортувати сертифікат місткості для пакету дозволів."
+                  },
+                  "expected_result": {
+                    "en": "Certificate PDF generates with venue name and seal placeholders.",
+                    "uk": "Генерується PDF сертифіката з назвою майданчика та місцем для печатки."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Run compliance check against Kyiv evening ordinance.",
-                "uk": "Запустити перевірку відповідності вечірнім нормам Києва."
+              "key": "KC-004",
+              "title": {
+                "en": "Temporary stage structure permit",
+                "uk": "Дозвіл на тимчасову конструкцію сцени"
               },
-              "expected_result": {
-                "en": "Report marks pass or lists receptors over limit.",
-                "uk": "Звіт показує проходження або перелік точок понад ліміт."
+              "description": {
+                "en": "Register temporary roof and PA towers with structural engineer sign-off.",
+                "uk": "Зареєструвати тимчасовий дах і башти PA з підписом інженера."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-003",
-          "title": {
-            "en": "Confirm venue capacity sign-off",
-            "uk": "Підтвердити підписання місткості майданчика"
-          },
-          "description": {
-            "en": "Fire marshal capacity figure is recorded and locked for ticket inventory.",
-            "uk": "Місткість від пожежної інспекції зафіксована й заблокована для квитків."
-          },
-          "precondition": {
-            "en": "Draft floor plan approved by venue manager.",
-            "uk": "Чернетку плану залу затверджено менеджером майданчика."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "venue",
-            "safety",
-            "capacity"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Enter fire marshal approved capacity and save.",
-                "uk": "Ввести затверджену місткість і зберегти."
+              "precondition": {
+                "en": "Structural drawings and wind-load calc attached.",
+                "uk": "Додано креслення та розрахунок вітрового навантаження."
               },
-              "expected_result": {
-                "en": "Capacity field becomes read-only with auditor name and date.",
-                "uk": "Поле місткості стає лише для читання з ПІБ аудитора та датою."
-              },
-              "data": {
-                "en": "Capacity: 8500",
-                "uk": "Місткість: 8500"
-              }
-            },
-            {
-              "action": {
-                "en": "Attempt to raise ticket pool above signed capacity.",
-                "uk": "Спробувати збільшити пул квитків понад підписану місткість."
-              },
-              "expected_result": {
-                "en": "System rejects the change with a capacity error.",
-                "uk": "Система відхиляє зміну з помилкою місткості."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Export capacity certificate for permit package.",
-                "uk": "Експортувати сертифікат місткості для пакету дозволів."
-              },
-              "expected_result": {
-                "en": "Certificate PDF generates with venue name and seal placeholders.",
-                "uk": "Генерується PDF сертифіката з назвою майданчика та місцем для печатки."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-004",
-          "title": {
-            "en": "Temporary stage structure permit",
-            "uk": "Дозвіл на тимчасову конструкцію сцени"
-          },
-          "description": {
-            "en": "Register temporary roof and PA towers with structural engineer sign-off.",
-            "uk": "Зареєструвати тимчасовий дах і башти PA з підписом інженера."
-          },
-          "precondition": {
-            "en": "Structural drawings and wind-load calc attached.",
-            "uk": "Додано креслення та розрахунок вітрового навантаження."
-          },
-          "priority": "medium",
-          "status": "ready",
-          "tags": [
-            "permits",
-            "stage",
-            "structure"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Create temporary structure permit linked to the main event.",
-                "uk": "Створити дозвіл на тимчасову конструкцію, прив'язаний до події."
-              },
-              "expected_result": {
-                "en": "Permit draft links to parent event ID.",
-                "uk": "Чернетка дозволу пов'язана з ID головної події."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Upload engineer certificate and mark as verified.",
-                "uk": "Завантажити сертифікат інженера й позначити перевіреним."
-              },
-              "expected_result": {
-                "en": "Status moves to Ready for inspection.",
-                "uk": "Статус змінюється на «Готово до інспекції»."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "priority": "medium",
+              "status": "ready",
+              "tags": [
+                "permits",
+                "stage",
+                "structure"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Create temporary structure permit linked to the main event.",
+                    "uk": "Створити дозвіл на тимчасову конструкцію, прив'язаний до події."
+                  },
+                  "expected_result": {
+                    "en": "Permit draft links to parent event ID.",
+                    "uk": "Чернетка дозволу пов'язана з ID головної події."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Upload engineer certificate and mark as verified.",
+                    "uk": "Завантажити сертифікат інженера й позначити перевіреним."
+                  },
+                  "expected_result": {
+                    "en": "Status moves to Ready for inspection.",
+                    "uk": "Статус змінюється на «Готово до інспекції»."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         }
-      ]
+      ],
+      "cases": []
     },
     {
       "name": {
@@ -871,543 +889,579 @@
         "en": "Stage & Sound",
         "uk": "Сцена і звук"
       },
-      "children": [],
-      "cases": [
+      "children": [
         {
-          "key": "KC-015",
-          "title": {
-            "en": "PA system load-in checklist",
-            "uk": "Чекліст завантаження PA-системи"
+          "name": {
+            "en": "Rigging",
+            "uk": "Рігінг"
           },
-          "description": {
-            "en": "Verify trucks unload and hangs complete per plot.",
-            "uk": "Перевірити розвантаження фур і підвіс згідно з плотом."
-          },
-          "precondition": {
-            "en": "Stage plot locked; load-in window started.",
-            "uk": "Плот сцени заблоковано; вікно load-in розпочато."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "stage",
-            "sound",
-            "load-in"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Mark each PA hang position as rigged on the plot.",
-                "uk": "Позначити кожну позицію підвісу PA як змонтовану на плоті."
+              "key": "KC-015",
+              "title": {
+                "en": "PA system load-in checklist",
+                "uk": "Чекліст завантаження PA-системи"
               },
-              "expected_result": {
-                "en": "Plot progress reaches 100% for hangs.",
-                "uk": "Прогрес плоту для підвісів досягає 100%."
+              "description": {
+                "en": "Verify trucks unload and hangs complete per plot.",
+                "uk": "Перевірити розвантаження фур і підвіс згідно з плотом."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Stage plot locked; load-in window started.",
+                "uk": "Плот сцени заблоковано; вікно load-in розпочато."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "stage",
+                "sound",
+                "load-in"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Mark each PA hang position as rigged on the plot.",
+                    "uk": "Позначити кожну позицію підвісу PA як змонтовану на плоті."
+                  },
+                  "expected_result": {
+                    "en": "Plot progress reaches 100% for hangs.",
+                    "uk": "Прогрес плоту для підвісів досягає 100%."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Confirm FOH console powered and networked.",
+                    "uk": "Підтвердити живлення та мережу FOH-консолі."
+                  },
+                  "expected_result": {
+                    "en": "Health check green for console and stage boxes.",
+                    "uk": "Health check зелений для консолі та stage box."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Confirm FOH console powered and networked.",
-                "uk": "Підтвердити живлення та мережу FOH-консолі."
+              "key": "KC-016",
+              "title": {
+                "en": "Soundcheck SPL and mix recall",
+                "uk": "Саундчек: SPL і recall міксу"
               },
-              "expected_result": {
-                "en": "Health check green for console and stage boxes.",
-                "uk": "Health check зелений для консолі та stage box."
+              "description": {
+                "en": "Engineer recalls show file and measures front-of-house SPL.",
+                "uk": "Інженер відновлює шоу-файл і вимірює SPL на FOH."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "PA aligned; show file loaded.",
+                "uk": "PA вирівняно; шоу-файл завантажено."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": [
+                "stage",
+                "sound",
+                "soundcheck"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Recall headliner show file on FOH console.",
+                    "uk": "Відновити шоу-файл хедлайнера на FOH-консолі."
+                  },
+                  "expected_result": {
+                    "en": "Scenes and snapshots load without error.",
+                    "uk": "Сцени та снапшоти завантажуються без помилок."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Play pink noise and measure SPL at FOH.",
+                    "uk": "Увімкнути рожевий шум і виміряти SPL на FOH."
+                  },
+                  "expected_result": {
+                    "en": "Reading within target band (±2 dB).",
+                    "uk": "Показник у цільовій смузі (±2 дБ)."
+                  },
+                  "data": {
+                    "en": "Target: 98 dB(A)",
+                    "uk": "Ціль: 98 дБ(A)"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Save soundcheck notes to production log.",
+                    "uk": "Зберегти нотатки саундчеку в продакшн-лог."
+                  },
+                  "expected_result": {
+                    "en": "Log entry visible to stage manager.",
+                    "uk": "Запис логу видно stage manager."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         },
         {
-          "key": "KC-016",
-          "title": {
-            "en": "Soundcheck SPL and mix recall",
-            "uk": "Саундчек: SPL і recall міксу"
+          "name": {
+            "en": "FOH & monitors",
+            "uk": "FOH і монітори"
           },
-          "description": {
-            "en": "Engineer recalls show file and measures front-of-house SPL.",
-            "uk": "Інженер відновлює шоу-файл і вимірює SPL на FOH."
-          },
-          "precondition": {
-            "en": "PA aligned; show file loaded.",
-            "uk": "PA вирівняно; шоу-файл завантажено."
-          },
-          "priority": "critical",
-          "status": "ready",
-          "tags": [
-            "stage",
-            "sound",
-            "soundcheck"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Recall headliner show file on FOH console.",
-                "uk": "Відновити шоу-файл хедлайнера на FOH-консолі."
+              "key": "KC-017",
+              "title": {
+                "en": "Backup generator failover drill",
+                "uk": "Тренування перемикання на резервний генератор"
               },
-              "expected_result": {
-                "en": "Scenes and snapshots load without error.",
-                "uk": "Сцени та снапшоти завантажуються без помилок."
+              "description": {
+                "en": "Simulate mains loss; stage power transfers without show stop.",
+                "uk": "Симулювати втрату мережі; живлення сцени перемикається без зупинки шоу."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Generator fueled and ATS tested within 24h.",
+                "uk": "Генератор заправлено; ATS перевірено протягом 24 год."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": [
+                "stage",
+                "power",
+                "failover"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Open breaker to simulate mains failure during idle PA.",
+                    "uk": "Відкрити автомат для симуляції втрати мережі під час idle PA."
+                  },
+                  "expected_result": {
+                    "en": "ATS switches to generator within SLA (<10 s).",
+                    "uk": "ATS перемикається на генератор у межах SLA (<10 с)."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Verify FOH and amps remain online; log transfer time.",
+                    "uk": "Перевірити, що FOH і підсилювачі онлайн; записати час перемикання."
+                  },
+                  "expected_result": {
+                    "en": "No console reboot; transfer time recorded.",
+                    "uk": "Без перезавантаження консолі; час перемикання зафіксовано."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Play pink noise and measure SPL at FOH.",
-                "uk": "Увімкнути рожевий шум і виміряти SPL на FOH."
+              "key": "KC-018",
+              "title": {
+                "en": "Stage lighting cue stack smoke test",
+                "uk": "Smoke-тест стеку світлових к'ю"
               },
-              "expected_result": {
-                "en": "Reading within target band (±2 dB).",
-                "uk": "Показник у цільовій смузі (±2 дБ)."
+              "description": {
+                "en": "Run opening and blackout cues without fixture errors.",
+                "uk": "Прогнати opening і blackout к'ю без помилок приладів."
               },
-              "data": {
-                "en": "Target: 98 dB(A)",
-                "uk": "Ціль: 98 дБ(A)"
-              }
-            },
-            {
-              "action": {
-                "en": "Save soundcheck notes to production log.",
-                "uk": "Зберегти нотатки саундчеку в продакшн-лог."
+              "precondition": {
+                "en": "Lighting console patched; fixtures addressed.",
+                "uk": "Світлову консоль прошито; прилади адресовано."
               },
-              "expected_result": {
-                "en": "Log entry visible to stage manager.",
-                "uk": "Запис логу видно stage manager."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-017",
-          "title": {
-            "en": "Backup generator failover drill",
-            "uk": "Тренування перемикання на резервний генератор"
-          },
-          "description": {
-            "en": "Simulate mains loss; stage power transfers without show stop.",
-            "uk": "Симулювати втрату мережі; живлення сцени перемикається без зупинки шоу."
-          },
-          "precondition": {
-            "en": "Generator fueled and ATS tested within 24h.",
-            "uk": "Генератор заправлено; ATS перевірено протягом 24 год."
-          },
-          "priority": "critical",
-          "status": "ready",
-          "tags": [
-            "stage",
-            "power",
-            "failover"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Open breaker to simulate mains failure during idle PA.",
-                "uk": "Відкрити автомат для симуляції втрати мережі під час idle PA."
-              },
-              "expected_result": {
-                "en": "ATS switches to generator within SLA (<10 s).",
-                "uk": "ATS перемикається на генератор у межах SLA (<10 с)."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Verify FOH and amps remain online; log transfer time.",
-                "uk": "Перевірити, що FOH і підсилювачі онлайн; записати час перемикання."
-              },
-              "expected_result": {
-                "en": "No console reboot; transfer time recorded.",
-                "uk": "Без перезавантаження консолі; час перемикання зафіксовано."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-018",
-          "title": {
-            "en": "Stage lighting cue stack smoke test",
-            "uk": "Smoke-тест стеку світлових к'ю"
-          },
-          "description": {
-            "en": "Run opening and blackout cues without fixture errors.",
-            "uk": "Прогнати opening і blackout к'ю без помилок приладів."
-          },
-          "precondition": {
-            "en": "Lighting console patched; fixtures addressed.",
-            "uk": "Світлову консоль прошито; прилади адресовано."
-          },
-          "priority": "medium",
-          "status": "ready",
-          "tags": [
-            "stage",
-            "lighting"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Fire opening look cue.",
-                "uk": "Запустити opening look к'ю."
-              },
-              "expected_result": {
-                "en": "All fixtures respond; no DMX errors.",
-                "uk": "Усі прилади реагують; немає помилок DMX."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Fire blackout and restore house lights.",
-                "uk": "Запустити blackout і повернути house lights."
-              },
-              "expected_result": {
-                "en": "Stage dark then house lights up within 2 s.",
-                "uk": "Сцена темна, потім house lights за ≤2 с."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "priority": "medium",
+              "status": "ready",
+              "tags": [
+                "stage",
+                "lighting"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Fire opening look cue.",
+                    "uk": "Запустити opening look к'ю."
+                  },
+                  "expected_result": {
+                    "en": "All fixtures respond; no DMX errors.",
+                    "uk": "Усі прилади реагують; немає помилок DMX."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Fire blackout and restore house lights.",
+                    "uk": "Запустити blackout і повернути house lights."
+                  },
+                  "expected_result": {
+                    "en": "Stage dark then house lights up within 2 s.",
+                    "uk": "Сцена темна, потім house lights за ≤2 с."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         }
-      ]
+      ],
+      "cases": []
     },
     {
       "name": {
         "en": "Security & Safety",
         "uk": "Безпека"
       },
-      "children": [],
-      "cases": [
+      "children": [
         {
-          "key": "KC-019",
-          "title": {
-            "en": "Bag check at public entry",
-            "uk": "Огляд сумок на публічному вході"
+          "name": {
+            "en": "Crowd control",
+            "uk": "Контроль натовпу"
           },
-          "description": {
-            "en": "Security follows prohibited items list and logs seizures.",
-            "uk": "Охорона дотримується списку заборонених предметів і фіксує вилучення."
-          },
-          "precondition": {
-            "en": "Gate staff briefed; prohibited list posted.",
-            "uk": "Персонал брифінговано; список заборон вивішено."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "security",
-            "entry",
-            "smoke"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Present a bag with a glass bottle at bag check.",
-                "uk": "Пред'явити сумку зі скляною пляшкою на огляді."
+              "key": "KC-019",
+              "title": {
+                "en": "Bag check at public entry",
+                "uk": "Огляд сумок на публічному вході"
               },
-              "expected_result": {
-                "en": "Item refused or seized per policy; visitor informed.",
-                "uk": "Предмет відмовлено або вилучено за політикою; відвідувача поінформовано."
+              "description": {
+                "en": "Security follows prohibited items list and logs seizures.",
+                "uk": "Охорона дотримується списку заборонених предметів і фіксує вилучення."
               },
-              "data": {
-                "en": "Item: glass bottle",
-                "uk": "Предмет: скляна пляшка"
-              }
+              "precondition": {
+                "en": "Gate staff briefed; prohibited list posted.",
+                "uk": "Персонал брифінговано; список заборон вивішено."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "security",
+                "entry",
+                "smoke"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Present a bag with a glass bottle at bag check.",
+                    "uk": "Пред'явити сумку зі скляною пляшкою на огляді."
+                  },
+                  "expected_result": {
+                    "en": "Item refused or seized per policy; visitor informed.",
+                    "uk": "Предмет відмовлено або вилучено за політикою; відвідувача поінформовано."
+                  },
+                  "data": {
+                    "en": "Item: glass bottle",
+                    "uk": "Предмет: скляна пляшка"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Log seizure in security app.",
+                    "uk": "Зафіксувати вилучення в застосунку охорони."
+                  },
+                  "expected_result": {
+                    "en": "Incident ID created with gate and time.",
+                    "uk": "Створено ID інциденту з гейтом і часом."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Log seizure in security app.",
-                "uk": "Зафіксувати вилучення в застосунку охорони."
+              "key": "KC-020",
+              "title": {
+                "en": "Air-raid alert announcement workflow",
+                "uk": "Процедура оголошення повітряної тривоги"
               },
-              "expected_result": {
-                "en": "Incident ID created with gate and time.",
-                "uk": "Створено ID інциденту з гейтом і часом."
+              "description": {
+                "en": "On official alert, PA/LED announce pause and shelter guidance in UA/EN.",
+                "uk": "За офіційною тривогою PA/LED оголошують паузу та інструкції до укриття UA/EN."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Alert channel linked; announcement scripts approved.",
+                "uk": "Канал тривог підключено; тексти оголошень затверджено."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": [
+                "security",
+                "air-raid",
+                "safety",
+                "smoke"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Simulate incoming air-raid alert from monitoring feed.",
+                    "uk": "Симулювати надходження повітряної тривоги з моніторингу."
+                  },
+                  "expected_result": {
+                    "en": "Ops dashboard turns red; stage manager notified.",
+                    "uk": "Ops-дашборд стає червоним; stage manager сповіщено."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Trigger approved bilingual announcement on PA and LED.",
+                    "uk": "Запустити затверджене двомовне оголошення на PA та LED."
+                  },
+                  "expected_result": {
+                    "en": "Script plays; screens show shelter directions.",
+                    "uk": "Скрипт відтворюється; екрани показують напрямки до укриття."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Confirm music/show paused and artists held backstage.",
+                    "uk": "Підтвердити паузу шоу й утримання артистів бекстейдж."
+                  },
+                  "expected_result": {
+                    "en": "Show state Paused-alert logged.",
+                    "uk": "Стан шоу «Пауза-тривога» залоговано."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         },
         {
-          "key": "KC-020",
-          "title": {
-            "en": "Air-raid alert announcement workflow",
-            "uk": "Процедура оголошення повітряної тривоги"
+          "name": {
+            "en": "Air-raid & emergency",
+            "uk": "Тривога та надзвичайні"
           },
-          "description": {
-            "en": "On official alert, PA/LED announce pause and shelter guidance in UA/EN.",
-            "uk": "За офіційною тривогою PA/LED оголошують паузу та інструкції до укриття UA/EN."
-          },
-          "precondition": {
-            "en": "Alert channel linked; announcement scripts approved.",
-            "uk": "Канал тривог підключено; тексти оголошень затверджено."
-          },
-          "priority": "critical",
-          "status": "ready",
-          "tags": [
-            "security",
-            "air-raid",
-            "safety",
-            "smoke"
-          ],
-          "steps": [
+          "children": [],
+          "cases": [
             {
-              "action": {
-                "en": "Simulate incoming air-raid alert from monitoring feed.",
-                "uk": "Симулювати надходження повітряної тривоги з моніторингу."
+              "key": "KC-021",
+              "title": {
+                "en": "Shelter evacuation procedure drill",
+                "uk": "Тренування евакуації до укриття"
               },
-              "expected_result": {
-                "en": "Ops dashboard turns red; stage manager notified.",
-                "uk": "Ops-дашборд стає червоним; stage manager сповіщено."
+              "description": {
+                "en": "Crowd directed to marked shelters; headcount and all-clear flow.",
+                "uk": "Натовп спрямовується до позначених укриттів; підрахунок і процедура «відбій»."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Shelter routes signed; stewards assigned; drill mode on.",
+                "uk": "Маршрути до укриттів позначено; стюарди призначені; режим тренування."
+              },
+              "priority": "critical",
+              "status": "ready",
+              "tags": [
+                "security",
+                "air-raid",
+                "evacuation",
+                "shelter"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Start evacuation drill from alert-paused state.",
+                    "uk": "Почати тренування евакуації зі стану паузи через тривогу."
+                  },
+                  "expected_result": {
+                    "en": "Stewards open routes; arrows and staff guide flow.",
+                    "uk": "Стюарди відкривають маршрути; стрілки та персонал спрямовують потік."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Record shelter occupancy against capacity.",
+                    "uk": "Зафіксувати заповненість укриттів щодо місткості."
+                  },
+                  "expected_result": {
+                    "en": "Occupancy under capacity; overflow plan unused or triggered.",
+                    "uk": "Заповненість нижча за місткість; план overflow не потрібен або активований."
+                  },
+                  "data": {
+                    "en": "Shelter A capacity: 2000",
+                    "uk": "Укриття A: місткість 2000"
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Simulate all-clear and controlled return to venue.",
+                    "uk": "Симулювати відбій і контрольоване повернення на майданчик."
+                  },
+                  "expected_result": {
+                    "en": "Gates reopen in waves; show resume checklist started.",
+                    "uk": "Гейти відкриваються хвилями; стартує чекліст відновлення шоу."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "File drill report with timings and issues.",
+                    "uk": "Оформити звіт тренування з таймінгами та зауваженнями."
+                  },
+                  "expected_result": {
+                    "en": "Report stored with total evacuation time.",
+                    "uk": "Звіт збережено із загальним часом евакуації."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Trigger approved bilingual announcement on PA and LED.",
-                "uk": "Запустити затверджене двомовне оголошення на PA та LED."
+              "key": "KC-022",
+              "title": {
+                "en": "Medical post readiness check",
+                "uk": "Перевірка готовності медпункту"
               },
-              "expected_result": {
-                "en": "Script plays; screens show shelter directions.",
-                "uk": "Скрипт відтворюється; екрани показують напрямки до укриття."
+              "description": {
+                "en": "On-site medical post staffed with supplies and radio link.",
+                "uk": "Медпункт укомплектований, має запаси та радіозв'язок."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "precondition": {
+                "en": "Medical contractor on site for shift.",
+                "uk": "Медпідрядник на майданчику на зміну."
+              },
+              "priority": "high",
+              "status": "ready",
+              "tags": [
+                "security",
+                "medical",
+                "safety"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Inventory first-aid kits and AED against checklist.",
+                    "uk": "Звірити аптечки та AED з чеклістом."
+                  },
+                  "expected_result": {
+                    "en": "All critical items present and in date.",
+                    "uk": "Усі критичні позиції на місці й у терміні придатності."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Radio-check medical post with central ops.",
+                    "uk": "Перевірити радіозв'язок медпункту з центральним ops."
+                  },
+                  "expected_result": {
+                    "en": "Clear two-way radio acknowledged.",
+                    "uk": "Підтверджено чіткий двосторонній зв'язок."
+                  },
+                  "data": {
+                    "en": "Channel: MED-1",
+                    "uk": "Канал: MED-1"
+                  }
+                }
+              ]
             },
             {
-              "action": {
-                "en": "Confirm music/show paused and artists held backstage.",
-                "uk": "Підтвердити паузу шоу й утримання артистів бекстейдж."
+              "key": "KC-023",
+              "title": {
+                "en": "Crowd density monitoring thresholds",
+                "uk": "Моніторинг порогів щільності натовпу"
               },
-              "expected_result": {
-                "en": "Show state Paused-alert logged.",
-                "uk": "Стан шоу «Пауза-тривога» залоговано."
+              "description": {
+                "en": "Cameras/zone counts trigger steward response above threshold.",
+                "uk": "Камери/лічильники зон ініціюють реакцію стюардів понад поріг."
               },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-021",
-          "title": {
-            "en": "Shelter evacuation procedure drill",
-            "uk": "Тренування евакуації до укриття"
-          },
-          "description": {
-            "en": "Crowd directed to marked shelters; headcount and all-clear flow.",
-            "uk": "Натовп спрямовується до позначених укриттів; підрахунок і процедура «відбій»."
-          },
-          "precondition": {
-            "en": "Shelter routes signed; stewards assigned; drill mode on.",
-            "uk": "Маршрути до укриттів позначено; стюарди призначені; режим тренування."
-          },
-          "priority": "critical",
-          "status": "ready",
-          "tags": [
-            "security",
-            "air-raid",
-            "evacuation",
-            "shelter"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Start evacuation drill from alert-paused state.",
-                "uk": "Почати тренування евакуації зі стану паузи через тривогу."
+              "precondition": {
+                "en": "Zone sensors calibrated; density thresholds configured.",
+                "uk": "Сенсори зон відкалібровано; пороги щільності налаштовано."
               },
-              "expected_result": {
-                "en": "Stewards open routes; arrows and staff guide flow.",
-                "uk": "Стюарди відкривають маршрути; стрілки та персонал спрямовують потік."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Record shelter occupancy against capacity.",
-                "uk": "Зафіксувати заповненість укриттів щодо місткості."
-              },
-              "expected_result": {
-                "en": "Occupancy under capacity; overflow plan unused or triggered.",
-                "uk": "Заповненість нижча за місткість; план overflow не потрібен або активований."
-              },
-              "data": {
-                "en": "Shelter A capacity: 2000",
-                "uk": "Укриття A: місткість 2000"
-              }
-            },
-            {
-              "action": {
-                "en": "Simulate all-clear and controlled return to venue.",
-                "uk": "Симулювати відбій і контрольоване повернення на майданчик."
-              },
-              "expected_result": {
-                "en": "Gates reopen in waves; show resume checklist started.",
-                "uk": "Гейти відкриваються хвилями; стартує чекліст відновлення шоу."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "File drill report with timings and issues.",
-                "uk": "Оформити звіт тренування з таймінгами та зауваженнями."
-              },
-              "expected_result": {
-                "en": "Report stored with total evacuation time.",
-                "uk": "Звіт збережено із загальним часом евакуації."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-022",
-          "title": {
-            "en": "Medical post readiness check",
-            "uk": "Перевірка готовності медпункту"
-          },
-          "description": {
-            "en": "On-site medical post staffed with supplies and radio link.",
-            "uk": "Медпункт укомплектований, має запаси та радіозв'язок."
-          },
-          "precondition": {
-            "en": "Medical contractor on site for shift.",
-            "uk": "Медпідрядник на майданчику на зміну."
-          },
-          "priority": "high",
-          "status": "ready",
-          "tags": [
-            "security",
-            "medical",
-            "safety"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Inventory first-aid kits and AED against checklist.",
-                "uk": "Звірити аптечки та AED з чеклістом."
-              },
-              "expected_result": {
-                "en": "All critical items present and in date.",
-                "uk": "Усі критичні позиції на місці й у терміні придатності."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Radio-check medical post with central ops.",
-                "uk": "Перевірити радіозв'язок медпункту з центральним ops."
-              },
-              "expected_result": {
-                "en": "Clear two-way radio acknowledged.",
-                "uk": "Підтверджено чіткий двосторонній зв'язок."
-              },
-              "data": {
-                "en": "Channel: MED-1",
-                "uk": "Канал: MED-1"
-              }
-            }
-          ]
-        },
-        {
-          "key": "KC-023",
-          "title": {
-            "en": "Crowd density monitoring thresholds",
-            "uk": "Моніторинг порогів щільності натовпу"
-          },
-          "description": {
-            "en": "Cameras/zone counts trigger steward response above threshold.",
-            "uk": "Камери/лічильники зон ініціюють реакцію стюардів понад поріг."
-          },
-          "precondition": {
-            "en": "Zone sensors calibrated; density thresholds configured.",
-            "uk": "Сенсори зон відкалібровано; пороги щільності налаштовано."
-          },
-          "priority": "medium",
-          "status": "ready",
-          "tags": [
-            "security",
-            "crowd",
-            "monitoring"
-          ],
-          "steps": [
-            {
-              "action": {
-                "en": "Inject simulated density above amber threshold in Zone C.",
-                "uk": "Симулювати щільність понад бурштиновий поріг у зоні C."
-              },
-              "expected_result": {
-                "en": "Amber alert on ops map; stewards notified.",
-                "uk": "Бурштиновий алерт на ops-карті; стюардів сповіщено."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
-            },
-            {
-              "action": {
-                "en": "Acknowledge alert and open one-way flow control.",
-                "uk": "Підтвердити алерт і відкрити односторонній контроль потоку."
-              },
-              "expected_result": {
-                "en": "Alert moves to Mitigating; density trend down.",
-                "uk": "Алерт у статусі «Пом'якшення»; тренд щільності вниз."
-              },
-              "data": {
-                "en": "",
-                "uk": ""
-              }
+              "priority": "medium",
+              "status": "ready",
+              "tags": [
+                "security",
+                "crowd",
+                "monitoring"
+              ],
+              "steps": [
+                {
+                  "action": {
+                    "en": "Inject simulated density above amber threshold in Zone C.",
+                    "uk": "Симулювати щільність понад бурштиновий поріг у зоні C."
+                  },
+                  "expected_result": {
+                    "en": "Amber alert on ops map; stewards notified.",
+                    "uk": "Бурштиновий алерт на ops-карті; стюардів сповіщено."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                },
+                {
+                  "action": {
+                    "en": "Acknowledge alert and open one-way flow control.",
+                    "uk": "Підтвердити алерт і відкрити односторонній контроль потоку."
+                  },
+                  "expected_result": {
+                    "en": "Alert moves to Mitigating; density trend down.",
+                    "uk": "Алерт у статусі «Пом'якшення»; тренд щільності вниз."
+                  },
+                  "data": {
+                    "en": "",
+                    "uk": ""
+                  }
+                }
+              ]
             }
           ]
         }
-      ]
+      ],
+      "cases": []
     },
     {
       "name": {

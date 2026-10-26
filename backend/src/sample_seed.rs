@@ -207,6 +207,21 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
         insert_run(pool, project_id, run, locale, &case_ids).await?;
     }
 
+    // Align monotonic counter with highest seeded PREFIX-N number.
+    sqlx::query(
+        r#"UPDATE projects p
+           SET next_case_number = COALESCE((
+             SELECT MAX((regexp_match(tc.key, '^[A-Z][A-Z0-9]{1,7}-([0-9]+)$'))[1]::INT)
+             FROM test_cases tc
+             WHERE tc.project_id = p.id
+               AND tc.key ~ ('^' || p.case_key_prefix || '-[0-9]+$')
+           ), 0)
+           WHERE p.id = $1"#,
+    )
+    .bind(project_id)
+    .execute(pool)
+    .await?;
+
     // Grant admin membership to all system admins so the sample is visible.
     sqlx::query(
         r#"INSERT INTO memberships (project_id, user_id, role)
@@ -244,17 +259,54 @@ pub async fn seed_sample_project(pool: &PgPool, locale: &str) -> AppResult<Optio
 }
 
 async fn insert_project(pool: &PgPool, project: &SeedProject, locale: &str) -> AppResult<Uuid> {
+    use crate::services::case_keys::{derive_prefix_from_name, unique_prefix};
+
+    let name = project.name.pick(locale);
+    // Prefer prefix inferred from seeded case keys (KC-001 → KC) so sample stays stable;
+    // otherwise derive initials from the display name (Kyiv Open-Air Concert → KOC).
+    let preferred = seed_preferred_prefix().unwrap_or_else(|| derive_prefix_from_name(name));
+    let prefix = unique_prefix(pool, &preferred, None).await?;
+
     let id: Uuid = sqlx::query_scalar(
-        r#"INSERT INTO projects (key, name, description)
-           VALUES ($1, $2, $3)
+        r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
+           VALUES ($1, $2, $3, $4, 0)
            RETURNING id"#,
     )
     .bind(project.key.trim().to_uppercase())
-    .bind(project.name.pick(locale))
+    .bind(name)
     .bind(project.description.pick(locale))
+    .bind(&prefix)
     .fetch_one(pool)
     .await?;
     Ok(id)
+}
+
+fn seed_preferred_prefix() -> Option<String> {
+    // Peek at first case key in the embedded JSON without full parse cost beyond serde.
+    let seed: SeedFile = serde_json::from_str(SAMPLE_JSON).ok()?;
+    for suite in &seed.suites {
+        if let Some(p) = find_prefix_in_suite(suite) {
+            return Some(p);
+        }
+    }
+    None
+}
+
+fn find_prefix_in_suite(suite: &SeedSuite) -> Option<String> {
+    for case in &suite.cases {
+        if let Some((prefix, _)) = case.key.rsplit_once('-') {
+            let p = prefix.trim().to_uppercase();
+            if p.len() >= 2 {
+                return Some(p);
+            }
+        }
+    }
+    for child in &suite.children {
+        if let Some(p) = find_prefix_in_suite(child) {
+            return Some(p);
+        }
+    }
+    None
 }
 
 async fn insert_suite_tree(

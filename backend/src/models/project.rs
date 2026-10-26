@@ -9,6 +9,10 @@ pub struct Project {
     pub key: String,
     pub name: String,
     pub description: String,
+    /// Auto-derived uppercase initials used for case keys (e.g. KOC).
+    pub case_key_prefix: String,
+    /// Monotonic counter; next allocated case uses this+1. Never decreases.
+    pub next_case_number: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -20,10 +24,15 @@ pub struct CreateProject {
     pub name: String,
     #[serde(default)]
     pub description: String,
+    /// Optional override for case key prefix (must be unique). Derived from name when omitted.
+    #[serde(default)]
+    pub case_key_prefix: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateProject {
     pub name: Option<String>,
     pub description: Option<String>,
+    /// Editable only before any cases exist (next_case_number == 0 and no cases/tombstones).
+    pub case_key_prefix: Option<String>,
 }

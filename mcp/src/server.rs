@@ -52,8 +52,10 @@ pub struct GetCaseArgs {
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct CreateCaseArgs {
     pub project_id: String,
-    pub key: String,
     pub title: String,
+    /// Ignored — keys are allocated as PREFIX-N by the API.
+    #[serde(default)]
+    pub key: Option<String>,
     #[serde(default)]
     pub suite_id: Option<String>,
     #[serde(default)]
@@ -182,7 +184,6 @@ impl VulykMcp {
         Parameters(args): Parameters<CreateCaseArgs>,
     ) -> Result<CallToolResult, McpError> {
         let mut body = json!({
-            "key": args.key,
             "title": args.title,
         });
         if let Some(v) = args.suite_id {
