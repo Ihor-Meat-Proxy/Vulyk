@@ -8,6 +8,7 @@ import {
   type RestorePreview,
 } from '../../api'
 import { useI18n } from '../../i18n'
+import { TestIds, listItemProps, testIdProps } from '../../testing'
 
 type Props = {
   projects: Project[]
@@ -209,25 +210,32 @@ export function BackupsPanel({ projects, onError }: Props) {
   }
 
   return (
-    <div className="panel" data-testid="admin-backups-panel">
+    <div className="panel" {...testIdProps(TestIds.adminBackupsPanel)}>
       <h3>{t('admin.backups')}</h3>
       <p className="muted">{t('admin.backupsHint')}</p>
       {testMsg && (
-        <p className="muted" data-testid="admin-backups-test-msg">
+        <p className="muted" {...testIdProps(TestIds.adminBackupsTestMsg)}>
           {testMsg}
         </p>
       )}
 
-      <section data-testid="admin-backups-destinations">
+      <section {...testIdProps(TestIds.adminBackupsDestinations)}>
         <h4>{t('admin.backupsDestinations')}</h4>
         <ul className="admin-list">
-          {destinations.map((d) => (
-            <li key={d.id} data-testid={`admin-backups-dest-${d.kind}`}>
+          {destinations.map((d, index) => (
+            <li
+              key={d.id}
+              {...listItemProps(TestIds.adminBackupsDestRow, {
+                entityId: d.id,
+                entityKey: d.kind,
+                index,
+              })}
+            >
               <strong>{d.name}</strong> ({d.kind})
               {d.has_secrets ? ` · ${t('admin.backupsSecretsMasked')}` : ''}
               <button
                 type="button"
-                data-testid="admin-backups-dest-test"
+                {...testIdProps(TestIds.adminBackupsDestTest)}
                 disabled={busy}
                 onClick={() => void onTest(d.id)}
               >
@@ -235,7 +243,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               </button>
               <button
                 type="button"
-                data-testid="admin-backups-dest-delete"
+                {...testIdProps(TestIds.adminBackupsDestDelete)}
                 disabled={busy}
                 onClick={() =>
                   void api.deleteBackupDestination(d.id).then(load)
@@ -249,12 +257,12 @@ export function BackupsPanel({ projects, onError }: Props) {
         <form
           onSubmit={onCreateDest}
           className="admin-form"
-          data-testid="admin-backups-dest-form"
+          {...testIdProps(TestIds.adminBackupsDestForm)}
         >
           <label>
             {t('admin.backupsDestName')}
             <input
-              data-testid="admin-backups-dest-name"
+              {...testIdProps(TestIds.adminBackupsDestName)}
               value={destName}
               onChange={(e) => setDestName(e.target.value)}
               required
@@ -263,7 +271,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsDestKind')}
             <select
-              data-testid="admin-backups-dest-kind"
+              {...testIdProps(TestIds.adminBackupsDestKind)}
               value={destKind}
               onChange={(e) => setDestKind(e.target.value)}
             >
@@ -278,7 +286,7 @@ export function BackupsPanel({ projects, onError }: Props) {
             <label>
               {t('admin.backupsPath')}
               <input
-                data-testid="admin-backups-dest-path"
+                {...testIdProps(TestIds.adminBackupsDestPath)}
                 value={destPath}
                 onChange={(e) => setDestPath(e.target.value)}
               />
@@ -290,6 +298,7 @@ export function BackupsPanel({ projects, onError }: Props) {
                 <label>
                   Owner
                   <input
+                    {...testIdProps(TestIds.adminBackupsDestOwner)}
                     value={destOwner}
                     onChange={(e) => setDestOwner(e.target.value)}
                     required
@@ -299,6 +308,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 {destKind === 'github' ? 'Repo' : 'Project id'}
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestRepo)}
                   value={destRepo}
                   onChange={(e) => setDestRepo(e.target.value)}
                   required
@@ -307,6 +317,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 Branch
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestBranch)}
                   value={destBranch}
                   onChange={(e) => setDestBranch(e.target.value)}
                 />
@@ -314,6 +325,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 Path
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestRemotePath)}
                   value={destRemotePath}
                   onChange={(e) => setDestRemotePath(e.target.value)}
                 />
@@ -325,6 +337,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 Base URL
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestBaseUrl)}
                   value={destBaseUrl}
                   onChange={(e) => setDestBaseUrl(e.target.value)}
                   required
@@ -333,6 +346,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 Username
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestUsername)}
                   value={destUsername}
                   onChange={(e) => setDestUsername(e.target.value)}
                   required
@@ -341,6 +355,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               <label>
                 Path
                 <input
+                  {...testIdProps(TestIds.adminBackupsDestRemotePath)}
                   value={destRemotePath}
                   onChange={(e) => setDestRemotePath(e.target.value)}
                 />
@@ -351,6 +366,7 @@ export function BackupsPanel({ projects, onError }: Props) {
             <label>
               Folder id
               <input
+                {...testIdProps(TestIds.adminBackupsDestFolderId)}
                 value={destFolderId}
                 onChange={(e) => setDestFolderId(e.target.value)}
                 required
@@ -362,7 +378,7 @@ export function BackupsPanel({ projects, onError }: Props) {
               {t('admin.backupsSecret')}
               <input
                 type="password"
-                data-testid="admin-backups-dest-secret"
+                {...testIdProps(TestIds.adminBackupsDestSecret)}
                 value={destSecret}
                 onChange={(e) => setDestSecret(e.target.value)}
                 autoComplete="off"
@@ -371,7 +387,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           )}
           <button
             type="submit"
-            data-testid="admin-backups-dest-save"
+            {...testIdProps(TestIds.adminBackupsDestSave)}
             disabled={busy}
           >
             {t('admin.backupsAddDestination')}
@@ -379,7 +395,7 @@ export function BackupsPanel({ projects, onError }: Props) {
         </form>
       </section>
 
-      <section data-testid="admin-backups-policies">
+      <section {...testIdProps(TestIds.adminBackupsPolicies)}>
         <h4>{t('admin.backupsPolicies')}</h4>
         <ul className="admin-list">
           {policies.map((p) => (
@@ -393,6 +409,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsDestination')}
             <select
+              {...testIdProps(TestIds.adminBackupsPolicyDest)}
               value={policyDestId}
               onChange={(e) => setPolicyDestId(e.target.value)}
               required
@@ -407,6 +424,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsSchedule')}
             <select
+              {...testIdProps(TestIds.adminBackupsPolicySchedule)}
               value={policySchedule}
               onChange={(e) => setPolicySchedule(e.target.value)}
             >
@@ -418,6 +436,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsProject')}
             <select
+              {...testIdProps(TestIds.adminBackupsPolicyProject)}
               value={policyProjectId}
               onChange={(e) => setPolicyProjectId(e.target.value)}
             >
@@ -432,23 +451,28 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsRetainCount')}
             <input
+              {...testIdProps(TestIds.adminBackupsPolicyRetain)}
               value={retainCount}
               onChange={(e) => setRetainCount(e.target.value)}
             />
           </label>
-          <button type="submit" disabled={busy || !policyDestId}>
+          <button
+            type="submit"
+            {...testIdProps(TestIds.adminBackupsPolicySave)}
+            disabled={busy || !policyDestId}
+          >
             {t('admin.backupsAddPolicy')}
           </button>
         </form>
       </section>
 
-      <section data-testid="admin-backups-manual">
+      <section {...testIdProps(TestIds.adminBackupsManual)}>
         <h4>{t('admin.backupsRunNow')}</h4>
         <div className="admin-form">
           <label>
             {t('admin.backupsDestination')}
             <select
-              data-testid="admin-backups-run-dest"
+              {...testIdProps(TestIds.adminBackupsRunDest)}
               value={runDestId}
               onChange={(e) => setRunDestId(e.target.value)}
             >
@@ -462,7 +486,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsProject')}
             <select
-              data-testid="admin-backups-run-project"
+              {...testIdProps(TestIds.adminBackupsRunProject)}
               value={runProjectId}
               onChange={(e) => setRunProjectId(e.target.value)}
             >
@@ -477,6 +501,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           <label>
             {t('admin.backupsPackMode')}
             <select
+              {...testIdProps(TestIds.adminBackupsPackMode)}
               value={packMode}
               onChange={(e) => setPackMode(e.target.value)}
             >
@@ -486,7 +511,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           </label>
           <button
             type="button"
-            data-testid="admin-backups-run-now"
+            {...testIdProps(TestIds.adminBackupsRunNow)}
             disabled={busy || !runDestId}
             onClick={() => void onRunNow()}
           >
@@ -495,7 +520,7 @@ export function BackupsPanel({ projects, onError }: Props) {
         </div>
       </section>
 
-      <section data-testid="admin-backups-history">
+      <section {...testIdProps(TestIds.adminBackupsHistory)}>
         <h4>{t('admin.backupsHistory')}</h4>
         <table className="admin-table">
           <thead>
@@ -508,10 +533,19 @@ export function BackupsPanel({ projects, onError }: Props) {
             </tr>
           </thead>
           <tbody>
-            {runs.map((r) => (
-              <tr key={r.id} data-testid="admin-backups-run-row">
+            {runs.map((r, index) => (
+              <tr
+                key={r.id}
+                {...listItemProps(TestIds.adminBackupsRunRow, {
+                  entityId: r.id,
+                  entityKey: r.status,
+                  index,
+                })}
+              >
                 <td>{new Date(r.started_at).toLocaleString()}</td>
-                <td data-testid="admin-backups-run-status">{r.status}</td>
+                <td {...testIdProps(TestIds.adminBackupsRunStatus)}>
+                  {r.status}
+                </td>
                 <td>{r.size_bytes}</td>
                 <td>{r.duration_ms ?? '—'}</td>
                 <td>
@@ -519,14 +553,14 @@ export function BackupsPanel({ projects, onError }: Props) {
                     <>
                       <button
                         type="button"
-                        data-testid="admin-backups-download"
+                        {...testIdProps(TestIds.adminBackupsDownload)}
                         onClick={() => void onDownload(r.id)}
                       >
                         {t('admin.backupsDownload')}
                       </button>
                       <button
                         type="button"
-                        data-testid="admin-backups-restore"
+                        {...testIdProps(TestIds.adminBackupsRestore)}
                         onClick={() => void onRestorePreview(r.id)}
                       >
                         {t('admin.backupsRestore')}
@@ -546,13 +580,13 @@ export function BackupsPanel({ projects, onError }: Props) {
       </section>
 
       {preview && (
-        <section data-testid="admin-backups-restore-preview">
+        <section {...testIdProps(TestIds.adminBackupsRestorePreview)}>
           <h4>{t('admin.backupsRestorePreview')}</h4>
           <p>
             {preview.project_key} · {preview.mode} · schema{' '}
             {preview.schema_version}
           </p>
-          <pre data-testid="admin-backups-restore-counts">
+          <pre {...testIdProps(TestIds.adminBackupsRestoreCounts)}>
             {JSON.stringify(preview.counts, null, 2)}
           </pre>
           {preview.conflicts.length > 0 && (

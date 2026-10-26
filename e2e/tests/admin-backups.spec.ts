@@ -22,7 +22,9 @@ test.describe('Admin content backups', () => {
 
     const destRow = page
       .getByTestId('admin-backups-destinations')
-      .getByTestId('admin-backups-dest-local')
+      .locator(
+        '[data-testid="admin-backups-dest-row"][data-entity-key="local"]',
+      )
       .filter({ hasText: destName })
     await expect(destRow).toBeVisible({ timeout: 15_000 })
 
