@@ -32,6 +32,10 @@ Dashboard statuses (colour-blind-safe icon + label): **Ready**, **Running**, **P
 | Rerun suite shell | `trigger_ci` |
 | Upload CI results | `upload_results` |
 
+## CI reporting (recommended)
+
+For open → upload → close with project CI tokens, GitHub Action, and GitLab template, see **[ci-integration.md](./ci-integration.md)**.
+
 ## Pipeline ingest API
 
 Auto-create campaign + iteration + suite run and ingest results:
