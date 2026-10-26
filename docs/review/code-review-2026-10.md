@@ -356,7 +356,7 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 | P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) **merged** |
 | P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
 | P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) |
-| P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) |
+| P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) **merged** |
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
 | Later | #24 / #44–#46 a11y i18n | separate UI PR |
 | Later | #37–#40 project isolation | correctness follow-up (overlaps security) |
@@ -380,7 +380,7 @@ From parallel passes: [Backend correctness review](bc-3c5709c2-a5ba-5dcd-bb51-25
 
 `backend/src/services/reports.rs:259` ignored `cases_with_results`.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60
 
 ### 37. **bug** — Cross-project `case_id` accepted into runs/results
 
