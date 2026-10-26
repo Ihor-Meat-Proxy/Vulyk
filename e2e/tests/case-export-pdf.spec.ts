@@ -43,18 +43,29 @@ test.beforeAll(async ({ request }) => {
     start: true,
     case_ids: [created.case.id],
   })
-  const itemId = run.items[0].item.id
-  await request.post(
-    `${API_URL}/api/v1/projects/${projectId}/runs/${run.run.id}/results/execute`,
-    {
-      headers: { Authorization: `Bearer ${admin.token}` },
-      data: {
-        run_item_id: itemId,
-        status: 'Passed',
-        message: 'e2e manual',
-      },
-    },
+  // createRun typing is run-only; load items for execute.
+  const runFull = await request.get(
+    `${API_URL}/api/v1/projects/${projectId}/runs/${run.run.id}`,
   )
+  expect(runFull.ok()).toBeTruthy()
+  const runBody = (await runFull.json()) as {
+    items?: Array<{ item?: { id: string }; id?: string }>
+  }
+  const itemId =
+    runBody.items?.[0]?.item?.id ?? runBody.items?.[0]?.id ?? null
+  if (itemId) {
+    await request.post(
+      `${API_URL}/api/v1/projects/${projectId}/runs/${run.run.id}/results/execute`,
+      {
+        headers: { Authorization: `Bearer ${admin.token}` },
+        data: {
+          run_item_id: itemId,
+          status: 'Passed',
+          message: 'e2e manual',
+        },
+      },
+    )
+  }
 })
 
 test('case detail Export as PDF downloads a PDF', async ({ page }) => {

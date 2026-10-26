@@ -15,7 +15,7 @@ This note documents the Case / Plan / Run surface delivered after the Phase 1 fo
 | FTS search | `GET .../cases?q=` and `GET .../cases/search?q=` (tsvector + `pg_trgm` / ILIKE) |
 | Pagination | `?limit=&offset=` → `{ items, total, limit, offset }` (default 50, max 500) |
 | Bulk ops | `POST .../cases/bulk` — `delete`, `set_status`, `set_priority`, `move_suite`, `add_tags`, `remove_tags`, `set_tags` |
-| PDF export | `GET .../cases/{id\|key}/export.pdf?results=5&locale=…` (also `/api/v1/cases/{id\|key}/export.pdf`); bulk `POST .../cases/export` → PDF or ZIP. Server-side genpdf + embedded DejaVu (Unicode/Cyrillic). UI: case detail **Export as PDF**, list row PDF + bulk bar. Permission: `export_reports`. |
+| PDF export | `GET .../cases/{id\|key}/export.pdf?results=5&locale=…` (also `/api/v1/cases/{id\|key}/export.pdf`); bulk `POST .../cases/export` → PDF or ZIP. Server-side genpdf + embedded DejaVu (Unicode/Cyrillic). UI: case detail **Export as PDF**, list row PDF + bulk bar. Permission: `export_reports`. Seed: `VQA-187`–`VQA-189`. |
 | Virtualised list | Frontend `VirtualList` + incremental “Load more” pages |
 | Customizable columns | Cases table: drag headers or Columns menu (←/→) to reorder; hide/show (Title always on). Extra columns: Automated (`external_key`), Last run (`test_results`), Updated/Created, Folder, Tags, plus `cf:<uuid>` custom-field columns via the column registry. Server-side `?sort=&order=` (whitelist + `cf:<uuid>`) with indexes; list rows enrich `automated`, `last_run_status`, `folder_name`, `tag_names`, optional `cf_ids`. Prefs: `GET/PUT/DELETE .../preferences/case-list-columns` per user/project (localStorage fallback). Reset to default in UI. |
 
