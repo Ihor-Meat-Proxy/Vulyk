@@ -57,7 +57,7 @@ pub struct SetupArgs {
     #[arg(long, short = 'y')]
     pub yes: bool,
 
-    /// Seed the Kyiv Open-Air Concert sample project (default on)
+    /// Seed sample projects: Kyiv Open-Air Concert 2026 + Vulyk QA (default on)
     #[arg(long, env = "VULYK_SEED_SAMPLE", default_value = "1")]
     pub seed_sample: String,
 }
