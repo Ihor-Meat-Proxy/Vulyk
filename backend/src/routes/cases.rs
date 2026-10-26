@@ -1075,31 +1075,15 @@ pub async fn set_custom_fields(
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
 
+    let pairs: Vec<(Uuid, serde_json::Value)> = body
+        .iter()
+        .map(|i| (i.field_id, i.value.clone()))
+        .collect();
+    crate::services::custom_fields::set_case_values(&state.pool, project_id, case_id, &pairs)
+        .await?;
+
     let mut tx = state.pool.begin().await?;
     snapshot_case(&mut tx, &case, "custom fields update").await?;
-
-    for item in &body {
-        let owned: bool = sqlx::query_scalar(
-            "SELECT EXISTS(SELECT 1 FROM custom_fields WHERE id = $1 AND project_id = $2)",
-        )
-        .bind(item.field_id)
-        .bind(project_id)
-        .fetch_one(&mut *tx)
-        .await?;
-        if !owned {
-            return Err(AppError::BadRequest("custom field not in project".into()));
-        }
-        sqlx::query(
-            r#"INSERT INTO custom_field_values (case_id, field_id, value)
-               VALUES ($1, $2, $3)
-               ON CONFLICT (case_id, field_id) DO UPDATE SET value = EXCLUDED.value"#,
-        )
-        .bind(case_id)
-        .bind(item.field_id)
-        .bind(&item.value)
-        .execute(&mut *tx)
-        .await?;
-    }
 
     let case = sqlx::query_as::<_, TestCase>(
         r#"UPDATE test_cases SET version = version + 1, updated_at = NOW()

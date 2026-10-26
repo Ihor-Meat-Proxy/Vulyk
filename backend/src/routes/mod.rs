@@ -8,7 +8,9 @@ pub mod cases;
 pub mod chat_propose;
 pub mod ci;
 pub mod ci_report;
+pub mod config_export;
 pub mod custom_fields;
+pub mod option_lists;
 pub mod health;
 pub mod imports;
 pub mod ingest;
@@ -61,6 +63,8 @@ pub fn app_router(state: AppState) -> Router {
         .merge(cases::router())
         .merge(tags::router())
         .merge(custom_fields::router())
+        .merge(option_lists::router())
+        .merge(config_export::router())
         .merge(plans::router())
         .merge(campaigns::router())
         .merge(runs::router())
