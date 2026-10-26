@@ -197,8 +197,8 @@ export function Runs({ projectId }: Props) {
                   className={selectedRunId === run.id ? 'selected' : undefined}
                   onClick={() => setSelectedRunId(run.id)}
                   {...listItemProps(TestIds.runRow, {
+                    // UUID only — run names are freeform (spaces) and must not be entity keys
                     entityId: run.id,
-                    entityKey: run.name,
                     index,
                   })}
                 >

@@ -1,4 +1,4 @@
-import { assertSafeTestAttrs } from './security'
+import { assertSafeTestAttrs, isSafeEntityKey } from './security'
 import { childTestId } from './testIds'
 
 /** When true, omit data-testid / list data-* attrs from the DOM (default: keep them). */
@@ -36,6 +36,8 @@ export type ListItemProps = {
  * Example: `{...listItemProps(TestIds.caseRow, { entityId, entityKey: c.key, index })}`
  *
  * Never pass emails, display names, passwords, or token secrets as entityId/entityKey.
+ * Freeform display names (spaces, etc.) are omitted — only short API/URL keys are emitted —
+ * so a bad call site cannot crash the page via assertSafeTestAttrs.
  */
 export function listItemProps(
   testId: string,
@@ -47,7 +49,7 @@ export function listItemProps(
     'data-entity-id': opts.entityId,
     'data-index': String(opts.index),
   }
-  if (opts.entityKey != null && opts.entityKey !== '') {
+  if (isSafeEntityKey(opts.entityKey)) {
     props['data-entity-key'] = opts.entityKey
   }
   if (opts.depth != null) {

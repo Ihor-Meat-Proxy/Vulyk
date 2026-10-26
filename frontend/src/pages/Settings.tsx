@@ -696,7 +696,12 @@ export function Settings() {
           <h3>{t('settings.automationRepos')}</h3>
           <p className="muted">
             {t('settings.automationReposHelp')}{' '}
-            <a href={CI_GUIDE_URL} target="_blank" rel="noreferrer">
+            <a
+              href={CI_GUIDE_URL}
+              target="_blank"
+              rel="noreferrer"
+              {...testIdProps(TestIds.settingsAutomationGuideLink)}
+            >
               {t('settings.automationReposGuide')}
             </a>
           </p>
@@ -705,8 +710,14 @@ export function Settings() {
             <p className="muted">{t('settings.automationEmpty')}</p>
           ) : (
             <ul className="plain-list">
-              {repos.map((repo) => (
-                <li key={repo.id}>
+              {repos.map((repo, index) => (
+                <li
+                  key={repo.id}
+                  {...listItemProps(TestIds.settingsAutomationRepoRow, {
+                    entityId: repo.id,
+                    index,
+                  })}
+                >
                   <strong>{repo.name || repo.remote_url}</strong>
                   <span className="muted">
                     {' '}
@@ -720,6 +731,10 @@ export function Settings() {
                     type="button"
                     className="linkish"
                     onClick={() => startEditRepo(repo)}
+                    {...listChildProps(
+                      TestIds.settingsAutomationRepoRow,
+                      'edit',
+                    )}
                   >
                     {t('settings.automationEdit')}
                   </button>
@@ -728,6 +743,10 @@ export function Settings() {
                     className="linkish"
                     disabled={repoBusy}
                     onClick={() => void onDeleteRepo(repo.id)}
+                    {...listChildProps(
+                      TestIds.settingsAutomationRepoRow,
+                      'delete',
+                    )}
                   >
                     {t('settings.automationDelete')}
                   </button>
@@ -756,6 +775,7 @@ export function Settings() {
                   setRepoForm((f) => ({ ...f, name: e.target.value }))
                 }
                 required
+                {...testIdProps(TestIds.settingsAutomationNameInput)}
               />
             </label>
             <label className="field">
@@ -765,6 +785,7 @@ export function Settings() {
                 onChange={(e) =>
                   setRepoForm((f) => ({ ...f, provider: e.target.value }))
                 }
+                {...testIdProps(TestIds.settingsAutomationProviderSelect)}
               >
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
@@ -780,6 +801,7 @@ export function Settings() {
                 }
                 placeholder="https://github.com/org/repo.git"
                 required
+                {...testIdProps(TestIds.settingsAutomationUrlInput)}
               />
             </label>
             <label className="field">
@@ -790,6 +812,7 @@ export function Settings() {
                   setRepoForm((f) => ({ ...f, branch: e.target.value }))
                 }
                 required
+                {...testIdProps(TestIds.settingsAutomationBranchInput)}
               />
             </label>
             <label className="field">
@@ -800,6 +823,7 @@ export function Settings() {
                   setRepoForm((f) => ({ ...f, subpath: e.target.value }))
                 }
                 placeholder="e2e"
+                {...testIdProps(TestIds.settingsAutomationSubpathInput)}
               />
             </label>
             <label className="field">
@@ -812,6 +836,7 @@ export function Settings() {
                 }
                 autoComplete="off"
                 placeholder={t('admin.automationTokenHint')}
+                {...testIdProps(TestIds.settingsAutomationTokenInput)}
               />
             </label>
             <fieldset className="field">
@@ -819,12 +844,20 @@ export function Settings() {
               {projectsForAutomation.length === 0 ? (
                 <p className="muted">{t('admin.automationRepoNeedProject')}</p>
               ) : (
-                projectsForAutomation.map((p) => (
+                projectsForAutomation.map((p, index) => (
                   <label key={p.id} className="check-row">
                     <input
                       type="checkbox"
                       checked={repoForm.project_ids.includes(p.id)}
                       onChange={() => toggleRepoProject(p.id)}
+                      {...listItemProps(
+                        TestIds.settingsAutomationProjectCheckbox,
+                        {
+                          entityId: p.id,
+                          entityKey: p.key,
+                          index,
+                        },
+                      )}
                     />
                     <span>
                       {p.key} — {p.name}
@@ -834,7 +867,12 @@ export function Settings() {
               )}
             </fieldset>
             <div className="form-row">
-              <button className="btn" type="submit" disabled={repoBusy}>
+              <button
+                className="btn"
+                type="submit"
+                disabled={repoBusy}
+                {...testIdProps(TestIds.settingsAutomationSaveButton)}
+              >
                 {repoForm.id
                   ? t('admin.automationSave')
                   : t('settings.automationAdd')}
@@ -846,6 +884,7 @@ export function Settings() {
                     className="btn secondary"
                     disabled={repoBusy}
                     onClick={() => void onTestRepo()}
+                    {...testIdProps(TestIds.settingsAutomationTestButton)}
                   >
                     {t('admin.automationTest')}
                   </button>
@@ -854,6 +893,7 @@ export function Settings() {
                     className="btn secondary"
                     disabled={repoBusy}
                     onClick={() => void onReindexRepo()}
+                    {...testIdProps(TestIds.settingsAutomationReindexButton)}
                   >
                     {t('admin.automationReindex')}
                   </button>
@@ -865,6 +905,7 @@ export function Settings() {
                       setRepoForm(emptyRepoForm())
                       setRepoInfo(null)
                     }}
+                    {...testIdProps(TestIds.settingsAutomationCancelButton)}
                   >
                     {t('common.cancel')}
                   </button>
@@ -880,7 +921,12 @@ export function Settings() {
           <h3>{t('settings.ciTokens')}</h3>
           <p className="muted">
             {t('settings.ciTokensHelp')}{' '}
-            <a href={CI_GUIDE_URL} target="_blank" rel="noreferrer">
+            <a
+              href={CI_GUIDE_URL}
+              target="_blank"
+              rel="noreferrer"
+              {...testIdProps(TestIds.settingsCiGuideLink)}
+            >
               {t('settings.automationReposGuide')}
             </a>
           </p>
@@ -893,6 +939,7 @@ export function Settings() {
                 setCiSecretOnce(null)
               }}
               aria-label={t('settings.ciTokensProject')}
+              {...testIdProps(TestIds.settingsCiProjectSelect)}
             >
               {projectsForCi.length === 0 && (
                 <option value="">{t('admin.automationRepoNeedProject')}</option>
@@ -905,7 +952,10 @@ export function Settings() {
             </select>
           </label>
           {ciSecretOnce && (
-            <p className="token-secret">
+            <p
+              className="token-secret"
+              {...testIdProps(TestIds.settingsCiTokenSecret)}
+            >
               {t('settings.tokenCreated')} <code>{ciSecretOnce}</code>
             </p>
           )}
@@ -913,8 +963,14 @@ export function Settings() {
             <p className="muted">{t('settings.ciTokenEmpty')}</p>
           ) : (
             <ul className="plain-list">
-              {ciTokens.map((tok) => (
-                <li key={tok.id}>
+              {ciTokens.map((tok, index) => (
+                <li
+                  key={tok.id}
+                  {...listItemProps(TestIds.settingsCiTokenRow, {
+                    entityId: tok.id,
+                    index,
+                  })}
+                >
                   <strong>{tok.name}</strong> · {tok.token_prefix}…
                   {tok.revoked_at ? null : (
                     <button
@@ -928,6 +984,10 @@ export function Settings() {
                             void refreshCiTokens(ciProjectId)
                           })
                       }
+                      {...listChildProps(
+                        TestIds.settingsCiTokenRow,
+                        'revoke',
+                      )}
                     >
                       {t('settings.ciTokenRevoke')}
                     </button>
@@ -948,9 +1008,15 @@ export function Settings() {
                 onChange={(e) => setCiTokenName(e.target.value)}
                 required
                 disabled={!ciProjectId}
+                {...testIdProps(TestIds.settingsCiTokenNameInput)}
               />
             </label>
-            <button className="btn" type="submit" disabled={!ciProjectId}>
+            <button
+              className="btn"
+              type="submit"
+              disabled={!ciProjectId}
+              {...testIdProps(TestIds.settingsCiTokenCreateButton)}
+            >
               {t('settings.ciTokenCreate')}
             </button>
           </form>

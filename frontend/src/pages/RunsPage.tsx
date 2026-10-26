@@ -123,7 +123,11 @@ export function RunsPage({ projectId, suites }: Props) {
   }
 
   if (!projectId) {
-    return <div className="empty">Select a project to manage runs.</div>
+    return (
+      <div className="runs-page empty" {...testIdProps(TestIds.runsPage)}>
+        Select a project to manage runs.
+      </div>
+    )
   }
 
   return (
@@ -285,8 +289,8 @@ export function RunsPage({ projectId, suites }: Props) {
                 <tr
                   key={r.id}
                   {...listItemProps(TestIds.runRow, {
+                    // UUID only — run names are freeform (spaces) and must not be entity keys
                     entityId: r.id,
-                    entityKey: r.name,
                     index,
                   })}
                 >

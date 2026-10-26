@@ -41,7 +41,8 @@ function TreeNode({
       className="exec-tree-node"
       {...listItemProps(TestIds.executionNode, {
         entityId: node.id,
-        entityKey: node.reference ?? node.name,
+        // Prefer stable reference; omit freeform display names (spaces)
+        entityKey: node.reference,
         index,
         depth,
       })}

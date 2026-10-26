@@ -40,4 +40,20 @@ describe('test id attrs', () => {
       }),
     ).toEqual({})
   })
+
+  it('omits freeform entityKey (spaces) instead of crashing', async () => {
+    vi.stubEnv('VITE_STRIP_TEST_IDS', '')
+    const { listItemProps } = await import('./attrs')
+    expect(
+      listItemProps('run-row', {
+        entityId: '550e8400-e29b-41d4-a716-446655440000',
+        entityKey: 'Smoke run with spaces',
+        index: 1,
+      }),
+    ).toEqual({
+      'data-testid': 'run-row',
+      'data-entity-id': '550e8400-e29b-41d4-a716-446655440000',
+      'data-index': '1',
+    })
+  })
 })

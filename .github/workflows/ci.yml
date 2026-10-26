@@ -432,7 +432,16 @@ jobs:
           npm run build
       - name: Install Chrome for Lighthouse
         run: |
-          npx --yes @puppeteer/browsers install chrome@stable
+          # chrome-for-testing JSON occasionally fails to parse (CDN flake)
+          for attempt in 1 2 3 4 5; do
+            if npx --yes @puppeteer/browsers install chrome@stable; then
+              exit 0
+            fi
+            echo "Chrome install attempt ${attempt} failed; retrying…" >&2
+            sleep $((attempt * 4))
+          done
+          echo "Chrome install failed after retries" >&2
+          exit 1
       - name: Start preview
         working-directory: frontend
         run: |

@@ -5,11 +5,9 @@ export class ReportsPage {
   constructor(readonly page: Page) {}
 
   async open() {
-    const link = this.page.getByTestId(TestIds.navLinkReports)
-    if (!(await link.isVisible().catch(() => false))) {
-      await this.page.getByTestId(TestIds.headerMenuToggle).click()
-    }
-    await this.page.getByTestId(TestIds.navLinkReports).click()
+    // Prefer direct navigation — sidebar reports link is permission-gated and
+    // the mobile menu toggle is display:none on desktop (Playwright would hang).
+    await this.page.goto('/reports')
     await expect(this.page.getByTestId(TestIds.reportsPage)).toBeVisible({
       timeout: 30_000,
     })

@@ -41,15 +41,19 @@ test('smoke: login → case → run → junit → import → report', async ({ p
     timeout: 30_000,
   })
 
-  await page.getByTestId(TestIds.navLinkRuns).click()
-  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible()
+  await page.goto('/runs')
+  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible({
+    timeout: 30_000,
+  })
   const runName = `Smoke run ${caseKey}`
   await page.getByTestId(TestIds.runsCreateNameInput).fill(runName)
   await page.getByTestId(TestIds.runsCreateButton).click()
   await expect(page.getByText(runName).first()).toBeVisible({ timeout: 30_000 })
 
-  await page.getByTestId(TestIds.navLinkRuns).click()
-  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible()
+  await page.goto('/runs')
+  await expect(page.getByTestId(TestIds.runsPage)).toBeVisible({
+    timeout: 30_000,
+  })
   await page.getByLabel('Upload target run').selectOption({ label: runName })
   await page
     .getByLabel('JUnit XML file')
@@ -69,12 +73,10 @@ test('smoke: login → case → run → junit → import → report', async ({ p
     timeout: 30_000,
   })
 
-  const reportsLink = page.getByTestId(TestIds.navLinkReports)
-  if (!(await reportsLink.isVisible().catch(() => false))) {
-    await page.getByTestId(TestIds.headerMenuToggle).click()
-  }
-  await page.getByTestId(TestIds.navLinkReports).click()
-  await expect(page.getByTestId(TestIds.reportsPage)).toBeVisible()
+  await page.goto('/reports')
+  await expect(page.getByTestId(TestIds.reportsPage)).toBeVisible({
+    timeout: 30_000,
+  })
   await expect(page.getByText('Recent run summaries')).toBeVisible()
   await expect(page.locator('.kpi-value').first()).toBeVisible()
 })

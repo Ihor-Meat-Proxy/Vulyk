@@ -277,6 +277,7 @@ export const TestIds = {
   generateRequirementsInput: 'generate-requirements-input',
   generateCodeModelSelect: 'generate-code-model-select',
   generateFrameworkSelect: 'generate-framework-select',
+  generateRepoSelect: 'generate-repo-select',
   generateCodeSubmitButton: 'generate-code-submit-button',
 
   // —— Chat ——
@@ -348,6 +349,25 @@ export const TestIds = {
   settingsTokenSecret: 'settings-token-secret',
   settingsError: 'settings-error',
   settingsMessage: 'settings-message',
+  settingsAutomationRepoRow: 'settings-automation-repo-row',
+  settingsAutomationNameInput: 'settings-automation-name-input',
+  settingsAutomationProviderSelect: 'settings-automation-provider-select',
+  settingsAutomationUrlInput: 'settings-automation-url-input',
+  settingsAutomationBranchInput: 'settings-automation-branch-input',
+  settingsAutomationSubpathInput: 'settings-automation-subpath-input',
+  settingsAutomationTokenInput: 'settings-automation-token-input',
+  settingsAutomationProjectCheckbox: 'settings-automation-project-checkbox',
+  settingsAutomationSaveButton: 'settings-automation-save-button',
+  settingsAutomationTestButton: 'settings-automation-test-button',
+  settingsAutomationReindexButton: 'settings-automation-reindex-button',
+  settingsAutomationCancelButton: 'settings-automation-cancel-button',
+  settingsCiProjectSelect: 'settings-ci-project-select',
+  settingsCiTokenSecret: 'settings-ci-token-secret',
+  settingsCiTokenRow: 'settings-ci-token-row',
+  settingsCiTokenNameInput: 'settings-ci-token-name-input',
+  settingsCiTokenCreateButton: 'settings-ci-token-create-button',
+  settingsAutomationGuideLink: 'settings-automation-guide-link',
+  settingsCiGuideLink: 'settings-ci-guide-link',
 
   // —— Admin ——
   adminPage: 'admin-page',
@@ -468,6 +488,7 @@ export const TestIds = {
   runDetailsResultToggle: 'run-details-result-toggle',
   runDetailsPrevButton: 'run-details-prev-button',
   runDetailsNextButton: 'run-details-next-button',
+  executionsPipelineLink: 'executions-pipeline-link',
 
   // —— PWA toasts ——
   pwaToasts: 'pwa-toasts',

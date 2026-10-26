@@ -63,7 +63,7 @@ Shipping stable `data-testid` values in production is **safe** when they stay no
 - List attrs may repeat **entity UUIDs / keys already exposed** by the API and URLs (`data-entity-id`, `data-entity-key`) plus positional `data-index` / `data-depth`.
 - They must **never** contain PII or secrets: no emails, display names, passwords, session/JWT/API token secrets, or raw token prefixes beyond what the product already shows as public metadata.
 
-Helpers call `assertSafeTestAttrs` (see `frontend/src/testing/security.ts`) and throw if a value looks suspicious (`@`, JWT-shaped strings, high-entropy blobs, non-kebab test ids).
+Helpers call `assertSafeTestAttrs` (see `frontend/src/testing/security.ts`) and throw if a value looks suspicious (`@`, JWT-shaped strings, high-entropy blobs, non-kebab test ids). `listItemProps` only emits `data-entity-key` when the value matches a short API/URL key pattern — freeform display names (e.g. run titles with spaces) are omitted so a bad call site cannot blank the page.
 
 If an environment still prefers zero test markup, build with `VITE_STRIP_TEST_IDS=true` so the helpers emit nothing.
 

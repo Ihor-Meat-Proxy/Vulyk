@@ -102,7 +102,11 @@ export function Reports({ projectId }: Props) {
   }, [refresh])
 
   if (!projectId) {
-    return <p className="muted">Select a project first.</p>
+    return (
+      <div className="reports-page" {...testIdProps(TestIds.reportsPage)}>
+        <p className="muted">Select a project first.</p>
+      </div>
+    )
   }
 
   const onExport = async (

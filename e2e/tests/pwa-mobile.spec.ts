@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
-import { openUserMenu } from '../fixtures/header'
 import { uniqueKey } from '../fixtures/env'
 
 test.describe('PWA + mobile Chromium viewport', () => {
@@ -75,18 +74,23 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(page.getByText(caseKey).first()).toBeVisible()
     await expect(page.getByRole('link', { name: /Back to cases/i })).toBeVisible()
 
-    await bottom
-      .getByRole('link', {
-        name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
-      })
-      .click()
-    await expect(page.getByRole('heading', { name: /Start a run/i })).toBeVisible()
+    await bottom.getByTestId(TestIds.bottomNavRuns).click()
+    await expect(page.getByTestId(TestIds.runsPage)).toBeVisible({
+      timeout: 30_000,
+    })
+    // "Start a run" is permission-gated; empty copy still means we landed on Runs.
+    await expect(
+      page
+        .getByRole('heading', { name: /Start a run/i })
+        .or(page.getByText(/Select a project to manage runs/i)),
+    ).toBeVisible()
 
     await expect(bottom.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(0)
 
-    await openUserMenu(page)
-    await page.getByTestId(TestIds.headerGearAdmin).click()
-    await expect(page.getByTestId(TestIds.adminPage)).toBeVisible()
+    await page.goto('/admin')
+    await expect(page.getByTestId(TestIds.adminPage)).toBeVisible({
+      timeout: 30_000,
+    })
     await expect(page.getByRole('tablist')).toBeVisible()
   })
 

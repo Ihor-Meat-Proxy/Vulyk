@@ -1,4 +1,5 @@
 import { useI18n } from '../i18n'
+import { TestIds, testIdProps } from '../testing'
 
 type SourceProps = {
   source?: string | null
@@ -41,7 +42,13 @@ export function CiPipelineLink({ pipelineUrl, jobUrl }: PipelineProps) {
   const href = pipelineUrl || jobUrl
   if (!href) return null
   return (
-    <a className="linkish" href={href} target="_blank" rel="noreferrer">
+    <a
+      className="linkish"
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      {...testIdProps(TestIds.executionsPipelineLink)}
+    >
       {t('executions.pipelineLink')}
     </a>
   )

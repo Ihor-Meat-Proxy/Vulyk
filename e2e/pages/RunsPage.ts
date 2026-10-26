@@ -6,7 +6,7 @@ export class RunsPage {
   constructor(readonly page: Page) {}
 
   async open() {
-    await this.page.getByTestId(TestIds.navLinkRuns).click()
+    await this.page.goto('/runs')
     await expect(this.page.getByTestId(TestIds.runsPage)).toBeVisible({
       timeout: 30_000,
     })
@@ -31,7 +31,9 @@ export class RunsPage {
   async uploadJunit(runName: string, filePath: string) {
     await this.open()
     await this.page.getByLabel('Upload target run').selectOption({ label: runName })
-    await this.page.getByLabel('JUnit XML file').setInputFiles(path.resolve(filePath))
+    await this.page
+      .getByLabel('JUnit XML file')
+      .setInputFiles(path.resolve(filePath))
     await expect(this.page.getByText(/Ingested \d+ results/i)).toBeVisible({
       timeout: 30_000,
     })
