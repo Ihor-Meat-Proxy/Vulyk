@@ -168,11 +168,7 @@ pub async fn create_config(
         None => (None, None),
     };
 
-    let scoped_project_id: Option<Uuid> = if body.global {
-        None
-    } else {
-        Some(project_id)
-    };
+    let scoped_project_id: Option<Uuid> = if body.global { None } else { Some(project_id) };
 
     if body.is_default {
         clear_default(&state.pool, scoped_project_id).await?;

@@ -7,11 +7,8 @@ use std::time::Duration;
 use tokio::sync::Mutex;
 
 use axum::{
-    extract::State as AxumState,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::post,
-    Json, Router,
+    extract::State as AxumState, http::StatusCode, response::IntoResponse, routing::post, Json,
+    Router,
 };
 use serde_json::{json, Value};
 
@@ -149,7 +146,7 @@ async fn clear_global_llm_configs(client: &reqwest::Client, base: &str, project_
 fn uniq(prefix: &str) -> String {
     format!(
         "{prefix}{}",
-        &uuid::Uuid::new_v4().simple().to_string()[..8].to_uppercase()
+        uuid::Uuid::new_v4().simple().to_string()[..8].to_uppercase()
     )
 }
 
@@ -192,8 +189,7 @@ async fn resolves_project_provider_over_global_and_calls_stub() {
     assert!(global["project_id"].is_null());
     assert_eq!(global["is_default"], true);
 
-    let (project_stub, project_hits) =
-        spawn_stub(None, "stub-from-project-provider").await;
+    let (project_stub, project_hits) = spawn_stub(None, "stub-from-project-provider").await;
     let project_cfg: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/llm/configs"))
         .json(&json!({
@@ -235,7 +231,11 @@ async fn resolves_project_provider_over_global_and_calls_stub() {
         .unwrap()
         .contains("stub-from-project-provider"));
     assert_eq!(project_hits.load(Ordering::SeqCst), 1);
-    assert_eq!(hits.load(Ordering::SeqCst), 0, "global stub must not be called");
+    assert_eq!(
+        hits.load(Ordering::SeqCst),
+        0,
+        "global stub must not be called"
+    );
 
     clear_global_llm_configs(&client, &base, project_id).await;
 }
@@ -277,12 +277,8 @@ async fn uses_global_default_when_project_has_no_config() {
         .unwrap();
 
     // Second project with no project-scoped config should use the global default.
-    let project_b = create_project(
-        &client,
-        &base,
-        &format!("Kyiv Concert Chat {}", uniq("K")),
-    )
-    .await;
+    let project_b =
+        create_project(&client, &base, &format!("Kyiv Concert Chat {}", uniq("K"))).await;
     let b_id = project_b["id"].as_str().unwrap();
 
     let ask: Value = client
@@ -299,7 +295,10 @@ async fn uses_global_default_when_project_has_no_config() {
 
     assert_eq!(ask["provider"], "openrouter");
     assert_eq!(ask["model"], "liquid/lfm-2.5-2.6b:free");
-    assert!(ask["answer"].as_str().unwrap().contains("from-global-default"));
+    assert!(ask["answer"]
+        .as_str()
+        .unwrap()
+        .contains("from-global-default"));
     assert_eq!(hits.load(Ordering::SeqCst), 1);
     assert_ne!(ask["provider"], "mock");
 
@@ -370,7 +369,11 @@ async fn provider_http_error_is_surfaced_not_mock() {
         .send()
         .await
         .unwrap();
-    assert_eq!(resp.status(), 400, "generate-cases should not fall back to mock");
+    assert_eq!(
+        resp.status(),
+        400,
+        "generate-cases should not fall back to mock"
+    );
     let body: Value = resp.json().await.unwrap();
     let message = body["error"]["message"].as_str().unwrap();
     assert!(message.contains("openrouter"), "generate-cases: {message}");

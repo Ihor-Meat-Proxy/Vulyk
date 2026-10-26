@@ -258,12 +258,11 @@ pub async fn unique_project_key(pool: &PgPool, candidate: &str) -> AppResult<Str
     let mut attempt = base.clone();
     let mut n = 2u32;
     loop {
-        let exists: bool = sqlx::query_scalar(
-            r#"SELECT EXISTS(SELECT 1 FROM projects WHERE key = $1)"#,
-        )
-        .bind(&attempt)
-        .fetch_one(pool)
-        .await?;
+        let exists: bool =
+            sqlx::query_scalar(r#"SELECT EXISTS(SELECT 1 FROM projects WHERE key = $1)"#)
+                .bind(&attempt)
+                .fetch_one(pool)
+                .await?;
         if !exists {
             return Ok(attempt);
         }
@@ -334,7 +333,10 @@ mod tests {
 
     #[test]
     fn validate_project_key_ok() {
-        assert_eq!(validate_project_key("kyiv_concert").unwrap(), "KYIV_CONCERT");
+        assert_eq!(
+            validate_project_key("kyiv_concert").unwrap(),
+            "KYIV_CONCERT"
+        );
         assert_eq!(validate_project_key("DEMO").unwrap(), "DEMO");
     }
 

@@ -12,7 +12,8 @@ use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
 use crate::services::case_keys::{
-    unique_key_for_name, unique_prefix, unique_prefix_for_name, validate_prefix, validate_project_key,
+    unique_key_for_name, unique_prefix, unique_prefix_for_name, validate_prefix,
+    validate_project_key,
 };
 
 const PROJECT_COLS: &str =
@@ -95,7 +96,12 @@ pub async fn create_project(
         return Err(AppError::BadRequest("name is required".into()));
     }
 
-    let key = if let Some(raw) = body.key.as_ref().map(|s| s.trim()).filter(|s| !s.is_empty()) {
+    let key = if let Some(raw) = body
+        .key
+        .as_ref()
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+    {
         let validated = validate_project_key(raw)?;
         // Explicit keys must be unique; DB unique constraint is the final guard.
         validated
