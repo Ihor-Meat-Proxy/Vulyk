@@ -294,7 +294,7 @@ async fn lists_custom_fields_values_and_config_roundtrip() {
     let export_body = export_resp.text().await.expect("export body");
     let bundle: Value = serde_json::from_str(&export_body).expect("bundle json");
     assert_eq!(bundle["version"], "1.0");
-    assert!(bundle["option_lists"].as_array().unwrap().len() >= 1);
+    assert!(!bundle["option_lists"].as_array().unwrap().is_empty());
     assert!(bundle["custom_fields"].as_array().unwrap().len() >= 2);
 
     let preview: Value = auth(
