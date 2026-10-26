@@ -76,12 +76,10 @@ test('chat propose preview, change folder, confirm create', async ({
   })
   await expect(card).toHaveCount(0)
 
-  // Case appears in Cases list with auto key.
-  await page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: /Cases|Кейси/i })
-    .click()
-  await expect(page.getByText(`Password reset ${key}`)).toBeVisible({
+  // Case appears in Cases list with auto key (scope to list — title also shows in folder tree).
+  const cases = new CasesPage(page)
+  await cases.open()
+  await expect(cases.listPanel().getByText(`Password reset ${key}`)).toBeVisible({
     timeout: 30_000,
   })
 })
