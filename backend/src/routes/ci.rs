@@ -256,13 +256,10 @@ pub async fn dispatch_ci(
     }
 
     let run_id = if let Some(run_id) = body.run_id {
-        let run = sqlx::query_as::<_, TestRun>(
-            r#"SELECT id, project_id, plan_id, iteration_id, name, description, status, source,
-                      external_ref, meta, created_by_name, environment, artifacts,
-                      pass_count, fail_count, skip_count, blocked_count, duration_ms,
-                      started_at, finished_at, created_at, updated_at
-               FROM test_runs WHERE id = $1"#,
-        )
+        let run = sqlx::query_as::<_, TestRun>(&format!(
+            r#"SELECT {cols} FROM test_runs WHERE id = $1"#,
+            cols = crate::models::TEST_RUN_COLS
+        ))
         .bind(run_id)
         .fetch_optional(&state.pool)
         .await?
@@ -296,14 +293,12 @@ pub async fn dispatch_ci(
             include_all_cases: false,
             start: false,
         };
-        let run = sqlx::query_as::<_, TestRun>(
+        let run = sqlx::query_as::<_, TestRun>(&format!(
             r#"INSERT INTO test_runs (project_id, name, status, source, meta, started_at)
                VALUES ($1, $2, $3, $4, $5, NOW())
-               RETURNING id, project_id, plan_id, iteration_id, name, description, status, source,
-                         external_ref, meta, created_by_name, environment, artifacts,
-                         pass_count, fail_count, skip_count, blocked_count, duration_ms,
-                         started_at, finished_at, created_at, updated_at"#,
-        )
+               RETURNING {cols}"#,
+            cols = crate::models::TEST_RUN_COLS
+        ))
         .bind(cfg.project_id)
         .bind(create.name)
         .bind(create.status.as_deref().unwrap_or("running"))

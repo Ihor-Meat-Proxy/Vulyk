@@ -90,6 +90,9 @@ Helm runs `vulyk-api migrate run` as a pre-upgrade Job. Full guide: [docs/guides
 | [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md) | Compose / Helm / CLI / wizard |
 | [docs/guides/sso.md](docs/guides/sso.md) | Google, Entra, GitHub, GitLab, Nextcloud |
 | [docs/integrations/](docs/integrations/) | OpenProject, Jira, importers |
+| [docs/guides/ci-integration.md](docs/guides/ci-integration.md) | GitHub Actions / GitLab CI result reporting |
+| [docs/automation-integration-design.md](docs/automation-integration-design.md) | Multi-repo + CI reporting design |
+| [docs/automation-integration-comparison.md](docs/automation-integration-comparison.md) | SquashTM / TestRail / Xray conventions |
 | [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
 | [docs/llm.md](docs/llm.md) | LLM providers, generate, chat propose/create |
 | [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | JUnit ingest & CI triggers |

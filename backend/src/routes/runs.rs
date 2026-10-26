@@ -72,7 +72,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/v1/runs/{id}/results", get(list_results_by_id))
 }
 
-const RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at";
+use crate::models::TEST_RUN_COLS as RUN_COLS;
 
 #[derive(Debug, Deserialize)]
 pub struct ListRunsQuery {

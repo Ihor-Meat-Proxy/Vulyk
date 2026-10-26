@@ -2,6 +2,8 @@
 
 Upload automated results into Vulyk and trigger GitHub Actions / GitLab pipelines from the UI.
 
+> **Preferred CI flow** (open → upload → close, project CI tokens, multi-repo settings): see **[ci-integration.md](./ci-integration.md)**. This page covers formats, one-shot ingest, dispatch, and webhooks.
+
 ## Vulyk JSON format (`vulyk/results@v1`)
 
 ```json

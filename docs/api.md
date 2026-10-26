@@ -23,7 +23,8 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 |------|-------|
 | Auth | `/api/v1/auth/*` |
 | Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suites list returns recursive `case_count` + `direct_case_count`; cases list accepts `suite_id`, `direct_only`, `unfiled_only` and sorts by numeric key; suite delete accepts `on_nonempty` |
-| Automation repo | `/api/v1/projects/{id}/automation-repo` (+ `/test`, `/reindex`) — encrypted Git token, shallow index for generate-code context |
+| Automation repos | `/api/v1/automation-repos` (+ project links); legacy `/api/v1/projects/{id}/automation-repo` — see [automation-integration-design.md](automation-integration-design.md) |
+| CI reporting | `/api/v1/projects/{id}/ci/runs` (open / results / ingest / close), project CI tokens — [guides/ci-integration.md](guides/ci-integration.md) |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
 | Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` |
 | Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — see [guides/executions.md](guides/executions.md) |
@@ -45,4 +46,4 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 - `GET …/reports/flaky` — flaky case detection
 - `GET …/reports/export?format=csv|pdf&report=dashboard|coverage|trends|flaky|run` — file export
 
-Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
+Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md).

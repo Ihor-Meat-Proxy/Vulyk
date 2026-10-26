@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   api,
+  type AutomationRepo,
   type ContextFileRef,
   type GeneratedCaseDraft,
   type LlmConfig,
@@ -21,6 +22,11 @@ function configLabel(c: LlmConfig): string {
   return `${c.name} (${c.provider}/${c.model || '—'}, ${scope}${def})`
 }
 
+function repoOptionLabel(repo: AutomationRepo): string {
+  const name = repo.name?.trim() || repo.remote_url
+  return `${name} (${repo.provider}/${repo.branch})`
+}
+
 export function Generate({ projectId }: Props) {
   const { t } = useI18n()
   const { can } = useProjectPermissions(projectId)
@@ -38,6 +44,8 @@ export function Generate({ projectId }: Props) {
   const [configs, setConfigs] = useState<LlmConfig[]>([])
   const [caseConfigId, setCaseConfigId] = useState('')
   const [codeConfigId, setCodeConfigId] = useState('')
+  const [linkedRepos, setLinkedRepos] = useState<AutomationRepo[]>([])
+  const [repoId, setRepoId] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -55,6 +63,19 @@ export function Generate({ projectId }: Props) {
         setCodeConfigId((cur) => cur || def.id)
       }
     })
+    void api
+      .listAutomationReposForProject(projectId)
+      .then((list) => {
+        setLinkedRepos(list)
+        setRepoId((cur) => {
+          if (cur && list.some((r) => r.id === cur)) return cur
+          return list[0]?.id ?? ''
+        })
+      })
+      .catch(() => {
+        setLinkedRepos([])
+        setRepoId('')
+      })
   }, [projectId])
 
   // Prefill from Cases page: ?cases=id1,id2
@@ -132,6 +153,7 @@ export function Generate({ projectId }: Props) {
         case_ids: picked.map((c) => c.id),
         framework,
         config_id: codeConfigId || undefined,
+        ...(repoId ? { repo_id: repoId } : {}),
       })
       setCode(res.code)
       setContextFiles(res.context_files ?? [])
@@ -266,6 +288,27 @@ export function Generate({ projectId }: Props) {
               <option value="pytest">pytest</option>
             </select>
           </label>
+          {linkedRepos.length > 1 ? (
+            <label className="field">
+              <span>{t('generate.repoPicker')}</span>
+              <select
+                value={repoId}
+                onChange={(e) => setRepoId(e.target.value)}
+                aria-label={t('generate.repoPicker')}
+              >
+                {linkedRepos.map((repo) => (
+                  <option key={repo.id} value={repo.id}>
+                    {repoOptionLabel(repo)}
+                  </option>
+                ))}
+              </select>
+              <span className="muted" style={{ fontSize: '0.85rem' }}>
+                {t('generate.repoPickerHint')}
+              </span>
+            </label>
+          ) : linkedRepos.length === 0 ? (
+            <p className="muted">{t('generate.repoNone')}</p>
+          ) : null}
           <button type="submit" disabled={busy || picked.length === 0}>
             {t('generate.generateCode')}
           </button>

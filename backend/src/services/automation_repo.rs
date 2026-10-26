@@ -45,8 +45,8 @@ fn cache_root() -> PathBuf {
         .unwrap_or_else(|_| PathBuf::from("/tmp/vulyk-repos"))
 }
 
-pub fn repo_workdir(project_id: Uuid) -> PathBuf {
-    cache_root().join(project_id.to_string())
+pub fn repo_workdir(repo_id: Uuid) -> PathBuf {
+    cache_root().join(repo_id.to_string())
 }
 
 fn auth_remote_url(remote_url: &str, token: Option<&str>) -> String {
@@ -87,12 +87,12 @@ fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
 
 /// Shallow clone or fetch+checkout the configured branch.
 pub fn sync_repo(
-    project_id: Uuid,
+    repo_id: Uuid,
     remote_url: &str,
     branch: &str,
     token: Option<&str>,
 ) -> AppResult<String> {
-    let dir = repo_workdir(project_id);
+    let dir = repo_workdir(repo_id);
     let url = auth_remote_url(remote_url, token);
     if dir.join(".git").is_dir() {
         // Update remote URL (may include rotated token) then fetch.
@@ -215,8 +215,8 @@ pub struct IndexedFile {
     pub chunks: Vec<String>,
 }
 
-pub fn index_workdir(project_id: Uuid, subpath: &str) -> AppResult<Vec<IndexedFile>> {
-    let root = repo_workdir(project_id);
+pub fn index_workdir(repo_id: Uuid, subpath: &str) -> AppResult<Vec<IndexedFile>> {
+    let root = repo_workdir(repo_id);
     let walk_root = if subpath.trim().is_empty() {
         root.clone()
     } else {
@@ -565,20 +565,166 @@ pub async fn retrieve_context(
     Ok((refs, context))
 }
 
+const REPO_SELECT: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
+    token_ciphertext, token_nonce, index_status, last_indexed_at,
+    last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
+
+const REPO_SELECT_R: &str = r#"r.id, r.name, r.project_id, r.provider, r.remote_url, r.branch, r.subpath,
+    r.token_ciphertext, r.token_nonce, r.index_status, r.last_indexed_at,
+    r.last_index_error, r.commit_sha, r.file_count, r.chunk_count, r.created_at, r.updated_at"#;
+
+/// Prefer the project's default linked repo; otherwise the first by sort_order.
 pub async fn load_repo_for_project(
     pool: &PgPool,
     project_id: Uuid,
 ) -> AppResult<Option<AutomationRepoRow>> {
-    let row = sqlx::query_as::<_, AutomationRepoRow>(
-        r#"SELECT id, project_id, provider, remote_url, branch, subpath,
-                  token_ciphertext, token_nonce, index_status, last_indexed_at,
-                  last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at
-           FROM automation_repos WHERE project_id = $1"#,
-    )
+    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT_R}
+           FROM automation_repos r
+           JOIN project_automation_repos par ON par.repo_id = r.id
+           WHERE par.project_id = $1
+           ORDER BY par.is_default DESC, par.sort_order ASC, r.created_at ASC
+           LIMIT 1"#
+    ))
     .bind(project_id)
     .fetch_optional(pool)
     .await?;
+    if row.is_some() {
+        return Ok(row);
+    }
+    // Fallback: legacy rows still keyed by automation_repos.project_id without junction.
+    let legacy = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT} FROM automation_repos WHERE project_id = $1 LIMIT 1"#
+    ))
+    .bind(project_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(legacy)
+}
+
+pub async fn load_repos_for_project(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> AppResult<Vec<AutomationRepoRow>> {
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT_R}
+           FROM automation_repos r
+           JOIN project_automation_repos par ON par.repo_id = r.id
+           WHERE par.project_id = $1
+           ORDER BY par.is_default DESC, par.sort_order ASC, r.name ASC"#
+    ))
+    .bind(project_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
+pub async fn load_repo_by_id(pool: &PgPool, repo_id: Uuid) -> AppResult<Option<AutomationRepoRow>> {
+    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT} FROM automation_repos WHERE id = $1"#
+    ))
+    .bind(repo_id)
+    .fetch_optional(pool)
+    .await?;
     Ok(row)
+}
+
+pub async fn list_repos(pool: &PgPool) -> AppResult<Vec<AutomationRepoRow>> {
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT} FROM automation_repos ORDER BY name ASC, created_at ASC"#
+    ))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
+/// Repos visible to a user: all when system admin / open mode; otherwise those linked
+/// to projects where the user is a member.
+pub async fn list_repos_for_user(
+    pool: &PgPool,
+    user_id: Option<Uuid>,
+    is_system_admin: bool,
+) -> AppResult<Vec<AutomationRepoRow>> {
+    if is_system_admin || user_id.is_none() {
+        return list_repos(pool).await;
+    }
+    let user_id = user_id.unwrap();
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT DISTINCT ON (r.id) {REPO_SELECT_R}
+           FROM automation_repos r
+           JOIN project_automation_repos par ON par.repo_id = r.id
+           JOIN memberships m ON m.project_id = par.project_id
+           WHERE m.user_id = $1
+           ORDER BY r.id, r.name ASC"#
+    ))
+    .bind(user_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
+pub async fn project_ids_for_repo(pool: &PgPool, repo_id: Uuid) -> AppResult<Vec<Uuid>> {
+    let ids = sqlx::query_scalar::<_, Uuid>(
+        r#"SELECT project_id FROM project_automation_repos
+           WHERE repo_id = $1
+           ORDER BY is_default DESC, sort_order ASC, project_id"#,
+    )
+    .bind(repo_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(ids)
+}
+
+/// Replace the project link set for a repo. `default_project_id` marks is_default.
+pub async fn set_project_links(
+    pool: &PgPool,
+    repo_id: Uuid,
+    project_ids: &[Uuid],
+    default_project_id: Option<Uuid>,
+) -> AppResult<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM project_automation_repos WHERE repo_id = $1")
+        .bind(repo_id)
+        .execute(&mut *tx)
+        .await?;
+
+    let default_id = default_project_id
+        .filter(|id| project_ids.contains(id))
+        .or_else(|| project_ids.first().copied());
+
+    for (idx, pid) in project_ids.iter().enumerate() {
+        let is_default = Some(*pid) == default_id;
+        // Clear existing default on the project before inserting ours.
+        if is_default {
+            sqlx::query(
+                r#"UPDATE project_automation_repos SET is_default = FALSE
+                   WHERE project_id = $1 AND is_default"#,
+            )
+            .bind(pid)
+            .execute(&mut *tx)
+            .await?;
+        }
+        sqlx::query(
+            r#"INSERT INTO project_automation_repos (project_id, repo_id, is_default, sort_order)
+               VALUES ($1, $2, $3, $4)"#,
+        )
+        .bind(pid)
+        .bind(repo_id)
+        .bind(is_default)
+        .bind(idx as i32)
+        .execute(&mut *tx)
+        .await?;
+    }
+
+    // Keep legacy project_id column pointing at the default (or first) link.
+    sqlx::query(r#"UPDATE automation_repos SET project_id = $2, updated_at = NOW() WHERE id = $1"#)
+        .bind(repo_id)
+        .bind(default_id)
+        .execute(&mut *tx)
+        .await?;
+
+    tx.commit().await?;
+    Ok(())
 }
 
 #[cfg(test)]

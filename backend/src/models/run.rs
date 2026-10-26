@@ -33,7 +33,24 @@ pub struct TestRun {
     pub finished_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub suite_name: Option<String>,
+    pub ci_provider: Option<String>,
+    pub ci_repo: Option<String>,
+    pub ci_branch: Option<String>,
+    pub ci_commit: Option<String>,
+    pub pipeline_url: Option<String>,
+    pub job_url: Option<String>,
+    /// `legacy` (auto-close on ingest) or `ci` (open → in_progress → closed).
+    #[serde(default = "default_lifecycle")]
+    pub lifecycle: String,
 }
+
+fn default_lifecycle() -> String {
+    "legacy".into()
+}
+
+/// Shared SELECT / RETURNING column list for `test_runs` → [`TestRun`].
+pub const TEST_RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at, suite_name, ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url, lifecycle";
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
 pub struct RunItem {
@@ -303,6 +320,9 @@ pub struct BulkResultsResponse {
     pub updated: i64,
     pub unmatched_case_keys: Vec<String>,
     pub job_id: Option<Uuid>,
+    /// Duplicate `(external_id, status)` retries within the same run that were skipped.
+    #[serde(default)]
+    pub idempotent_replays: i64,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

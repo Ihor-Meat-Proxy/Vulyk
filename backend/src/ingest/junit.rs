@@ -1,4 +1,5 @@
 //! JUnit / XUnit XML parser (pytest, Playwright, Surefire, cargo-nextest friendly).
+//! Recognizes Xray/TestRail-style properties: test_key, test_id, case_key, vulyk_key.
 
 use chrono::Utc;
 use quick_xml::events::Event;
@@ -14,6 +15,8 @@ struct CaseBuilder {
     time_secs: Option<f64>,
     status: String,
     message: String,
+    /// Explicit key from `<property name="test_key|test_id|case_key|vulyk_key" …>`.
+    property_key: Option<String>,
 }
 
 /// Parse JUnit XML into bulk result items.
@@ -50,6 +53,7 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
     let mut current: Option<CaseBuilder> = None;
     let mut buf = Vec::new();
     let mut capture_failure = false;
+    let mut in_testcase = false;
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -58,6 +62,13 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
             }
             Ok(Event::Start(e)) if e.local_name().as_ref() == b"testcase" => {
                 current = Some(case_from_attrs(&e)?);
+                in_testcase = true;
+            }
+            Ok(Event::Empty(e)) if e.local_name().as_ref() == b"property" && in_testcase => {
+                apply_property(&mut current, &e);
+            }
+            Ok(Event::Start(e)) if e.local_name().as_ref() == b"property" && in_testcase => {
+                apply_property(&mut current, &e);
             }
             Ok(Event::Empty(e))
                 if matches!(e.local_name().as_ref(), b"failure" | b"error" | b"skipped") =>
@@ -98,6 +109,7 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
                         results.push(finish_case(c));
                     }
                     capture_failure = false;
+                    in_testcase = false;
                 }
                 b"failure" | b"error" => capture_failure = false,
                 _ => {}
@@ -133,6 +145,38 @@ fn case_from_attrs(e: &quick_xml::events::BytesStart<'_>) -> Result<CaseBuilder,
     Ok(builder)
 }
 
+fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::BytesStart<'_>) {
+    let Some(c) = current.as_mut() else {
+        return;
+    };
+    let mut name = String::new();
+    let mut value = String::new();
+    for attr in e.attributes().flatten() {
+        match attr.key.as_ref() {
+            b"name" => name = attr_string(&attr.value),
+            b"value" => value = attr_string(&attr.value),
+            _ => {}
+        }
+    }
+    let key_name = name.to_ascii_lowercase();
+    if matches!(
+        key_name.as_str(),
+        "test_key" | "test_id" | "case_key" | "vulyk_key" | "vulyk:key"
+    ) {
+        let v = value.trim();
+        if !v.is_empty() {
+            // First matching property wins; comma-separated → take first.
+            let first = v.split(',').next().unwrap_or(v).trim();
+            // Strip TestRail-style C prefix if present; keep Vulyk PREFIX-N as-is.
+            let cleaned = first
+                .strip_prefix('C')
+                .filter(|s| s.chars().all(|c| c.is_ascii_digit()))
+                .unwrap_or(first);
+            c.property_key = Some(cleaned.to_string());
+        }
+    }
+}
+
 fn apply_outcome(
     current: &mut Option<CaseBuilder>,
     tag: &[u8],
@@ -165,7 +209,11 @@ fn finish_case(c: CaseBuilder) -> BulkResultItem {
     } else {
         format!("{} — {}", c.classname, c.name)
     };
-    let case_key = super::case_key::resolve_case_key(None, Some(&title), Some(&external_id));
+    let case_key = super::case_key::resolve_case_key(
+        c.property_key.as_deref(),
+        Some(&title),
+        Some(&external_id),
+    );
     let duration_ms = c
         .time_secs
         .map(|t| (t * 1000.0).round() as i32)
@@ -242,5 +290,33 @@ mod tests {
         assert_eq!(items.len(), 1);
         assert_eq!(items[0].status, PASSED);
         assert_eq!(items[0].duration_ms, Some(1050));
+    }
+
+    #[test]
+    fn maps_test_key_property() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1">
+  <testcase classname="tests.Login" name="valid_password" time="1.2">
+    <properties>
+      <property name="test_key" value="KOC-12"/>
+    </properties>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert_eq!(items[0].case_key.as_deref(), Some("KOC-12"));
+    }
+
+    #[test]
+    fn maps_test_id_property_like_testrail() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1">
+  <testcase name="KOC-99 something" time="0.1">
+    <properties>
+      <property name="test_id" value="DEMO-3"/>
+    </properties>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert_eq!(items[0].case_key.as_deref(), Some("DEMO-3"));
     }
 }

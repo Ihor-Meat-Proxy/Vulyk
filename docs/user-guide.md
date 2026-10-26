@@ -46,7 +46,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): `admin@vulyk.local
 - **Executions** organises CI work as **Campaigns → Iterations → Automated suites** (SquashTM-style tree, TestRail/Xray-like UI).
 - Iteration **Dashboard**: status donut, pass-rate trend, flaky/slowest tests, editable schedule and cadence.
 - **Automated suites** table: created on/by, duration, pass/fail counts, Details drawer, report/artifact links, delete/rerun by RBAC.
-- Pipeline upload can auto-create the campaign/iteration/run — see [guides/executions.md](guides/executions.md) and [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
+- Pipeline upload can auto-create the campaign/iteration/run — see [guides/executions.md](guides/executions.md), [guides/ci-integration.md](guides/ci-integration.md), and [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
 
 ## Requirements & coverage
 
@@ -85,4 +85,4 @@ cargo run -p vulyk-cli -- report \
   --create-run --project-key DEMO
 ```
 
-See [guides/ingest-and-ci.md](guides/ingest-and-ci.md).
+See [guides/ci-integration.md](guides/ci-integration.md) and [guides/ingest-and-ci.md](guides/ingest-and-ci.md).

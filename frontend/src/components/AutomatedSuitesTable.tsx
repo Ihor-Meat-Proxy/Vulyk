@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { formatTimestamp } from '../timezone'
+import { CiPipelineLink, CiSourceBadge } from './CiRunBadges'
 import { StatusBadge } from './StatusBadge'
 
 type Props = {
@@ -227,8 +228,18 @@ export function AutomatedSuitesTable({
                     <tr key={suite.id}>
                       <td>
                         <Link to={`/executions/runs/${suite.id}`}>
-                          {suite.name}
+                          {suite.suite_name || suite.name}
                         </Link>
+                        <div className="meta-row" style={{ marginTop: '0.25rem' }}>
+                          <CiSourceBadge
+                            source={suite.source}
+                            ciProvider={suite.ci_provider}
+                          />
+                          <CiPipelineLink
+                            pipelineUrl={suite.pipeline_url}
+                            jobUrl={suite.job_url}
+                          />
+                        </div>
                       </td>
                       <td>
                         <StatusBadge status={suite.status} />

@@ -692,6 +692,10 @@ pub async fn rerun_suite(
         environment: new_run.environment,
         artifacts: new_run.artifacts,
         external_ref: new_run.external_ref,
+        suite_name: new_run.suite_name,
+        ci_provider: new_run.ci_provider,
+        pipeline_url: new_run.pipeline_url,
+        job_url: new_run.job_url,
     }))
 }
 

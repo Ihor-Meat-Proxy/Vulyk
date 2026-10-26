@@ -484,9 +484,22 @@ pub async fn generate_code(
         bundle.push('\n');
     }
 
-    let (context_files, repo_context) = if let Some(repo) =
+    let selected_repo = if let Some(rid) = body.repo_id {
+        let repo = crate::services::automation_repo::load_repo_by_id(&state.pool, rid)
+            .await?
+            .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+        let links =
+            crate::services::automation_repo::project_ids_for_repo(&state.pool, rid).await?;
+        if !links.contains(&project_id) && repo.project_id != Some(project_id) {
+            return Err(AppError::BadRequest(
+                "automation repo is not linked to this project".into(),
+            ));
+        }
+        Some(repo)
+    } else {
         crate::services::automation_repo::load_repo_for_project(&state.pool, project_id).await?
-    {
+    };
+    let (context_files, repo_context) = if let Some(repo) = selected_repo {
         if repo.index_status == "ready" {
             let q = format!("{framework} {}", query_parts.join(" "));
             crate::services::automation_repo::retrieve_context(&state.pool, repo.id, &q, None)

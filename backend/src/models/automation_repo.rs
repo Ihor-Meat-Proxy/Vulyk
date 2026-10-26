@@ -6,7 +6,10 @@ use uuid::Uuid;
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct AutomationRepoPublic {
     pub id: Uuid,
-    pub project_id: Uuid,
+    pub name: String,
+    /// Legacy singular project link (first/default); prefer `project_ids`.
+    pub project_id: Option<Uuid>,
+    pub project_ids: Vec<Uuid>,
     pub provider: String,
     pub remote_url: String,
     pub branch: String,
@@ -25,7 +28,8 @@ pub struct AutomationRepoPublic {
 #[derive(Debug, sqlx::FromRow)]
 pub struct AutomationRepoRow {
     pub id: Uuid,
-    pub project_id: Uuid,
+    pub name: String,
+    pub project_id: Option<Uuid>,
     pub provider: String,
     pub remote_url: String,
     pub branch: String,
@@ -43,10 +47,13 @@ pub struct AutomationRepoRow {
 }
 
 impl AutomationRepoRow {
-    pub fn to_public(&self) -> AutomationRepoPublic {
+    pub fn to_public(&self, project_ids: Vec<Uuid>) -> AutomationRepoPublic {
+        let project_id = project_ids.first().copied().or(self.project_id);
         AutomationRepoPublic {
             id: self.id,
-            project_id: self.project_id,
+            name: self.name.clone(),
+            project_id,
+            project_ids,
             provider: self.provider.clone(),
             remote_url: self.remote_url.clone(),
             branch: self.branch.clone(),
@@ -65,6 +72,34 @@ impl AutomationRepoRow {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateAutomationRepo {
+    pub name: String,
+    pub provider: String,
+    pub remote_url: String,
+    #[serde(default = "default_branch")]
+    pub branch: String,
+    #[serde(default)]
+    pub subpath: String,
+    pub token: Option<String>,
+    /// Projects to attach (many-to-many).
+    #[serde(default)]
+    pub project_ids: Vec<Uuid>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateAutomationRepo {
+    pub name: Option<String>,
+    pub provider: Option<String>,
+    pub remote_url: Option<String>,
+    pub branch: Option<String>,
+    pub subpath: Option<String>,
+    /// Omit to leave unchanged; empty string clears.
+    pub token: Option<String>,
+    pub project_ids: Option<Vec<Uuid>>,
+}
+
+/// Legacy singular upsert body (project-scoped shim).
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpsertAutomationRepo {
     pub provider: String,
     pub remote_url: String,
@@ -72,12 +107,18 @@ pub struct UpsertAutomationRepo {
     pub branch: String,
     #[serde(default)]
     pub subpath: String,
-    /// Omit to leave unchanged; empty string clears.
     pub token: Option<String>,
+    pub name: Option<String>,
 }
 
 fn default_branch() -> String {
     "main".into()
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SetRepoProjects {
+    pub project_ids: Vec<Uuid>,
+    pub default_project_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

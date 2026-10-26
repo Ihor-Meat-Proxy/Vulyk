@@ -204,6 +204,10 @@ pub struct AutomatedSuite {
     #[schema(value_type = Object)]
     pub artifacts: Value,
     pub external_ref: Option<String>,
+    pub suite_name: Option<String>,
+    pub ci_provider: Option<String>,
+    pub pipeline_url: Option<String>,
+    pub job_url: Option<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
