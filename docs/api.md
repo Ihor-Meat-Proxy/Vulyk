@@ -57,4 +57,12 @@ Permission: `view_reports` for reads; `export_reports` for export.
 
 UI routes: `/reports`, `/reports/runs/{runId}` (deep-linkable; query `status` pre-filters), `/reports/coverage`.
 
+## Case PDF export
+
+Requires `export_reports`. Labels follow `locale` query (or `Accept-Language`): `en`, `uk`, `fr`, `es`, `de`. PDFs embed DejaVu fonts (Unicode / Cyrillic). `results` defaults to **5** (max 50) and mixes manual + automated `test_results` newest first.
+
+- `GET /api/v1/projects/{project_id}/cases/{id_or_key}/export.pdf?results=5&locale=uk` — single case by UUID or key
+- `GET /api/v1/cases/{id_or_key}/export.pdf?results=5` — same, resolves project from the case
+- `POST /api/v1/projects/{project_id}/cases/export` — body `{ "case_ids": ["…"], "results": 5, "locale": "en" }`; one id → PDF, multiple → ZIP of PDFs
+
 Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md).

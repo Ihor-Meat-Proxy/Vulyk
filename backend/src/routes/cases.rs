@@ -1,5 +1,7 @@
 use axum::{
     extract::{Path, Query, State},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
+    response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
@@ -14,6 +16,10 @@ use crate::models::{
     TestCaseDetail, TestCaseListItem, UpdateCase,
 };
 use crate::routes::AppState;
+use crate::services::case_export::{
+    export_case_pdf_bytes, export_cases_bulk, resolve_case_globally, resolve_case_id_or_key,
+    BulkExportRequest, ExportQuery,
+};
 use crate::services::case_keys::{
     allocate_case_key, find_case_by_key, is_key_retired, retire_case_key,
 };
@@ -38,8 +44,16 @@ pub fn router() -> Router<AppState> {
         )
         .route("/api/v1/projects/{project_id}/cases/bulk", post(bulk_cases))
         .route(
+            "/api/v1/projects/{project_id}/cases/export",
+            post(export_cases_bulk_handler),
+        )
+        .route(
             "/api/v1/projects/{project_id}/cases/search",
             get(search_cases),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/cases/{id_or_key}/export.pdf",
+            get(export_case_pdf_project),
         )
         .route(
             "/api/v1/projects/{project_id}/cases/{case_id}",
@@ -62,10 +76,168 @@ pub fn router() -> Router<AppState> {
             post(set_custom_fields),
         )
         .route(
+            "/api/v1/cases/{id_or_key}/export.pdf",
+            get(export_case_pdf_by_id_or_key),
+        )
+        .route(
             "/api/v1/cases/{case_id}/results",
             get(list_case_results_by_id),
         )
         .route("/api/v1/cases/by-key/{key}", get(get_case_by_key))
+}
+
+fn accept_language(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get(header::ACCEPT_LANGUAGE)
+        .and_then(|v| v.to_str().ok())
+}
+
+fn attachment_response(
+    filename: &str,
+    content_type: &str,
+    body: Vec<u8>,
+) -> AppResult<impl IntoResponse> {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_TYPE,
+        HeaderValue::from_str(content_type)
+            .map_err(|e| AppError::Internal(format!("content-type: {e}")))?,
+    );
+    let disposition = format!("attachment; filename=\"{filename}\"");
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_str(&disposition)
+            .map_err(|e| AppError::Internal(format!("content-disposition: {e}")))?,
+    );
+    Ok((StatusCode::OK, headers, body))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/projects/{project_id}/cases/{id_or_key}/export.pdf",
+    tag = "cases",
+    params(
+        ("project_id" = Uuid, Path, description = "Project id"),
+        ("id_or_key" = String, Path, description = "Case UUID or key (e.g. PLTK-2194)"),
+        ("results" = Option<i64>, Query, description = "Latest mixed results to include (default 5, max 50)"),
+        ("locale" = Option<String>, Query, description = "Label locale: en, uk, fr, es, de"),
+    ),
+    responses(
+        (status = 200, description = "Case PDF export"),
+        (status = 404, description = "Case not found")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn export_case_pdf_project(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path((project_id, id_or_key)): Path<(Uuid, String)>,
+    Query(query): Query<ExportQuery>,
+    headers: HeaderMap,
+) -> AppResult<impl IntoResponse> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExportReports,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    let case_id = resolve_case_id_or_key(&state.pool, project_id, &id_or_key).await?;
+    let locale = query.locale(accept_language(&headers));
+    let (filename, bytes) = export_case_pdf_bytes(
+        &state.pool,
+        project_id,
+        case_id,
+        query.results_limit(),
+        locale,
+    )
+    .await?;
+    attachment_response(&filename, "application/pdf", bytes)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/cases/{id_or_key}/export.pdf",
+    tag = "cases",
+    params(
+        ("id_or_key" = String, Path, description = "Case UUID or key"),
+        ("results" = Option<i64>, Query, description = "Latest mixed results to include (default 5)"),
+        ("locale" = Option<String>, Query, description = "Label locale: en, uk, fr, es, de"),
+    ),
+    responses(
+        (status = 200, description = "Case PDF export"),
+        (status = 404, description = "Case not found")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn export_case_pdf_by_id_or_key(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id_or_key): Path<String>,
+    Query(query): Query<ExportQuery>,
+    headers: HeaderMap,
+) -> AppResult<impl IntoResponse> {
+    let (case_id, project_id) = resolve_case_globally(&state.pool, &id_or_key).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExportReports,
+    )
+    .await?;
+    let locale = query.locale(accept_language(&headers));
+    let (filename, bytes) = export_case_pdf_bytes(
+        &state.pool,
+        project_id,
+        case_id,
+        query.results_limit(),
+        locale,
+    )
+    .await?;
+    attachment_response(&filename, "application/pdf", bytes)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/cases/export",
+    tag = "cases",
+    params(("project_id" = Uuid, Path, description = "Project id")),
+    request_body = BulkExportRequest,
+    responses(
+        (status = 200, description = "Single PDF or ZIP of PDFs"),
+        (status = 400, description = "Bad request")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn export_cases_bulk_handler(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(body): Json<BulkExportRequest>,
+) -> AppResult<impl IntoResponse> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ExportReports,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    let locale = body.locale(accept_language(&headers));
+    let (filename, content_type, bytes) = export_cases_bulk(
+        &state.pool,
+        project_id,
+        &body.case_ids,
+        body.results_limit(),
+        locale,
+    )
+    .await?;
+    attachment_response(&filename, content_type, bytes)
 }
 
 #[derive(Debug, Deserialize)]

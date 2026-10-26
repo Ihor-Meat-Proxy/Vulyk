@@ -23,6 +23,7 @@ const SKIP_FILES = new Set(['vite-env.d.ts', 'main.tsx', 'App.tsx'])
 /** Same testid allowed when used with listItemProps / entity attrs (list rows). */
 const LIST_BASE_IDS = new Set([
   'case-row',
+  'case-row-export-pdf',
   'folder-node',
   'folder-case-item',
   'run-row',

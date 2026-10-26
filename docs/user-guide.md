@@ -18,7 +18,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs, plus **Sample nightly #N** automated suites (varied pass/fail/in-progress/cancelled; creator **Sample CI**) |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~195+ cases with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, …), requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~195+ cases with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, PDF export, …), requirements per area, smoke + regression runs |
 
 **Admin → Settings → Sample data** lists installed sample projects, **Remove sample data** (confirm, danger) deletes only `is_sample` rows (idempotent; never user-created projects), and **Re-seed sample data** restores the demos. Case keys on remove go through the retired-key path before the sample project is deleted.
 
@@ -33,6 +33,7 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): admin email `admin
 - Open a case to view Details, History / Results, and Executions. **Edit** opens an inline editor with a sticky Save/Cancel bar, an unsaved-changes indicator, and a leave warning when navigating away with dirty fields.
 - Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
 - **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
+- **Export as PDF** on the case detail page (and per-row / bulk on the Cases list) downloads a server-generated PDF: header metadata, steps table, linked requirements, and the latest mixed manual + automated results (default 5, configurable). Multiple selected cases download as a ZIP of PDFs. Labels follow your UI language (EN/UK/FR/ES/DE); Ukrainian and other Unicode text are supported. Requires the **export reports** permission (all project roles).
 
 ### Keyboard shortcuts (case editor)
 

@@ -80,7 +80,7 @@ export function CaseList({
   onSelectSuite,
   onSuitesChanged,
 }: Props) {
-  const { t, formatNumber, formatDate } = useI18n()
+  const { t, formatNumber, formatDate, locale } = useI18n()
   const { user } = useAuth()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
@@ -89,7 +89,37 @@ export function CaseList({
   const canManageFolders = can('manage_suites')
   const canDeleteCases = can('delete_cases')
   const canLlm = can('llm_assist')
-  const showCheckbox = canBulkEdit || canLlm
+  const canExport = can('export_reports')
+  const showCheckbox = canBulkEdit || canLlm || canExport
+  const [exporting, setExporting] = useState(false)
+
+  const exportSelected = async () => {
+    if (!projectId || selected.size === 0) return
+    setExporting(true)
+    try {
+      await api.exportCases(projectId, {
+        case_ids: [...selected],
+        results: 5,
+        locale,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const exportOne = async (caseId: string) => {
+    if (!projectId) return
+    setExporting(true)
+    try {
+      await api.downloadCasePdf(projectId, caseId, { results: 5, locale })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const [cases, setCases] = useState<TestCase[]>([])
   const [total, setTotal] = useState(0)
@@ -132,10 +162,10 @@ export function CaseList({
     [columnConfig, registry],
   )
 
-  const gridTemplate = useMemo(
-    () => gridTemplateFor(visibleCols, showCheckbox),
-    [visibleCols, showCheckbox],
-  )
+  const gridTemplate = useMemo(() => {
+    const base = gridTemplateFor(visibleCols, showCheckbox)
+    return canExport ? `${base} 3.5rem` : base
+  }, [visibleCols, showCheckbox, canExport])
 
   const cfIds = useMemo(
     () => visibleCustomFieldIds(columnConfig),
@@ -781,7 +811,7 @@ export function CaseList({
           </span>
         </div>
 
-        {(canBulkEdit || canLlm) && selected.size > 0 && (
+        {(canBulkEdit || canLlm || canExport) && selected.size > 0 && (
           <div className="bulk-bar" {...testIdProps(TestIds.caseListBulkBar)}>
             <span>
               {selected.size} {t('cases.selected')}
@@ -816,6 +846,17 @@ export function CaseList({
                 {...testIdProps(TestIds.caseListGenerateButton)}
               >
                 {t('cases.generateAutomation')}
+              </button>
+            )}
+            {canExport && (
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={exporting}
+                onClick={() => void exportSelected()}
+                {...testIdProps(TestIds.caseListExportPdf)}
+              >
+                {exporting ? t('cases.exporting') : t('cases.exportPdfBulk')}
               </button>
             )}
             <button
@@ -902,6 +943,7 @@ export function CaseList({
                   </div>
                 )
               })}
+              {canExport ? <span /> : null}
             </div>
             <div {...testIdProps(TestIds.caseListTable)}>
               <VirtualList
@@ -936,6 +978,22 @@ export function CaseList({
                         {renderCell(col, c)}
                       </div>
                     ))}
+                    {canExport ? (
+                      <button
+                        type="button"
+                        className="btn secondary btn-compact"
+                        disabled={exporting}
+                        aria-label={`${t('cases.exportPdf')} ${c.key}`}
+                        onClick={() => void exportOne(c.id)}
+                        {...listItemProps(TestIds.caseRowExportPdf, {
+                          entityId: c.id,
+                          entityKey: c.key,
+                          index,
+                        })}
+                      >
+                        PDF
+                      </button>
+                    ) : null}
                   </div>
                 )}
               />

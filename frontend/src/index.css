@@ -981,10 +981,16 @@ select.project-select {
 .table-head,
 .table-row {
   display: grid;
-  grid-template-columns: 2rem 7rem 1fr 5.5rem 6rem;
+  grid-template-columns: 2rem 7rem 1fr 5.5rem 6rem 3.5rem;
   gap: 0.5rem;
   align-items: center;
   padding: 0 0.35rem;
+}
+
+.btn-compact {
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
+  min-height: 0;
 }
 
 .table-head {

@@ -119,12 +119,14 @@ export function CaseDetail({
   onBackToList,
 }: Props) {
   const { user, status: authStatus } = useAuth()
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canEdit = can('create_edit_cases')
   const canManageReqs = can('manage_requirements')
+  const canExport = can('export_reports')
   const { caseId: caseRef } = useParams()
+  const [exporting, setExporting] = useState(false)
   const [detail, setDetail] = useState<TestCaseDetail | null>(null)
   const [versions, setVersions] = useState<CaseVersionSummary[]>([])
   const [fields, setFields] = useState<CustomField[]>([])
@@ -634,6 +636,29 @@ export function CaseDetail({
           )}
         </h2>
         <div className="detail-actions" {...testIdProps(TestIds.caseDetailActions)}>
+          {canExport ? (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={exporting}
+              onClick={() => {
+                if (!projectId || !caseId) return
+                setExporting(true)
+                void api
+                  .downloadCasePdf(projectId, caseId, {
+                    results: 5,
+                    locale,
+                  })
+                  .catch((err) =>
+                    setError(err instanceof Error ? err.message : String(err)),
+                  )
+                  .finally(() => setExporting(false))
+              }}
+              {...testIdProps(TestIds.caseDetailExportPdf)}
+            >
+              {exporting ? t('cases.exporting') : t('cases.exportPdf')}
+            </button>
+          ) : null}
           {canEdit && !editing ? (
             <button
               type="button"

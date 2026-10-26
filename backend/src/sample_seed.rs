@@ -125,10 +125,16 @@ const VULYK_QA_BASE: &str = include_str!("../seed/vulyk-qa.json");
 /// Feature-scoped overlays merged into Vulyk QA. Prefer these over appending
 /// hardcoded `VQA-NNN` keys to the shared base file from parallel PRs.
 /// Register every `backend/seed/vulyk-qa.d/*.json` file here (see that dir's README).
-const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[(
-    "case-list-columns",
-    include_str!("../seed/vulyk-qa.d/case-list-columns.json"),
-)];
+const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
+    (
+        "case-list-columns",
+        include_str!("../seed/vulyk-qa.d/case-list-columns.json"),
+    ),
+    (
+        "pdf-export",
+        include_str!("../seed/vulyk-qa.d/pdf-export.json"),
+    ),
+];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
 struct Localized {
@@ -1246,6 +1252,8 @@ mod seed_file_tests {
             .filter_map(|c| c.key.rsplit_once('-')?.1.parse::<i32>().ok())
             .max()
             .unwrap_or(0);
+        // Fragment cases omit keys; they allocate before this probe case.
+        let empty_before = before.iter().filter(|c| c.key.trim().is_empty()).count() as i32;
 
         seed.suites.push(SeedSuite {
             name: Localized {
@@ -1287,7 +1295,7 @@ mod seed_file_tests {
             .iter()
             .find(|c| c.title.en == "Auto-keyed case")
             .expect("auto case");
-        assert_eq!(auto.key, format!("VQA-{}", max_before + 1));
+        assert_eq!(auto.key, format!("VQA-{}", max_before + empty_before + 1));
         let mut seen = HashSet::new();
         for c in &cases {
             assert!(seen.insert(c.key.as_str()), "dup {}", c.key);
