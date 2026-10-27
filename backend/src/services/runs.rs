@@ -60,24 +60,9 @@ pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunPro
     })
 }
 
-pub async fn load_run_items(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<Vec<RunItemView>> {
-    let items = sqlx::query(
-        r#"SELECT
-             ri.id, ri.run_id, ri.case_id, ri.assignee, ri.status, ri.sort_order,
-             ri.comment, ri.executed_at, ri.created_at, ri.updated_at,
-             tc.key AS case_key, tc.title AS case_title, tc.priority AS case_priority
-           FROM run_items ri
-           INNER JOIN test_cases tc ON tc.id = ri.case_id
-           WHERE ri.run_id = $1
-           ORDER BY ri.sort_order, tc.key"#,
-    )
-    .bind(run_id)
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(items.len());
-    for row in items {
-        let item = RunItem {
+fn run_item_view_from_row(row: sqlx::postgres::PgRow) -> AppResult<RunItemView> {
+    Ok(RunItemView {
+        item: RunItem {
             id: row.try_get("id")?,
             run_id: row.try_get("run_id")?,
             case_id: row.try_get("case_id")?,
@@ -88,15 +73,60 @@ pub async fn load_run_items(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<Vec<
             executed_at: row.try_get("executed_at")?,
             created_at: row.try_get("created_at")?,
             updated_at: row.try_get("updated_at")?,
-        };
-        out.push(RunItemView {
-            item,
-            case_key: row.try_get("case_key")?,
-            case_title: row.try_get("case_title")?,
-            case_priority: row.try_get("case_priority")?,
-        });
+        },
+        case_key: row.try_get("case_key")?,
+        case_title: row.try_get("case_title")?,
+        case_priority: row.try_get("case_priority")?,
+    })
+}
+
+const RUN_ITEM_SELECT: &str = r#"SELECT
+             ri.id, ri.run_id, ri.case_id, ri.assignee, ri.status, ri.sort_order,
+             ri.comment, ri.executed_at, ri.created_at, ri.updated_at,
+             tc.key AS case_key, tc.title AS case_title, tc.priority AS case_priority
+           FROM run_items ri
+           INNER JOIN test_cases tc ON tc.id = ri.case_id
+           WHERE ri.run_id = $1
+           ORDER BY ri.sort_order, tc.key"#;
+
+/// Full item list for run detail embed (progress UI). Prefer [`load_run_items_page`] for list APIs.
+pub async fn load_run_items(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<Vec<RunItemView>> {
+    let items = sqlx::query(RUN_ITEM_SELECT)
+        .bind(run_id)
+        .fetch_all(pool)
+        .await?;
+    let mut out = Vec::with_capacity(items.len());
+    for row in items {
+        out.push(run_item_view_from_row(row)?);
     }
     Ok(out)
+}
+
+/// Paginated run items (review #15). `limit`/`offset` should already be clamped by the caller.
+pub async fn load_run_items_page(
+    pool: &sqlx::PgPool,
+    run_id: Uuid,
+    limit: i64,
+    offset: i64,
+) -> AppResult<(Vec<RunItemView>, i64)> {
+    let total: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM run_items WHERE run_id = $1")
+        .bind(run_id)
+        .fetch_one(pool)
+        .await?;
+
+    let sql = format!("{RUN_ITEM_SELECT} LIMIT $2 OFFSET $3");
+    let items = sqlx::query(&sql)
+        .bind(run_id)
+        .bind(limit)
+        .bind(offset)
+        .fetch_all(pool)
+        .await?;
+
+    let mut out = Vec::with_capacity(items.len());
+    for row in items {
+        out.push(run_item_view_from_row(row)?);
+    }
+    Ok((out, total))
 }
 
 pub async fn collect_case_ids_for_run(

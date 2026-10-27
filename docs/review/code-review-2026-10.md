@@ -196,6 +196,11 @@ title/key (`case_list::search_q_predicate`).
 Matched cases are updated one-by-one after bulk insert. A 5k-result ingest
 issues thousands of round-trips. Batch with `UPDATE … FROM UNNEST` or a temp table.
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/52 — case key lookup
+batched with `ANY($1)`; `last_automation_*` refreshed via single
+`UPDATE … FROM UNNEST` (`refresh_last_automation`); counter failures
+`tracing::warn!`.
+
 ### 15. **risk** — Unbounded list endpoints
 
 `backend/src/routes/runs.rs:690-696` (`list_results`),
@@ -204,6 +209,10 @@ issues thousands of round-trips. Batch with `UPDATE … FROM UNNEST` or a temp t
 
 Large runs/exports can return multi‑MB JSON. Cap or paginate consistently with
 `PageQuery` (max 500).
+
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/87 —
+`list_results` / `list_results_by_id` / `list_run_items` return `Page<T>` with
+`PageQuery` (max 500); run-results export capped at `PAGE_MAX_LIMIT`.
 
 ### 16. **improvement** — Frontend case list already virtualizes + cancels
 

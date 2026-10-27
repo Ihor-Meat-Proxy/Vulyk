@@ -458,6 +458,7 @@ pub async fn export_report(
             let run_id = q
                 .run_id
                 .ok_or_else(|| crate::error::AppError::BadRequest("run_id required".into()))?;
+            // Cap export rows with PageQuery max (review #15); clients can filter/paginate.
             let results_q = RunResultsQuery {
                 status: q.status.clone(),
                 folder: q.folder.clone(),
@@ -466,7 +467,7 @@ pub async fn export_report(
                 assignee: q.assignee.clone(),
                 q: q.q.clone(),
                 sort: q.sort.clone(),
-                limit: Some(10_000),
+                limit: Some(crate::models::PAGE_MAX_LIMIT),
                 offset: Some(0),
             };
             let page = run_reports::list_run_case_results_for_export(
@@ -495,7 +496,7 @@ pub async fn export_report(
                 assignee: q.assignee.clone(),
                 q: q.q.clone(),
                 sort: q.sort.clone(),
-                limit: Some(10_000),
+                limit: Some(crate::models::PAGE_MAX_LIMIT),
                 offset: Some(0),
             };
             let page = run_reports::list_run_case_results_for_export(

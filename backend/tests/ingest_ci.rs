@@ -162,7 +162,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         .json()
         .await
         .unwrap();
-    assert!(results.as_array().unwrap().len() >= 2);
+    assert!(results["items"].as_array().unwrap().len() >= 2);
 
     // CI config + webhook status sync (GitLab pipeline shape).
     let cfg: Value = client
@@ -429,5 +429,5 @@ async fn vulyk_json_async_job() {
         .json()
         .await
         .unwrap();
-    assert_eq!(results.as_array().unwrap().len(), 2);
+    assert_eq!(results["items"].as_array().unwrap().len(), 2);
 }

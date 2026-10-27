@@ -146,7 +146,7 @@ async fn bulk_results_rolls_back_when_later_row_invalid() {
         .json()
         .await
         .unwrap();
-    let rows = listed.as_array().expect("results array");
+    let rows = listed["items"].as_array().expect("results page items");
     assert!(
         rows.is_empty(),
         "partial batch must roll back; got {listed}"

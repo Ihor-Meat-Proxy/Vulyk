@@ -22,7 +22,8 @@ use crate::routes::AppState;
 use crate::services::cases::{ensure_project, load_steps};
 use crate::services::results::{list_run_item_history, list_run_results_history, RESULT_COLS};
 use crate::services::runs::{
-    all_project_case_ids, collect_case_ids_for_run, load_run, load_run_items, run_progress,
+    all_project_case_ids, collect_case_ids_for_run, load_run, load_run_items, load_run_items_page,
+    run_progress,
 };
 
 pub fn router() -> Router<AppState> {
@@ -443,15 +444,21 @@ pub async fn delete_run(
     get,
     path = "/api/v1/projects/{project_id}/runs/{run_id}/items",
     tag = "runs",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Run items", body = [RunItemView])),
+    params(
+        ("project_id" = Uuid, Path),
+        ("run_id" = Uuid, Path),
+        ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
+        ("offset" = Option<i64>, Query)
+    ),
+    responses((status = 200, description = "Run items", body = Page<RunItemView>)),
     security(("bearer_auth" = []))
 )]
 pub async fn list_run_items(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
-) -> AppResult<Json<Vec<RunItemView>>> {
+    Query(page): Query<PageQuery>,
+) -> AppResult<Json<Page<RunItemView>>> {
     require_permission(
         &state.pool,
         &auth,
@@ -461,7 +468,10 @@ pub async fn list_run_items(
     )
     .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
-    Ok(Json(load_run_items(&state.pool, run_id).await?))
+    let limit = page.limit();
+    let offset = page.offset();
+    let (items, total) = load_run_items_page(&state.pool, run_id, limit, offset).await?;
+    Ok(Json(Page::new(items, total, limit, offset)))
 }
 
 async fn load_item(pool: &sqlx::PgPool, run_id: Uuid, item_id: Uuid) -> AppResult<RunItem> {
@@ -694,15 +704,21 @@ pub async fn update_run_item(
     get,
     path = "/api/v1/projects/{project_id}/runs/{run_id}/results",
     tag = "runs",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
-    responses((status = 200, description = "Results", body = [TestResult])),
+    params(
+        ("project_id" = Uuid, Path),
+        ("run_id" = Uuid, Path),
+        ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
+        ("offset" = Option<i64>, Query)
+    ),
+    responses((status = 200, description = "Results", body = Page<TestResult>)),
     security(("bearer_auth" = []))
 )]
 pub async fn list_results(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
-) -> AppResult<Json<Vec<TestResult>>> {
+    Query(page): Query<PageQuery>,
+) -> AppResult<Json<Page<TestResult>>> {
     require_permission(
         &state.pool,
         &auth,
@@ -712,14 +728,25 @@ pub async fn list_results(
     )
     .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
+    let limit = page.limit();
+    let offset = page.offset();
+    let total: i64 =
+        sqlx::query_scalar("SELECT COUNT(*)::bigint FROM test_results WHERE run_id = $1")
+            .bind(run_id)
+            .fetch_one(&state.pool)
+            .await?;
     let results = sqlx::query_as::<_, TestResult>(&format!(
         r#"SELECT {RESULT_COLS}
-           FROM test_results WHERE run_id = $1 ORDER BY executed_at DESC"#
+           FROM test_results WHERE run_id = $1
+           ORDER BY executed_at DESC
+           LIMIT $2 OFFSET $3"#
     ))
     .bind(run_id)
+    .bind(limit)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
-    Ok(Json(results))
+    Ok(Json(Page::new(results, total, limit, offset)))
 }
 
 #[utoipa::path(
@@ -1099,15 +1126,20 @@ pub async fn delete_run_by_id(
     get,
     path = "/api/v1/runs/{id}/results",
     tag = "runs",
-    params(("id" = Uuid, Path, description = "Run id")),
-    responses((status = 200, body = [TestResult])),
+    params(
+        ("id" = Uuid, Path, description = "Run id"),
+        ("limit" = Option<i64>, Query, description = "Page size (default 50, max 500)"),
+        ("offset" = Option<i64>, Query)
+    ),
+    responses((status = 200, body = Page<TestResult>)),
     security(("bearer_auth" = []))
 )]
 pub async fn list_results_by_id(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
-) -> AppResult<Json<Vec<TestResult>>> {
+    Query(page): Query<PageQuery>,
+) -> AppResult<Json<Page<TestResult>>> {
     let project_id: Option<Uuid> =
         sqlx::query_scalar("SELECT project_id FROM test_runs WHERE id = $1")
             .bind(id)
@@ -1122,12 +1154,23 @@ pub async fn list_results_by_id(
         Permission::ViewProject,
     )
     .await?;
+    let limit = page.limit();
+    let offset = page.offset();
+    let total: i64 =
+        sqlx::query_scalar("SELECT COUNT(*)::bigint FROM test_results WHERE run_id = $1")
+            .bind(id)
+            .fetch_one(&state.pool)
+            .await?;
     let rows = sqlx::query_as::<_, TestResult>(&format!(
         r#"SELECT {RESULT_COLS}
-           FROM test_results WHERE run_id = $1 ORDER BY executed_at, created_at"#
+           FROM test_results WHERE run_id = $1
+           ORDER BY executed_at, created_at
+           LIMIT $2 OFFSET $3"#
     ))
     .bind(id)
+    .bind(limit)
+    .bind(offset)
     .fetch_all(&state.pool)
     .await?;
-    Ok(Json(rows))
+    Ok(Json(Page::new(rows, total, limit, offset)))
 }

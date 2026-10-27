@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
+/// Hard ceiling for list/export page sizes (review #15).
+pub const PAGE_MAX_LIMIT: i64 = 500;
+/// Default page size when `limit` is omitted.
+pub const PAGE_DEFAULT_LIMIT: i64 = 50;
+
 #[derive(Debug, Clone, Deserialize, IntoParams)]
 pub struct PageQuery {
     /// Max rows to return (default 50, max 500).
@@ -11,7 +16,9 @@ pub struct PageQuery {
 
 impl PageQuery {
     pub fn limit(&self) -> i64 {
-        self.limit.unwrap_or(50).clamp(1, 500)
+        self.limit
+            .unwrap_or(PAGE_DEFAULT_LIMIT)
+            .clamp(1, PAGE_MAX_LIMIT)
     }
 
     pub fn offset(&self) -> i64 {
@@ -35,5 +42,30 @@ impl<T: Serialize> Page<T> {
             limit,
             offset,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn page_query_clamps_to_max() {
+        let q = PageQuery {
+            limit: Some(10_000),
+            offset: Some(-5),
+        };
+        assert_eq!(q.limit(), PAGE_MAX_LIMIT);
+        assert_eq!(q.offset(), 0);
+    }
+
+    #[test]
+    fn page_query_defaults() {
+        let q = PageQuery {
+            limit: None,
+            offset: None,
+        };
+        assert_eq!(q.limit(), PAGE_DEFAULT_LIMIT);
+        assert_eq!(q.offset(), 0);
     }
 }

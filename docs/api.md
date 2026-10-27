@@ -59,7 +59,9 @@ Permission: `view_reports` for reads; `export_reports` for export.
 - `GET …/reports/coverage` — requirement coverage summary
 - `GET …/reports/coverage/detail` — covered / uncovered requirements with linked cases and latest status
 - `GET …/reports/flaky` — flaky case detection
-- `GET …/reports/export?format=csv|pdf&report=dashboard|coverage|trends|flaky|run|run_results` — file export (`run_results` respects the same filters as `/results`)
+- `GET …/reports/export?format=csv|pdf&report=dashboard|coverage|trends|flaky|run|run_results` — file export (`run_results` respects the same filters as `/results`; row cap `PAGE_MAX_LIMIT` = 500)
+- `GET /api/v1/projects/{id}/runs/{run_id}/results` and `GET /api/v1/runs/{id}/results` — paginated result history (`limit`/`offset`, max 500; response `Page<TestResult>`)
+- `GET /api/v1/projects/{id}/runs/{run_id}/items` — paginated run items (`limit`/`offset`, max 500; response `Page<RunItemView>`)
 
 UI routes: `/reports`, `/reports/runs/{runId}` (deep-linkable; query `status` pre-filters), `/reports/coverage`.
 

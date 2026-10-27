@@ -125,7 +125,7 @@ async fn create_run_ignores_foreign_case_ids() {
         .json()
         .await
         .unwrap();
-    let items = items.as_array().expect("items array");
+    let items = items["items"].as_array().expect("items page");
     assert_eq!(
         items.len(),
         1,
