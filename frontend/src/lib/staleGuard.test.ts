@@ -18,4 +18,11 @@ describe('staleGuard', () => {
     applyUnlessCancelled(undefined, apply)
     expect(apply).toHaveBeenCalledTimes(1)
   })
+
+  it('exposes an AbortSignal aborted by cancel()', () => {
+    const guard = createStaleGuard()
+    expect(guard.signal.aborted).toBe(false)
+    guard.cancel()
+    expect(guard.signal.aborted).toBe(true)
+  })
 })

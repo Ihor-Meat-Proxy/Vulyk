@@ -1,16 +1,21 @@
-/** Cancelable flag for in-flight async loads that must not paint after navigation. */
+/** Cancelable flag + AbortSignal for in-flight async loads after navigation. */
 export type StaleGuard = {
   isCancelled: () => boolean
   cancel: () => void
+  /** Abort in-flight `fetch` calls that accept this signal. */
+  signal: AbortSignal
 }
 
 export function createStaleGuard(): StaleGuard {
+  const ac = new AbortController()
   let cancelled = false
   return {
     isCancelled: () => cancelled,
     cancel: () => {
       cancelled = true
+      ac.abort()
     },
+    signal: ac.signal,
   }
 }
 

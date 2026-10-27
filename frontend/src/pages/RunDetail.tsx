@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
+  isAbortError,
   RESULT_STATUSES,
   type RunItemExecution,
   type TestRunDetail,
@@ -66,7 +67,7 @@ export function RunDetail({ projectId }: Props) {
   const reload = async (guard?: StaleGuard) => {
     if (!projectId || !runId) return
     try {
-      const data = await api.getRun(projectId, runId)
+      const data = await api.getRun(projectId, runId, { signal: guard?.signal })
       applyUnlessCancelled(guard, () => {
         setDetail(data)
         setFromCache(false)
@@ -75,6 +76,7 @@ export function RunDetail({ projectId }: Props) {
         void cacheRun(projectId, runId, data)
       }
     } catch (err) {
+      if (isAbortError(err) || guard?.isCancelled()) return
       const cached = (await getCachedRun(projectId, runId)) as TestRunDetail | null
       if (cached) {
         applyUnlessCancelled(guard, () => {
@@ -100,6 +102,7 @@ export function RunDetail({ projectId }: Props) {
         applyUnlessCancelled(guard, () => setError(null))
       })
       .catch((err: Error) => {
+        if (isAbortError(err) || guard.isCancelled()) return
         applyUnlessCancelled(guard, () => setError(err.message))
       })
       .finally(() => {

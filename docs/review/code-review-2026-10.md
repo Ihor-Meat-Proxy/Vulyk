@@ -234,6 +234,11 @@ Good: `cancelled` flag and `VirtualList`. Remaining gap: `api.ts` has no
 `AbortController`, so in-flight fetches still hit the network after navigation
 (`frontend/src/api.ts:17-54`).
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/97 —
+`ApiFetchOptions.signal` on listCases / getCase / getRun / listRuns;
+`StaleGuard.signal` aborts on navigation; CaseList / CaseDetail / RunDetail /
+RunsPage ignore abort errors.
+
 ---
 
 ## API contract / OpenAPI / errors
