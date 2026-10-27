@@ -3,7 +3,7 @@
 //! CI lifecycle runs (`lifecycle = 'ci'`) move open → in_progress on first result
 //! and do **not** auto-close; legacy runs still complete on ingest.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use chrono::Utc;
 use serde_json::Value;
@@ -13,6 +13,7 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::{normalize_result_status, BulkResultItem, BulkResultsResponse};
 use crate::services::case_keys::normalize_case_key;
+use crate::services::cases::filter_case_ids_in_project;
 
 const SYNC_BATCH: usize = 500;
 
@@ -67,17 +68,27 @@ pub async fn persist_results(
         }
 
         let by_key = lookup_cases_by_keys(pool, project_id, &keys_needed).await?;
+        let provided_ids: Vec<Uuid> = prepared.iter().filter_map(|r| r.case_id).collect();
+        let allowed_ids: HashSet<Uuid> =
+            filter_case_ids_in_project(pool, project_id, &provided_ids)
+                .await?
+                .into_iter()
+                .collect();
         let mut resolved = Vec::with_capacity(prepared.len());
         for mut row in prepared {
-            if row.case_id.is_none() {
-                if let Some(ref key) = row.case_key {
-                    match by_key.get(key) {
-                        Some(id) => row.case_id = Some(*id),
-                        None => {
-                            unmatched_case_keys.push(key.clone());
-                            // Design: do not persist unmatched keys as orphan results.
-                            continue;
-                        }
+            if let Some(cid) = row.case_id {
+                // Reject cross-project / unknown case UUIDs (review #37).
+                if !allowed_ids.contains(&cid) {
+                    unmatched_case_keys.push(format!("case_id:{cid}"));
+                    continue;
+                }
+            } else if let Some(ref key) = row.case_key {
+                match by_key.get(key) {
+                    Some(id) => row.case_id = Some(*id),
+                    None => {
+                        unmatched_case_keys.push(key.clone());
+                        // Design: do not persist unmatched keys as orphan results.
+                        continue;
                     }
                 }
             }

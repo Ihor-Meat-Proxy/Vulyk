@@ -108,7 +108,9 @@ pub async fn collect_case_ids_for_run(
     case_statuses: &[String],
     tag_names: &[String],
 ) -> AppResult<Vec<Uuid>> {
-    let mut ids: Vec<Uuid> = case_ids.to_vec();
+    // Never trust client case_ids across projects (review #37).
+    let mut ids =
+        crate::services::cases::filter_case_ids_in_project(pool, project_id, case_ids).await?;
 
     if let Some(plan_id) = plan_id {
         let plan_cases: Vec<Uuid> = sqlx::query_scalar(

@@ -749,6 +749,7 @@ pub async fn ingest_results(
     let mut out = Vec::with_capacity(body.results.len());
     for item in body.results {
         let case_id = if let Some(id) = item.case_id {
+            crate::services::cases::ensure_case_in_project(&state.pool, project_id, id).await?;
             Some(id)
         } else if let Some(key) = item.case_key.as_ref() {
             sqlx::query_scalar::<_, Uuid>(
@@ -839,10 +840,15 @@ pub async fn create_result(
         let item = load_item(&state.pool, run_id, run_item_id).await?;
         case_id = Some(item.case_id);
     }
+    if let Some(cid) = case_id {
+        // Run items are project-scoped via the run; direct case_id must be too (#37).
+        crate::services::cases::ensure_case_in_project(&state.pool, project_id, cid).await?;
+    }
 
     let case_version: Option<i32> = if let Some(cid) = case_id {
-        sqlx::query_scalar("SELECT version FROM test_cases WHERE id = $1")
+        sqlx::query_scalar("SELECT version FROM test_cases WHERE id = $1 AND project_id = $2")
             .bind(cid)
+            .bind(project_id)
             .fetch_optional(&state.pool)
             .await?
     } else {
