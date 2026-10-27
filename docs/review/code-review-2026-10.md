@@ -439,6 +439,10 @@ rolls back earlier rows.
 `frontend/src/pages/CaseDetail.tsx:365-390`, `RunDetail.tsx:69-89` —
 `cancelled` does not gate `setDetail` / related setters.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/72 — gate
+`setDetail` / related setters with a stale-load guard so a slow response for a
+previous case/run cannot paint after navigation.
+
 ### 45. **bug** — CasePicker / Generate silently cap at 500 cases
 
 `frontend/src/components/CasePicker.tsx:44-46`, `Generate.tsx:92`.

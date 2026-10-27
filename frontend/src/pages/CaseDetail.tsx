@@ -39,6 +39,11 @@ import {
   type DraftStep,
 } from '../draftSteps'
 import { casePath, isCaseUuid } from '../lib/caseUrls'
+import {
+  applyUnlessCancelled,
+  createStaleGuard,
+  type StaleGuard,
+} from '../lib/staleGuard'
 import { isApplePlatform, modKeyLabel } from '../platform'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
 import { TestIds, listItemProps, testIdProps } from '../testing'
@@ -270,35 +275,46 @@ export function CaseDetail({
   // Backspace-to-parent: never while editing (inputs already guarded; avoid leaving dirty editor)
   useBackspaceNavigate(goBack, !loading && !deleted && !editing)
 
-  const loadRelated = async (pid: string, id: string, data: TestCaseDetail) => {
+  const loadRelated = async (
+    pid: string,
+    id: string,
+    data: TestCaseDetail,
+    guard?: StaleGuard,
+  ) => {
     const [vers, defs, reqs, all] = await Promise.all([
       api.listVersions(pid, id),
       api.listCustomFields(pid, 'test_case'),
       api.listCaseRequirements(pid, id),
       api.listRequirements(pid),
     ])
-    applyDetail(data)
-    setVersions(vers)
-    setFields(defs)
-    setLinked(reqs)
-    setAllReqs(all)
-    setOfflineNotice(false)
-    setDeleted(false)
-    void cacheCase(pid, id, data)
+    applyUnlessCancelled(guard, () => {
+      applyDetail(data)
+      setVersions(vers)
+      setFields(defs)
+      setLinked(reqs)
+      setAllReqs(all)
+      setOfflineNotice(false)
+      setDeleted(false)
+    })
+    if (!guard?.isCancelled()) {
+      void cacheCase(pid, id, data)
+    }
   }
 
-  const reload = async () => {
+  const reload = async (guard?: StaleGuard) => {
     if (!caseRef) return
     try {
       let data: TestCaseDetail
       if (isCaseUuid(caseRef)) {
         if (!projectId) return
         data = await api.getCase(projectId, caseRef)
+        if (guard?.isCancelled()) return
         if (data.case.key) {
           navigate(casePath(data.case.key), { replace: true })
         }
       } else {
         data = await api.getCaseByKey(caseRef)
+        if (guard?.isCancelled()) return
         onEnsureProject(data.case.project_id)
         if (data.case.key && data.case.key.toUpperCase() !== caseRef.toUpperCase()) {
           navigate(casePath(data.case.key), { replace: true })
@@ -307,14 +323,16 @@ export function CaseDetail({
       const pid = data.case.project_id
       const id = data.case.id
       try {
-        await loadRelated(pid, id, data)
+        await loadRelated(pid, id, data, guard)
       } catch {
-        applyDetail(data)
+        applyUnlessCancelled(guard, () => applyDetail(data))
       }
     } catch (err) {
       if (err instanceof ApiError && (err.status === 410 || err.code === 'case_deleted')) {
-        setDeleted(true)
-        setDetail(null)
+        applyUnlessCancelled(guard, () => {
+          setDeleted(true)
+          setDetail(null)
+        })
         return
       }
       if (projectId && caseRef && isCaseUuid(caseRef)) {
@@ -323,8 +341,10 @@ export function CaseDetail({
           caseRef,
         )) as TestCaseDetail | null
         if (cached) {
-          applyDetail(cached)
-          setOfflineNotice(true)
+          applyUnlessCancelled(guard, () => {
+            applyDetail(cached)
+            setOfflineNotice(true)
+          })
           return
         }
       }
@@ -364,21 +384,21 @@ export function CaseDetail({
       setLoading(false)
       return
     }
-    let cancelled = false
+    const guard = createStaleGuard()
     setLoading(true)
     setDeleted(false)
-    reload()
+    reload(guard)
       .then(() => {
-        if (!cancelled) setError(null)
+        applyUnlessCancelled(guard, () => setError(null))
       })
       .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
+        applyUnlessCancelled(guard, () => setError(err.message))
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        applyUnlessCancelled(guard, () => setLoading(false))
       })
     return () => {
-      cancelled = true
+      guard.cancel()
     }
   }, [projectId, caseRef])
 
