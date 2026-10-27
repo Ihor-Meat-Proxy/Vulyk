@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import {
   api,
+  isAbortError,
   type CustomField,
   type Suite,
   type TestCase,
@@ -383,12 +384,12 @@ export function CaseList({
       setProjectCaseTotal(0)
       return
     }
-    let cancelled = false
+    const ac = new AbortController()
     setLoading(true)
     api
-      .listCases(projectId, listParams(offset))
+      .listCases(projectId, { ...listParams(offset), signal: ac.signal })
       .then((page) => {
-        if (cancelled) return
+        if (ac.signal.aborted) return
         startTransition(() => {
           setCases((prev) =>
             offset === 0 ? page.items : [...prev, ...page.items],
@@ -398,29 +399,31 @@ export function CaseList({
         })
       })
       .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
+        if (ac.signal.aborted || isAbortError(err)) return
+        setError(err.message)
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!ac.signal.aborted) setLoading(false)
       })
     return () => {
-      cancelled = true
+      ac.abort()
     }
   }, [projectId, listParams, offset])
 
   useEffect(() => {
     if (!projectId) return
-    let cancelled = false
+    const ac = new AbortController()
     api
-      .listCases(projectId, { limit: 1, offset: 0 })
+      .listCases(projectId, { limit: 1, offset: 0, signal: ac.signal })
       .then((page) => {
-        if (!cancelled) setProjectCaseTotal(page.total)
+        if (!ac.signal.aborted) setProjectCaseTotal(page.total)
       })
-      .catch(() => {
+      .catch((err: Error) => {
+        if (ac.signal.aborted || isAbortError(err)) return
         /* tree still works without the badge */
       })
     return () => {
-      cancelled = true
+      ac.abort()
     }
   }, [projectId, suites, treeReloadToken])
 

@@ -34,6 +34,18 @@ export class ApiError extends Error {
   }
 }
 
+/** Optional fetch options for cancelable GETs (review #16). */
+export type ApiFetchOptions = {
+  signal?: AbortSignal
+}
+
+/** True when `fetch` (or a wrapper) rejected because the request was aborted. */
+export function isAbortError(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === 'AbortError') return true
+  if (err instanceof Error && err.name === 'AbortError') return true
+  return false
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken()
   const headers: Record<string, string> = {
@@ -780,6 +792,8 @@ export type ListCasesParams = {
   cf?: Record<string, unknown>
   limit?: number
   offset?: number
+  /** Abort in-flight list fetch on navigation / filter change. */
+  signal?: AbortSignal
 }
 
 export type CaseListColumnPref = {
@@ -2001,11 +2015,13 @@ export const api = {
     qs.set('offset', String(params.offset ?? 0))
     return request<Page<TestCase>>(
       `/api/v1/projects/${projectId}/cases?${qs.toString()}`,
+      params.signal ? { signal: params.signal } : undefined,
     )
   },
-  getCaseListColumns: (projectId: string) =>
+  getCaseListColumns: (projectId: string, opts?: ApiFetchOptions) =>
     request<CaseListColumnsConfig>(
       `/api/v1/projects/${projectId}/preferences/case-list-columns`,
+      opts?.signal ? { signal: opts.signal } : undefined,
     ),
   putCaseListColumns: (projectId: string, body: CaseListColumnsConfig) =>
     request<CaseListColumnsConfig>(
@@ -2017,12 +2033,16 @@ export const api = {
       `/api/v1/projects/${projectId}/preferences/case-list-columns`,
       { method: 'DELETE' },
     ),
-  getCase: (projectId: string, caseId: string) =>
-    request<TestCaseDetail>(`/api/v1/projects/${projectId}/cases/${caseId}`),
+  getCase: (projectId: string, caseId: string, opts?: ApiFetchOptions) =>
+    request<TestCaseDetail>(
+      `/api/v1/projects/${projectId}/cases/${caseId}`,
+      opts?.signal ? { signal: opts.signal } : undefined,
+    ),
   /** Resolve a case by human-readable key (PREFIX-N), case-insensitive. */
-  getCaseByKey: (key: string) =>
+  getCaseByKey: (key: string, opts?: ApiFetchOptions) =>
     request<TestCaseDetail>(
       `/api/v1/cases/by-key/${encodeURIComponent(key)}`,
+      opts?.signal ? { signal: opts.signal } : undefined,
     ),
   updateCase: (
     projectId: string,
@@ -2364,12 +2384,21 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  listRuns: (projectId: string, limit = 50, offset = 0) =>
+  listRuns: (
+    projectId: string,
+    limit = 50,
+    offset = 0,
+    opts?: ApiFetchOptions,
+  ) =>
     request<Page<TestRun>>(
       `/api/v1/projects/${projectId}/runs?limit=${limit}&offset=${offset}`,
+      opts?.signal ? { signal: opts.signal } : undefined,
     ),
-  getRun: (projectId: string, runId: string) =>
-    request<TestRunDetail>(`/api/v1/projects/${projectId}/runs/${runId}`),
+  getRun: (projectId: string, runId: string, opts?: ApiFetchOptions) =>
+    request<TestRunDetail>(
+      `/api/v1/projects/${projectId}/runs/${runId}`,
+      opts?.signal ? { signal: opts.signal } : undefined,
+    ),
   createRun: (projectId: string, body: Record<string, unknown>) =>
     request<TestRunDetail>(`/api/v1/projects/${projectId}/runs`, {
       method: 'POST',

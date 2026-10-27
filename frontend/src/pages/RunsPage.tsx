@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, type Suite, type TestPlan, type TestRun } from '../api'
+import { api, isAbortError, type Suite, type TestPlan, type TestRun } from '../api'
 import { useAuth } from '../auth'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -58,26 +58,27 @@ export function RunsPage({ projectId, suites }: Props) {
       setPlans([])
       return
     }
-    let cancelled = false
+    const ac = new AbortController()
     setLoading(true)
     Promise.all([
-      api.listRuns(projectId, RUNS_PAGE_SIZE, 0),
+      api.listRuns(projectId, RUNS_PAGE_SIZE, 0, { signal: ac.signal }),
       api.listPlans(projectId),
     ])
       .then(([runPage, planList]) => {
-        if (cancelled) return
+        if (ac.signal.aborted) return
         applyRunsPage(runPage, false)
         setPlans(planList)
         setError(null)
       })
       .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
+        if (ac.signal.aborted || isAbortError(err)) return
+        setError(err.message)
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!ac.signal.aborted) setLoading(false)
       })
     return () => {
-      cancelled = true
+      ac.abort()
     }
   }, [projectId])
 

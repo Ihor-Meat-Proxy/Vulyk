@@ -10,6 +10,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   ApiError,
   api,
+  isAbortError,
   type CaseExecutionHistoryPage,
   type CaseResultsPage,
   type CaseVersionSummary,
@@ -307,13 +308,15 @@ export function CaseDetail({
       let data: TestCaseDetail
       if (isCaseUuid(caseRef)) {
         if (!projectId) return
-        data = await api.getCase(projectId, caseRef)
+        data = await api.getCase(projectId, caseRef, {
+          signal: guard?.signal,
+        })
         if (guard?.isCancelled()) return
         if (data.case.key) {
           navigate(casePath(data.case.key), { replace: true })
         }
       } else {
-        data = await api.getCaseByKey(caseRef)
+        data = await api.getCaseByKey(caseRef, { signal: guard?.signal })
         if (guard?.isCancelled()) return
         onEnsureProject(data.case.project_id)
         if (data.case.key && data.case.key.toUpperCase() !== caseRef.toUpperCase()) {
@@ -328,6 +331,7 @@ export function CaseDetail({
         applyUnlessCancelled(guard, () => applyDetail(data))
       }
     } catch (err) {
+      if (isAbortError(err) || guard?.isCancelled()) return
       if (err instanceof ApiError && (err.status === 410 || err.code === 'case_deleted')) {
         applyUnlessCancelled(guard, () => {
           setDeleted(true)
@@ -392,6 +396,7 @@ export function CaseDetail({
         applyUnlessCancelled(guard, () => setError(null))
       })
       .catch((err: Error) => {
+        if (isAbortError(err) || guard.isCancelled()) return
         applyUnlessCancelled(guard, () => setError(err.message))
       })
       .finally(() => {
