@@ -468,6 +468,7 @@ export function CaseDetail({
         steps: stepsForApi(steps),
         tag_names: tagNames,
         change_summary: 'edited in UI',
+        expected_version: detail.case.version,
       })
       // Only persist values the editor touched / loaded into state. Sending every
       // definition with defaults fails when required fields have null defaults and
