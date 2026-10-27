@@ -13,8 +13,8 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::ingest::parse_payload;
 use crate::models::{
-    AutomatedSuite, AutomatedSuitesQuery, Campaign, CaseExecutionHistoryPage, CreateCampaign,
-    CreateIteration, ExecutionsTreeNode, IngestRequest, IngestResponse, Iteration,
+    clamp_campaign_limit, AutomatedSuite, AutomatedSuitesQuery, Campaign, CaseExecutionHistoryPage,
+    CreateCampaign, CreateIteration, ExecutionsTreeNode, IngestRequest, IngestResponse, Iteration,
     IterationDashboard, IterationItemView, Page, PipelineIngestRequest, PipelineIngestResponse,
     SuiteResultRow, UpdateCampaign, UpdateIteration,
 };
@@ -530,6 +530,8 @@ pub async fn list_suites(
     )
     .await?;
     camp::get_iteration(&state.pool, project_id, iteration_id).await?;
+    let limit = q.limit();
+    let offset = q.offset();
     let (items, total) = camp::list_automated_suites(
         &state.pool,
         project_id,
@@ -537,16 +539,16 @@ pub async fn list_suites(
         q.status.as_deref(),
         q.created_by.as_deref(),
         q.q.as_deref(),
-        q.limit,
-        q.offset,
+        limit,
+        offset,
         &q.sort,
     )
     .await?;
     Ok(Json(Page {
         items,
         total,
-        limit: q.limit,
-        offset: q.offset,
+        limit,
+        offset,
     }))
 }
 
@@ -560,6 +562,16 @@ pub struct SuiteResultsQuery {
 
 fn default_limit() -> i64 {
     25
+}
+
+impl SuiteResultsQuery {
+    fn limit(&self) -> i64 {
+        clamp_campaign_limit(self.limit)
+    }
+
+    fn offset(&self) -> i64 {
+        self.offset.max(0)
+    }
 }
 
 #[utoipa::path(
@@ -589,12 +601,14 @@ pub async fn list_suite_results(
     if run_project != project_id {
         return Err(AppError::NotFound("run".into()));
     }
-    let (items, total) = camp::list_suite_results(&state.pool, run_id, q.limit, q.offset).await?;
+    let limit = q.limit();
+    let offset = q.offset();
+    let (items, total) = camp::list_suite_results(&state.pool, run_id, limit, offset).await?;
     Ok(Json(Page {
         items,
         total,
-        limit: q.limit,
-        offset: q.offset,
+        limit,
+        offset,
     }))
 }
 
@@ -724,7 +738,8 @@ pub async fn case_executions(
     )
     .await?;
     Ok(Json(
-        camp::case_execution_history(&state.pool, project_id, case_id, q.limit, q.offset).await?,
+        camp::case_execution_history(&state.pool, project_id, case_id, q.limit(), q.offset())
+            .await?,
     ))
 }
 
