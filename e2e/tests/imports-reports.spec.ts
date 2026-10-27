@@ -83,7 +83,7 @@ test('import TestLink, Xray, Squash TM samples', {
   const idx = options.findIndex((o) => o.includes(projectKey))
   if (idx >= 0) await select.selectOption({ index: idx })
 
-  const nav = page.getByRole('navigation', { name: 'Primary' })
+  const nav = page.getByTestId(TestIds.primaryNav)
   await nav.getByRole('link', { name: /Import|Імпорт/i }).click()
   await expect(page.getByRole('heading', { name: 'Import cases' })).toBeVisible()
 
@@ -128,7 +128,7 @@ test('requirements can be created', {
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
+    .getByTestId(TestIds.primaryNav)
     .getByRole('link', { name: /Requirements|Вимоги/i })
     .click()
   await expect(page.getByRole('heading', { name: 'Requirements' })).toBeVisible()

@@ -133,8 +133,8 @@ export function RequirementsPage({ projectId }: Props) {
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="New requirement title"
-            aria-label="Requirement title"
+            placeholder={t('a11y.placeholder.newRequirementTitle')}
+            aria-label={t('a11y.requirementTitle')}
             {...testIdProps(TestIds.requirementsTitleInput)}
           />
           <button

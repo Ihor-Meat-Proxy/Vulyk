@@ -12,6 +12,7 @@ import {
 } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 import { openUserMenu, userMenuItem } from '../fixtures/header'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -37,7 +38,7 @@ test('gear menu: appearance, admin for admin only, logout', {
 
   await loginAsAdmin(page)
 
-  const primary = page.getByRole('navigation', { name: 'Primary' })
+  const primary = page.getByTestId(TestIds.primaryNav)
   await expect(primary.getByRole('link', { name: /Admin|Адмін/i })).toHaveCount(
     0,
   )

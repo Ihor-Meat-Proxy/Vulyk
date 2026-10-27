@@ -3,6 +3,7 @@ import { createProject, createSuite } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
 import { CasesPage } from '../pages/CasesPage'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -42,7 +43,7 @@ test('chat propose preview, change folder, confirm create', {
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
+    .getByTestId(TestIds.primaryNav)
     .getByRole('link', { name: /^Chat$|Чат/i })
     .click()
 
@@ -115,7 +116,7 @@ test('chat clarify when folder is ambiguous', {
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
+    .getByTestId(TestIds.primaryNav)
     .getByRole('link', { name: /^Chat$|Чат/i })
     .click()
 

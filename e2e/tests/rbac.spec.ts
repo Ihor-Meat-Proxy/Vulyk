@@ -13,6 +13,7 @@ import {
   loginAsAdmin,
 } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -84,7 +85,7 @@ test('viewer is denied mutating APIs and hides write UI', {
   ).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Create case|Створити кейс/i })).toHaveCount(0)
 
-  const nav = page.getByRole('navigation', { name: 'Primary' })
+  const nav = page.getByTestId(TestIds.primaryNav)
   await expect(nav.getByRole('link', { name: /Import|Імпорт/i })).toHaveCount(0)
   await expect(nav.getByRole('link', { name: /Reports|Звіти/i })).toBeVisible()
 })
@@ -101,7 +102,7 @@ test('admin sees admin nav and can list users', {
   await loginAsAdmin(page)
   await expect(
     page
-      .getByRole('navigation', { name: 'Primary' })
+      .getByTestId(TestIds.primaryNav)
       .getByRole('link', { name: /Admin|Адмін/i }),
   ).toHaveCount(0)
   await page

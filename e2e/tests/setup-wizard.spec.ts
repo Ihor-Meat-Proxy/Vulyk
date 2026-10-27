@@ -9,6 +9,7 @@ import {
 } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
 import { SetupPage } from '../pages/SetupPage'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -100,7 +101,7 @@ test('setup token protection + wizard locale/timezone', {
     .click()
   await page.getByRole('menuitemradio', { name: 'Українська' }).click()
   await expect(
-    page.getByRole('navigation', { name: 'Primary' }).getByRole('link').first(),
+    page.getByTestId(TestIds.primaryNav).getByRole('link').first(),
   ).toContainText(/Кейси|Cases/)
 
   await page

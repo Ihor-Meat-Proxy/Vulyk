@@ -3,6 +3,7 @@ import { createProject } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { API_URL, uniqueKey } from '../fixtures/env'
 import { AdminPage } from '../pages/AdminPage'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -46,7 +47,7 @@ test('chat shows provider/model; project key optional; global default resolves',
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page
-    .getByRole('navigation', { name: 'Primary' })
+    .getByTestId(TestIds.primaryNav)
     .getByRole('link', { name: /^Chat$/i })
     .click()
   await expect(page.getByRole('heading', { name: /Chat with your tests/i })).toBeVisible()

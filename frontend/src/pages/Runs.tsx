@@ -11,6 +11,7 @@ import { SampleBadge } from '../components/SampleBadge'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
+import { useI18n } from '../i18n'
 import { formatTimestamp } from '../timezone'
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
 }
 
 export function Runs({ projectId }: Props) {
+  const { t } = useI18n()
   const { user, status } = useAuth()
   const { can } = useProjectPermissions(projectId)
   const canExecute = can('execute_runs')
@@ -163,8 +165,8 @@ export function Runs({ projectId }: Props) {
           <input
             value={runName}
             onChange={(e) => setRunName(e.target.value)}
-            aria-label="New run name"
-            placeholder="Run name"
+            aria-label={t('a11y.newRunName')}
+            placeholder={t('a11y.placeholder.runName')}
             {...testIdProps(TestIds.runsCreateNameInput)}
           />
           <button
@@ -284,7 +286,7 @@ export function Runs({ projectId }: Props) {
                   : '{\n  "base_url": "https://gitlab.com",\n  "project_id": "group/project",\n  "trigger_token": "",\n  "ref": "main"\n}',
               )
             }}
-            aria-label="CI provider"
+            aria-label={t('a11y.ciProvider')}
             {...testIdProps(TestIds.runsCiProviderSelect)}
           >
             <option value="github">GitHub</option>
@@ -293,8 +295,8 @@ export function Runs({ projectId }: Props) {
           <input
             value={ciName}
             onChange={(e) => setCiName(e.target.value)}
-            aria-label="CI config name"
-            placeholder="Config name"
+            aria-label={t('a11y.ciConfigName')}
+            placeholder={t('a11y.placeholder.configName')}
             {...testIdProps(TestIds.runsCiNameInput)}
           />
           <button
@@ -312,7 +314,7 @@ export function Runs({ projectId }: Props) {
           value={ciJson}
           onChange={(e) => setCiJson(e.target.value)}
           rows={8}
-          aria-label="CI config JSON"
+          aria-label={t('a11y.ciConfigJson')}
           {...testIdProps(TestIds.runsCiJsonInput)}
         />
         </>
