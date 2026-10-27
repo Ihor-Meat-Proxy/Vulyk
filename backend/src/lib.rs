@@ -12,6 +12,7 @@ pub mod models;
 pub mod openapi;
 pub mod routes;
 pub mod sample_seed;
+pub mod security_headers;
 pub mod seed;
 pub mod services;
 pub mod settings;

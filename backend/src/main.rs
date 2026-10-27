@@ -1,6 +1,6 @@
 use std::net::SocketAddr;
 
-use axum::http::Method;
+use axum::{http::Method, middleware};
 use clap::{Parser, Subcommand};
 use tower_http::{
     cors::{Any, CorsLayer},
@@ -139,6 +139,9 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
         .allow_headers(Any);
 
     let app = app_router(state)
+        .layer(middleware::from_fn(
+            vulyk_api::security_headers::security_headers_middleware,
+        ))
         .layer(TraceLayer::new_for_http())
         .layer(cors);
 
