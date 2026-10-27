@@ -10,6 +10,11 @@ import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
+import {
+  applyUnlessCancelled,
+  createStaleGuard,
+  type StaleGuard,
+} from '../lib/staleGuard'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
@@ -47,19 +52,25 @@ export function RunDetail({ projectId }: Props) {
   const [mobileStep, setMobileStep] = useState(0)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const reload = async () => {
+  const reload = async (guard?: StaleGuard) => {
     if (!projectId || !runId) return
     try {
       const data = await api.getRun(projectId, runId)
-      setDetail(data)
-      setFromCache(false)
-      void cacheRun(projectId, runId, data)
+      applyUnlessCancelled(guard, () => {
+        setDetail(data)
+        setFromCache(false)
+      })
+      if (!guard?.isCancelled()) {
+        void cacheRun(projectId, runId, data)
+      }
     } catch (err) {
       const cached = (await getCachedRun(projectId, runId)) as TestRunDetail | null
       if (cached) {
-        setDetail(cached)
-        setFromCache(true)
-        setNotice('Showing cached run (offline).')
+        applyUnlessCancelled(guard, () => {
+          setDetail(cached)
+          setFromCache(true)
+          setNotice('Showing cached run (offline).')
+        })
         return
       }
       throw err
@@ -71,20 +82,20 @@ export function RunDetail({ projectId }: Props) {
       setLoading(false)
       return
     }
-    let cancelled = false
+    const guard = createStaleGuard()
     setLoading(true)
-    reload()
+    reload(guard)
       .then(() => {
-        if (!cancelled) setError(null)
+        applyUnlessCancelled(guard, () => setError(null))
       })
       .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
+        applyUnlessCancelled(guard, () => setError(err.message))
       })
       .finally(() => {
-        if (!cancelled) setLoading(false)
+        applyUnlessCancelled(guard, () => setLoading(false))
       })
     return () => {
-      cancelled = true
+      guard.cancel()
     }
   }, [projectId, runId])
 
