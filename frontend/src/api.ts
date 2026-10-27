@@ -1137,8 +1137,10 @@ export type CiConfig = {
   project_id: string
   provider: string
   name: string
+  /** Provider config with secrets stripped (`token` / `trigger_token` never returned). */
   config: Record<string, unknown>
-  webhook_secret: string | null
+  has_token: boolean
+  has_webhook_secret: boolean
   enabled: boolean
 }
 

@@ -11,7 +11,8 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::integrations::{github, gitlab};
 use crate::models::{
-    CiConfig, CiDispatch, CreateCiConfig, CreateRun, DispatchCiRequest, TestRun, UpdateCiConfig,
+    merge_ci_config, CiConfig, CiConfigPublic, CiDispatch, CreateCiConfig, CreateRun,
+    DispatchCiRequest, TestRun, UpdateCiConfig,
 };
 use crate::routes::AppState;
 
@@ -43,14 +44,14 @@ pub fn router() -> Router<AppState> {
     path = "/api/v1/projects/{project_id}/ci-configs",
     tag = "ci",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, description = "CI configs", body = [CiConfig])),
+    responses((status = 200, description = "CI configs", body = [CiConfigPublic])),
     security(("bearer_auth" = []))
 )]
 pub async fn list_ci_configs(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
-) -> AppResult<Json<Vec<CiConfig>>> {
+) -> AppResult<Json<Vec<CiConfigPublic>>> {
     require_permission(
         &state.pool,
         &auth,
@@ -68,7 +69,7 @@ pub async fn list_ci_configs(
     .bind(project_id)
     .fetch_all(&state.pool)
     .await?;
-    Ok(Json(rows))
+    Ok(Json(rows.into_iter().map(CiConfigPublic::from).collect()))
 }
 
 #[utoipa::path(
@@ -77,7 +78,7 @@ pub async fn list_ci_configs(
     tag = "ci",
     params(("project_id" = Uuid, Path, description = "Project id")),
     request_body = CreateCiConfig,
-    responses((status = 200, description = "Created", body = CiConfig)),
+    responses((status = 200, description = "Created", body = CiConfigPublic)),
     security(("bearer_auth" = []))
 )]
 pub async fn create_ci_config(
@@ -85,7 +86,7 @@ pub async fn create_ci_config(
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
     Json(body): Json<CreateCiConfig>,
-) -> AppResult<Json<CiConfig>> {
+) -> AppResult<Json<CiConfigPublic>> {
     require_permission(
         &state.pool,
         &auth,
@@ -120,7 +121,7 @@ pub async fn create_ci_config(
     .bind(body.enabled)
     .fetch_one(&state.pool)
     .await?;
-    Ok(Json(row))
+    Ok(Json(CiConfigPublic::from(row)))
 }
 
 #[utoipa::path(
@@ -128,14 +129,14 @@ pub async fn create_ci_config(
     path = "/api/v1/ci-configs/{id}",
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
-    responses((status = 200, description = "CI config", body = CiConfig)),
+    responses((status = 200, description = "CI config", body = CiConfigPublic)),
     security(("bearer_auth" = []))
 )]
 pub async fn get_ci_config(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
-) -> AppResult<Json<CiConfig>> {
+) -> AppResult<Json<CiConfigPublic>> {
     let cfg = load_config(&state, id).await?;
     require_permission(
         &state.pool,
@@ -145,7 +146,7 @@ pub async fn get_ci_config(
         Permission::ViewProject,
     )
     .await?;
-    Ok(Json(cfg))
+    Ok(Json(CiConfigPublic::from(cfg)))
 }
 
 #[utoipa::path(
@@ -154,7 +155,7 @@ pub async fn get_ci_config(
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
     request_body = UpdateCiConfig,
-    responses((status = 200, description = "Updated", body = CiConfig)),
+    responses((status = 200, description = "Updated", body = CiConfigPublic)),
     security(("bearer_auth" = []))
 )]
 pub async fn update_ci_config(
@@ -162,7 +163,7 @@ pub async fn update_ci_config(
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateCiConfig>,
-) -> AppResult<Json<CiConfig>> {
+) -> AppResult<Json<CiConfigPublic>> {
     let existing = load_config(&state, id).await?;
     require_permission(
         &state.pool,
@@ -173,9 +174,17 @@ pub async fn update_ci_config(
     )
     .await?;
     let name = body.name.unwrap_or(existing.name);
-    let config = body.config.unwrap_or(existing.config);
+    let config = match body.config {
+        Some(incoming) => merge_ci_config(&existing.config, incoming),
+        None => existing.config.clone(),
+    };
     validate_config(&existing.provider, &config)?;
-    let webhook_secret = body.webhook_secret.or(existing.webhook_secret);
+    // Empty string clears webhook secret; omit preserves.
+    let webhook_secret = match body.webhook_secret {
+        Some(s) if s.is_empty() => None,
+        Some(s) => Some(s),
+        None => existing.webhook_secret,
+    };
     let enabled = body.enabled.unwrap_or(existing.enabled);
 
     let row = sqlx::query_as::<_, CiConfig>(
@@ -192,7 +201,7 @@ pub async fn update_ci_config(
     .bind(enabled)
     .fetch_one(&state.pool)
     .await?;
-    Ok(Json(row))
+    Ok(Json(CiConfigPublic::from(row)))
 }
 
 #[utoipa::path(
