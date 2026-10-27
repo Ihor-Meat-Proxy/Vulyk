@@ -1,7 +1,19 @@
 //! CORS allowlist from env (security audit M3).
 
-use axum::http::{HeaderValue, Method};
+use axum::http::{header, HeaderName, HeaderValue, Method};
 use tower_http::cors::{AllowOrigin, Any, CorsLayer};
+
+/// Headers browsers may send on credentialed API calls (cannot use `*` with credentials).
+fn allow_headers_list() -> [HeaderName; 6] {
+    [
+        header::AUTHORIZATION,
+        header::CONTENT_TYPE,
+        header::ACCEPT,
+        header::ACCEPT_LANGUAGE,
+        HeaderName::from_static("x-requested-with"),
+        HeaderName::from_static("x-vulyk-csrf"),
+    ]
+}
 
 /// Parse a public origin (`scheme://host[:port]`) from a base URL. Returns None if invalid.
 pub fn origin_from_base_url(base: &str) -> Option<HeaderValue> {
@@ -106,10 +118,11 @@ pub fn cors_layer_from_env() -> CorsLayer {
         );
     }
 
+    // Credentials forbid Allow-Headers: *; list the headers the SPA / clients send.
     CorsLayer::new()
         .allow_origin(AllowOrigin::list(origins))
         .allow_methods(methods)
-        .allow_headers(Any)
+        .allow_headers(allow_headers_list())
         .allow_credentials(true)
 }
 
@@ -144,5 +157,17 @@ mod tests {
     #[test]
     fn resolve_empty_without_env() {
         assert!(resolve_cors_origins(None, None, false).is_empty());
+    }
+
+    #[test]
+    fn allowlist_layer_builds_without_panic() {
+        // tower-http panics if credentials + Allow-Headers:* are combined.
+        let origins = resolve_cors_origins(None, Some("http://127.0.0.1:5173"), false);
+        assert_eq!(origins.len(), 1);
+        let _layer = CorsLayer::new()
+            .allow_origin(AllowOrigin::list(origins))
+            .allow_methods([Method::GET])
+            .allow_headers(allow_headers_list())
+            .allow_credentials(true);
     }
 }
