@@ -105,7 +105,8 @@ test.describe('sample project seed', () => {
         ? cases.total
         : (Array.isArray(cases) ? cases : cases.items ?? []).length
     expect(total).toBeGreaterThanOrEqual(120)
-    // Upper bound grows as feature fragments add Vulyk QA cases.
+    // Upper bound grows as feature fragments add Vulyk QA cases
+    // (columns, pdf, lists/CF, coverage hardening, password policy, …).
     expect(total).toBeLessThanOrEqual(280)
 
     const runs = await apiJson<{

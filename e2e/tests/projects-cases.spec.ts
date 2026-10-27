@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   createCase,
   createProject,
@@ -80,15 +81,20 @@ test('suite tree, case CRUD with steps, search, filter, bulk', async ({
 
   // Open detail and add a step
   await cases.openCaseByTitle(title)
-  await page.getByRole('button', { name: 'Edit' }).click()
-  await page.getByRole('button', { name: 'Add step' }).click()
+  await page.getByTestId(TestIds.caseDetailEditButton).click()
+  await page.getByTestId(TestIds.caseDetailAddStepButton).click()
   const step = page.locator('.step').last()
   await step.locator('textarea').nth(0).fill('Open app')
   await step.locator('textarea').nth(1).fill('Home loads')
-  await page.getByRole('button', { name: /Save/i }).click()
+  await page.getByTestId(TestIds.caseDetailSaveButton).click()
+  await expect(page.getByTestId(TestIds.caseDetailEditButton)).toBeVisible({
+    timeout: 20_000,
+  })
   await expect(page.getByText('Open app')).toBeVisible({ timeout: 20_000 })
 
-  await page.getByTestId('case-detail-back').click()
+  // Save exited edit mode, so Back must not prompt; a leftover once('dialog')
+  // handler would steal the later createFolder prompt.
+  await page.getByTestId(TestIds.caseDetailBackLink).click()
   await expect(page).toHaveURL(/\/$/)
 
   // Second case for bulk/filter

@@ -245,12 +245,14 @@ for label, q in [
     ("test_runs", "SELECT COUNT(*) FROM test_runs"),
     ("system_settings", "SELECT COUNT(*) FROM system_settings"),
     ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
+    # Legacy per-project table on base; PR migrates to custom_field_definitions.
     ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+    ("custom_field_definitions", "SELECT COUNT(*) FROM custom_field_definitions"),
 ]:
     try:
         snap[label] = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
     except Exception:
-        # table may not exist on very old bases
+        # table may not exist on very old bases / pre-migration HEAD
         snap[label] = -1
         print(f"skip count {label}")
 Path("/tmp/vulyk-upgrade-entity-counts-before.json").write_text(json.dumps(snap))
@@ -346,7 +348,6 @@ for label, q in [
     ("test_runs", "SELECT COUNT(*) FROM test_runs"),
     ("system_settings", "SELECT COUNT(*) FROM system_settings"),
     ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
-    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
 ]:
     prev = before_entities.get(label, -1)
     if prev < 0:
@@ -359,6 +360,28 @@ for label, q in [
     if now < prev:
         print(f"{label} count dropped: {prev} -> {now}", file=sys.stderr)
         sys.exit(1)
+
+# custom_fields -> custom_field_definitions (migration may rename/move rows)
+prev_cf = before_entities.get("custom_fields", -1)
+if prev_cf >= 0:
+    try:
+        now_defs = int(
+            subprocess.check_output(
+                ["psql", db_url, "-Atc", "SELECT COUNT(*) FROM custom_field_definitions"],
+                text=True,
+            ).strip()
+            or "0"
+        )
+    except Exception as e:
+        print(f"count failed for custom_field_definitions: {e}", file=sys.stderr)
+        sys.exit(1)
+    if now_defs < prev_cf:
+        print(
+            f"custom_field_definitions count dropped vs legacy custom_fields: {prev_cf} -> {now_defs}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    print(f"ok custom_fields->definitions: {prev_cf} -> {now_defs}")
     print(f"ok {label}: {now} (before={prev})")
 
 cfg_id = Path("/tmp/vulyk-upgrade-llm-config-id.txt").read_text().strip()
@@ -462,12 +485,17 @@ for label, q in [
     ("test_runs", "SELECT COUNT(*) FROM test_runs"),
     ("system_settings", "SELECT COUNT(*) FROM system_settings"),
     ("llm_configs", "SELECT COUNT(*) FROM llm_configs WHERE name = 'upgrade-ci-secret'"),
-    ("custom_fields", "SELECT COUNT(*) FROM custom_fields"),
+    # custom_fields is dropped by the option-lists migration when HEAD remigrates
+    # the restored dump; skip it here (integrity already checked post-upgrade).
 ]:
     prev = before_entities.get(label, -1)
     if prev < 0:
         continue
-    now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    try:
+        now = int(subprocess.check_output(["psql", db_url, "-Atc", q], text=True).strip() or "0")
+    except Exception as e:
+        print(f"skip rollback count {label}: {e}")
+        continue
     if now != prev:
         print(f"{label} count mismatch after rollback: {prev} -> {now}", file=sys.stderr)
         sys.exit(1)

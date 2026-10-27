@@ -92,6 +92,12 @@ const LIST_BASE_IDS = new Set([
   'iteration-slow-item',
   'app-toast',
   'case-detail-breadcrumb-folder',
+  'case-list-custom-field-filter',
+  'admin-list-row',
+  'admin-list-item-row',
+  'admin-custom-field-row',
+  'admin-custom-fields-project-checkbox',
+  'admin-config-project-checkbox',
 ])
 function walk(dir, out = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {

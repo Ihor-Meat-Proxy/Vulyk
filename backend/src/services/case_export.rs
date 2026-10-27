@@ -1212,6 +1212,7 @@ mod tests {
             sort_order: 0,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            custom_fields: vec![],
         };
         CaseExportData {
             project_name: "Vulyk QA".into(),

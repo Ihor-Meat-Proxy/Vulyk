@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install / bootstrap Vulyk on Linux, macOS, or WSL2.
 # Verified modes: compose | prod | dev | setup | check | helm-template | perf-smoke
-#                 upgrade | backup | restore | rollback
+#                 upgrade | backup | restore | rollback | config-export | config-import
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -127,6 +127,8 @@ Modes:
   backup          Verified backup bundle under ./backups/vulyk-<version>-<timestamp>/
   restore PATH    Restore a backup bundle or legacy .sql.gz (confirmation unless --yes)
   rollback        Roll back to a post-upgrade rollback point (typed confirmation)
+  config-export   Export instance/project configuration (wraps vulyk-api config export)
+  config-import   Import configuration bundle (wraps vulyk-api config import)
 
 First-run options (compose / prod / dev / setup):
   --admin-email=EMAIL
@@ -1661,7 +1663,7 @@ log "Detected OS: ${OS}"
 parse_args "$@"
 
 case "${MODE}" in
-  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|rollback)
+  compose|prod|dev|setup|check|helm-template|perf-smoke|upgrade|backup|restore|rollback|config-export|config-import)
     ;;
   -h|--help|help)
     usage
@@ -1768,6 +1770,23 @@ fi
 
 if [[ "${MODE}" == "perf-smoke" ]]; then
   exec "${ROOT}/scripts/perf-smoke.sh" "${@:2}"
+fi
+
+if [[ "${MODE}" == "config-export" ]]; then
+  # Pass remaining args to vulyk-api config export (e.g. -o file.json --format yaml)
+  if command -v docker >/dev/null 2>&1 && docker compose ps --status running 2>/dev/null | grep -q api; then
+    exec docker compose exec -T api vulyk-api config export "${@:2}"
+  fi
+  need_cmd cargo
+  exec cargo run -p vulyk-api --quiet -- config export "${@:2}"
+fi
+
+if [[ "${MODE}" == "config-import" ]]; then
+  if command -v docker >/dev/null 2>&1 && docker compose ps --status running 2>/dev/null | grep -q api; then
+    exec docker compose exec -T api vulyk-api config import "${@:2}"
+  fi
+  need_cmd cargo
+  exec cargo run -p vulyk-api --quiet -- config import "${@:2}"
 fi
 
 if [[ "${MODE}" == "setup" ]]; then

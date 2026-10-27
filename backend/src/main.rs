@@ -8,6 +8,7 @@ use tower_http::{
 };
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use vulyk_api::auth::AuthConfig;
+use vulyk_api::config_cli::{self, ConfigCommand};
 use vulyk_api::crypto::SecretsKey;
 use vulyk_api::db;
 use vulyk_api::jobs;
@@ -33,6 +34,11 @@ enum Commands {
     Migrate {
         #[command(subcommand)]
         action: MigrateAction,
+    },
+    /// Export or import instance/project configuration
+    Config {
+        #[command(subcommand)]
+        command: ConfigCommand,
     },
     /// Print the API binary version (semver from Cargo.toml)
     Version,
@@ -88,6 +94,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 print!("{}", db::format_migration_status(&status));
             }
         },
+        Commands::Config { command } => {
+            let pool = db::connect(&database_url).await?;
+            db::prepare_schema(&pool).await?;
+            config_cli::run(&pool, command).await?;
+        }
         Commands::Version => {
             println!("{}", db::crate_version());
         }

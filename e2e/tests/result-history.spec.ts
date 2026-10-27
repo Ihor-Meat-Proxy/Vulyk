@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
 
@@ -57,11 +58,14 @@ test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', 
 
   await listPanel.getByRole('link', { name: caseTitle }).click()
   await expect(page.getByRole('heading', { level: 2 })).toContainText(caseTitle)
-  await page.getByRole('button', { name: 'Edit' }).click()
-  await page.getByRole('button', { name: 'Add step' }).click()
+  await page.getByTestId(TestIds.caseDetailEditButton).click()
+  await page.getByTestId(TestIds.caseDetailAddStepButton).click()
   await page.locator('.step textarea').first().fill('Open app')
   await page.locator('.step textarea').nth(1).fill('App loads')
-  await page.getByRole('button', { name: 'Save' }).click()
+  await page.getByTestId(TestIds.caseDetailSaveButton).click()
+  await expect(page.getByTestId(TestIds.caseDetailEditButton)).toBeVisible({
+    timeout: 20_000,
+  })
   await expect(page.getByText('Open app')).toBeVisible()
 
   const nav = page.getByRole('navigation', { name: 'Primary' })

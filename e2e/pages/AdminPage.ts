@@ -109,4 +109,16 @@ export class AdminPage {
   async openTokensTab() {
     await this.openTab('tokens')
   }
+
+  async openListsTab() {
+    await this.openTab('lists')
+  }
+
+  async openCustomFieldsTab() {
+    await this.openTab('customFields')
+  }
+
+  async openExportTab() {
+    await this.openTab('config')
+  }
 }

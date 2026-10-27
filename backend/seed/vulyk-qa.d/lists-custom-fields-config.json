@@ -1,0 +1,220 @@
+{
+  "feature": "lists-custom-fields-config",
+  "suites": [
+    {
+      "name": {
+        "en": "24. Lists, custom fields & config",
+        "uk": "24. Списки, кастомні поля та конфіг"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Admin Lists: create Browsers option list with ordered items",
+            "uk": "Admin Lists: створити список Browsers з упорядкованими елементами"
+          },
+          "description": {
+            "en": "Admin → Lists creates reusable option lists (label, key, colour, description, active/deprecated).",
+            "uk": "Admin → Lists creates reusable option lists (label, key, colour, description, active/deprecated)."
+          },
+          "precondition": {
+            "en": "Signed in as system admin. Open Admin via gear → Admin settings.",
+            "uk": "Signed in as system admin. Open Admin via gear → Admin settings."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "admin",
+            "custom-fields",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Open Admin → Lists; create list key=browsers name=Browsers; add Chrome/Firefox/Safari/Edge; reorder.",
+                "uk": "Open Admin → Lists; create list key=browsers name=Browsers; add Chrome/Firefox/Safari/Edge; reorder."
+              },
+              "expected_result": {
+                "en": "List saved; items ordered; colour/description optional; deprecate instead of hard-delete when in use.",
+                "uk": "List saved; items ordered; colour/description optional; deprecate instead of hard-delete when in use."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-custom-fields.spec.ts"
+        },
+        {
+          "title": {
+            "en": "Admin Custom fields: checkbox and multi-select on test cases",
+            "uk": "Admin Custom fields: checkbox і multi-select на тест-кейсах"
+          },
+          "description": {
+            "en": "Admin → Custom fields defines Automated? (checkbox) and Browsers (multi-select from list) with All projects scope.",
+            "uk": "Admin → Custom fields defines Automated? (checkbox) and Browsers (multi-select from list) with All projects scope."
+          },
+          "precondition": {
+            "en": "Browsers list exists. System admin.",
+            "uk": "Browsers list exists. System admin."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "admin",
+            "custom-fields",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Create fields automated (checkbox) and browsers (multi_select → Browsers list), scope All projects, show in list/filters.",
+                "uk": "Create fields automated (checkbox) and browsers (multi_select → Browsers list), scope All projects, show in list/filters."
+              },
+              "expected_result": {
+                "en": "Fields appear on case create/edit/detail for every project; editors can set values; only Admin manages definitions.",
+                "uk": "Fields appear on case create/edit/detail for every project; editors can set values; only Admin manages definitions."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-custom-fields.spec.ts"
+        },
+        {
+          "title": {
+            "en": "Custom field scope selected projects and hide-keep values",
+            "uk": "Scope кастомного поля Selected projects і hide-keep значень"
+          },
+          "description": {
+            "en": "Narrowing scope hides the field but retains stored values with a warning.",
+            "uk": "Narrowing scope hides the field but retains stored values with a warning."
+          },
+          "precondition": {
+            "en": "Field exists with values on two projects.",
+            "uk": "Field exists with values on two projects."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "admin",
+            "custom-fields",
+            "e2e",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Change scope from All to Selected (one project) with acknowledge; open the other project's case.",
+                "uk": "Change scope from All to Selected (one project) with acknowledge; open the other project's case."
+              },
+              "expected_result": {
+                "en": "Warning shown; field hidden on excluded project; previously stored value still in DB/history.",
+                "uk": "Warning shown; field hidden on excluded project; previously stored value still in DB/history."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-custom-fields.spec.ts"
+        },
+        {
+          "title": {
+            "en": "Custom fields on requirements and bulk edit",
+            "uk": "Кастомні поля на вимогах і bulk edit"
+          },
+          "description": {
+            "en": "Entity=requirement or both; case list columns/filters; bulk set values.",
+            "uk": "Entity=requirement or both; case list columns/filters; bulk set values."
+          },
+          "precondition": {
+            "en": "Field with entity=both or requirement; cases selected on Cases page.",
+            "uk": "Field with entity=both or requirement; cases selected on Cases page."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "admin",
+            "custom-fields",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Edit requirement custom fields; filter cases by Automated?; bulk-set Browsers on selected cases.",
+                "uk": "Edit requirement custom fields; filter cases by Automated?; bulk-set Browsers on selected cases."
+              },
+              "expected_result": {
+                "en": "Values persist; list columns/filters honour show_in_list / show_in_filters.",
+                "uk": "Values persist; list columns/filters honour show_in_list / show_in_filters."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Config export and import dry-run",
+            "uk": "Експорт і імпорт конфігурації (dry-run)"
+          },
+          "description": {
+            "en": "Admin → Export/import and `vulyk-api config export|import` produce versioned JSON/YAML without secrets.",
+            "uk": "Admin → Export/import and `vulyk-api config export|import` produce versioned JSON/YAML without secrets."
+          },
+          "precondition": {
+            "en": "System admin; lists and custom fields seeded.",
+            "uk": "System admin; lists and custom fields seeded."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "admin",
+            "config",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "steps": [
+            {
+              "action": {
+                "en": "Export all projects JSON; import with dry-run preview; apply merge by key.",
+                "uk": "Export all projects JSON; import with dry-run preview; apply merge by key."
+              },
+              "expected_result": {
+                "en": "Bundle includes lists, fields, project settings; secrets omitted; preview shows create/update; import idempotent.",
+                "uk": "Bundle includes lists, fields, project settings; secrets omitted; preview shows create/update; import idempotent."
+              },
+              "data": {
+                "en": "",
+                "uk": ""
+              }
+            }
+          ],
+          "external_key": "e2e:admin-custom-fields.spec.ts"
+        }
+      ]
+    }
+  ]
+}

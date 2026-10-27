@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use utoipa::ToSchema;
@@ -22,6 +24,9 @@ pub struct FieldMapping {
     pub suite: String,
     #[serde(default = "map_steps")]
     pub steps: String,
+    /// Map of Vulyk custom field key → source column/key.
+    #[serde(default)]
+    pub custom_fields: HashMap<String, String>,
 }
 
 impl Default for FieldMapping {
@@ -35,6 +40,7 @@ impl Default for FieldMapping {
             status: map_status(),
             suite: map_suite(),
             steps: map_steps(),
+            custom_fields: HashMap::new(),
         }
     }
 }
@@ -83,6 +89,9 @@ pub struct ImportCaseDraft {
     pub external_id: Option<String>,
     #[serde(default)]
     pub source_fields: Value,
+    /// Custom field values keyed by field definition key.
+    #[serde(default)]
+    pub custom_fields: HashMap<String, Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

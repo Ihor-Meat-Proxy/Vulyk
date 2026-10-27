@@ -8,6 +8,10 @@ export class CasesPage {
     return this.page.getByTestId(TestIds.caseListPanel)
   }
 
+  caseCount() {
+    return this.listPanel().getByTestId(TestIds.caseListCount)
+  }
+
   async open() {
     await this.page.getByTestId(TestIds.navLinkCases).click()
   }
@@ -60,19 +64,22 @@ export class CasesPage {
     return this.page.getByTestId(TestIds.caseListHead)
   }
 
-  async toggleColumn(label: RegExp | string, checked: boolean) {
-    const row = this.columnsDialog()
-      .getByTestId(TestIds.caseListColumnItem)
-      .filter({ hasText: label })
-    const box = row.getByTestId(TestIds.caseListColumnItemCheckbox)
+  columnRowById(columnId: string) {
+    return this.columnsDialog().locator(
+      `[data-testid="${TestIds.caseListColumnItem}"][data-entity-key="${columnId}"]`,
+    )
+  }
+
+  async toggleColumn(columnId: string, checked: boolean) {
+    const box = this.columnRowById(columnId).getByTestId(
+      TestIds.caseListColumnItemCheckbox,
+    )
     if (checked) await box.check()
     else await box.uncheck()
   }
 
-  async moveColumn(label: RegExp | string, direction: 'left' | 'right') {
-    const row = this.columnsDialog()
-      .getByTestId(TestIds.caseListColumnItem)
-      .filter({ hasText: label })
+  async moveColumn(columnId: string, direction: 'left' | 'right') {
+    const row = this.columnRowById(columnId)
     const btn =
       direction === 'left'
         ? row.getByTestId(TestIds.caseListColumnItemMoveLeft)
@@ -142,10 +149,11 @@ export class CasesPage {
   }
 
   async createFolder(name: string) {
-    this.page.once('dialog', async (dialog) => {
-      await dialog.accept(name)
-    })
-    await this.folderTree().getByTestId(TestIds.folderTreeNewButton).click()
+    // window.prompt blocks the click until the dialog is handled — accept in parallel.
+    await Promise.all([
+      this.page.waitForEvent('dialog').then((dialog) => dialog.accept(name)),
+      this.folderTree().getByTestId(TestIds.folderTreeNewButton).click(),
+    ])
   }
 
   async editSteps(action: string, expected: string) {

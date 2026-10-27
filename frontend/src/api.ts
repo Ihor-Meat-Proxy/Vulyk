@@ -109,6 +109,7 @@ export type TestCase = {
   last_run_status?: string | null
   folder_name?: string | null
   tag_names?: string[]
+  /** Present on list for requested cf_ids / show_in_list fields. */
   custom_fields?: CustomFieldValue[]
 }
 
@@ -133,7 +134,16 @@ export type CustomFieldValue = {
   field_id: string
   name: string
   field_type: string
+  key?: string
   value: unknown
+}
+
+export type CustomFieldOption = {
+  id?: string
+  key?: string | null
+  label: string
+  value: string
+  colour?: string | null
 }
 
 export type TestCaseDetail = {
@@ -151,14 +161,157 @@ export type CaseVersionSummary = {
   created_at: string
 }
 
+export type CustomFieldEntity = 'test_case' | 'requirement' | 'both'
+export type CustomFieldScope = 'all' | 'selected'
+export type CustomFieldType =
+  | 'text'
+  | 'long_text'
+  | 'number'
+  | 'checkbox'
+  | 'dropdown'
+  | 'multi_select'
+  | 'date'
+  | 'url'
+  | string
+
 export type CustomField = {
   id: string
   project_id: string
+  key: string
+  name: string
+  field_type: CustomFieldType
+  entity: CustomFieldEntity
+  option_list_id: string | null
+  options: CustomFieldOption[] | unknown
+  default_value: unknown
+  required: boolean
+  help_text: string
+  sort_order: number
+  show_in_list: boolean
+  show_in_filters: boolean
+  active: boolean
+  scope: CustomFieldScope
+  created_at?: string
+}
+
+export type CustomFieldProjectOverride = {
+  field_id: string
+  project_id: string
+  required_override: boolean | null
+  default_value_override: unknown
+  enabled: boolean
+}
+
+export type CustomFieldDefinition = {
+  id: string
+  key: string
+  name: string
+  field_type: CustomFieldType
+  entity: CustomFieldEntity
+  option_list_id: string | null
+  default_value: unknown
+  required: boolean
+  help_text: string
+  sort_order: number
+  show_in_list: boolean
+  show_in_filters: boolean
+  active: boolean
+  scope: CustomFieldScope
+  created_at: string
+  updated_at: string
+}
+
+export type CustomFieldDefinitionDetail = CustomFieldDefinition & {
+  project_ids: string[]
+  project_overrides?: CustomFieldProjectOverride[]
+  in_use?: boolean
+}
+
+export type CreateCustomFieldDefinition = {
+  key: string
   name: string
   field_type: string
-  options: unknown
-  required: boolean
+  entity?: string
+  option_list_id?: string | null
+  default_value?: unknown
+  required?: boolean
+  help_text?: string
+  sort_order?: number
+  show_in_list?: boolean
+  show_in_filters?: boolean
+  active?: boolean
+  scope?: string
+  project_ids?: string[]
+}
+
+export type UpdateCustomFieldDefinition = Partial<CreateCustomFieldDefinition> & {
+  acknowledge_hide_values?: boolean
+}
+
+export type UpdateFieldResponse = {
+  field: CustomFieldDefinitionDetail
+  warning?: {
+    warning: string
+    hidden_project_ids: string[]
+    values_retained: boolean
+  }
+}
+
+export type OptionList = {
+  id: string
+  key: string
+  name: string
+  description: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type OptionListItem = {
+  id: string
+  list_id: string
+  key: string | null
+  label: string
+  value: string | null
+  colour: string | null
+  description: string
   sort_order: number
+  active: boolean
+  deprecated: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type OptionListDetail = OptionList & {
+  items: OptionListItem[]
+}
+
+export type ConfigExportRequest = {
+  project_scope?: 'all' | 'selected' | string
+  project_ids?: string[]
+  project_keys?: string[]
+  include_memberships?: boolean
+  include_data?: boolean
+  include_folder_structure?: boolean
+  secrets_passphrase?: string | null
+  format?: 'json' | 'yaml' | string
+}
+
+export type ConfigChangeItem = {
+  kind: string
+  key: string
+  action: string
+  detail: string
+}
+
+export type ConfigImportPreview = {
+  dry_run: boolean
+  strategy: string
+  creates: ConfigChangeItem[]
+  updates: ConfigChangeItem[]
+  conflicts: ConfigChangeItem[]
+  skipped: ConfigChangeItem[]
+  applied: boolean
 }
 
 export type TestPlan = {
@@ -599,6 +752,8 @@ export type ListCasesParams = {
   order?: 'asc' | 'desc'
   /** Custom field ids to include on each list row. */
   cfIds?: string[]
+  /** Map of custom field_id → value for server-side filtering. */
+  cf?: Record<string, unknown>
   limit?: number
   offset?: number
 }
@@ -1171,6 +1326,7 @@ export type Requirement = {
   url: string
   created_at: string
   updated_at: string
+  custom_fields?: CustomFieldValue[]
 }
 
 export type ImporterInfo = {
@@ -1801,6 +1957,9 @@ export const api = {
     if (params.sort) qs.set('sort', params.sort)
     if (params.order) qs.set('order', params.order)
     if (params.cfIds?.length) qs.set('cf_ids', params.cfIds.join(','))
+    if (params.cf && Object.keys(params.cf).length > 0) {
+      qs.set('cf', JSON.stringify(params.cf))
+    }
     qs.set('limit', String(params.limit ?? 100))
     qs.set('offset', String(params.offset ?? 0))
     return request<Page<TestCase>>(
@@ -1968,8 +2127,190 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  listCustomFields: (projectId: string) =>
-    request<CustomField[]>(`/api/v1/projects/${projectId}/custom-fields`),
+  listCustomFields: (
+    projectId: string,
+    entity?: 'test_case' | 'requirement',
+  ) => {
+    const qs = entity ? `?entity=${encodeURIComponent(entity)}` : ''
+    return request<CustomField[]>(
+      `/api/v1/projects/${projectId}/custom-fields${qs}`,
+    )
+  },
+  listAvailableCustomFields: (projectId: string) =>
+    request<CustomFieldDefinition[]>(
+      `/api/v1/projects/${projectId}/custom-fields/available`,
+    ),
+  addCustomFieldToProject: (
+    projectId: string,
+    fieldId: string,
+    body: {
+      required_override?: boolean
+      default_value_override?: unknown
+    } = {},
+  ) =>
+    request<CustomField>(
+      `/api/v1/projects/${projectId}/custom-fields/${fieldId}/add`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  upsertCustomFieldOverride: (
+    projectId: string,
+    fieldId: string,
+    body: {
+      required_override?: boolean | null
+      default_value_override?: unknown
+      enabled?: boolean
+    },
+  ) =>
+    request<CustomFieldProjectOverride>(
+      `/api/v1/projects/${projectId}/custom-fields/${fieldId}/override`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+
+  listAdminLists: () =>
+    request<OptionList[]>('/api/v1/admin/lists'),
+  getAdminList: (id: string) =>
+    request<OptionListDetail>(`/api/v1/admin/lists/${id}`),
+  createAdminList: (body: {
+    key: string
+    name: string
+    description?: string
+    active?: boolean
+    items?: Partial<OptionListItem>[]
+  }) =>
+    request<OptionListDetail>('/api/v1/admin/lists', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateAdminList: (
+    id: string,
+    body: {
+      key?: string
+      name?: string
+      description?: string
+      active?: boolean
+    },
+  ) =>
+    request<OptionList>(`/api/v1/admin/lists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  deleteAdminList: (id: string) =>
+    request<void>(`/api/v1/admin/lists/${id}`, { method: 'DELETE' }),
+  createAdminListItem: (
+    listId: string,
+    body: {
+      label: string
+      key?: string
+      value?: string
+      colour?: string
+      description?: string
+      sort_order?: number
+      active?: boolean
+      deprecated?: boolean
+    },
+  ) =>
+    request<OptionListItem>(`/api/v1/admin/lists/${listId}/items`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateAdminListItem: (
+    listId: string,
+    itemId: string,
+    body: Partial<{
+      label: string
+      key: string
+      value: string
+      colour: string
+      description: string
+      sort_order: number
+      active: boolean
+      deprecated: boolean
+    }>,
+  ) =>
+    request<OptionListItem>(
+      `/api/v1/admin/lists/${listId}/items/${itemId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  deleteAdminListItem: (listId: string, itemId: string) =>
+    request<void>(`/api/v1/admin/lists/${listId}/items/${itemId}`, {
+      method: 'DELETE',
+    }),
+  reorderAdminListItems: (listId: string, itemIds: string[]) =>
+    request<OptionListItem[]>(
+      `/api/v1/admin/lists/${listId}/items/reorder`,
+      { method: 'PUT', body: JSON.stringify({ item_ids: itemIds }) },
+    ),
+
+  listAdminCustomFields: () =>
+    request<CustomFieldDefinitionDetail[]>('/api/v1/admin/custom-fields'),
+  getAdminCustomField: (fieldId: string) =>
+    request<CustomFieldDefinitionDetail>(
+      `/api/v1/admin/custom-fields/${fieldId}`,
+    ),
+  createAdminCustomField: (body: CreateCustomFieldDefinition) =>
+    request<CustomFieldDefinitionDetail>('/api/v1/admin/custom-fields', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateAdminCustomField: (
+    fieldId: string,
+    body: UpdateCustomFieldDefinition,
+  ) =>
+    request<UpdateFieldResponse>(
+      `/api/v1/admin/custom-fields/${fieldId}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  deleteAdminCustomField: (fieldId: string) =>
+    request<{ action: string }>(`/api/v1/admin/custom-fields/${fieldId}`, {
+      method: 'DELETE',
+    }),
+
+  exportAdminConfig: async (body: ConfigExportRequest) => {
+    const token = getStoredToken()
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    }
+    if (token) headers.Authorization = `Bearer ${token}`
+    const res = await fetch(`${API_BASE}/api/v1/admin/config/export`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+      body: JSON.stringify(body),
+    })
+    if (!res.ok) {
+      throw new Error((await res.text()) || res.statusText)
+    }
+    const blob = await res.blob()
+    const disposition = res.headers.get('content-disposition') ?? ''
+    const match = /filename="?([^"]+)"?/.exec(disposition)
+    const ext = body.format === 'yaml' || body.format === 'yml' ? 'yaml' : 'json'
+    const filename = match?.[1] ?? `vulyk-config.${ext}`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    URL.revokeObjectURL(url)
+  },
+  previewAdminConfigImport: (body: {
+    bundle: unknown
+    strategy?: string
+    secrets_passphrase?: string | null
+  }) =>
+    request<ConfigImportPreview>('/api/v1/admin/config/import/preview', {
+      method: 'POST',
+      body: JSON.stringify({ strategy: 'merge', ...body }),
+    }),
+  importAdminConfig: (body: {
+    bundle: unknown
+    strategy?: string
+    dry_run?: boolean
+    secrets_passphrase?: string | null
+  }) =>
+    request<ConfigImportPreview>('/api/v1/admin/config/import', {
+      method: 'POST',
+      body: JSON.stringify({ strategy: 'merge', dry_run: false, ...body }),
+    }),
   listPlans: (projectId: string) =>
     request<TestPlan[]>(`/api/v1/projects/${projectId}/plans`),
   createPlan: (
@@ -2167,6 +2508,10 @@ export const api = {
 
   listRequirements: (projectId: string) =>
     request<Requirement[]>(`/api/v1/projects/${projectId}/requirements`),
+  getRequirement: (projectId: string, requirementId: string) =>
+    request<Requirement>(
+      `/api/v1/projects/${projectId}/requirements/${requirementId}`,
+    ),
   createRequirement: (
     projectId: string,
     body: { title: string; description?: string; source?: string },
@@ -2175,6 +2520,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  setRequirementCustomFields: (
+    projectId: string,
+    requirementId: string,
+    body: { field_id: string; value: unknown }[],
+  ) =>
+    request<Requirement>(
+      `/api/v1/projects/${projectId}/requirements/${requirementId}/custom-fields`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   linkRequirement: (
     projectId: string,
     body: { case_id: string; requirement_id: string },

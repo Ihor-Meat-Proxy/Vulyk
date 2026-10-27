@@ -89,6 +89,7 @@ pub fn default_mapping_for(importer_id: &str) -> FieldMapping {
             status: "status".into(),
             suite: "labels".into(),
             steps: "steps".into(),
+            custom_fields: Default::default(),
         },
         "zephyr" => FieldMapping {
             title: "name".into(),
@@ -99,6 +100,7 @@ pub fn default_mapping_for(importer_id: &str) -> FieldMapping {
             status: "status".into(),
             suite: "folder".into(),
             steps: "testScript".into(),
+            custom_fields: Default::default(),
         },
         "testrail" => FieldMapping {
             title: "title".into(),
@@ -109,6 +111,7 @@ pub fn default_mapping_for(importer_id: &str) -> FieldMapping {
             status: "status".into(),
             suite: "section".into(),
             steps: "custom_steps_separated".into(),
+            custom_fields: Default::default(),
         },
         _ => FieldMapping::default(),
     }

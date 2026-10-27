@@ -4,6 +4,8 @@ use serde_json::Value;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use super::CustomFieldValue;
+
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
 pub struct Requirement {
     pub id: Uuid,
@@ -20,6 +22,10 @@ pub struct Requirement {
     pub metadata: Value,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Populated on get; empty on list responses.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[sqlx(skip)]
+    pub custom_fields: Vec<CustomFieldValue>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

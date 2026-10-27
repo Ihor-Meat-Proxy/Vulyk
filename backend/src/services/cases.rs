@@ -44,31 +44,7 @@ pub async fn load_custom_fields(
     pool: &sqlx::PgPool,
     case_id: Uuid,
 ) -> AppResult<Vec<CustomFieldValue>> {
-    use sqlx::Row;
-    let rows = sqlx::query(
-        r#"SELECT cf.id AS field_id, cf.name, cf.field_type,
-                  COALESCE(cfv.value, 'null'::jsonb) AS value
-           FROM custom_fields cf
-           INNER JOIN test_cases tc ON tc.project_id = cf.project_id
-           LEFT JOIN custom_field_values cfv
-             ON cfv.field_id = cf.id AND cfv.case_id = tc.id
-           WHERE tc.id = $1
-           ORDER BY cf.sort_order, cf.name"#,
-    )
-    .bind(case_id)
-    .fetch_all(pool)
-    .await?;
-
-    let mut out = Vec::with_capacity(rows.len());
-    for row in rows {
-        out.push(CustomFieldValue {
-            field_id: row.try_get("field_id")?,
-            name: row.try_get("name")?,
-            field_type: row.try_get("field_type")?,
-            value: row.try_get("value")?,
-        });
-    }
-    Ok(out)
+    crate::services::custom_fields::load_case_values(pool, case_id).await
 }
 
 pub async fn load_case_detail(pool: &sqlx::PgPool, case: TestCase) -> AppResult<TestCaseDetail> {
@@ -220,13 +196,20 @@ pub async fn snapshot_case(
 
     use sqlx::Row;
     let cf_rows = sqlx::query(
-        r#"SELECT cf.id AS field_id, cf.name, cf.field_type,
-                  COALESCE(cfv.value, 'null'::jsonb) AS value
-           FROM custom_fields cf
+        r#"SELECT cfd.id AS field_id, cfd.key, cfd.name, cfd.field_type,
+                  COALESCE(cfv.value, cfd.default_value, 'null'::jsonb) AS value
+           FROM custom_field_definitions cfd
+           LEFT JOIN custom_field_projects cfp
+             ON cfp.field_id = cfd.id AND cfp.project_id = $2
            LEFT JOIN custom_field_values cfv
-             ON cfv.field_id = cf.id AND cfv.case_id = $1
-           WHERE cf.project_id = $2
-           ORDER BY cf.sort_order, cf.name"#,
+             ON cfv.field_id = cfd.id AND cfv.case_id = $1
+           WHERE cfd.active
+             AND (cfd.entity = 'test_case' OR cfd.entity = 'both')
+             AND (
+               cfd.scope = 'all'
+               OR (cfd.scope = 'selected' AND cfp.enabled IS TRUE)
+             )
+           ORDER BY cfd.sort_order, cfd.name"#,
     )
     .bind(case.id)
     .bind(case.project_id)
@@ -237,6 +220,7 @@ pub async fn snapshot_case(
     for row in cf_rows {
         custom_fields.push(json!({
             "field_id": row.try_get::<Uuid, _>("field_id")?,
+            "key": row.try_get::<String, _>("key")?,
             "name": row.try_get::<String, _>("name")?,
             "field_type": row.try_get::<String, _>("field_type")?,
             "value": row.try_get::<serde_json::Value, _>("value")?,

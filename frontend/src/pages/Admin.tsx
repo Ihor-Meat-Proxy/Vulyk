@@ -26,6 +26,9 @@ import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { getStoredToken } from '../token'
 import { BackupsPanel } from './admin/BackupsPanel'
+import { CustomFieldsPanel } from './admin/CustomFieldsPanel'
+import { ExportConfigPanel } from './admin/ExportConfigPanel'
+import { ListsPanel } from './admin/ListsPanel'
 
 type Tab =
   | 'users'
@@ -38,8 +41,11 @@ type Tab =
   | 'updates'
   | 'sso'
   | 'backups'
+  | 'lists'
+  | 'customFields'
+  | 'exportConfig'
 
-/** Maps admin tab ids → Playwright test ids. Reserved future tabs live in TestIds. */
+/** Maps admin tab ids → Playwright test ids. */
 const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
   users: TestIds.adminTabUsers,
   roles: TestIds.adminTabRoles,
@@ -51,19 +57,10 @@ const ADMIN_TAB_TEST_IDS: Record<Tab, string> = {
   updates: TestIds.adminTabUpdates,
   sso: TestIds.adminTabSso,
   backups: TestIds.adminTabBackups,
+  lists: TestIds.adminTabLists,
+  customFields: TestIds.adminTabCustomFields,
+  exportConfig: TestIds.adminTabConfig,
 }
-
-/** Reserved for upcoming admin tabs/actions (keep imported so keys stay discoverable). */
-export const ADMIN_RESERVED_TEST_IDS = {
-  tabLists: TestIds.adminTabLists,
-  tabCustomFields: TestIds.adminTabCustomFields,
-  tabConfig: TestIds.adminTabConfig,
-  listsAddButton: TestIds.adminListsAddButton,
-  customFieldsAddButton: TestIds.adminCustomFieldsAddButton,
-  configExportButton: TestIds.adminConfigExportButton,
-  configImportButton: TestIds.adminConfigImportButton,
-  configImportInput: TestIds.adminConfigImportInput,
-} as const
 
 type Props = {
   projects: Project[]
@@ -102,6 +99,9 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       list.push({ id: 'updates', label: t('admin.updates') })
       list.push({ id: 'sso', label: t('admin.sso') })
       list.push({ id: 'backups', label: t('admin.backups') })
+      list.push({ id: 'lists', label: t('admin.lists') })
+      list.push({ id: 'customFields', label: t('admin.customFields') })
+      list.push({ id: 'exportConfig', label: t('admin.exportConfig') })
     }
     if (isSystemAdmin || canAutomationRepo) {
       list.push({ id: 'integrations', label: t('admin.integrations') })
@@ -258,6 +258,15 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       )}
       {tab === 'backups' && isSystemAdmin && (
         <BackupsPanel projects={projects} onError={setError} />
+      )}
+      {tab === 'lists' && isSystemAdmin && (
+        <ListsPanel onError={setError} />
+      )}
+      {tab === 'customFields' && isSystemAdmin && (
+        <CustomFieldsPanel projects={projects} onError={setError} />
+      )}
+      {tab === 'exportConfig' && isSystemAdmin && (
+        <ExportConfigPanel projects={projects} onError={setError} />
       )}
     </div>
   )
