@@ -508,8 +508,8 @@ coverage.
 `RunDetailsDrawer`, `CaseListColumnSettings` — `role="dialog"` without initial
 focus / Tab trap / restore.
 
-**Fixed:** `useFocusTrap` on both dialogs (initial focus, Tab cycle, Escape
-close, restore focus).
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/95 — `useFocusTrap` on
+both dialogs (initial focus, Tab cycle, Escape close, restore focus).
 
 ### 49. **improvement** — Sample VQA counts disagree across guides (~140 / ~160 / ~195 / actual ~200)
 
