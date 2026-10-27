@@ -15,6 +15,48 @@ pub async fn ensure_project(pool: &sqlx::PgPool, project_id: Uuid) -> AppResult<
     Ok(())
 }
 
+/// Keep only case IDs that belong to `project_id` (drops foreign / missing UUIDs).
+pub async fn filter_case_ids_in_project(
+    pool: &sqlx::PgPool,
+    project_id: Uuid,
+    case_ids: &[Uuid],
+) -> AppResult<Vec<Uuid>> {
+    if case_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    Ok(sqlx::query_scalar(
+        r#"SELECT id FROM test_cases
+           WHERE project_id = $1 AND id = ANY($2)"#,
+    )
+    .bind(project_id)
+    .bind(case_ids)
+    .fetch_all(pool)
+    .await?)
+}
+
+/// Reject `case_id` that is missing or belongs to another project.
+pub async fn ensure_case_in_project(
+    pool: &sqlx::PgPool,
+    project_id: Uuid,
+    case_id: Uuid,
+) -> AppResult<()> {
+    let ok: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(
+               SELECT 1 FROM test_cases WHERE id = $1 AND project_id = $2
+           )"#,
+    )
+    .bind(case_id)
+    .bind(project_id)
+    .fetch_one(pool)
+    .await?;
+    if !ok {
+        return Err(AppError::BadRequest(
+            "case_id does not belong to this project".into(),
+        ));
+    }
+    Ok(())
+}
+
 pub async fn load_steps(pool: &sqlx::PgPool, case_id: Uuid) -> AppResult<Vec<TestStep>> {
     let steps = sqlx::query_as::<_, TestStep>(
         r#"SELECT id, case_id, position, action, expected_result, data
