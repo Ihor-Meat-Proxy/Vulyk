@@ -255,6 +255,9 @@ Most handlers are registered in `ApiDoc`, but GitHub/GitLab webhooks and SSO
 callback/start are annotated incompletely or missing from `paths(…)`. Generated
 clients and `/api/docs` under-document production surfaces.
 
+**Fixed:** see #41 — webhook handlers annotated; SSO start/callback, webhooks,
+and `restore_upload` registered in `ApiDoc::paths`.
+
 ### 18. **improvement** — `AppError::Gone` always emits `case_deleted`
 
 `backend/src/error.rs:47`
@@ -470,6 +473,10 @@ rolls back earlier rows.
 
 `backups.rs` restore/upload; `webhooks.rs` (4); `auth.rs` `sso_start` /
 `sso_callback` have annotations but are missing from `ApiDoc::paths`.
+
+**Fixed:** annotate webhook handlers + `restore_upload`; register SSO start/
+callback, all four webhooks, and restore upload in `ApiDoc::paths` with a
+regression test.
 
 ### 42. **bug** — Campaigns `Page.limit` echoes unclamped query value
 

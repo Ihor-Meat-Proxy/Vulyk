@@ -27,6 +27,16 @@ pub fn router() -> Router<AppState> {
         )
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/github",
+    tag = "webhooks",
+    request_body(content = String, description = "GitHub webhook JSON payload", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
 pub async fn github_webhook(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -35,6 +45,17 @@ pub async fn github_webhook(
     handle_github(&state, None, &headers, &body).await
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/github/{config_id}",
+    tag = "webhooks",
+    params(("config_id" = Uuid, Path, description = "CI config id")),
+    request_body(content = String, description = "GitHub webhook JSON payload", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
 pub async fn github_webhook_for_config(
     State(state): State<AppState>,
     Path(config_id): Path<Uuid>,
@@ -44,6 +65,16 @@ pub async fn github_webhook_for_config(
     handle_github(&state, Some(config_id), &headers, &body).await
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/gitlab",
+    tag = "webhooks",
+    request_body(content = String, description = "GitLab webhook JSON payload", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid token")
+    )
+)]
 pub async fn gitlab_webhook(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -52,6 +83,17 @@ pub async fn gitlab_webhook(
     handle_gitlab(&state, None, &headers, &body).await
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/gitlab/{config_id}",
+    tag = "webhooks",
+    params(("config_id" = Uuid, Path, description = "CI config id")),
+    request_body(content = String, description = "GitLab webhook JSON payload", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid token")
+    )
+)]
 pub async fn gitlab_webhook_for_config(
     State(state): State<AppState>,
     Path(config_id): Path<Uuid>,
