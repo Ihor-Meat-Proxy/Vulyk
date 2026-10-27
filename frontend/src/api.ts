@@ -3,7 +3,10 @@ import { getStoredToken } from './token'
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 /** Parse double-submit CSRF cookie value from a Cookie header / document.cookie string. */
-export function csrfTokenFromCookieHeader(cookieHeader: string): string | null {
+export function csrfTokenFromCookieHeader(
+  cookieHeader: string | null | undefined,
+): string | null {
+  if (!cookieHeader) return null
   const match = cookieHeader.match(/(?:^|; )vulyk_csrf=([^;]*)/)
   if (!match) return null
   try {
@@ -16,7 +19,7 @@ export function csrfTokenFromCookieHeader(cookieHeader: string): string | null {
 /** Read double-submit CSRF cookie set at login (`vulyk_csrf`). */
 export function getCsrfToken(): string | null {
   if (typeof document === 'undefined') return null
-  return csrfTokenFromCookieHeader(document.cookie)
+  return csrfTokenFromCookieHeader(document.cookie ?? '')
 }
 
 export class ApiError extends Error {
