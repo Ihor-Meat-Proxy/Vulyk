@@ -45,4 +45,4 @@ Credentials are encrypted with `VULYK_SECRETS_KEY` and **masked** in the UI. Sup
 
 ## API
 
-See OpenAPI tag **backups** (`/api/docs`) — destinations, policies, run, history, download, restore.
+See OpenAPI tag **backups** (`/api/docs`) — destinations, policies, run, history, download, restore, and restore upload. All routes require a **system administrator**. Preview a restore with `dry_run: true` on `POST /api/v1/admin/backups/restore` (or `?dry_run=true` on `/restore/upload`); there is no separate `/restore/preview` endpoint.

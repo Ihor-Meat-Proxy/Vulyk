@@ -19,7 +19,7 @@ See also [guides/backup.md](guides/backup.md) (user-facing guide).
 2. **Change-driven schedule** with debounce + manual “Back up now”; retention (last N / days).
 3. **Multiple destinations** (GitHub, GitLab, Nextcloud/WebDAV, Google Drive, local FS), credentials encrypted at rest, Test connection.
 4. **Import/restore** with dry-run preview, modes (new project / merge / replace), custom-field mapping, case-key + tombstone rules.
-5. **Admin UI** (history, download, restore) + failure notifications; admin-only (optional project admin for own project).
+5. **Admin UI** (history, download, restore) + failure notifications; **system administrator only** (all backup/restore routes use `RequireSystemAdmin`).
 6. **Align with Admin config export** from PR #24 (`ConfigBundle` version `1.0`).
 
 Non-goals: OpenProject changes; replacing `pg_dump` DR; backing up encrypted LLM/SSO secrets into remote repos by default.
@@ -336,10 +336,12 @@ Factory: `destination_from_row(row, secrets_key) -> Box<dyn BackupDestination>`.
 | POST | `/api/v1/admin/backups/run` | Manual backup (`project_id?`, `destination_id`) |
 | GET | `/api/v1/admin/backups/runs` | History (status, size, destination, duration, error) |
 | GET | `/api/v1/admin/backups/runs/{id}/download` | Download archive |
-| POST | `/api/v1/admin/backups/restore/preview` | Dry-run |
-| POST | `/api/v1/admin/backups/restore` | Apply restore |
+| POST | `/api/v1/admin/backups/restore` | Restore from a completed run id and/or inline JSON archive (`dry_run: true` for preview only) |
+| POST | `/api/v1/admin/backups/restore/upload` | Restore from uploaded ZIP/JSON body (same modes; `dry_run` query param) |
 
-**Permissions:** system admin for destinations/policies/all-projects. Project admin (`manage_project` or equivalent) may trigger backup/restore **for their project** and view that project’s runs when a policy is scoped to it.
+There is **no** separate `/restore/preview` route — dry-run is the `dry_run` flag on `restore` / `restore/upload`.
+
+**Permissions:** **system administrator only** for destinations, policies, manual runs, history, download, and restore. Project admins cannot call these `/api/v1/admin/backups/*` endpoints.
 
 ---
 
@@ -350,7 +352,7 @@ Admin tab **Backups** (`data-testid` prefix `admin-backups-…`):
 1. **Destinations** — list, add (kind-specific form), mask secrets, Test connection.
 2. **Policies** — project scope (one / all), schedule, debounce, retention, pack mode, attachments toggle.
 3. **History** — table: time, project, destination, status, size, duration, error; actions Download / Restore.
-4. **Restore wizard** — upload or pick run → preview counts/conflicts → choose mode → confirm.
+4. **Restore wizard** — upload or pick run → dry-run (`dry_run`) for counts/conflicts → choose mode → confirm apply.
 
 Failure → in-app notification (`notifications` table) for system admins with `notify_in_app`.
 
