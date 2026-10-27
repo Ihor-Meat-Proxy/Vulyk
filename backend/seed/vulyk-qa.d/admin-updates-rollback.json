@@ -1,0 +1,232 @@
+{
+  "feature": "admin-updates-rollback",
+  "suites": [
+    {
+      "name": {
+        "en": "Admin Updates & rollback",
+        "uk": "Адмін: оновлення та відкат",
+        "fr": "Admin Updates et rollback",
+        "es": "Admin Updates y rollback",
+        "de": "Admin Updates und Rollback"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Admin Updates tab shows current version and check control",
+            "uk": "Вкладка Updates показує поточну версію і кнопку перевірки",
+            "fr": "Admin Updates tab shows current version and check control",
+            "es": "Admin Updates tab shows current version and check control",
+            "de": "Admin Updates tab shows current version and check control"
+          },
+          "description": {
+            "en": "System admin can open Admin → Updates and see current/latest version plus Check for updates.",
+            "uk": "Системний адмін відкриває Admin → Updates і бачить поточну/останню версію та Check.",
+            "fr": "System admin can open Admin → Updates and see current/latest version plus Check for updates.",
+            "es": "System admin can open Admin → Updates and see current/latest version plus Check for updates.",
+            "de": "System admin can open Admin → Updates and see current/latest version plus Check for updates."
+          },
+          "precondition": {
+            "en": "Signed in as system admin.",
+            "uk": "Увійшли як системний адмін.",
+            "fr": "Signed in as system admin.",
+            "es": "Signed in as system admin.",
+            "de": "Signed in as system admin."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "admin",
+            "updates",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts#tab",
+          "steps": [
+            {
+              "action": {
+                "en": "Open Admin via gear menu; click Updates tab (data-testid=admin-tab-updates).",
+                "uk": "Відкрити Admin через шестерню; натиснути вкладку Updates (admin-tab-updates).",
+                "fr": "Open Admin via gear menu; click Updates tab (data-testid=admin-tab-updates).",
+                "es": "Open Admin via gear menu; click Updates tab (data-testid=admin-tab-updates).",
+                "de": "Open Admin via gear menu; click Updates tab (data-testid=admin-tab-updates)."
+              },
+              "expected_result": {
+                "en": "admin-updates-panel visible; admin-updates-current-version non-empty; admin-updates-check-button enabled.",
+                "uk": "Видно admin-updates-panel; admin-updates-current-version непорожній; кнопка check активна.",
+                "fr": "admin-updates-panel visible; admin-updates-current-version non-empty; admin-updates-check-button enabled.",
+                "es": "admin-updates-panel visible; admin-updates-current-version non-empty; admin-updates-check-button enabled.",
+                "de": "admin-updates-panel visible; admin-updates-current-version non-empty; admin-updates-check-button enabled."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Manual install and rollback commands shown without updater sidecar",
+            "uk": "Без sidecar показуються команди ручного install/rollback",
+            "fr": "Manual install and rollback commands shown without updater sidecar",
+            "es": "Manual install and rollback commands shown without updater sidecar",
+            "de": "Manual install and rollback commands shown without updater sidecar"
+          },
+          "description": {
+            "en": "When capability is manual_only, Admin shows install.sh and rollback command snippets.",
+            "uk": "За capability=manual_only Admin показує фрагменти install.sh і rollback.",
+            "fr": "When capability is manual_only, Admin shows install.sh and rollback command snippets.",
+            "es": "When capability is manual_only, Admin shows install.sh and rollback command snippets.",
+            "de": "When capability is manual_only, Admin shows install.sh and rollback command snippets."
+          },
+          "precondition": {
+            "en": "Compose updater sidecar not configured (typical e2e / dev).",
+            "uk": "Sidecar Compose updater не налаштовано (типовий e2e/dev).",
+            "fr": "Compose updater sidecar not configured (typical e2e / dev).",
+            "es": "Compose updater sidecar not configured (typical e2e / dev).",
+            "de": "Compose updater sidecar not configured (typical e2e / dev)."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "admin",
+            "updates",
+            "rollback",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts#manual",
+          "steps": [
+            {
+              "action": {
+                "en": "Inspect admin-updates-manual-command and admin-updates-rollback-command.",
+                "uk": "Перевірити admin-updates-manual-command і admin-updates-rollback-command.",
+                "fr": "Inspect admin-updates-manual-command and admin-updates-rollback-command.",
+                "es": "Inspect admin-updates-manual-command and admin-updates-rollback-command.",
+                "de": "Inspect admin-updates-manual-command and admin-updates-rollback-command."
+              },
+              "expected_result": {
+                "en": "Manual command mentions install.sh; rollback command mentions rollback; Apply/Rollback one-click buttons absent.",
+                "uk": "Manual згадує install.sh; rollback-команда згадує rollback; кнопок Apply/Rollback немає.",
+                "fr": "Manual command mentions install.sh; rollback command mentions rollback; Apply/Rollback one-click buttons absent.",
+                "es": "Manual command mentions install.sh; rollback command mentions rollback; Apply/Rollback one-click buttons absent.",
+                "de": "Manual command mentions install.sh; rollback command mentions rollback; Apply/Rollback one-click buttons absent."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Save update check interval preference",
+            "uk": "Зберегти інтервал перевірки оновлень",
+            "fr": "Save update check interval preference",
+            "es": "Save update check interval preference",
+            "de": "Save update check interval preference"
+          },
+          "description": {
+            "en": "Interval input persists via PUT /admin/updates/preferences.",
+            "uk": "Інтервал зберігається через PUT /admin/updates/preferences.",
+            "fr": "Interval input persists via PUT /admin/updates/preferences.",
+            "es": "Interval input persists via PUT /admin/updates/preferences.",
+            "de": "Interval input persists via PUT /admin/updates/preferences."
+          },
+          "precondition": {
+            "en": "Updates tab open as system admin.",
+            "uk": "Вкладка Updates відкрита під системним адміном.",
+            "fr": "Updates tab open as system admin.",
+            "es": "Updates tab open as system admin.",
+            "de": "Updates tab open as system admin."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "admin",
+            "updates",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts#interval",
+          "steps": [
+            {
+              "action": {
+                "en": "Set admin-updates-interval-input to 12; click admin-updates-interval-save-button; reload Updates tab.",
+                "uk": "Встановити interval=12; зберегти; перезавантажити вкладку Updates.",
+                "fr": "Set admin-updates-interval-input to 12; click admin-updates-interval-save-button; reload Updates tab.",
+                "es": "Set admin-updates-interval-input to 12; click admin-updates-interval-save-button; reload Updates tab.",
+                "de": "Set admin-updates-interval-input to 12; click admin-updates-interval-save-button; reload Updates tab."
+              },
+              "expected_result": {
+                "en": "Input still shows 12 after refresh; GET preferences returns check_interval_hours=12.",
+                "uk": "Після refresh input=12; GET preferences повертає check_interval_hours=12.",
+                "fr": "Input still shows 12 after refresh; GET preferences returns check_interval_hours=12.",
+                "es": "Input still shows 12 after refresh; GET preferences returns check_interval_hours=12.",
+                "de": "Input still shows 12 after refresh; GET preferences returns check_interval_hours=12."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Version backups list and job history regions render",
+            "uk": "Список version backups і історія jobs відображаються",
+            "fr": "Version backups list and job history regions render",
+            "es": "Version backups list and job history regions render",
+            "de": "Version backups list and job history regions render"
+          },
+          "description": {
+            "en": "Updates panel always exposes backup table and job list containers (may be empty).",
+            "uk": "Панель Updates завжди має таблицю backups і список jobs (можуть бути порожні).",
+            "fr": "Updates panel always exposes backup table and job list containers (may be empty).",
+            "es": "Updates panel always exposes backup table and job list containers (may be empty).",
+            "de": "Updates panel always exposes backup table and job list containers (may be empty)."
+          },
+          "precondition": {
+            "en": "Updates tab open.",
+            "uk": "Вкладка Updates відкрита.",
+            "fr": "Updates tab open.",
+            "es": "Updates tab open.",
+            "de": "Updates tab open."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "admin",
+            "updates",
+            "rollback",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts#lists",
+          "steps": [
+            {
+              "action": {
+                "en": "Locate admin-updates-backup-list and admin-updates-job-list.",
+                "uk": "Знайти admin-updates-backup-list і admin-updates-job-list.",
+                "fr": "Locate admin-updates-backup-list and admin-updates-job-list.",
+                "es": "Locate admin-updates-backup-list and admin-updates-job-list.",
+                "de": "Locate admin-updates-backup-list and admin-updates-job-list."
+              },
+              "expected_result": {
+                "en": "Both regions visible; empty state is acceptable when no upgrades have run.",
+                "uk": "Обидва регіони видимі; порожній стан ок, якщо апгрейдів не було.",
+                "fr": "Both regions visible; empty state is acceptable when no upgrades have run.",
+                "es": "Both regions visible; empty state is acceptable when no upgrades have run.",
+                "de": "Both regions visible; empty state is acceptable when no upgrades have run."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

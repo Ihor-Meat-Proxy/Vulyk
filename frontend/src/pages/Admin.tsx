@@ -1363,7 +1363,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
 
   if (!status) {
     return (
-      <div className="panel">
+      <div className="panel" {...testIdProps(TestIds.adminUpdatesPanel)}>
         <p className="muted" {...testIdProps(TestIds.adminLoading)}>
           Loading…
         </p>
@@ -1389,7 +1389,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     !jobBusy
 
   return (
-    <div className="panel">
+    <div className="panel" {...testIdProps(TestIds.adminUpdatesPanel)}>
       <h3>{t('admin.updates')}</h3>
       <p className="muted">
         {status.update_available
