@@ -66,7 +66,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
 #[openapi(
     info(
         title = "Vulyk API",
-        version = "0.2.0",
+        version = "0.1.0",
         description = "Open-source test management system (beehive). Projects (optional key, case_key_prefix + never-reused PREFIX-N case numbers), nested folder trees with recursive counts, plans/runs, automation executions (campaigns/iterations/pipeline ingest), ALM/importers/reports, LLM generate/chat (propose/create), MCP, locales en/uk/fr/es/de, deploy.",
         license(name = "AGPL-3.0")
     ),
@@ -599,5 +599,20 @@ impl Modify for SecurityAddon {
                 ),
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn openapi_info_version_matches_crate() {
+        let doc = ApiDoc::openapi();
+        assert_eq!(
+            doc.info.version,
+            env!("CARGO_PKG_VERSION"),
+            "OpenAPI info.version must stay aligned with CARGO_PKG_VERSION / VERSION"
+        );
     }
 }
