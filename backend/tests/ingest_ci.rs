@@ -242,6 +242,81 @@ async fn junit_ingest_and_gitlab_webhook_status() {
 }
 
 #[tokio::test]
+async fn webhook_without_secret_is_rejected() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let base = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let key = format!(
+        "W{}",
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+    );
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({
+            "key": key,
+            "name": "Webhook Auth Project",
+            "description": "fail-closed webhooks"
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    // Config with no webhook_secret must not authorize unscoped GitLab webhooks.
+    let _cfg: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci-configs"))
+        .json(&json!({
+            "provider": "gitlab",
+            "name": "no-secret",
+            "config": {
+                "project_id": "42",
+                "trigger_token": "glptt-test",
+                "base_url": "https://gitlab.example.com",
+                "ref": "main"
+            }
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+
+    let wh = client
+        .post(format!("{base}/api/v1/webhooks/gitlab"))
+        .header("X-Gitlab-Event", "Pipeline Hook")
+        .json(&json!({
+            "object_kind": "pipeline",
+            "object_attributes": {
+                "id": 1,
+                "status": "success",
+                "url": "https://gitlab.example.com/pipelines/1"
+            }
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        wh.status().as_u16(),
+        401,
+        "missing webhook secret must fail closed: {}",
+        wh.text().await.unwrap_or_default()
+    );
+}
+
+#[tokio::test]
 async fn vulyk_json_async_job() {
     if std::env::var("DATABASE_URL").is_err() {
         eprintln!("skipping: DATABASE_URL not set");
