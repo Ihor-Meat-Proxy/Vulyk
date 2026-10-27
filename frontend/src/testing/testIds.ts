@@ -243,6 +243,7 @@ export const TestIds = {
   runsCiDispatchButton: 'runs-ci-dispatch-button',
   runsCiExternalLink: 'runs-ci-external-link',
   runsList: 'runs-list',
+  runsLoadMoreButton: 'runs-load-more-button',
   runsEmpty: 'runs-empty',
   runsLoading: 'runs-loading',
   runsError: 'runs-error',

@@ -456,6 +456,10 @@ testid.
 
 `frontend/src/pages/RunsPage.tsx:50` + `api.ts` default limit.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/74 — page
+runs with `RUNS_PAGE_SIZE` (50) and a `runs-load-more-button` that appends the
+next offset until `total` is reached.
+
 ### 47. **risk** — Admin / Runs / Requirements / CaseDetail largely English-only
 
 Locale **key** parity is green; many surfaces still use hardcoded English

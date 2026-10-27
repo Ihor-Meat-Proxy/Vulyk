@@ -644,6 +644,7 @@ const uk: Dict = {
   'reports.title': "Звіти",
   'reports.trends': "Тренди pass / fail",
   'reports.uncovered': "Непокрито",
+  'runs.loadMore': "Завантажити ще",
   'status.blocked': "Заблоковано",
   'status.cancelled': "Скасовано",
   'status.closed': "Закрито",
