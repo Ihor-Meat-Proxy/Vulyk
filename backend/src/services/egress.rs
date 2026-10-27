@@ -22,9 +22,13 @@ pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
     }
     let lower = raw.to_ascii_lowercase();
     if allow_private_egress() {
-        if !(lower.starts_with("https://") || lower.starts_with("http://")) {
+        // Dev/test escape hatch: allow http(s) and local file:// fixtures.
+        if !(lower.starts_with("https://")
+            || lower.starts_with("http://")
+            || lower.starts_with("file://"))
+        {
             return Err(AppError::BadRequest(
-                "only http(s):// URLs are allowed for remote egress".into(),
+                "only http(s):// or file:// URLs are allowed when private egress is enabled".into(),
             ));
         }
         return Ok(());

@@ -70,9 +70,15 @@ fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
     let mut cmd = Command::new("git");
     cmd.args(args);
     cmd.env("GIT_TERMINAL_PROMPT", "0");
-    cmd.env("GIT_CONFIG_COUNT", "1");
-    cmd.env("GIT_CONFIG_KEY_0", "protocol.file.allow");
-    cmd.env("GIT_CONFIG_VALUE_0", "never");
+    // Block file:// clones in production; tests may set VULYK_EGRESS_ALLOW_PRIVATE=1.
+    let allow_private = std::env::var("VULYK_EGRESS_ALLOW_PRIVATE")
+        .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes"))
+        .unwrap_or(false);
+    if !allow_private {
+        cmd.env("GIT_CONFIG_COUNT", "1");
+        cmd.env("GIT_CONFIG_KEY_0", "protocol.file.allow");
+        cmd.env("GIT_CONFIG_VALUE_0", "never");
+    }
     if let Some(dir) = cwd {
         cmd.current_dir(dir);
     }
