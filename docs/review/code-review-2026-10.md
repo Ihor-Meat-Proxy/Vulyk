@@ -313,6 +313,9 @@ Locale dictionaries are key-parity complete across EN/UK/FR/ES/DE
 (`frontend/src/i18n/parity.test.ts`, 584 keys each), but screen-reader strings
 bypass `t(…)`. Non-English users hear English chrome.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/94 — `a11y.*`
+keys + `t(…)` for those chrome strings; e2e uses `TestIds.primaryNav`.
+
 ### 25. **improvement** — FTS config is English-only
 
 `backend/src/routes/cases.rs:355`, `case_list.rs:79`
@@ -504,6 +507,9 @@ coverage.
 
 `RunDetailsDrawer`, `CaseListColumnSettings` — `role="dialog"` without initial
 focus / Tab trap / restore.
+
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/95 — `useFocusTrap` on
+both dialogs (initial focus, Tab cycle, Escape close, restore focus).
 
 ### 49. **improvement** — Sample VQA counts disagree across guides (~140 / ~160 / ~195 / actual ~200)
 

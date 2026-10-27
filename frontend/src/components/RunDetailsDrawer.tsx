@@ -1,7 +1,8 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type AutomatedSuite, type SuiteResultRow } from '../api'
 import { useAuth } from '../auth'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { useI18n } from '../i18n'
 import {
   TestIds,
@@ -34,6 +35,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
   const { t } = useI18n()
   const { user, status: authStatus } = useAuth()
   const titleId = useId()
+  const dialogRef = useRef<HTMLElement>(null)
   const [items, setItems] = useState<SuiteResultRow[]>([])
   const [total, setTotal] = useState(0)
   const [offset, setOffset] = useState(0)
@@ -41,6 +43,8 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const limit = 50
+
+  useFocusTrap(dialogRef, open && Boolean(suite), { onEscape: onClose })
 
   const fmt = (value: string | null | undefined) =>
     formatTimestamp(value, {
@@ -76,15 +80,6 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
     }
   }, [open, suite?.id, projectId])
 
-  useEffect(() => {
-    if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
   const loadMore = async (nextOffset: number) => {
     if (!suite) return
     setLoading(true)
@@ -116,6 +111,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
         {...testIdProps(TestIds.runDetailsDrawerBackdrop)}
       />
       <aside
+        ref={dialogRef}
         className="exec-drawer panel"
         role="dialog"
         aria-modal="true"

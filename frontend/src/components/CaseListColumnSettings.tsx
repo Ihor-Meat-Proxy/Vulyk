@@ -1,7 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { useI18n } from '../i18n'
 import type { CaseListColumnsConfig, ResolvedColumn } from '../caseListColumns'
 import { moveColumn, setColumnVisible } from '../caseListColumns'
+import { useFocusTrap } from '../hooks/useFocusTrap'
+import { useI18n } from '../i18n'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
@@ -21,20 +22,19 @@ export function CaseListColumnSettings({
   const [open, setOpen] = useState(false)
   const panelId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const close = () => setOpen(false)
+
+  useFocusTrap(dialogRef, open, { onEscape: close })
 
   useEffect(() => {
     if (!open) return
     const onDoc = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
     }
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false)
-    }
     document.addEventListener('mousedown', onDoc)
-    document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('mousedown', onDoc)
-      document.removeEventListener('keydown', onKey)
     }
   }, [open])
 
@@ -56,8 +56,10 @@ export function CaseListColumnSettings({
       </button>
       {open && (
         <div
+          ref={dialogRef}
           id={panelId}
           role="dialog"
+          aria-modal="true"
           aria-label={t('cases.columnsSettings')}
           className="case-col-settings-panel"
           {...testIdProps(TestIds.caseListColumnsMenu)}
