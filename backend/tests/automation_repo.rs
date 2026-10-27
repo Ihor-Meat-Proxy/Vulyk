@@ -155,6 +155,9 @@ async fn indexes_fixture_repo_and_injects_context_into_generate_code() {
         return;
     }
 
+    // Local file:// fixture remotes require the private-egress test escape hatch.
+    std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
+
     let base = spawn_api().await;
     let client = reqwest::Client::new();
     let (stub_url, hits) = spawn_stub("test('generated', async ({ page }) => {});").await;

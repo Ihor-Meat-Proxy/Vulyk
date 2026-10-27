@@ -207,6 +207,7 @@ pub async fn create_repo(
     if body.remote_url.trim().is_empty() {
         return Err(AppError::BadRequest("remote_url required".into()));
     }
+    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
@@ -334,6 +335,7 @@ pub async fn update_repo(
         .filter(|s| !s.is_empty())
         .unwrap_or(existing.remote_url.as_str())
         .to_string();
+    crate::services::egress::validate_public_https_url(&remote_url)?;
     let branch = body
         .branch
         .as_deref()
@@ -604,6 +606,7 @@ pub async fn upsert_repo(
     if body.remote_url.trim().is_empty() {
         return Err(AppError::BadRequest("remote_url required".into()));
     }
+    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
     let branch = if body.branch.trim().is_empty() {
         "main".to_string()
     } else {

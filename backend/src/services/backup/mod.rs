@@ -60,6 +60,15 @@ pub async fn create_destination(
     body: CreateBackupDestination,
 ) -> AppResult<BackupDestination> {
     validate_kind(&body.kind)?;
+    let config = if body.config.is_null() {
+        json!({})
+    } else {
+        body.config
+    };
+    // Fail closed on local path confinement (and kind wiring) before insert.
+    if body.kind.trim() == "local" {
+        let _ = destinations::LocalDestination::from_config(&config)?;
+    }
     let (ct, nonce) = encrypt_secrets(secrets, body.secrets.as_ref())?;
     let row = sqlx::query_as::<_, BackupDestination>(&format!(
         r#"INSERT INTO backup_destinations (name, kind, config, secrets_ciphertext, secrets_nonce, enabled)
@@ -68,11 +77,7 @@ pub async fn create_destination(
     ))
     .bind(body.name.trim())
     .bind(body.kind.trim())
-    .bind(if body.config.is_null() {
-        json!({})
-    } else {
-        body.config
-    })
+    .bind(config)
     .bind(ct)
     .bind(nonce)
     .bind(body.enabled)

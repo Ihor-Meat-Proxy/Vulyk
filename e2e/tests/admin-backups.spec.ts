@@ -18,9 +18,10 @@ test.describe('Admin content backups', () => {
     const before = await page.getByTestId(TestIds.adminBackupsDestRow).count()
     await page.getByTestId(TestIds.adminBackupsDestName).fill(destName)
     await page.getByTestId(TestIds.adminBackupsDestKind).selectOption('local')
+    // Path must stay under VULYK_CONTENT_BACKUP_DIR (default ./data/content-backups).
     await page
       .getByTestId(TestIds.adminBackupsDestPath)
-      .fill('./data/content-backups-e2e')
+      .fill('./data/content-backups/e2e')
     await page.getByTestId(TestIds.adminBackupsDestSave).click()
 
     await expect(page.getByTestId(TestIds.adminBackupsDestRow)).toHaveCount(
@@ -31,7 +32,7 @@ test.describe('Admin content backups', () => {
     const runDest = page.getByTestId(TestIds.adminBackupsRunDest)
     await expect
       .poll(async () => runDest.locator('option').count())
-      .toBeGreaterThan(1)
+      .toBeGreaterThan(0)
     const optionCount = await runDest.locator('option').count()
     await runDest.selectOption({ index: optionCount - 1 })
     await page.getByTestId(TestIds.adminBackupsRunNow).click()

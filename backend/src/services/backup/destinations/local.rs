@@ -13,21 +13,69 @@ pub struct LocalDestination {
 
 impl LocalDestination {
     pub fn from_config(config: &Value) -> AppResult<Self> {
-        let path = cfg_str(config, "path").unwrap_or_else(|| {
+        let allowed_root = PathBuf::from(
             std::env::var("VULYK_CONTENT_BACKUP_DIR")
-                .unwrap_or_else(|_| "./data/content-backups".into())
-        });
+                .unwrap_or_else(|_| "./data/content-backups".into()),
+        );
+        // Ensure the allowed root exists so canonicalize works for confinement.
+        std::fs::create_dir_all(&allowed_root).map_err(|e| {
+            AppError::BadRequest(format!("backup root {}: {e}", allowed_root.display()))
+        })?;
+        let allowed_canon = allowed_root.canonicalize().map_err(|e| {
+            AppError::BadRequest(format!("backup root {}: {e}", allowed_root.display()))
+        })?;
+
+        let path =
+            cfg_str(config, "path").unwrap_or_else(|| allowed_canon.to_string_lossy().into_owned());
+        let requested = PathBuf::from(&path);
+        if let Some(parent) = requested.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::create_dir_all(&requested)
+            .map_err(|e| AppError::BadRequest(format!("backup path {path}: {e}")))?;
+        let requested_canon = requested
+            .canonicalize()
+            .map_err(|e| AppError::BadRequest(format!("backup path {path}: {e}")))?;
+        if !requested_canon.starts_with(&allowed_canon) {
+            return Err(AppError::BadRequest(format!(
+                "local backup path must stay under {}",
+                allowed_canon.display()
+            )));
+        }
         Ok(Self {
-            root: PathBuf::from(path),
+            root: requested_canon,
         })
     }
 
     fn resolve(&self, remote_path: &str) -> AppResult<PathBuf> {
         let cleaned = remote_path.trim_start_matches('/');
-        if cleaned.contains("..") {
+        if cleaned.split('/').any(|s| s == "..") {
             return Err(AppError::BadRequest("path traversal rejected".into()));
         }
-        Ok(self.root.join(cleaned))
+        let joined = self.root.join(cleaned);
+        // For existing paths, confine via canonicalize; for new files check parent.
+        if joined.exists() {
+            let canon = joined
+                .canonicalize()
+                .map_err(|e| AppError::BadRequest(format!("path resolve: {e}")))?;
+            if !canon.starts_with(&self.root) {
+                return Err(AppError::BadRequest("path traversal rejected".into()));
+            }
+            return Ok(canon);
+        }
+        if let Some(parent) = joined.parent() {
+            if parent.exists() {
+                let parent_canon = parent
+                    .canonicalize()
+                    .map_err(|e| AppError::BadRequest(format!("path resolve: {e}")))?;
+                if !parent_canon.starts_with(&self.root) {
+                    return Err(AppError::BadRequest("path traversal rejected".into()));
+                }
+            } else if !joined.starts_with(&self.root) {
+                return Err(AppError::BadRequest("path traversal rejected".into()));
+            }
+        }
+        Ok(joined)
     }
 }
 

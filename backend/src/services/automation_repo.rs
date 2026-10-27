@@ -69,6 +69,16 @@ fn auth_remote_url(remote_url: &str, token: Option<&str>) -> String {
 fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
     let mut cmd = Command::new("git");
     cmd.args(args);
+    cmd.env("GIT_TERMINAL_PROMPT", "0");
+    // Block file:// clones in production; tests may set VULYK_EGRESS_ALLOW_PRIVATE=1.
+    let allow_private = std::env::var("VULYK_EGRESS_ALLOW_PRIVATE")
+        .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes"))
+        .unwrap_or(false);
+    if !allow_private {
+        cmd.env("GIT_CONFIG_COUNT", "1");
+        cmd.env("GIT_CONFIG_KEY_0", "protocol.file.allow");
+        cmd.env("GIT_CONFIG_VALUE_0", "never");
+    }
     if let Some(dir) = cwd {
         cmd.current_dir(dir);
     }
@@ -77,8 +87,9 @@ fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
         .map_err(|e| AppError::BadRequest(format!("git not available: {e}")))?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
+        let redacted = crate::services::egress::redact_url_credentials(&stderr);
         return Err(AppError::BadRequest(format!(
-            "git {} failed: {stderr}",
+            "git {} failed: {redacted}",
             args.first().unwrap_or(&"")
         )));
     }
@@ -92,6 +103,7 @@ pub fn sync_repo(
     branch: &str,
     token: Option<&str>,
 ) -> AppResult<String> {
+    crate::services::egress::validate_public_https_url(remote_url)?;
     let dir = repo_workdir(repo_id);
     let url = auth_remote_url(remote_url, token);
     if dir.join(".git").is_dir() {
@@ -132,6 +144,9 @@ pub fn test_connection(
     branch: &str,
     token: Option<&str>,
 ) -> AppResult<(bool, String, Option<String>)> {
+    if let Err(e) = crate::services::egress::validate_public_https_url(remote_url) {
+        return Ok((false, e.to_string(), None));
+    }
     let url = auth_remote_url(remote_url, token);
     // ls-remote does not need a local clone.
     match run_git(&["ls-remote", "--heads", &url, branch], None) {
@@ -144,7 +159,11 @@ pub fn test_connection(
             format!("Reachable; branch '{branch}' not listed (will try clone)"),
             None,
         )),
-        Err(e) => Ok((false, e.to_string(), None)),
+        Err(e) => Ok((
+            false,
+            crate::services::egress::redact_url_credentials(&e.to_string()),
+            None,
+        )),
     }
 }
 
@@ -217,10 +236,25 @@ pub struct IndexedFile {
 
 pub fn index_workdir(repo_id: Uuid, subpath: &str) -> AppResult<Vec<IndexedFile>> {
     let root = repo_workdir(repo_id);
+    let root_canon = root
+        .canonicalize()
+        .map_err(|e| AppError::BadRequest(format!("repo workdir not available: {e}")))?;
     let walk_root = if subpath.trim().is_empty() {
-        root.clone()
+        root_canon.clone()
     } else {
-        root.join(subpath.trim().trim_start_matches('/'))
+        let joined = root.join(subpath.trim().trim_start_matches('/'));
+        let canon = joined.canonicalize().map_err(|_| {
+            AppError::BadRequest(format!(
+                "subpath '{}' not found in cloned repo",
+                subpath.trim()
+            ))
+        })?;
+        if !canon.starts_with(&root_canon) {
+            return Err(AppError::BadRequest(
+                "subpath escapes repository root".into(),
+            ));
+        }
+        canon
     };
     if !walk_root.is_dir() {
         return Err(AppError::BadRequest(format!(
@@ -228,7 +262,7 @@ pub fn index_workdir(repo_id: Uuid, subpath: &str) -> AppResult<Vec<IndexedFile>
             subpath.trim()
         )));
     }
-    let patterns = load_gitignore_patterns(&root);
+    let patterns = load_gitignore_patterns(&root_canon);
     let mut out = Vec::new();
     walk_collect(&walk_root, &walk_root, &patterns, &mut out)?;
     Ok(out)

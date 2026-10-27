@@ -25,13 +25,17 @@ impl GitLabDestination {
             .ok_or_else(|| AppError::BadRequest("gitlab token required".into()))?;
         let api_base =
             cfg_str(config, "api_base").unwrap_or_else(|| "https://gitlab.com/api/v4".into());
+        crate::services::egress::validate_public_https_url(&api_base)?;
         Ok(Self {
             project_id,
             branch,
             path_prefix,
             token,
             api_base,
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .map_err(|e| AppError::Internal(format!("http client: {e}")))?,
         })
     }
 
