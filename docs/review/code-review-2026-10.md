@@ -210,7 +210,7 @@ batched with `ANY($1)`; `last_automation_*` refreshed via single
 Large runs/exports can return multi‑MB JSON. Cap or paginate consistently with
 `PageQuery` (max 500).
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME —
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/87 —
 `list_results` / `list_results_by_id` / `list_run_items` return `Page<T>` with
 `PageQuery` (max 500); run-results export capped at `PAGE_MAX_LIMIT`.
 
