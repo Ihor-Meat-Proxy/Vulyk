@@ -10,8 +10,9 @@ use cookie::{Cookie, SameSite};
 use serde::Deserialize;
 
 use crate::auth::{
-    generate_session_token, hash_password, hash_secret, issue_jwt, session_cookie_name,
-    verify_password, verify_password_for_login, AuthUser, OptionalAuthUser, RequireAuth,
+    generate_session_token, hash_password_async, hash_secret, issue_jwt, session_cookie_name,
+    verify_password_async, verify_password_for_login_async, AuthUser, OptionalAuthUser,
+    RequireAuth,
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{
@@ -108,7 +109,7 @@ pub async fn bootstrap(
         return Err(AppError::BadRequest("display_name is required".into()));
     }
 
-    let password_hash = hash_password(password)?;
+    let password_hash = hash_password_async(password.to_string()).await?;
     let user = sqlx::query_as::<_, User>(&format!(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
            VALUES ($1, $2, $3, TRUE)
@@ -197,7 +198,7 @@ pub async fn register(
         }
     }
 
-    let password_hash = hash_password(password)?;
+    let password_hash = hash_password_async(password.to_string()).await?;
     let user = sqlx::query_as::<_, User>(&format!(
         r#"INSERT INTO users (
                email, display_name, password_hash, is_system_admin,
@@ -250,8 +251,8 @@ pub async fn login(
     .await?;
 
     // Always pay Argon2 verify cost (dummy hash when user/hash missing).
-    let hash = user.as_ref().and_then(|u| u.password_hash.as_deref());
-    let password_ok = verify_password_for_login(&body.password, hash);
+    let hash = user.as_ref().and_then(|u| u.password_hash.clone());
+    let password_ok = verify_password_for_login_async(body.password.clone(), hash).await;
 
     let Some(mut user) = user else {
         state
@@ -429,23 +430,23 @@ pub async fn change_password(
 ) -> AppResult<StatusCode> {
     let new_password = state.password_policy.validate(&body.new_password)?;
 
-    if let Some(hash) = auth.user.password_hash.as_deref() {
-        let current = body.current_password.as_deref().unwrap_or("");
+    if let Some(hash) = auth.user.password_hash.clone() {
+        let current = body.current_password.clone().unwrap_or_default();
         // Allow skipping current when must_change_password (forced reset after seed).
         if !auth.user.must_change_password {
-            if current.is_empty() || !verify_password(current, hash)? {
+            if current.is_empty() || !verify_password_async(current.clone(), hash.clone()).await? {
                 return Err(AppError::Unauthorized(
                     "current password is incorrect".into(),
                 ));
             }
-        } else if !current.is_empty() && !verify_password(current, hash)? {
+        } else if !current.is_empty() && !verify_password_async(current, hash).await? {
             return Err(AppError::Unauthorized(
                 "current password is incorrect".into(),
             ));
         }
     }
 
-    let password_hash = hash_password(new_password)?;
+    let password_hash = hash_password_async(new_password.to_string()).await?;
     sqlx::query(
         r#"UPDATE users
            SET password_hash = $2, must_change_password = FALSE, updated_at = NOW()

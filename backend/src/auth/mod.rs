@@ -18,8 +18,9 @@ pub use extractor::{
 pub use jwt::{issue_jwt, Claims};
 pub use login_throttle::LoginThrottle;
 pub use password::{
-    generate_password, hash_password, password_strength_ok, validate_password_strength,
-    verify_password, verify_password_for_login, PasswordPolicy, PasswordPolicyPublic,
+    generate_password, hash_password, hash_password_async, password_strength_ok,
+    validate_password_strength, verify_password, verify_password_async, verify_password_for_login,
+    verify_password_for_login_async, PasswordPolicy, PasswordPolicyPublic,
     PASSWORD_GENERATED_LENGTH, PASSWORD_MIN_LENGTH_DEFAULT, PASSWORD_MIN_LENGTH_FLOOR,
 };
 pub use rbac::{role_matrix, Permission, ProjectRole, RoleMatrixRow, RoleRequirement};
