@@ -23,6 +23,17 @@ type Props = {
 
 const STEP_STATUSES = RESULT_STATUSES.filter((s) => s !== 'Retest')
 
+
+function statusLabel(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  status: string,
+): string {
+  const key = `status.${status.charAt(0).toLowerCase()}${status.slice(1)}`
+  const translated = t(key)
+  return translated === key ? status : translated
+}
+
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -69,7 +80,7 @@ export function RunDetail({ projectId }: Props) {
         applyUnlessCancelled(guard, () => {
           setDetail(cached)
           setFromCache(true)
-          setNotice('Showing cached run (offline).')
+          setNotice(t('runs.cachedOffline'))
         })
         return
       }
@@ -160,7 +171,7 @@ export function RunDetail({ projectId }: Props) {
       if (offline) {
         await enqueueStepResult({ projectId, runId, body })
         await bumpPendingCount()
-        setNotice('Saved offline — will sync when you are back online.')
+        setNotice(t('runs.savedOffline'))
         // Optimistically mark local active item
         setDetail((prev) => {
           if (!prev) return prev
@@ -185,7 +196,7 @@ export function RunDetail({ projectId }: Props) {
       try {
         await enqueueStepResult({ projectId, runId, body })
         await bumpPendingCount()
-        setNotice('Network error — result queued for sync.')
+        setNotice(t('runs.queuedForSync'))
         setActive(null)
         setError(null)
       } catch {
@@ -206,12 +217,12 @@ export function RunDetail({ projectId }: Props) {
       content_type: 'text/plain',
       content_base64: text,
     })
-    setNotice('Note attached.')
+    setNotice(t('runs.noteAttached'))
   }
 
   const attachPhoto = async (file: File) => {
     if (!projectId || !active?.latest_result) {
-      setError('Record a result first, then attach a photo.')
+      setError(t('runs.photoNeedResult'))
       return
     }
     setSaving(true)
@@ -224,7 +235,7 @@ export function RunDetail({ projectId }: Props) {
         content_type: file.type || 'image/jpeg',
         content_base64,
       })
-      setNotice('Photo attached.')
+      setNotice(t('runs.photoAttached'))
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -233,11 +244,11 @@ export function RunDetail({ projectId }: Props) {
     }
   }
 
-  if (!projectId) return <p className="muted">Select a project first.</p>
+  if (!projectId) return <p className="muted">{t('cases.selectProject')}</p>
   if (loading) {
     return (
       <p className="muted" {...testIdProps(TestIds.runsLoading)}>
-        Loading run…
+        {t('runs.loading')}
       </p>
     )
   }
@@ -248,7 +259,7 @@ export function RunDetail({ projectId }: Props) {
       </p>
     )
   }
-  if (!detail) return <p className="muted">Run not found.</p>
+  if (!detail) return <p className="muted">{t('runs.notFound')}</p>
 
   const { run, progress, items } = detail
   const currentStep = active?.steps[mobileStep]
@@ -268,16 +279,20 @@ export function RunDetail({ projectId }: Props) {
       <div className="panel run-queue-panel">
         <p style={{ marginTop: 0 }}>
           <Link to="/runs" {...testIdProps(TestIds.runDetailBackLink)}>
-            ← Runs
+            {t('runs.back')}
           </Link>
         </p>
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
           <StatusBadge status={run.status} testId="run-detail-status-badge" />
           <span>
-            Progress: {progress.completed}/{progress.total} ({progress.percent.toFixed(0)}%)
+            {t('runs.progress', {
+              completed: progress.completed,
+              total: progress.total,
+              percent: progress.percent.toFixed(0),
+            })}
           </span>
-          {fromCache && <span className="badge">cached</span>}
+          {fromCache && <span className="badge">{t('runs.cachedBadge')}</span>}
         </div>
         <div className="progress-track" aria-label={t('a11y.runProgress')}>
           <div className="progress-seg passed" style={{ flex: progress.passed || 0.0001 }} />
@@ -342,10 +357,10 @@ export function RunDetail({ projectId }: Props) {
           <table className="table">
             <thead>
               <tr>
-                <th>Case</th>
-                <th>Priority</th>
-                <th>Assignee</th>
-                <th>Status</th>
+                <th>{t('runs.colCase')}</th>
+                <th>{t('cases.colPriority')}</th>
+                <th>{t('runs.colAssignee')}</th>
+                <th>{t('runs.colStatus')}</th>
               </tr>
             </thead>
             <tbody>
@@ -377,7 +392,7 @@ export function RunDetail({ projectId }: Props) {
 
       <div className="panel execution-panel">
         {!active ? (
-          <div className="empty">Select a case to execute step by step.</div>
+          <div className="empty">{t('runs.selectCase')}</div>
         ) : (
           <>
             <div className="exec-header">
@@ -387,7 +402,7 @@ export function RunDetail({ projectId }: Props) {
                 onClick={() => setActive(null)}
                 {...testIdProps(TestIds.executionBackToQueueButton)}
               >
-                ← Queue
+                {t('runs.backToQueue')}
               </button>
               <h3 style={{ margin: 0 }}>
                 <span className="badge">{active.item.case_key}</span>{' '}
@@ -420,20 +435,20 @@ export function RunDetail({ projectId }: Props) {
                   <div className="step-num">{idx + 1}</div>
                   <div>
                     <div className="muted" style={{ fontSize: '0.78rem' }}>
-                      Action
+                      {t('cases.stepAction')}
                     </div>
                     <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
                   </div>
                   <div>
                     <div className="muted" style={{ fontSize: '0.78rem' }}>
-                      Expected
+                      {t('cases.stepExpected')}
                     </div>
                     <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
                     <select
                       className="filter-input"
                       style={{ marginTop: '0.35rem' }}
                       value={stepStatuses[idx] ?? 'Untested'}
-                      aria-label={`Step ${idx + 1} status`}
+                      aria-label={t('runs.stepStatus', { n: idx + 1 })}
                       onChange={(e) => {
                         const next = [...stepStatuses]
                         next[idx] = e.target.value
@@ -443,7 +458,7 @@ export function RunDetail({ projectId }: Props) {
                     >
                       {STEP_STATUSES.map((s) => (
                         <option key={s} value={s}>
-                          {s}
+                          {statusLabel(t, s)}
                         </option>
                       ))}
                     </select>
@@ -456,17 +471,17 @@ export function RunDetail({ projectId }: Props) {
             {currentStep && (
               <div className="mobile-step-card">
                 <div className="mobile-step-meta muted">
-                  Step {mobileStep + 1} of {active.steps.length}
+                  {t('runs.stepOf', { n: mobileStep + 1, total: active.steps.length })}
                 </div>
                 <div className="mobile-step-block">
                   <div className="muted" style={{ fontSize: '0.78rem' }}>
-                    Action
+                    {t('cases.stepAction')}
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap' }}>{currentStep.action}</div>
                 </div>
                 <div className="mobile-step-block">
                   <div className="muted" style={{ fontSize: '0.78rem' }}>
-                    Expected
+                    {t('cases.stepExpected')}
                   </div>
                   <div style={{ whiteSpace: 'pre-wrap' }}>
                     {currentStep.expected_result}
@@ -475,7 +490,7 @@ export function RunDetail({ projectId }: Props) {
                 <select
                   className="filter-input"
                   value={stepStatuses[mobileStep] ?? 'Untested'}
-                  aria-label={`Step ${mobileStep + 1} status`}
+                  aria-label={t('runs.stepStatus', { n: mobileStep + 1 })}
                   onChange={(e) => {
                     const next = [...stepStatuses]
                     next[mobileStep] = e.target.value
@@ -485,7 +500,7 @@ export function RunDetail({ projectId }: Props) {
                 >
                   {STEP_STATUSES.map((s) => (
                     <option key={s} value={s}>
-                      {s}
+                      {statusLabel(t, s)}
                     </option>
                   ))}
                 </select>
@@ -497,7 +512,7 @@ export function RunDetail({ projectId }: Props) {
                     onClick={() => setMobileStep((s) => Math.max(0, s - 1))}
                     {...testIdProps(TestIds.executionPrevButton)}
                   >
-                    Prev
+                    {t('runs.prev')}
                   </button>
                   <button
                     type="button"
@@ -510,7 +525,7 @@ export function RunDetail({ projectId }: Props) {
                     }
                     {...testIdProps(TestIds.executionNextButton)}
                   >
-                    Next
+                    {t('common.next')}
                   </button>
                 </div>
               </div>
@@ -531,7 +546,7 @@ export function RunDetail({ projectId }: Props) {
 
             {active.history && active.history.length > 0 && (
               <section className="result-timeline" aria-label={t('a11y.resultHistory')}>
-                <h4 style={{ marginBottom: '0.35rem' }}>Result history</h4>
+                <h4 style={{ marginBottom: '0.35rem' }}>{t('runs.resultHistory')}</h4>
                 <ol className="timeline-list">
                   {active.history.map((h) => (
                     <li key={h.result.id}>
@@ -572,7 +587,7 @@ export function RunDetail({ projectId }: Props) {
                 onClick={() => cameraInputRef.current?.click()}
                 {...testIdProps(TestIds.executionCameraButton)}
               >
-                Camera / photo
+                {t('runs.cameraPhoto')}
               </button>
               {active.latest_result && (
                 <button
@@ -581,7 +596,7 @@ export function RunDetail({ projectId }: Props) {
                   onClick={() => void attachNote()}
                   {...testIdProps(TestIds.executionAttachNoteButton)}
                 >
-                  Attach note
+                  {t('runs.attachNote')}
                 </button>
               )}
             </div>

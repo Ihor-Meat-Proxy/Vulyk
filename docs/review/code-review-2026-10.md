@@ -503,13 +503,19 @@ Locale **key** parity is green; many surfaces still use hardcoded English
 (including `aria-label`s). Docs claiming full EN/UK/FR/ES/DE UI overstate
 coverage.
 
+**Partial fix:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/96 — CaseDetail /
+RunsPage / RunDetail / RequirementsPage chrome wired through `t(…)`
+(EN/UK/FR/ES/DE). Admin Users/Roles/Projects/LLM/Tokens/SSO panels and the CI
+`Runs.tsx` page remain for a follow-up.
+
 ### 48. **risk** — Dialogs without focus trap
 
 `RunDetailsDrawer`, `CaseListColumnSettings` — `role="dialog"` without initial
 focus / Tab trap / restore.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/95 — `useFocusTrap` on
-both dialogs (initial focus, Tab cycle, Escape close, restore focus).
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/95 —
+`useFocusTrap` on both dialogs (initial focus, Tab cycle, Escape close, restore
+focus).
 
 ### 49. **improvement** — Sample VQA counts disagree across guides (~140 / ~160 / ~195 / actual ~200)
 
