@@ -7,6 +7,7 @@ import {
   logout,
 } from '../fixtures/auth'
 import { LoginPage } from '../pages/LoginPage'
+import { TestIds } from '../../frontend/src/testing/testIds'
 
 test.describe.configure({ mode: 'serial' })
 
@@ -19,7 +20,7 @@ test('login with seeded admin succeeds', {
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await expect(page.locator('.app-shell')).toBeVisible()
-  await expect(page.getByRole('navigation', { name: 'Primary' })).toContainText(
+  await expect(page.getByTestId(TestIds.primaryNav)).toContainText(
     /Cases|Кейси/,
   )
 })

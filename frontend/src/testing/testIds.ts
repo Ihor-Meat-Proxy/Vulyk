@@ -29,6 +29,7 @@ export const TestIds = {
   navDrawer: 'nav-drawer',
   navDrawerClose: 'nav-drawer-close',
   navDrawerBackdrop: 'nav-drawer-backdrop',
+  primaryNav: 'primary-nav',
   navLinkCases: 'nav-link-cases',
   navLinkRequirements: 'nav-link-requirements',
   navLinkImport: 'nav-link-import',

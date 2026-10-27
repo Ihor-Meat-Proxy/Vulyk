@@ -13,7 +13,7 @@ test.describe('PWA + mobile Chromium viewport', () => {
 }, async ({ page }) => {
     await loginAsAdmin(page)
 
-    const bottom = page.getByRole('navigation', { name: 'Mobile primary' })
+    const bottom = page.getByTestId(TestIds.bottomNav)
     await expect(bottom).toBeVisible()
     await expect(bottom.getByRole('link', { name: /Cases|Кейси/i })).toBeVisible()
     await expect(
@@ -26,7 +26,7 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await page.locator('button.menu-toggle').click()
     await expect(page.locator('#nav-drawer')).toBeVisible()
     await expect(
-      page.locator('#nav-drawer').getByRole('navigation', { name: 'Primary' }),
+      page.locator('#nav-drawer').getByTestId(TestIds.primaryNav),
     ).toBeVisible()
     await expect(page.locator('#nav-drawer').locator('.suite-block')).toHaveCount(0)
     await expect(

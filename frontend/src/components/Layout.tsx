@@ -94,7 +94,11 @@ export function Layout({ projects, project, onSelectProject }: Props) {
           </button>
         </div>
 
-        <nav className="nav" aria-label={t('a11y.primaryNav')}>
+        <nav
+          className="nav"
+          aria-label={t('a11y.primaryNav')}
+          {...testIdProps(TestIds.primaryNav)}
+        >
           <NavLink
             to="/"
             end

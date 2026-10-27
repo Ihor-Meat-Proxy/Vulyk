@@ -70,7 +70,7 @@ test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', 
   })
   await expect(page.getByText('Open app')).toBeVisible()
 
-  const nav = page.getByRole('navigation', { name: 'Primary' })
+  const nav = page.getByTestId(TestIds.primaryNav)
   await nav
     .getByRole('link', {
       name: /Runs|Прогони|Exécutions de test|Ejecuciones de pruebas|Testläufe/i,
