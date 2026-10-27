@@ -532,6 +532,8 @@ ensure_prod_env() {
   if [[ -f "${env_file}" ]]; then
     log "Using existing ${env_file} (will not regenerate secrets or overwrite admin settings)"
     write_setup_env "${env_file}" 1
+    backup_env_file "${env_file}"
+    sync_env_from_example "${env_file}"
   else
     log "Generating $env_file with random secrets..."
     cat >"${env_file}" <<EOF
@@ -548,6 +550,7 @@ EOF
     chmod 600 "${env_file}" || true
     log "Wrote $env_file (mode 600)."
     write_setup_env "${env_file}" 0
+    sync_env_from_example "${env_file}"
   fi
 }
 
@@ -556,6 +559,8 @@ ensure_compose_env() {
   if [[ -f "${env_file}" ]]; then
     log "Using existing ${env_file} (will not overwrite secrets or admin settings)"
     write_setup_env "${env_file}" 1
+    backup_env_file "${env_file}"
+    sync_env_from_example "${env_file}"
   else
     log "Creating ${env_file}..."
     cat >"${env_file}" <<EOF
@@ -566,6 +571,7 @@ VULYK_SECRETS_KEY=vulyk-compose-dev-secrets
 VULYK_LLM_MOCK=1
 EOF
     write_setup_env "${env_file}" 0
+    sync_env_from_example "${env_file}"
   fi
 }
 
@@ -781,11 +787,90 @@ current_git_version() {
   fi
 }
 
+# Never fails under `set -e` / `pipefail` when the API is stopped (curl exit 7).
+# Prints the version string or empty; always returns 0.
 api_reported_version() {
   local url="${VULYK_API_URL:-http://127.0.0.1:8080}"
+  local out=""
   if command -v curl >/dev/null 2>&1; then
-    curl -fsS "${url}/health" 2>/dev/null | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1
+    # shellcheck disable=SC2312
+    out="$(
+      set +e
+      curl -fsS --connect-timeout 2 --max-time 5 "${url}/health" 2>/dev/null \
+        | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' \
+        | head -n1
+      true
+    )" || true
   fi
+  printf '%s' "${out}"
+  return 0
+}
+
+compose_image_version_hint() {
+  # Best-effort pin from env / running container labels when /health is down.
+  if [[ -n "${VULYK_API_IMAGE:-}" ]]; then
+    printf '%s' "${VULYK_API_IMAGE}"
+    return 0
+  fi
+  if [[ -n "${COMPOSE_ENV_FILE:-}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    local pinned
+    pinned="$(grep -E '^VULYK_API_IMAGE=' "${COMPOSE_ENV_FILE}" 2>/dev/null | head -n1 | cut -d= -f2- || true)"
+    if [[ -n "${pinned}" ]]; then
+      printf '%s' "${pinned}"
+      return 0
+    fi
+  fi
+  printf ''
+  return 0
+}
+
+backup_env_file() {
+  local env_file="$1"
+  local stamp backup
+  [[ -f "${env_file}" ]] || return 0
+  stamp="$(date -u +%Y%m%dT%H%M%SZ 2>/dev/null || date +%Y%m%d%H%M%S)"
+  backup="${env_file}.bak-${stamp}"
+  cp -a "${env_file}" "${backup}"
+  log "Backed up ${env_file} -> ${backup}"
+}
+
+# Sync missing keys from .env.example into an operator env file. Never overwrites.
+sync_env_from_example() {
+  local env_file="$1"
+  local example="${ROOT}/.env.example"
+  local py="${ROOT}/scripts/env_settings.py"
+  local result added_count
+  [[ -f "${example}" ]] || die "missing ${example} (source of truth for env sync)"
+  [[ -f "${py}" ]] || die "missing ${py}"
+  need_cmd python3
+  touch "${env_file}"
+  result="$(python3 "${py}" sync --example "${example}" "${env_file}")"
+  added_count="$(printf '%s' "${result}" | python3 -c 'import json,sys; print(len(json.load(sys.stdin).get("added",[])))')"
+  if [[ "${added_count}" -gt 0 ]]; then
+    log "Env sync added ${added_count} missing key(s) to ${env_file}:"
+    printf '%s' "${result}" | python3 -c 'import json,sys
+for row in json.load(sys.stdin).get("added", []):
+    print("  + %s (%s)" % (row["key"], row["how"]))'
+  else
+    log "Env sync: ${env_file} already has all keys from .env.example"
+  fi
+}
+
+report_env_gaps() {
+  local env_file="$1"
+  local example="${ROOT}/.env.example"
+  local py="${ROOT}/scripts/env_settings.py"
+  local result
+  [[ -f "${env_file}" ]] || { warn "No ${env_file} yet - sync will create missing keys"; return 0; }
+  result="$(python3 "${py}" gaps --example "${example}" "${env_file}" || true)"
+  printf '%s' "${result}" | python3 -c 'import json,sys
+gaps = json.load(sys.stdin).get("gaps", [])
+if not gaps:
+    print("Config gaps: none")
+else:
+    print("Config gaps:")
+    for g in gaps:
+        print("  - %s" % g)'
 }
 
 disk_free_mb() {
@@ -1040,30 +1125,27 @@ run_pg_dump_backup() {
   run_full_backup "$1"
 }
 
-# Merge additive defaults into an existing env file during upgrade. Never touches
-# secrets, admin password, or any key that is already set.
+# Merge additive defaults from .env.example into an existing env file during
+# upgrade/install. Backs up first; never overwrites existing values; generates
+# random values for @vulyk:secret keys with empty defaults.
 merge_env_defaults_for_upgrade() {
   local env_file="$1"
-  [[ -f "${env_file}" ]] || return 0
-  log "Merging additive config defaults into ${env_file} (existing values preserved)..."
-  # Safe additive keys only - never JWT/SECRETS/POSTGRES_PASSWORD/ADMIN_PASSWORD
-  env_add_if_missing "${env_file}" "VULYK_AUTO_MIGRATE" "false"
-  env_add_if_missing "${env_file}" "VULYK_JWT_TTL_HOURS" "12"
-  env_add_if_missing "${env_file}" "VULYK_SESSION_TTL_HOURS" "168"
-  env_add_if_missing "${env_file}" "API_PORT" "8080"
-  env_add_if_missing "${env_file}" "WEB_PORT" "80"
+  [[ -f "${env_file}" ]] || touch "${env_file}"
+  log "Merging missing keys from .env.example into ${env_file} (existing values preserved)..."
+  backup_env_file "${env_file}"
+  sync_env_from_example "${env_file}"
   local missing=0
   if ! grep -qE '^VULYK_SECRETS_KEY=.' "${env_file}"; then
-    warn "CRITICAL: VULYK_SECRETS_KEY missing in ${env_file} - encrypted LLM/SSO tokens will not decrypt"
+    warn "CRITICAL: VULYK_SECRETS_KEY missing/empty in ${env_file} - encrypted LLM/SSO tokens will not decrypt"
     missing=1
   fi
   if ! grep -qE '^VULYK_JWT_SECRET=.' "${env_file}"; then
-    warn "CRITICAL: VULYK_JWT_SECRET missing in ${env_file}"
+    warn "CRITICAL: VULYK_JWT_SECRET missing/empty in ${env_file}"
     missing=1
   fi
   if [[ "${env_file}" == *.prod ]] || grep -qE '^POSTGRES_PASSWORD=' "${env_file}" 2>/dev/null; then
     if ! grep -qE '^POSTGRES_PASSWORD=.' "${env_file}"; then
-      warn "CRITICAL: POSTGRES_PASSWORD missing in ${env_file}"
+      warn "CRITICAL: POSTGRES_PASSWORD missing/empty in ${env_file}"
       missing=1
     fi
   fi
@@ -1481,7 +1563,7 @@ cmd_upgrade() {
     need_cmd git
   fi
 
-  log "Upgrade preflight..."
+  log "Upgrade preflight (report only - no config/schema changes yet)..."
   docker info >/dev/null 2>&1 || die "Docker daemon not reachable"
   free_mb="$(disk_free_mb)"
   log "Free disk: ${free_mb} MB (minimum ${MIN_FREE_MB} MB)"
@@ -1489,13 +1571,31 @@ cmd_upgrade() {
     die "Insufficient free disk (${free_mb} MB < ${MIN_FREE_MB} MB). Free space or set VULYK_MIN_FREE_MB."
   fi
 
-  ver="$(api_reported_version)"
-  [[ -n "${ver}" ]] || ver="$(current_git_version)"
-  log "Current version: ${ver}"
+  detect_compose_files
+
+  # Version: prefer live /health; if API is stopped (curl fail), fall back to git / image pin.
+  ver="$(api_reported_version || true)"
+  if [[ -n "${ver}" ]]; then
+    log "Current version (from /health): ${ver}"
+  else
+    warn "API /health unreachable (app may be stopped) - falling back to git/compose version"
+    ver="$(current_git_version)"
+    log "Current version (git): ${ver}"
+    local image_hint
+    image_hint="$(compose_image_version_hint || true)"
+    if [[ -n "${image_hint}" ]]; then
+      log "Compose API image pin: ${image_hint}"
+    fi
+  fi
   if command -v git >/dev/null 2>&1; then
     log "Git HEAD: $(current_git_version)"
   fi
   log "Target: ${target_label}"
+
+  if [[ -n "${COMPOSE_ENV_FILE}" ]]; then
+    log "Config gap report for ${COMPOSE_ENV_FILE} (before sync):"
+    report_env_gaps "${COMPOSE_ENV_FILE}"
+  fi
 
   # Block app-version downgrades unless explicitly allowed (schema-newer still always blocked).
   if [[ -n "${RELEASE_VERSION}" && "${ver}" =~ ^[0-9]+\.[0-9]+ ]]; then
@@ -1510,13 +1610,29 @@ cmd_upgrade() {
   fi
 
   # Ensure DB is up for status / backup (do not start new API yet)
-  detect_compose_files
   log "Ensuring database is running..."
   compose_cmd up -d db
   wait_for_db
 
+  log "Migration status (current image, if available)..."
+  set +e
+  compose_cmd run --rm --no-deps api vulyk-api migrate status
+  pending_rc=$?
+  set -e
+  if [[ "${pending_rc}" -eq 2 ]]; then
+    die "database schema is newer than the current API binary (refusing upgrade - restore matching backup)"
+  elif [[ "${pending_rc}" -ne 0 ]]; then
+    warn "migrate status exited ${pending_rc} (image may be unavailable until pull/rebuild) - continuing preflight"
+  fi
+
+  if [[ "${ASSUME_YES}" -eq 0 ]]; then
+    confirm_or_yes "Preflight complete. Proceed with upgrade to ${target_label}? (will backup .env, sync missing keys, then backup DB)"
+  fi
+
   # Load env for POSTGRES_* when using prod (preserve release image exports)
   if [[ -n "${COMPOSE_ENV_FILE}" && -f "${COMPOSE_ENV_FILE}" ]]; then
+    # Additive defaults only - never overwrite secrets / admin password / user settings
+    merge_env_defaults_for_upgrade "${COMPOSE_ENV_FILE}"
     local saved_api_image="${VULYK_API_IMAGE:-}"
     local saved_web_image="${VULYK_WEB_IMAGE:-}"
     # shellcheck disable=SC1091
@@ -1528,17 +1644,8 @@ cmd_upgrade() {
       [[ -n "${saved_api_image}" ]] && export VULYK_API_IMAGE="${saved_api_image}"
       [[ -n "${saved_web_image}" ]] && export VULYK_WEB_IMAGE="${saved_web_image}"
     fi
-    # Additive defaults only - never regenerate secrets / admin password / user settings
+  elif [[ -n "${COMPOSE_ENV_FILE}" ]]; then
     merge_env_defaults_for_upgrade "${COMPOSE_ENV_FILE}"
-  fi
-
-  log "Migration status (current image, if available)..."
-  set +e
-  compose_cmd run --rm --no-deps api vulyk-api migrate status
-  pending_rc=$?
-  set -e
-  if [[ "${pending_rc}" -eq 2 ]]; then
-    die "database schema is newer than the current API binary (refusing upgrade - restore matching backup)"
   fi
 
   snapshot_running_images_for_rollback
@@ -1547,10 +1654,6 @@ cmd_upgrade() {
     warn "Skipping backup (--no-backup) - data loss risk if migrate/health fails"
   else
     backup_file="$(run_full_backup "${ver}")"
-  fi
-
-  if [[ "${ASSUME_YES}" -eq 0 ]]; then
-    confirm_or_yes "Proceed with upgrade to ${target_label}?"
   fi
 
   if [[ -n "${RELEASE_VERSION}" ]]; then

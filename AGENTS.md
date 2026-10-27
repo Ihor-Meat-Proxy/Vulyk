@@ -8,6 +8,27 @@ Cursor agents and humans: read this before opening or updating a PR. Do **not** 
 2. Run **`./scripts/check.sh`** (or `--full` before push). It mirrors the required CI gates.
 3. Confirm **migrations**, **sample seeds**, **i18n**, and **e2e locators** follow the rules below.
 4. Prefer small PRs. Match style: `cargo fmt`, clippy `-D warnings`, frontend oxlint/tsc, Playwright `data-testid`.
+5. If the PR can affect **upgrading an existing install**, complete the [Upgrade path](#upgrade-path-same-pr) section in the **same PR**.
+
+## Upgrade path (same PR)
+
+Any change that could affect upgrading an existing install must update the
+upgrade/migration path **in the same PR** (see `.cursor/rules/upgrade-path.mdc`
+and [docs/guides/upgrade.md](docs/guides/upgrade.md)):
+
+- New/renamed env or config keys → update **`.env.example`** with sync markers
+  (`@vulyk:sync` / `@vulyk:secret` / `@vulyk:required`). `.env.example` is the
+  source of truth; `scripts/env_settings.py` + `install.sh` **add missing keys
+  only** (backup first; never overwrite existing values; generate secrets when
+  marked).
+- Compose services/volumes/image names → keep interpolation upgrade-safe (avoid
+  bare `${VAR:?…}` unless the key is synced with a default or `@vulyk:secret`).
+- DB schema/data → forward-only SQLx migration (never edit migrations on `main`).
+- `./scripts/install.sh upgrade` preflight must tolerate a **stopped API**
+  (fall back to git/compose version; do not abort on `curl` exit 7).
+- Keep **`./scripts/ci-env-upgrade-test.sh`** green (previous release `.env` → HEAD).
+
+Do **not** overwrite operator `.env`, secrets, or admin passwords on upgrade.
 
 Install git hooks (once per clone):
 

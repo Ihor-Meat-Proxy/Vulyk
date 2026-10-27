@@ -40,3 +40,9 @@ Before finishing a PR:
 ## OpenProject
 
 - Never open PRs against OpenProject repos from this work.
+
+## Upgrade path
+
+- If the PR can affect existing installs (env keys, compose, migrations, layout),
+  update `.env.example` sync markers, `install.sh` upgrade, and
+  `ci-env-upgrade-test.sh` in the **same** PR. See `upgrade-path.mdc`.

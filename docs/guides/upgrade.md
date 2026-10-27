@@ -16,8 +16,8 @@ in-app one-click updater that wraps the same flow.
 | **Retention** | Keep the last `VULYK_BACKUP_RETENTION` ad-hoc bundles under `./backups/` (default **10**). Older bundles are pruned; current upgrade’s bundle is never overwritten. |
 | **Post-upgrade rollback point** | After a **successful** upgrade, the pre-upgrade verified bundle is also registered under `./version-backups/` as a **rollback point** for `VULYK_ROLLBACK_RETENTION_DAYS` (default **7**), plus a **version snapshot** counted in `VULYK_VERSION_BACKUP_COUNT` (default **3**). Separate from content backups (#30). |
 | **Safe operator rollback** | `./scripts/install.sh rollback [--version X] --confirm=ROLLBACK` takes a fresh backup of the current state, restores previous images + DB, health-checks, and writes an audit event. Typed `ROLLBACK` confirmation is required (data created after the upgrade is lost). Never deletes a rollback point while `in_progress`. |
-| **Config preservation** | Upgrade **does not** regenerate `.env`, `VULYK_JWT_SECRET`, `VULYK_SECRETS_KEY`, `POSTGRES_PASSWORD`, or admin password. Only **missing** additive keys get defaults (with a warning). Missing critical secrets abort or warn loudly. |
-| **Pre-flight** | Free disk (`VULYK_MIN_FREE_MB`, default 2048), current `/health` version, `migrate status` on current and new image. **Blocks** when the DB schema is newer than the binary. **Blocks** semver downgrades unless `--allow-downgrade` (prefer restore-from-backup). |
+| **Config preservation** | Upgrade **does not** overwrite `.env`, `VULYK_JWT_SECRET`, `VULYK_SECRETS_KEY`, `POSTGRES_PASSWORD`, or admin password. **Missing** keys are appended from [`.env.example`](../../.env.example) (source of truth) via `scripts/env_settings.py`: defaults as written, `@vulyk:secret` keys get a generated value, additions are logged, and `.env` is **backed up** first (`*.bak-<timestamp>`). |
+| **Pre-flight** | Free disk (`VULYK_MIN_FREE_MB`, default 2048), **config gap report**, current version from `/health` **or** git/compose when the API is stopped (curl failures must not abort), `migrate status` on current image. **Blocks** when the DB schema is newer than the binary. **Blocks** semver downgrades unless `--allow-downgrade` (prefer restore-from-backup). |
 | **Additive migrations** | Production migrations are forward-only, expand/contract safe, and applied in a transaction under a Postgres advisory lock (`vulyk-api migrate run`). |
 | **Auto-rollback** | If image pull/build, migrate, compose up, or health check fails: restore the verified DB dump, re-pin previous `vulyk-api:rollback` / `vulyk-web:rollback` images, restart, and print restore instructions. The Postgres volume is never removed (`down -v` is forbidden). |
 | **Encrypted secrets** | LLM / SSO / automation tokens stay encrypted at rest under `VULYK_SECRETS_KEY`. That key must survive upgrades (copied in the backup bundle). CI asserts decrypt-after-upgrade. |
@@ -88,15 +88,20 @@ individual services (`docker compose stop api web`).
 
 What it does:
 
-1. **Preflight** — Docker, free disk, current version (`/health` + git), downgrade guard
-2. **Migration status** — `vulyk-api migrate status` (lists pending; exit 2 = schema newer)
+1. **Preflight (report only)** — Docker, free disk, current version (`/health` if
+   up, else git / compose image pin), **config gaps** vs `.env.example`,
+   downgrade guard, `migrate status` (exit 2 = schema newer). A stopped API must
+   not abort preflight.
+2. **Confirm** — then backup `.env` / `.env.prod` and **sync missing keys** from
+   `.env.example` (log additions; never overwrite existing values; generate
+   `@vulyk:secret` values when the default is empty)
 3. **Snapshot images** — tag running api/web as `:rollback` for automatic recovery
 4. **Verified backup bundle** — `./backups/vulyk-<version>-<timestamp>/` with
    `db.sql.gz` (temp-DB verified), `config/` (env + secrets), optional
    `attachments.tar.gz`, `SHA256SUMS` (retention via `VULYK_BACKUP_RETENTION`)
 5. **Target** — `--version` pulls GHCR images; `--to` checks out git; else
    `git pull --ff-only` + local rebuild (do not combine `--version` and `--to`)
-6. **Stop API/web only** (DB volume untouched); **merge missing env keys only**
+6. **Stop API/web only** (DB volume untouched)
 7. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
 8. **Start** stack and **health-check** `/health` (includes `version`)
 9. **On failure** — automatic DB restore + previous images, then clear restore hints
@@ -104,6 +109,19 @@ What it does:
     rollback point (`VULYK_ROLLBACK_RETENTION_DAYS`) and a version snapshot
     (`VULYK_VERSION_BACKUP_COUNT`); prune expired / excess points (never while
     a rollback is in progress; never the current version’s snapshot)
+
+### `.env.example` sync markers
+
+| Marker | Meaning |
+|--------|---------|
+| *(uncommented `KEY=`)* | Synced on install/upgrade if missing |
+| `@vulyk:sync` | Sync even when the example line is commented |
+| `@vulyk:secret` | Generate a random value when adding a missing empty default |
+| `@vulyk:required` | Preflight reports a gap if missing/empty |
+| `@vulyk:nosync` | Never auto-append |
+
+CI: `./scripts/ci-env-upgrade-test.sh` seeds an operator `.env` from the previous
+release tag (default `v0.2.0`) and asserts HEAD sync + `docker compose config`.
 
 Operator rollback (`install.sh rollback`) always:
 

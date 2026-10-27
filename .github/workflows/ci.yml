@@ -274,6 +274,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Install shellcheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
       - name: Syntax, shellcheck, ASCII, toolchain
@@ -285,26 +287,34 @@ jobs:
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
+          bash -n scripts/ci-env-upgrade-test.sh
           bash -n scripts/check-version.sh
           bash -n scripts/githooks/pre-commit
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
             scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check.sh \
-            scripts/ci-upgrade-test.sh scripts/check-version.sh
+            scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/check-version.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
           if grep -nP '[^\x00-\x7F]' scripts/*.sh scripts/githooks/*; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
             exit 1
           fi
           python3 scripts/test-version-backups.py -q
+          python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
           ./scripts/install.sh check
+      - name: Env upgrade from previous release
+        run: |
+          chmod +x scripts/ci-env-upgrade-test.sh
+          ./scripts/ci-env-upgrade-test.sh
 
   install-script-macos:
     name: Install script check (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-node@v4
         with:
@@ -322,9 +332,12 @@ jobs:
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
+          bash -n scripts/ci-env-upgrade-test.sh
           bash -n scripts/check-version.sh
+          python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
           ./scripts/install.sh check
+          ./scripts/ci-env-upgrade-test.sh
 
   helm:
     name: Helm chart template

@@ -1,0 +1,36 @@
+---
+description: Every install/upgrade-affecting change must update the upgrade path in the same PR
+alwaysApply: true
+---
+
+# Upgrade-path rule (always)
+
+Any change that could affect upgrading an **existing** install must update the
+upgrade/migration path **in the same PR**:
+
+- New or renamed env/config keys
+- Compose services, profiles, volumes, or image names
+- DB schema or data changes (SQLx migrations)
+- On-disk file layout used by `install.sh` / updater
+- Behavior of `./scripts/install.sh upgrade` / backup / restore / rollback
+
+## Required same-PR updates
+
+1. **`.env.example`** — source of truth for env sync (`scripts/env_settings.py`).
+   - Uncommented `KEY=value` lines sync by default.
+   - Commented keys that operators need: `# @vulyk:sync` (add `@vulyk:secret` to
+     auto-generate; `@vulyk:required` for preflight gaps).
+   - Never rely on Compose `${VAR:?…}` without a sync default or `@vulyk:secret`.
+2. **`./scripts/install.sh`** — upgrade/preflight/sync still works; stopped API
+   must not abort preflight (`api_reported_version` tolerates curl failures).
+3. **SQL migrations** — forward-only, upgrade-safe (see `AGENTS.md` / CONTRIBUTING).
+4. **CI** — `./scripts/ci-env-upgrade-test.sh` (previous release `.env` → HEAD)
+   and Upgrade (base → PR) must stay green.
+5. **Docs** — `docs/guides/upgrade.md` when operator steps change.
+
+Do **not** overwrite existing operator `.env` values, secrets, or admin
+passwords. Sync only **adds missing keys** (with backup).
+
+## PR checklist
+
+Include the upgrade-path item from `.github/PULL_REQUEST_TEMPLATE.md`.
