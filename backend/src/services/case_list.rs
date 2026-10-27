@@ -84,6 +84,34 @@ pub fn fts_rank_prefix(has_q: bool) -> String {
     }
 }
 
+/// Minimum trimmed query length before leading-wildcard `ILIKE '%q%'` is allowed.
+/// Shorter queries use FTS + prefix `ILIKE 'q%'` only (review #13 / pg_trgm).
+pub const SEARCH_CONTAINS_MIN_LEN: usize = 3;
+
+/// SQL fragment for case-list `$6` text search (param `$6::text`).
+/// Prefer FTS; gate contains-`ILIKE` behind [`SEARCH_CONTAINS_MIN_LEN`].
+pub fn search_q_predicate() -> String {
+    let min = SEARCH_CONTAINS_MIN_LEN;
+    format!(
+        r#"(
+               $6::text IS NULL OR
+               tc.search_vector @@ plainto_tsquery('english', $6) OR
+               (
+                 char_length(btrim($6)) >= {min} AND (
+                   tc.title ILIKE '%' || $6 || '%' OR
+                   tc.key ILIKE '%' || $6 || '%'
+                 )
+               ) OR
+               (
+                 char_length(btrim($6)) > 0 AND char_length(btrim($6)) < {min} AND (
+                   tc.title ILIKE btrim($6) || '%' OR
+                   tc.key ILIKE btrim($6) || '%'
+                 )
+               )
+             )"#
+    )
+}
+
 pub async fn load_case_list_columns(
     pool: &sqlx::PgPool,
     user_id: Uuid,
@@ -233,4 +261,27 @@ pub fn row_to_list_item(row: &sqlx::postgres::PgRow) -> AppResult<TestCaseListIt
         tag_names,
         custom_fields: vec![],
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn search_q_predicate_gates_contains_ilike() {
+        let sql = search_q_predicate();
+        assert!(
+            sql.contains(&format!(">= {SEARCH_CONTAINS_MIN_LEN}")),
+            "contains ILIKE must require min length"
+        );
+        assert!(
+            sql.contains("ILIKE '%' || $6 || '%'"),
+            "contains pattern present when long enough"
+        );
+        assert!(
+            sql.contains("ILIKE btrim($6) || '%'"),
+            "short queries use prefix ILIKE only"
+        );
+        assert!(sql.contains("plainto_tsquery"));
+    }
 }

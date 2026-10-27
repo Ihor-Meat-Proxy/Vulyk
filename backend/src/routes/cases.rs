@@ -389,13 +389,9 @@ pub async fn list_cases(
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ({tag_predicate})
-             AND (
-               $6::text IS NULL OR
-               tc.search_vector @@ plainto_tsquery('english', $6) OR
-               tc.title ILIKE '%' || $6 || '%' OR
-               tc.key ILIKE '%' || $6 || '%'
-             )
-             AND {cf_predicate}"#
+             AND {search_q}
+             AND {cf_predicate}"#,
+        search_q = crate::services::case_list::search_q_predicate(),
     );
 
     let total: i64 = sqlx::query_scalar(&total_sql)
@@ -454,17 +450,13 @@ pub async fn list_cases(
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ({tag_predicate})
-             AND (
-               $6::text IS NULL OR
-               tc.search_vector @@ plainto_tsquery('english', $6) OR
-               tc.title ILIKE '%' || $6 || '%' OR
-               tc.key ILIKE '%' || $6 || '%'
-             )
+             AND {search_q}
              AND {cf_predicate}
            ORDER BY
              {rank_prefix}
              {order_sql}
-           LIMIT $8 OFFSET $9"#
+           LIMIT $8 OFFSET $9"#,
+        search_q = crate::services::case_list::search_q_predicate(),
     );
 
     let rows = if let Some(field_id) = cf_sort_id {
