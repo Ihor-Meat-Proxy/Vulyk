@@ -1,5 +1,11 @@
 /**
- * Lighthouse PWA + accessibility gates (Lighthouse 11 still ships a scored PWA category).
+ * Lighthouse accessibility gate + static PWA installability checks.
+ *
+ * Lighthouse ≥12 removed the scored `pwa` category (and installable-manifest /
+ * maskable-icon / splash-screen / themed-omnibox audits). We still assert a11y
+ * via Lighthouse and cover PWA basics with `assertPwaArtifacts` against the
+ * preview server (security audit M14 / lighthouse ≥13.5).
+ *
  * Expects the preview server at LIGHTHOUSE_URL (default http://127.0.0.1:5173).
  */
 import { spawn } from 'node:child_process'
@@ -7,13 +13,13 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFile } from 'node:fs/promises'
+import { assertPwaArtifacts } from './pwa-gates.mjs'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
 
 const BASE_URL = process.env.LIGHTHOUSE_URL ?? 'http://127.0.0.1:5173'
-const MIN_PWA = Number(process.env.LH_MIN_PWA ?? '0.8')
 const MIN_A11Y = Number(process.env.LH_MIN_A11Y ?? '0.85')
 
 async function waitForServer(url, attempts = 60) {
@@ -59,6 +65,14 @@ try {
   process.exit(1)
 }
 
+const lhPkg = require('lighthouse/package.json')
+const lhMajor = Number.parseInt(String(lhPkg.version).split('.')[0], 10)
+if (!Number.isFinite(lhMajor) || lhMajor < 13) {
+  console.error(`lighthouse ${lhPkg.version} is below required ≥13.5 (M14)`)
+  process.exit(1)
+}
+console.log(`lighthouse ${lhPkg.version}`)
+
 const reportPath = path.join(root, 'lighthouse-report.json')
 const chromeFlags = [
   '--headless=new',
@@ -72,7 +86,8 @@ if (process.env.CHROME_PATH) {
 await run(process.execPath, [
   lighthouseBin,
   BASE_URL,
-  '--only-categories=pwa,accessibility',
+  // PWA category removed in LH 12; unknown onlyCategories is an error in LH 13.
+  '--only-categories=accessibility',
   `--chrome-flags=${chromeFlags.join(' ')}`,
   '--output=json',
   `--output-path=${reportPath}`,
@@ -82,43 +97,24 @@ await run(process.execPath, [
 
 const report = JSON.parse(await readFile(reportPath, 'utf8'))
 const cats = report.categories ?? {}
-const pwa = cats.pwa?.score
 const a11y = cats.accessibility?.score ?? 0
 
-console.log(`Lighthouse PWA score: ${pwa}`)
 console.log(`Lighthouse accessibility score: ${a11y}`)
 
-// Lighthouse 11 folds the service-worker check into installable-manifest.
-const required = [
-  'installable-manifest',
-  'maskable-icon',
-  'viewport',
-  'splash-screen',
-  'themed-omnibox',
-]
 let failed = false
-for (const id of required) {
-  const audit = report.audits?.[id]
-  if (!audit) {
-    console.error(`Missing audit: ${id}`)
-    failed = true
-    continue
-  }
-  console.log(`${id}: score=${audit.score} — ${audit.title}`)
-  if (typeof audit.score === 'number' && audit.score < 1) {
-    console.error(`  FAIL details: ${JSON.stringify(audit.details ?? audit.explanation ?? '').slice(0, 600)}`)
-    failed = true
-  }
-}
-
-if (typeof pwa !== 'number' || pwa < MIN_PWA) {
-  console.error(`PWA score ${pwa} below minimum ${MIN_PWA}`)
-  failed = true
-}
 if (a11y < MIN_A11Y) {
   console.error(`Accessibility score ${a11y} below minimum ${MIN_A11Y}`)
   failed = true
 }
 
+const pwa = await assertPwaArtifacts(BASE_URL)
+for (const n of pwa.notes) console.log(`PWA: ${n}`)
+if (!pwa.ok) {
+  for (const f of pwa.failures) console.error(`PWA FAIL: ${f}`)
+  failed = true
+} else {
+  console.log('PWA static installability checks passed')
+}
+
 if (failed) process.exit(1)
-console.log('Lighthouse PWA + accessibility checks passed')
+console.log('Lighthouse accessibility + PWA checks passed')
