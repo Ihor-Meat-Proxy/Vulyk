@@ -417,7 +417,7 @@ project on create, update, bulk `move_suite`, and chat confirm.
 
 `backend/src/routes/runs.rs:724-776` — per-row insert without a transaction.
 
-**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME — wrap
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/71 — wrap
 `POST …/results` bulk inserts in a single transaction so a mid-batch 400
 rolls back earlier rows.
 
