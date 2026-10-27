@@ -1,66 +1,41 @@
 import { expect, type Page } from '@playwright/test'
-import { openUserMenu, userMenuItem } from '../fixtures/header'
-
-const settingsTitle =
-  /My settings|Мої налаштування|Mes paramètres|Mis ajustes|Meine Einstellungen/i
-
-const automationHeading =
-  /Test automation repositories|Репозиторії тестової автоматизації|Dépôts d.automatisation|Repositorios de automatización|Testautomatisierungs-Repositories/i
-
-const ciTokensHeading =
-  /Project CI tokens|CI-токени проєкту|Jetons CI de projet|Tokens CI del proyecto|Projekt-CI-Tokens/i
+import { TestIds } from '../../frontend/src/testing/testIds'
+import { openUserMenu } from '../fixtures/header'
 
 export class SettingsPage {
   constructor(readonly page: Page) {}
 
   async open() {
     await openUserMenu(this.page)
-    await userMenuItem(this.page, settingsTitle).click()
-    await expect(
-      this.page.getByRole('heading', { name: settingsTitle }),
-    ).toBeVisible({ timeout: 15_000 })
-  }
-
-  automationSection() {
-    return this.page
-      .locator('section.panel')
-      .filter({ has: this.page.getByRole('heading', { name: automationHeading }) })
-  }
-
-  ciTokensSection() {
-    return this.page
-      .locator('section.panel')
-      .filter({ has: this.page.getByRole('heading', { name: ciTokensHeading }) })
+    await this.page.getByTestId(TestIds.headerGearSettings).click()
+    await expect(this.page.getByTestId(TestIds.settingsPage)).toBeVisible({
+      timeout: 15_000,
+    })
   }
 
   async expectAutomationHeading() {
     await expect(
-      this.page.getByRole('heading', { name: automationHeading }),
+      this.page.getByTestId(TestIds.settingsAutomationPanel),
     ).toBeVisible({ timeout: 15_000 })
   }
 
   async expectCiTokensHeading() {
-    await expect(
-      this.page.getByRole('heading', { name: ciTokensHeading }),
-    ).toBeVisible()
+    await expect(this.page.getByTestId(TestIds.settingsCiPanel)).toBeVisible()
   }
 
   async fillNewRepo(opts: {
     name: string
     remoteUrl: string
-    projectKey?: string
+    projectId?: string
   }) {
-    const section = this.automationSection()
-    await section
-      .getByLabel(/^Name$|^Назва$|^Nom$|^Nombre$/i)
-      .fill(opts.name)
-    await section
-      .getByLabel(/Remote URL|URL distante|URL remota|Remote-URL/i)
+    await this.page.getByTestId(TestIds.settingsAutomationNameInput).fill(opts.name)
+    await this.page
+      .getByTestId(TestIds.settingsAutomationUrlInput)
       .fill(opts.remoteUrl)
-    if (opts.projectKey) {
-      const box = section
-        .locator('fieldset')
-        .getByRole('checkbox', { name: new RegExp(opts.projectKey, 'i') })
+    if (opts.projectId) {
+      const box = this.page.locator(
+        `[data-testid="${TestIds.settingsAutomationProjectCheckbox}"][data-entity-id="${opts.projectId}"]`,
+      )
       if (await box.count()) {
         await box.check()
       }
@@ -68,35 +43,29 @@ export class SettingsPage {
   }
 
   async submitAddRepo() {
-    await this.automationSection()
-      .getByRole('button', {
-        name: /Add repository|Додати репозиторій|Ajouter un dépôt|Añadir repositorio|Repository hinzufügen/i,
-      })
-      .click()
+    await this.page.getByTestId(TestIds.settingsAutomationSaveButton).click()
   }
 
-  async selectCiProject(projectId: string, projectKey: string) {
-    const select = this.ciTokensSection().getByLabel(
-      /Project|Проєкт|Projet|Proyecto|Projekt/i,
-    )
-    await select.selectOption({ value: projectId }).catch(async () => {
-      const options = await select.locator('option').allTextContents()
-      const idx = options.findIndex((text) => text.includes(projectKey))
-      if (idx >= 0) {
-        await select.selectOption({ index: idx })
-      }
-    })
+  repoRows() {
+    return this.page.getByTestId(TestIds.settingsAutomationRepoRow)
+  }
+
+  async selectCiProject(projectId: string) {
+    await this.page
+      .getByTestId(TestIds.settingsCiProjectSelect)
+      .selectOption({ value: projectId })
   }
 
   async createCiToken(name: string) {
-    const section = this.ciTokensSection()
-    await section
-      .getByLabel(/Token name|Назва токена|Nom du jeton|Nombre del token|Tokenname/i)
-      .fill(name)
-    await section
-      .getByRole('button', {
-        name: /Create CI token|Створити CI-токен|Créer un jeton CI|Crear token CI|CI-Token erstellen/i,
-      })
-      .click()
+    await this.page.getByTestId(TestIds.settingsCiTokenNameInput).fill(name)
+    await this.page.getByTestId(TestIds.settingsCiTokenCreateButton).click()
+  }
+
+  ciTokenSecret() {
+    return this.page.getByTestId(TestIds.settingsCiTokenSecret)
+  }
+
+  ciTokenRows() {
+    return this.page.getByTestId(TestIds.settingsCiTokenRow)
   }
 }

@@ -1,0 +1,231 @@
+{
+  "feature": "multi-repo-ci-ingest",
+  "suites": [
+    {
+      "name": {
+        "en": "Multi-repo CI ingest",
+        "uk": "CI ingest з кількох репозиторіїв",
+        "fr": "Ingest CI multi-dépôts",
+        "es": "Ingest CI multi-repo",
+        "de": "Multi-Repo-CI-Ingest"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Add two automation repositories linked to one project",
+            "uk": "Додати два automation-репозиторії до одного проєкту",
+            "fr": "Add two automation repositories linked to one project",
+            "es": "Add two automation repositories linked to one project",
+            "de": "Add two automation repositories linked to one project"
+          },
+          "description": {
+            "en": "Settings → Test automation repositories supports multiple remotes scoped to the same project.",
+            "uk": "Settings → Test automation repositories дозволяє кілька remote, привʼязаних до одного проєкту.",
+            "fr": "Settings → Test automation repositories supports multiple remotes scoped to the same project.",
+            "es": "Settings → Test automation repositories supports multiple remotes scoped to the same project.",
+            "de": "Settings → Test automation repositories supports multiple remotes scoped to the same project."
+          },
+          "precondition": {
+            "en": "Signed in as Admin or Test Automation Engineer; at least one project exists.",
+            "uk": "Увійшли як Admin або Test Automation Engineer; є хоча б один проєкт.",
+            "fr": "Signed in as Admin or Test Automation Engineer; at least one project exists.",
+            "es": "Signed in as Admin or Test Automation Engineer; at least one project exists.",
+            "de": "Signed in as Admin or Test Automation Engineer; at least one project exists."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "ci",
+            "automation",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts#repos",
+          "steps": [
+            {
+              "action": {
+                "en": "Open Settings; add repo A and repo B with distinct remote URLs; check the project checkbox (data-testid=settings-automation-project-checkbox) for each; save.",
+                "uk": "Відкрити Settings; додати repo A і B з різними URL; позначити проєкт; зберегти.",
+                "fr": "Open Settings; add repo A and repo B with distinct remote URLs; check the project checkbox (data-testid=settings-automation-project-checkbox) for each; save.",
+                "es": "Open Settings; add repo A and repo B with distinct remote URLs; check the project checkbox (data-testid=settings-automation-project-checkbox) for each; save.",
+                "de": "Open Settings; add repo A and repo B with distinct remote URLs; check the project checkbox (data-testid=settings-automation-project-checkbox) for each; save."
+              },
+              "expected_result": {
+                "en": "Two settings-automation-repo-row entries visible with data-entity-id; no text/CSS locator ambiguity.",
+                "uk": "Видно два settings-automation-repo-row з data-entity-id.",
+                "fr": "Two settings-automation-repo-row entries visible with data-entity-id; no text/CSS locator ambiguity.",
+                "es": "Two settings-automation-repo-row entries visible with data-entity-id; no text/CSS locator ambiguity.",
+                "de": "Two settings-automation-repo-row entries visible with data-entity-id; no text/CSS locator ambiguity."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Create project CI token and reveal secret once",
+            "uk": "Створити CI-токен проєкту і показати секрет один раз",
+            "fr": "Create project CI token and reveal secret once",
+            "es": "Create project CI token and reveal secret once",
+            "de": "Create project CI token and reveal secret once"
+          },
+          "description": {
+            "en": "Project CI tokens section creates a vulyk_ci_… secret shown in settings-ci-token-secret.",
+            "uk": "Секція Project CI tokens створює секрет vulyk_ci_… у settings-ci-token-secret.",
+            "fr": "Project CI tokens section creates a vulyk_ci_… secret shown in settings-ci-token-secret.",
+            "es": "Project CI tokens section creates a vulyk_ci_… secret shown in settings-ci-token-secret.",
+            "de": "Project CI tokens section creates a vulyk_ci_… secret shown in settings-ci-token-secret."
+          },
+          "precondition": {
+            "en": "Settings open; project selected in settings-ci-project-select.",
+            "uk": "Settings відкрито; проєкт обрано в settings-ci-project-select.",
+            "fr": "Settings open; project selected in settings-ci-project-select.",
+            "es": "Settings open; project selected in settings-ci-project-select.",
+            "de": "Settings open; project selected in settings-ci-project-select."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "ci",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts#token",
+          "steps": [
+            {
+              "action": {
+                "en": "Fill settings-ci-token-name-input; click settings-ci-token-create-button.",
+                "uk": "Заповнити settings-ci-token-name-input; натиснути settings-ci-token-create-button.",
+                "fr": "Fill settings-ci-token-name-input; click settings-ci-token-create-button.",
+                "es": "Fill settings-ci-token-name-input; click settings-ci-token-create-button.",
+                "de": "Fill settings-ci-token-name-input; click settings-ci-token-create-button."
+              },
+              "expected_result": {
+                "en": "settings-ci-token-secret contains vulyk_ci_; a settings-ci-token-row appears.",
+                "uk": "settings-ci-token-secret містить vulyk_ci_; зʼявляється settings-ci-token-row.",
+                "fr": "settings-ci-token-secret contains vulyk_ci_; a settings-ci-token-row appears.",
+                "es": "settings-ci-token-secret contains vulyk_ci_; a settings-ci-token-row appears.",
+                "de": "settings-ci-token-secret contains vulyk_ci_; a settings-ci-token-row appears."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "CI open → results by case key → close across repos metadata",
+            "uk": "CI open → results за ключем кейсу → close з meta репозиторію",
+            "fr": "CI open → results by case key → close across repos metadata",
+            "es": "CI open → results by case key → close across repos metadata",
+            "de": "CI open → results by case key → close across repos metadata"
+          },
+          "description": {
+            "en": "API lifecycle open/results/close accepts provider+repo metadata so multi-repo pipelines report into one project.",
+            "uk": "API open/results/close приймає provider+repo meta, тож кілька репозиторіїв пишуть в один проєкт.",
+            "fr": "API lifecycle open/results/close accepts provider+repo metadata so multi-repo pipelines report into one project.",
+            "es": "API lifecycle open/results/close accepts provider+repo metadata so multi-repo pipelines report into one project.",
+            "de": "API lifecycle open/results/close accepts provider+repo metadata so multi-repo pipelines report into one project."
+          },
+          "precondition": {
+            "en": "Project has ≥1 ready case with a key; admin or CI token available.",
+            "uk": "У проєкті ≥1 ready кейс із ключем; є admin або CI токен.",
+            "fr": "Project has ≥1 ready case with a key; admin or CI token available.",
+            "es": "Project has ≥1 ready case with a key; admin or CI token available.",
+            "de": "Project has ≥1 ready case with a key; admin or CI token available."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "api",
+            "ci",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts#ingest",
+          "steps": [
+            {
+              "action": {
+                "en": "POST …/ci/runs for repo-a and repo-b with distinct external_ref; POST results with case_key; POST close.",
+                "uk": "POST …/ci/runs для repo-a і repo-b з різними external_ref; POST results з case_key; POST close.",
+                "fr": "POST …/ci/runs for repo-a and repo-b with distinct external_ref; POST results with case_key; POST close.",
+                "es": "POST …/ci/runs for repo-a and repo-b with distinct external_ref; POST results with case_key; POST close.",
+                "de": "POST …/ci/runs for repo-a and repo-b with distinct external_ref; POST results with case_key; POST close."
+              },
+              "expected_result": {
+                "en": "Each open returns lifecycle=ci; results insert matched rows; close sets status closed; unmatched keys listed, not dropped from response.",
+                "uk": "Кожен open має lifecycle=ci; results вставляють matched; close → closed; unmatched у відповіді.",
+                "fr": "Each open returns lifecycle=ci; results insert matched rows; close sets status closed; unmatched keys listed, not dropped from response.",
+                "es": "Each open returns lifecycle=ci; results insert matched rows; close sets status closed; unmatched keys listed, not dropped from response.",
+                "de": "Each open returns lifecycle=ci; results insert matched rows; close sets status closed; unmatched keys listed, not dropped from response."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "JUnit ingest maps test_key property to case",
+            "uk": "JUnit ingest зіставляє property test_key з кейсом",
+            "fr": "JUnit ingest maps test_key property to case",
+            "es": "JUnit ingest maps test_key property to case",
+            "de": "JUnit ingest maps test_key property to case"
+          },
+          "description": {
+            "en": "POST …/ci/runs/{id}/ingest with format=junit matches Xray/TestRail-style test_key.",
+            "uk": "POST …/ingest format=junit зіставляє test_key у стилі Xray/TestRail.",
+            "fr": "POST …/ci/runs/{id}/ingest with format=junit matches Xray/TestRail-style test_key.",
+            "es": "POST …/ci/runs/{id}/ingest with format=junit matches Xray/TestRail-style test_key.",
+            "de": "POST …/ci/runs/{id}/ingest with format=junit matches Xray/TestRail-style test_key."
+          },
+          "precondition": {
+            "en": "Open CI run exists for the project.",
+            "uk": "Є відкритий CI run проєкту.",
+            "fr": "Open CI run exists for the project.",
+            "es": "Open CI run exists for the project.",
+            "de": "Open CI run exists for the project."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "api",
+            "ci",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts#junit",
+          "steps": [
+            {
+              "action": {
+                "en": "Upload JUnit XML whose testcase has property name=test_key value={CASE_KEY}.",
+                "uk": "Завантажити JUnit XML з property test_key={CASE_KEY}.",
+                "fr": "Upload JUnit XML whose testcase has property name=test_key value={CASE_KEY}.",
+                "es": "Upload JUnit XML whose testcase has property name=test_key value={CASE_KEY}.",
+                "de": "Upload JUnit XML whose testcase has property name=test_key value={CASE_KEY}."
+              },
+              "expected_result": {
+                "en": "Ingest inserts ≥1 matched result; case last_automation_status updates.",
+                "uk": "Ingest вставляє ≥1 matched result; оновлюється last_automation_status кейсу.",
+                "fr": "Ingest inserts ≥1 matched result; case last_automation_status updates.",
+                "es": "Ingest inserts ≥1 matched result; case last_automation_status updates.",
+                "de": "Ingest inserts ≥1 matched result; case last_automation_status updates."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
