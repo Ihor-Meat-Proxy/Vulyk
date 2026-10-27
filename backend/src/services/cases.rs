@@ -276,17 +276,31 @@ pub async fn snapshot_case(
         "custom_fields": custom_fields,
     });
 
-    sqlx::query(
+    // Plain INSERT: a unique conflict means a version number advanced without a
+    // corresponding history row being recorded earlier (or a double-snapshot bug).
+    // Swallowing with DO NOTHING left gaps under concurrency (review #8).
+    let res = sqlx::query(
         r#"INSERT INTO case_versions (case_id, version, snapshot, change_summary)
-           VALUES ($1, $2, $3, $4)
-           ON CONFLICT (case_id, version) DO NOTHING"#,
+           VALUES ($1, $2, $3, $4)"#,
     )
     .bind(case.id)
     .bind(case.version)
     .bind(snapshot)
     .bind(change_summary)
     .execute(&mut **tx)
-    .await?;
+    .await;
 
-    Ok(())
+    match res {
+        Ok(_) => Ok(()),
+        Err(sqlx::Error::Database(err))
+            if err.constraint() == Some("case_versions_case_id_version_key")
+                || err.message().contains("case_versions_case_id_version_key") =>
+        {
+            Err(crate::error::AppError::Conflict(format!(
+                "case version {} already has a snapshot",
+                case.version
+            )))
+        }
+        Err(err) => Err(err.into()),
+    }
 }

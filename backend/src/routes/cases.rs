@@ -784,16 +784,6 @@ pub async fn update_case(
         }
     }
 
-    // Snapshot current version before mutating.
-    snapshot_case(
-        &mut tx,
-        &existing,
-        body.change_summary
-            .as_deref()
-            .unwrap_or("pre-update snapshot"),
-    )
-    .await?;
-
     let title = body.title.unwrap_or(existing.title.clone());
     let suite_id = if body.clear_suite {
         None
@@ -856,6 +846,17 @@ pub async fn update_case(
         .await?;
         replace_case_tags(&mut tx, case.id, &tag_ids).await?;
     }
+
+    // Snapshot the post-update version so every version number has a history row
+    // (review #8 — no silent ON CONFLICT DO NOTHING on pre-update re-snapshot).
+    snapshot_case(
+        &mut tx,
+        &case,
+        body.change_summary
+            .as_deref()
+            .unwrap_or("post-update snapshot"),
+    )
+    .await?;
 
     tx.commit().await?;
     Ok(Json(load_case_detail(&state.pool, case).await?))
@@ -1203,16 +1204,15 @@ pub async fn set_custom_fields(
         Permission::CreateEditCases,
     )
     .await?;
-    let case = sqlx::query_as::<_, TestCase>(
-        r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
-           FROM test_cases WHERE project_id = $1 AND id = $2"#,
+    let exists = sqlx::query_scalar::<_, Uuid>(
+        r#"SELECT id FROM test_cases WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
     .bind(case_id)
     .fetch_optional(&state.pool)
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
+    debug_assert_eq!(exists, case_id);
 
     let pairs: Vec<(Uuid, serde_json::Value)> =
         body.iter().map(|i| (i.field_id, i.value.clone())).collect();
@@ -1220,8 +1220,6 @@ pub async fn set_custom_fields(
         .await?;
 
     let mut tx = state.pool.begin().await?;
-    snapshot_case(&mut tx, &case, "custom fields update").await?;
-
     let case = sqlx::query_as::<_, TestCase>(
         r#"UPDATE test_cases SET version = version + 1, updated_at = NOW()
            WHERE id = $1
@@ -1231,6 +1229,9 @@ pub async fn set_custom_fields(
     .bind(case_id)
     .fetch_one(&mut *tx)
     .await?;
+
+    // Snapshot after version bump so CF values are included under the new version.
+    snapshot_case(&mut tx, &case, "custom fields update").await?;
 
     tx.commit().await?;
     Ok(Json(load_case_detail(&state.pool, case).await?))
