@@ -283,22 +283,15 @@ async fn insert_batch(
         return Ok((0, 0, vec![]));
     }
 
+    // Deduplicate within the batch first (last row wins for matched status).
+    let mut seen_ext: HashSet<(String, String)> = HashSet::new();
     let mut to_insert = Vec::with_capacity(rows.len());
     let mut replays = 0i64;
-    for row in rows {
+    for row in rows.iter().rev() {
         if let Some(ref ext) = row.external_id {
             if !ext.is_empty() {
-                let exists: Option<(Uuid,)> = sqlx::query_as(
-                    r#"SELECT id FROM test_results
-                       WHERE run_id = $1 AND external_id = $2 AND status = $3
-                       LIMIT 1"#,
-                )
-                .bind(run_id)
-                .bind(ext)
-                .bind(&row.status)
-                .fetch_optional(pool)
-                .await?;
-                if exists.is_some() {
+                let key = (ext.clone(), row.status.clone());
+                if !seen_ext.insert(key) {
                     replays += 1;
                     continue;
                 }
@@ -306,6 +299,7 @@ async fn insert_batch(
         }
         to_insert.push(row);
     }
+    to_insert.reverse();
 
     if to_insert.is_empty() {
         return Ok((0, replays, vec![]));
@@ -323,6 +317,7 @@ async fn insert_batch(
         pairs.into_iter().collect()
     };
 
+    let attempted = to_insert.len() as i64;
     let mut qb: QueryBuilder<Postgres> = QueryBuilder::new(
         "INSERT INTO test_results (run_id, case_id, status, message, source, external_id, duration_ms, raw, executed_at, case_version) ",
     );
@@ -339,13 +334,23 @@ async fn insert_batch(
             .push_bind(row.executed_at.unwrap_or_else(Utc::now))
             .push_bind(ver);
     });
+    // Unique index `test_results_run_external_status_uidx` (review #6) — concurrent
+    // workers racing the old SELECT-then-INSERT path become no-op replays.
+    qb.push(
+        " ON CONFLICT (run_id, external_id, status) \
+          WHERE (external_id IS NOT NULL AND btrim(external_id) <> '') \
+          DO NOTHING \
+          RETURNING case_id, status",
+    );
 
-    let result = qb.build().execute(pool).await?;
-    let matched: Vec<(Uuid, String)> = to_insert
-        .iter()
-        .filter_map(|r| r.case_id.map(|id| (id, r.status.clone())))
+    let inserted_rows: Vec<(Option<Uuid>, String)> = qb.build_query_as().fetch_all(pool).await?;
+    let inserted = inserted_rows.len() as i64;
+    replays += attempted - inserted;
+    let matched: Vec<(Uuid, String)> = inserted_rows
+        .into_iter()
+        .filter_map(|(id, status)| id.map(|id| (id, status)))
         .collect();
-    Ok((result.rows_affected() as i64, replays, matched))
+    Ok((inserted, replays, matched))
 }
 
 #[cfg(test)]
