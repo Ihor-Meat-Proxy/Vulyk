@@ -59,6 +59,7 @@ no colliding version prefixes.
 5. **Data migrations must be idempotent.** Use `WHERE` guards, `ON CONFLICT`, or `IF NOT EXISTS` so re-runs (or repair) are safe.
 6. **Keep migrations small and reviewable.** Large backfills may use batched SQL; document runtime expectations in the PR.
 7. **Never destroy operator data on upgrade.** Migrations must be additive/backward-compatible. Operator upgrades take a verified backup first and auto-roll back on migrate/health failure — see [docs/guides/upgrade.md](docs/guides/upgrade.md#data-safety-guarantees). The Upgrade CI job must keep passing (sample data + encrypted secrets survive).
+8. **Same-PR upgrade path.** New/renamed env keys, Compose services/volumes/images, schema, or install layout changes must update `.env.example` (sync markers), `install.sh` upgrade/preflight, migrations, and `./scripts/ci-env-upgrade-test.sh` in the **same PR**. Never overwrite existing operator `.env` values — only append missing keys. See [AGENTS.md](AGENTS.md#upgrade-path-same-pr) and `.cursor/rules/upgrade-path.mdc`.
 
 Local helpers:
 

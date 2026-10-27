@@ -115,7 +115,10 @@ services:
       - no-new-privileges:true
     environment:
       VULYK_ROOT: /vulyk
-      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:?set VULYK_UPDATER_TOKEN to enable updater}
+      # Prefer a real token in .env.prod (install.sh sync generates one). Empty
+      # is allowed so Compose can parse this profile-gated service when unused;
+      # the updater process refuses to start without a non-empty token.
+      VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
       VULYK_UPDATER_BIND: 0.0.0.0:9091
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
