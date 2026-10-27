@@ -126,8 +126,12 @@ async fn create_run_ignores_foreign_case_ids() {
         .await
         .unwrap();
     let items = items.as_array().expect("items array");
-    assert_eq!(items.len(), 1, "only in-project case should be on the run");
-    assert_eq!(items[0]["case_id"].as_str().unwrap(), case_a);
+    assert_eq!(items.len(), 1, "only in-project case should be on the run: {items:?}");
+    let got = items[0]
+        .pointer("/item/case_id")
+        .and_then(|v| v.as_str())
+        .unwrap_or_else(|| panic!("missing item.case_id in {items:?}"));
+    assert_eq!(got, case_a);
 }
 
 #[tokio::test]
