@@ -796,6 +796,7 @@ export type CaseListColumnsConfig = {
 export type UserPreferences = {
   theme: string
   font_size: number
+  font_family?: string
   density: string
   reduced_motion: boolean | null
   notify_email?: boolean
@@ -806,6 +807,7 @@ export type UserPreferences = {
 export type UpdatePreferences = {
   theme?: string
   font_size?: number
+  font_family?: string
   density?: string
   reduced_motion?: boolean | null
   notify_email?: boolean

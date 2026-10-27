@@ -51,9 +51,14 @@
   --space-4: 1rem;
   --control-pad-y: 0.45rem;
   --control-pad-x: 0.7rem;
+  /* Self-hosted via @fontsource (see theme/fonts.ts). Default body = Inter. */
   --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-body: "Source Sans 3", "Segoe UI", sans-serif;
+  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --font-preview-inter: "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-preview-ibm_plex_sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-preview-noto_sans: "Noto Sans", "Segoe UI", system-ui, sans-serif;
+  --font-preview-source_sans_3: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
   color: var(--ink);
   background:
     radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent-soft) 70%, transparent) 0%, transparent 42%),
@@ -1508,6 +1513,35 @@ select.project-select {
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: var(--space-2);
+}
+
+.font-family-picker {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.font-family-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  text-align: left;
+}
+
+.font-family-option[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+.font-family-option-name {
+  font-weight: 600;
+}
+
+.font-family-option-sample {
+  font-size: 0.92rem;
+  opacity: 0.9;
 }
 
 .font-size-steps {

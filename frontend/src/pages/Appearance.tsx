@@ -2,6 +2,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useI18n } from '../i18n'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { useAppearance } from '../theme/appearance'
+import { UI_FONT_FAMILIES, type UiFontFamily } from '../theme/fonts'
 import { FONT_SIZE_STEPS, type Density, type ThemeChoice } from '../theme/tokens'
 
 const THEMES: ThemeChoice[] = [
@@ -20,6 +21,7 @@ export function Appearance() {
     prefs,
     setTheme,
     setFontSize,
+    setFontFamily,
     setDensity,
     setReducedMotion,
   } = useAppearance()
@@ -46,6 +48,44 @@ export function Appearance() {
             ))}
           </select>
         </label>
+      </section>
+
+      <section className="panel">
+        <h3 id="appearance-font-family-label">{t('appearance.fontFamily')}</h3>
+        <p className="muted" style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}>
+          {t('appearance.fontFamily.hint')}
+        </p>
+        <div
+          className="font-family-picker"
+          role="radiogroup"
+          aria-labelledby="appearance-font-family-label"
+          {...testIdProps(TestIds.appearanceFontFamilySelect)}
+        >
+          {UI_FONT_FAMILIES.map((family, index) => (
+            <button
+              key={family}
+              type="button"
+              role="radio"
+              className="btn secondary font-family-option"
+              aria-checked={prefs.fontFamily === family}
+              aria-label={t(`appearance.fontFamily.${family}`)}
+              style={{ fontFamily: `var(--font-preview-${family}, inherit)` }}
+              onClick={() => void setFontFamily(family as UiFontFamily)}
+              {...listItemProps(TestIds.appearanceFontFamilyItem, {
+                entityId: family,
+                entityKey: family,
+                index,
+              })}
+            >
+              <span className="font-family-option-name">
+                {t(`appearance.fontFamily.${family}`)}
+              </span>
+              <span className="font-family-option-sample" aria-hidden="true">
+                {t('appearance.fontFamily.sample')}
+              </span>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="panel">

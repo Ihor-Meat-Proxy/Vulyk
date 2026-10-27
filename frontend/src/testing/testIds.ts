@@ -440,6 +440,8 @@ export const TestIds = {
   // —— Appearance ——
   appearancePage: 'appearance-page',
   appearanceThemeSelect: 'appearance-theme-select',
+  appearanceFontFamilySelect: 'appearance-font-family-select',
+  appearanceFontFamilyItem: 'appearance-font-family-item',
   appearanceFontSizeSelect: 'appearance-font-size-select',
   appearanceFontSizeItem: 'appearance-font-size-item',
   appearanceDensitySelect: 'appearance-density-select',

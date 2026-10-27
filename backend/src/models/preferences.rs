@@ -27,6 +27,19 @@ pub const FONT_SIZE_MIN: i32 = 87;
 pub const FONT_SIZE_MAX: i32 = 138;
 pub const FONT_SIZE_DEFAULT: i32 = 100;
 
+/// Self-hosted UI body fonts (Latin + Cyrillic). Default for fresh installs / unset prefs.
+pub const FONT_FAMILY_INTER: &str = "inter";
+pub const FONT_FAMILY_IBM_PLEX_SANS: &str = "ibm_plex_sans";
+pub const FONT_FAMILY_NOTO_SANS: &str = "noto_sans";
+pub const FONT_FAMILY_SOURCE_SANS_3: &str = "source_sans_3";
+
+pub const FONT_FAMILIES: &[&str] = &[
+    FONT_FAMILY_INTER,
+    FONT_FAMILY_IBM_PLEX_SANS,
+    FONT_FAMILY_NOTO_SANS,
+    FONT_FAMILY_SOURCE_SANS_3,
+];
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema)]
 pub struct UserPreferences {
     /// `system` | `light` | `dark` | `high_contrast` | `sepia`
@@ -35,6 +48,9 @@ pub struct UserPreferences {
     /// Base font scale percent (87–138).
     #[serde(default = "default_font_size")]
     pub font_size: i32,
+    /// UI body font family id (`inter` default). See `FONT_FAMILIES`.
+    #[serde(default = "default_font_family")]
+    pub font_family: String,
     /// `compact` | `comfortable`
     #[serde(default = "default_density")]
     pub density: String,
@@ -60,6 +76,10 @@ fn default_font_size() -> i32 {
     FONT_SIZE_DEFAULT
 }
 
+fn default_font_family() -> String {
+    FONT_FAMILY_INTER.to_string()
+}
+
 fn default_density() -> String {
     DENSITY_COMFORTABLE.to_string()
 }
@@ -73,6 +93,7 @@ impl Default for UserPreferences {
         Self {
             theme: default_theme(),
             font_size: default_font_size(),
+            font_family: default_font_family(),
             density: default_density(),
             reduced_motion: None,
             notify_email: true,
@@ -84,7 +105,15 @@ impl Default for UserPreferences {
 
 impl UserPreferences {
     pub fn from_value(value: &serde_json::Value) -> Self {
-        serde_json::from_value(value.clone()).unwrap_or_default()
+        let mut prefs: Self = serde_json::from_value(value.clone()).unwrap_or_default();
+        // Invalid / legacy values fall back to Inter (fresh-install default).
+        if validate_font_family(&prefs.font_family).is_err() {
+            prefs.font_family = default_font_family();
+        }
+        if validate_theme(&prefs.theme).is_err() {
+            prefs.theme = default_theme();
+        }
+        prefs
     }
 
     pub fn to_value(&self) -> serde_json::Value {
@@ -110,6 +139,9 @@ impl UserPreferences {
                 ));
             }
             self.font_size = font_size;
+        }
+        if let Some(font_family) = patch.font_family.as_deref() {
+            self.font_family = validate_font_family(font_family)?;
         }
         if let Some(density) = patch.density.as_deref() {
             let d = density.trim().to_lowercase();
@@ -142,6 +174,7 @@ impl UserPreferences {
 pub struct UpdatePreferences {
     pub theme: Option<String>,
     pub font_size: Option<i32>,
+    pub font_family: Option<String>,
     pub density: Option<String>,
     /// Pass `null` explicitly to clear override and follow system again.
     #[serde(default, deserialize_with = "deserialize_optional_bool")]
@@ -170,6 +203,18 @@ pub fn validate_theme(theme: &str) -> Result<String, String> {
     }
 }
 
+pub fn validate_font_family(font_family: &str) -> Result<String, String> {
+    let f = font_family.trim().to_lowercase().replace('-', "_");
+    if FONT_FAMILIES.contains(&f.as_str()) {
+        Ok(f)
+    } else {
+        Err(format!(
+            "invalid font_family '{font_family}'; expected one of {}",
+            FONT_FAMILIES.join(", ")
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -180,7 +225,41 @@ mod tests {
         assert_eq!(p.theme, THEME_SYSTEM);
         assert_eq!(p.density, DENSITY_COMFORTABLE);
         assert_eq!(p.font_size, 100);
+        assert_eq!(p.font_family, FONT_FAMILY_INTER);
         assert_eq!(p.reduced_motion, None);
+    }
+
+    #[test]
+    fn missing_font_family_in_json_defaults_to_inter() {
+        let p = UserPreferences::from_value(&serde_json::json!({
+            "theme": "dark",
+            "font_size": 112
+        }));
+        assert_eq!(p.font_family, FONT_FAMILY_INTER);
+        assert_eq!(p.theme, "dark");
+    }
+
+    #[test]
+    fn merge_rejects_unknown_font_family() {
+        let mut p = UserPreferences::default();
+        let err = p
+            .merge_update(&UpdatePreferences {
+                font_family: Some("comic_sans".into()),
+                ..Default::default()
+            })
+            .unwrap_err();
+        assert!(err.contains("invalid font_family"));
+    }
+
+    #[test]
+    fn merge_accepts_font_family_aliases() {
+        let mut p = UserPreferences::default();
+        p.merge_update(&UpdatePreferences {
+            font_family: Some("ibm-plex-sans".into()),
+            ..Default::default()
+        })
+        .unwrap();
+        assert_eq!(p.font_family, FONT_FAMILY_IBM_PLEX_SANS);
     }
 
     #[test]

@@ -102,11 +102,12 @@ System admins can also:
 Open **Appearance** from the gear user menu (or go to `/appearance`). It is not in the left nav.
 
 - **Theme:** System (follows `prefers-color-scheme`, and high contrast when `prefers-contrast: more`), Light, Dark, High contrast (WCAG AAA), or Sepia / night warm (low blue).
+- **Font (UI):** Inter (default), IBM Plex Sans, Noto Sans, or Source Sans 3. Fonts are **self-hosted** in the app bundle (no Google Fonts / third-party requests). Only the selected family’s files load. Headings still use Fraunces; code uses IBM Plex Mono. Existing accounts without a saved font get Inter.
 - **Font size:** step buttons from 87% to 138%.
 - **Density:** Comfortable or Compact spacing.
 - **Reduced motion:** Follow system, always reduce, or allow motion (also honours `prefers-reduced-motion`).
 
-Preferences are saved to your account when signed in and mirrored in the browser so the chosen theme applies before the app paints (no flash of the wrong theme). An admin can set the **instance default theme** under gear → **Admin settings**.
+Preferences are saved to your account when signed in (`users.preferences` JSON, including `font_family`) and mirrored in the browser so the chosen theme/font applies before the app paints. An admin can set the **instance default theme** under gear → **Admin settings**.
 
 Result statuses (**Passed**, **Failed**, **Blocked**, **Skipped**, **Retest**, **Untested**) use a colour-blind-safe Okabe–Ito palette with an **icon and label** everywhere (badges, run execution, charts). Charts also use hatch patterns plus a text legend.
 
