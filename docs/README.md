@@ -29,10 +29,10 @@ Index of guides and references. Prefer these over outdated workstream notes.
 
 | Doc | Topic |
 |-----|-------|
-| [guides/ci-integration.md](guides/ci-integration.md) | Preferred CI reporting (open → upload → close) |
+| [guides/ci-integration.md](guides/ci-integration.md) | CI reporting + **Run in CI** (`VULYK_RUN_ID`) |
 | [guides/ingest-and-ci.md](guides/ingest-and-ci.md) | Formats, dispatch, webhooks |
 | [guides/executions.md](guides/executions.md) | Campaigns, iterations, pipeline upload |
-| [automation-repo.md](automation-repo.md) | Multi-repo Git index for Generate |
+| [automation-repo.md](automation-repo.md) | Multi-repo index (REST for GitHub/GitLab) |
 | [integrations/](integrations/) | OpenProject, Jira, importers |
 | [mcp.md](mcp.md) | MCP server for AI assistants |
 | [llm.md](llm.md) | LLM providers, generate, chat |

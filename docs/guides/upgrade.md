@@ -121,7 +121,8 @@ What it does:
 | `@vulyk:nosync` | Never auto-append |
 
 CI: `./scripts/ci-env-upgrade-test.sh` seeds an operator `.env` from the previous
-release tag (default `v0.2.0`) and asserts HEAD sync + `docker compose config`.
+release tag (default `v0.2.0` while validating the 0.3.0 train) and asserts HEAD
+sync + `docker compose config`.
 
 Operator rollback (`install.sh rollback`) always:
 

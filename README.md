@@ -71,8 +71,8 @@ Post-install Job runs `vulyk-api setup --yes`. Interactive: `kubectl exec -it de
 Install a published version from GHCR (no local Rust/Node build):
 
 ```bash
-./scripts/install.sh compose --yes --version 0.2.0
-./scripts/install.sh prod --yes --version 0.2.0
+./scripts/install.sh compose --yes --version 0.3.0
+./scripts/install.sh prod --yes --version 0.3.0
 ```
 
 Maintainers: bump `VERSION`, tag `vX.Y.Z`, and the Release workflow publishes GHCR
@@ -84,8 +84,8 @@ Keep the Postgres volume; never run `docker compose down -v` (the `-v` flag dele
 
 ```bash
 ./scripts/install.sh upgrade --yes                    # verified backup → pull/rebuild → migrate → health
-./scripts/install.sh upgrade --yes --version 0.2.0    # published GHCR images
-./scripts/install.sh upgrade --yes --to=v0.2.0        # git tag + source rebuild
+./scripts/install.sh upgrade --yes --version 0.3.0    # published GHCR images
+./scripts/install.sh upgrade --yes --to=v0.3.0        # git tag + source rebuild
 ./scripts/install.sh backup                           # verified bundle (DB + env/secrets)
 ./scripts/install.sh restore ./backups/vulyk-…/ --yes
 ```

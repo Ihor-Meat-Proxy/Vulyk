@@ -7,7 +7,7 @@ operators install or upgrade to a published release.
 
 | Location | Role |
 |----------|------|
-| [`VERSION`](../../VERSION) | Canonical semver (`0.2.0`) |
+| [`VERSION`](../../VERSION) | Canonical semver (`0.3.0`) |
 | [`Cargo.toml`](../../Cargo.toml) `[workspace.package].version` | Rust crates (`backend` / `cli` / `mcp` use `version.workspace = true`) |
 | [`frontend/package.json`](../../frontend/package.json) | UI build (`VITE_APP_VERSION` via Vite) |
 | [`deploy/helm/vulyk/Chart.yaml`](../../deploy/helm/vulyk/Chart.yaml) `appVersion` | Helm app semver |
@@ -59,7 +59,7 @@ Pushing `v*.*.*` starts [`.github/workflows/release.yml`](../../.github/workflow
 
 Actions → **Release** → **Run workflow**:
 
-- `version`: `0.2.0` (no leading `v` required)
+- `version`: `0.3.0` (no leading `v` required)
 - `create_tag`: set true only if the tag is missing on the selected ref
 
 The workflow refuses to publish if `VERSION` (and related files) do not match the
@@ -87,9 +87,9 @@ requested semver.
 git clone https://github.com/Ihor-Meat-Proxy/Vulyk.git
 cd Vulyk
 
-./scripts/install.sh compose --yes --version 0.2.0
+./scripts/install.sh compose --yes --version 0.3.0
 # production:
-./scripts/install.sh prod --yes --version 0.2.0 --admin-password='…'
+./scripts/install.sh prod --yes --version 0.3.0 --admin-password='…'
 ```
 
 `--version` pulls `ghcr.io/<owner>/vulyk-api` and `vulyk-web` and starts Compose
@@ -101,8 +101,8 @@ Override owner or full image refs if needed:
 ```bash
 export VULYK_GHCR_OWNER=ihor-meat-proxy
 # or:
-export VULYK_GHCR_API_IMAGE=ghcr.io/ihor-meat-proxy/vulyk-api:0.2.0
-export VULYK_GHCR_WEB_IMAGE=ghcr.io/ihor-meat-proxy/vulyk-web:0.2.0
+export VULYK_GHCR_API_IMAGE=ghcr.io/ihor-meat-proxy/vulyk-api:0.3.0
+export VULYK_GHCR_WEB_IMAGE=ghcr.io/ihor-meat-proxy/vulyk-web:0.3.0
 ```
 
 Private packages: `echo $CR_PAT | docker login ghcr.io -u USER --password-stdin`.
@@ -111,10 +111,10 @@ Private packages: `echo $CR_PAT | docker login ghcr.io -u USER --password-stdin`
 
 ```bash
 # Preferred: pull published images (keeps Postgres volume + verified backup/rollback)
-./scripts/install.sh upgrade --yes --version 0.2.0
+./scripts/install.sh upgrade --yes --version 0.3.0
 
 # Alternative: checkout a git tag and rebuild from source
-./scripts/install.sh upgrade --yes --to=v0.2.0
+./scripts/install.sh upgrade --yes --to=v0.3.0
 ```
 
 Do **not** pass both `--version` and `--to`. Upgrades never regenerate secrets or
@@ -131,8 +131,8 @@ Do **not** pass both `--version` and `--to`. Upgrades never regenerate secrets o
 
 ```bash
 helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namespace \
-  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.2.0 \
-  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.2.0 \
+  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.3.0 \
+  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.3.0 \
   --set secrets.create=true \
   --set setup.adminPassword=change-me-admin1
 ```
