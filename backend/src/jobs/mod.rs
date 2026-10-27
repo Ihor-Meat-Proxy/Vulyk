@@ -47,6 +47,9 @@ pub async fn process_one(pool: &PgPool, worker_id: &str) -> Result<bool, String>
 }
 
 async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
+    // Best-effort: mark abandoned Queued CI runs (never started by the workflow).
+    let _ = expire_stale_queued_ci_runs(pool).await;
+
     let Some(job) = jobs_svc::claim_next(pool, worker_id)
         .await
         .map_err(|e| e.to_string())?
@@ -74,6 +77,48 @@ async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
         }
     }
     Ok(true)
+}
+
+/// Default: 2 hours. Override with `VULYK_CI_QUEUED_TIMEOUT_SECS`.
+fn queued_ci_timeout_secs() -> i64 {
+    std::env::var("VULYK_CI_QUEUED_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .filter(|v| *v > 0)
+        .unwrap_or(7200)
+}
+
+async fn expire_stale_queued_ci_runs(pool: &PgPool) -> Result<u64, String> {
+    let secs = queued_ci_timeout_secs();
+    let result = sqlx::query(
+        r#"
+        WITH stale AS (
+            UPDATE test_runs
+            SET status = 'failed',
+                finished_at = COALESCE(finished_at, NOW()),
+                updated_at = NOW(),
+                meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+                    'error', 'queued CI run timed out waiting for workflow'
+                )
+            WHERE lifecycle = 'ci'
+              AND status = 'queued'
+              AND created_at < NOW() - make_interval(secs => $1::int)
+            RETURNING id
+        )
+        UPDATE ci_dispatches d
+        SET status = 'failed',
+            last_error = COALESCE(last_error, 'queued CI run timed out waiting for workflow'),
+            updated_at = NOW()
+        FROM stale
+        WHERE d.run_id = stale.id
+          AND d.status IN ('queued', 'dispatched')
+        "#,
+    )
+    .bind(secs as i32)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    Ok(result.rows_affected())
 }
 
 async fn handle_ingest(

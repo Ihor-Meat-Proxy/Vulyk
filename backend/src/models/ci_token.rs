@@ -72,6 +72,18 @@ pub struct OpenCiRunResponse {
     pub idempotent: bool,
 }
 
+#[derive(Debug, Default, Deserialize, ToSchema)]
+pub struct StartCiRunRequest {
+    #[serde(default)]
+    pub pipeline_url: Option<String>,
+    #[serde(default)]
+    pub job_url: Option<String>,
+    #[serde(default)]
+    pub branch: Option<String>,
+    #[serde(default)]
+    pub commit: Option<String>,
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CloseCiRunRequest {
     #[serde(default)]

@@ -242,6 +242,13 @@ provider can shallow-clone. GitHub/GitLab providers index via REST and do not ne
 it. No schema migration is required for that change — redeploy the API image only.
 Details: [automation-repo.md](../automation-repo.md#upgrade-notes).
 
+### Automation repo Actions CI columns
+
+Forward migration `20261027140000_automation_repo_actions_ci.sql` adds encrypted
+Actions write-token columns and `ci_workflow_file` / `ci_workflow_ref` for
+**Run in CI**. Applied automatically by `install.sh upgrade` / Helm migrate Job.
+No rollback SQL — restore from the verified pre-upgrade backup if needed.
+
 ## Versioning
 
 - Canonical semver is the root [`VERSION`](../../VERSION) file; Rust crates inherit

@@ -1,0 +1,90 @@
+# Example: two-way CI with Vulyk "Run in CI" (workflow_dispatch).
+#
+# Configure the automation repo in Vulyk Settings:
+#   - Actions write token (PAT with actions:write)
+#   - CI workflow file: vulyk-dispatch-example.yml  (or this path)
+#   - CI workflow ref: main
+#
+# Localhost Vulyk needs a tunnel (e.g. cloudflared / ngrok) or a self-hosted
+# runner that can reach your Vulyk API — see docs/guides/ci-integration.md.
+
+name: Vulyk dispatch example
+
+on:
+  workflow_dispatch:
+    inputs:
+      vulyk_run_id:
+        description: Existing Vulyk run id (from Run in CI)
+        required: true
+        type: string
+      case_keys:
+        description: Comma-separated case keys to run
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install
+        run: npm ci
+        working-directory: e2e
+
+      # First step after setup: mark the Queued Vulyk run In progress and store
+      # this Actions run URL (optional if the Playwright reporter does start).
+      - name: Attach to Vulyk run
+        env:
+          VULYK_API_URL: ${{ secrets.VULYK_API_URL }}
+          VULYK_CI_TOKEN: ${{ secrets.VULYK_CI_TOKEN }}
+          # Project UUID (not key) for the path segment:
+          VULYK_PROJECT_ID: ${{ secrets.VULYK_PROJECT_ID }}
+          VULYK_RUN_ID: ${{ inputs.vulyk_run_id }}
+        run: |
+          set -euo pipefail
+          PIPELINE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${VULYK_CI_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"pipeline_url\":\"${PIPELINE_URL}\",\"branch\":\"${GITHUB_REF_NAME}\",\"commit\":\"${GITHUB_SHA}\"}" \
+            "${VULYK_API_URL%/}/api/v1/projects/${VULYK_PROJECT_ID}/ci/runs/${VULYK_RUN_ID}/start"
+
+      - name: Run Playwright (filter by case keys when provided)
+        id: tests
+        working-directory: e2e
+        env:
+          VULYK_URL: ${{ secrets.VULYK_API_URL }}
+          VULYK_CI_TOKEN: ${{ secrets.VULYK_CI_TOKEN }}
+          VULYK_PROJECT: ${{ secrets.VULYK_PROJECT }}
+          VULYK_RUN_ID: ${{ inputs.vulyk_run_id }}
+          VULYK_RUN_NAME: dispatch-${{ inputs.vulyk_run_id }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ -n "${{ inputs.case_keys }}" ]; then
+            # Prefer annotated tests; grep is a coarse filter for titles containing keys.
+            IFS=',' read -ra KEYS <<< "${{ inputs.case_keys }}"
+            for k in "${KEYS[@]}"; do
+              k="$(echo "$k" | xargs)"
+              [ -n "$k" ] && ARGS+=(-g "$k")
+            done
+          fi
+          npx playwright test "${ARGS[@]}"
+        continue-on-error: true
+
+      # Reporter (configured in playwright.config) attaches via VULYK_RUN_ID.
+      # Or use the composite action with run-id:
+      # - uses: ./.github/actions/vulyk-report
+      #   with:
+      #     run-id: ${{ inputs.vulyk_run_id }}
+      #     ...
+
+      - name: Fail if tests failed
+        if: steps.tests.outcome == 'failure'
+        run: exit 1

@@ -76,6 +76,54 @@ CI tokens are **narrowly scoped** to reporting (open / upload / close) for that 
 
 When configuring GitHub/GitLab **webhooks** for dispatch status sync, set a **webhook secret** on the CI config — authorization fails closed without one; API responses never echo the raw secret.
 
+## Two-way trigger (Run in CI)
+
+Vulyk can **start** a GitHub Actions workflow and stream results back into an
+existing run:
+
+```mermaid
+sequenceDiagram
+  participant UI as Vulyk Executions
+  participant API as Vulyk API
+  participant GH as GitHub Actions
+  UI->>API: Run in CI (case keys)
+  API->>API: Create run status=queued
+  API->>GH: workflow_dispatch(vulyk_run_id, case_keys)
+  GH->>API: start (pipeline URL) → in_progress
+  GH->>API: results stream
+  GH->>API: close (final status)
+```
+
+### Setup
+
+1. Link a **GitHub** automation repo under **Settings → Test automation repositories**.
+2. Set **Actions write token** (PAT or fine-grained token with `actions:write` on the repo). This is **separate** from the read/index token.
+3. Set **CI workflow file** (e.g. `.github/workflows/vulyk-dispatch-example.yml`) and **ref** (`main`).
+4. Copy [`.github/workflows/vulyk-dispatch-example.yml`](../../.github/workflows/vulyk-dispatch-example.yml) into the automation repo (or point at your own workflow that declares `workflow_dispatch` inputs `vulyk_run_id` and `case_keys`).
+5. Store `VULYK_API_URL`, `VULYK_CI_TOKEN`, `VULYK_PROJECT` / `VULYK_PROJECT_ID` as GitHub secrets.
+
+**Localhost Vulyk:** GitHub-hosted runners cannot reach `http://localhost`. Use a
+public tunnel (cloudflared, ngrok, etc.) or a **self-hosted runner** on the same
+network as Vulyk, and set `VULYK_API_URL` to that reachable base URL.
+
+### From the UI
+
+On **Executions**, open a suite and click **Run in CI** (`trigger_ci`). Vulyk
+creates a **Queued** run, dispatches the workflow with `vulyk_run_id` +
+`case_keys`, and shows the GitHub run link once the workflow starts (or via the
+`workflow_run` webhook). Stale Queued runs are marked failed after
+`VULYK_CI_QUEUED_TIMEOUT_SECS` (default 7200).
+
+### Reporter / action attach
+
+Set `VULYK_RUN_ID` (or the action `run-id` input) so the pipeline **attaches** to
+the existing run instead of opening a new one. The Playwright reporter and
+`vulyk-report` / `vulyk-upload.sh` all honor this.
+
+Optional: configure a GitHub **workflow_run** webhook on the project CI config
+(with `webhook_secret`) so cancelled / failed-to-start workflows update the
+dispatch and run status.
+
 ## GitHub Actions
 
 ### Composite action (recommended)
@@ -169,9 +217,10 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 
 | Status | Meaning |
 |--------|---------|
+| Queued | Created by **Run in CI**; waiting for the workflow to start |
 | Open | Pipeline registered; no results yet |
-| In progress | At least one result received |
-| Closed | Job finished (success, failure, or cancelled) |
+| In progress | Workflow started / results streaming |
+| Closed / failed | Job finished (success, failure, cancelled, or Queued timeout) |
 
 On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 

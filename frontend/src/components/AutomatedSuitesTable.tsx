@@ -119,6 +119,22 @@ export function AutomatedSuitesTable({
     }
   }
 
+  const onRunInCi = async (suite: AutomatedSuite) => {
+    if (!canRerun) return
+    setBusyId(suite.id)
+    try {
+      await api.runInCi(projectId, {
+        source_run_id: suite.id,
+        run_name: `${suite.name || suite.suite_name || 'Suite'} (CI)`,
+      })
+      await load(0)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   const reportHref = (suite: AutomatedSuite) => {
     const art = suite.artifacts as unknown
     if (Array.isArray(art)) {
@@ -319,15 +335,26 @@ export function AutomatedSuitesTable({
                             </a>
                           ) : null}
                           {canRerun ? (
-                            <button
-                              type="button"
-                              className="btn secondary"
-                              disabled={busyId === suite.id}
-                              onClick={() => void onRerun(suite)}
-                              {...testIdProps(TestIds.automatedSuiteRerunButton)}
-                            >
-                              {t('executions.rerun')}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="btn secondary"
+                                disabled={busyId === suite.id}
+                                onClick={() => void onRerun(suite)}
+                                {...testIdProps(TestIds.automatedSuiteRerunButton)}
+                              >
+                                {t('executions.rerun')}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn secondary"
+                                disabled={busyId === suite.id}
+                                onClick={() => void onRunInCi(suite)}
+                                {...testIdProps(TestIds.automatedSuiteRunInCiButton)}
+                              >
+                                {t('executions.runInCi')}
+                              </button>
+                            </>
                           ) : null}
                           {canDelete ? (
                             <button

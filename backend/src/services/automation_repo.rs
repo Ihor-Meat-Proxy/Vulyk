@@ -724,11 +724,13 @@ pub async fn retrieve_context(
 }
 
 const REPO_SELECT: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
-    token_ciphertext, token_nonce, index_status, last_indexed_at,
+    token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
+    ci_workflow_file, ci_workflow_ref, index_status, last_indexed_at,
     last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
 
 const REPO_SELECT_R: &str = r#"r.id, r.name, r.project_id, r.provider, r.remote_url, r.branch, r.subpath,
-    r.token_ciphertext, r.token_nonce, r.index_status, r.last_indexed_at,
+    r.token_ciphertext, r.token_nonce, r.actions_token_ciphertext, r.actions_token_nonce,
+    r.ci_workflow_file, r.ci_workflow_ref, r.index_status, r.last_indexed_at,
     r.last_index_error, r.commit_sha, r.file_count, r.chunk_count, r.created_at, r.updated_at"#;
 
 /// Prefer the project's default linked repo; otherwise the first by sort_order.

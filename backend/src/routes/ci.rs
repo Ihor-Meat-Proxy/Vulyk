@@ -11,10 +11,13 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::integrations::{github, gitlab};
 use crate::models::{
-    merge_ci_config, CiConfig, CiConfigPublic, CiDispatch, CreateCiConfig, CreateRun,
-    DispatchCiRequest, TestRun, UpdateCiConfig,
+    merge_ci_config, AutomationRepoRow, CiConfig, CiConfigPublic, CiDispatch, CreateCiConfig,
+    CreateRun, DispatchCiRequest, RunInCiRequest, RunInCiResponse, TestRun, UpdateCiConfig,
 };
+use crate::routes::automation_repos::decrypt_actions_token;
 use crate::routes::AppState;
+use crate::services::automation_repo as repo_svc;
+use crate::services::automation_repo_remote::{parse_remote, HostKind};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -31,6 +34,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/v1/ci-configs/{id}/dispatch",
             axum::routing::post(dispatch_ci),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/run-in-ci",
+            axum::routing::post(run_in_ci),
         )
         .route(
             "/api/v1/projects/{project_id}/ci-dispatches",
@@ -290,7 +297,7 @@ pub async fn dispatch_ci(
         let create = CreateRun {
             name,
             description: String::new(),
-            status: Some("running".into()),
+            status: Some("queued".into()),
             source: format!("ci:{}", cfg.provider),
             external_ref: None,
             meta: json!({ "ci_config_id": cfg.id }),
@@ -303,14 +310,14 @@ pub async fn dispatch_ci(
             start: false,
         };
         let run = sqlx::query_as::<_, TestRun>(&format!(
-            r#"INSERT INTO test_runs (project_id, name, status, source, meta, started_at)
-               VALUES ($1, $2, $3, $4, $5, NOW())
+            r#"INSERT INTO test_runs (project_id, name, status, source, meta, lifecycle)
+               VALUES ($1, $2, $3, $4, $5, 'ci')
                RETURNING {cols}"#,
             cols = crate::models::TEST_RUN_COLS
         ))
         .bind(cfg.project_id)
         .bind(create.name)
-        .bind(create.status.as_deref().unwrap_or("running"))
+        .bind(create.status.as_deref().unwrap_or("queued"))
         .bind(create.source)
         .bind(create.meta)
         .fetch_one(&state.pool)
@@ -318,11 +325,18 @@ pub async fn dispatch_ci(
         Some(run.id)
     };
 
-    let inputs = if body.inputs.is_null() {
+    let mut inputs = if body.inputs.is_null() {
         json!({})
     } else {
         body.inputs
     };
+    // Always expose the Vulyk run id so workflows can attach via VULYK_RUN_ID.
+    if let Some(rid) = run_id {
+        if let Some(obj) = inputs.as_object_mut() {
+            obj.entry("vulyk_run_id")
+                .or_insert_with(|| json!(rid.to_string()));
+        }
+    }
 
     let dispatch = sqlx::query_as::<_, CiDispatch>(
         r#"INSERT INTO ci_dispatches (project_id, ci_config_id, run_id, status, inputs)
@@ -446,6 +460,347 @@ pub async fn get_dispatch(
     )
     .await?;
     Ok(Json(row))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/run-in-ci",
+    tag = "ci",
+    params(("project_id" = Uuid, Path, description = "Project id")),
+    request_body = RunInCiRequest,
+    responses((status = 200, body = RunInCiResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn run_in_ci(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<RunInCiRequest>,
+) -> AppResult<Json<RunInCiResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::TriggerCi,
+    )
+    .await?;
+    ensure_project(&state, project_id).await?;
+
+    let repo = load_repo_for_run_in_ci(&state, project_id, body.repo_id).await?;
+    if repo.provider.to_lowercase() != "github" {
+        return Err(AppError::BadRequest(
+            "Run in CI currently supports GitHub automation repos only".into(),
+        ));
+    }
+    let actions_token = decrypt_actions_token(&state, &repo)?.ok_or_else(|| {
+        AppError::BadRequest(
+            "automation repo is missing an Actions write token (Settings → automation repo)".into(),
+        )
+    })?;
+    let workflow_file = repo.ci_workflow_file.trim();
+    if workflow_file.is_empty() {
+        return Err(AppError::BadRequest(
+            "automation repo is missing ci_workflow_file (e.g. .github/workflows/vulyk.yml)".into(),
+        ));
+    }
+    let workflow_ref = if repo.ci_workflow_ref.trim().is_empty() {
+        "main"
+    } else {
+        repo.ci_workflow_ref.trim()
+    };
+
+    let HostKind::GitHub {
+        api_base,
+        owner,
+        repo: gh_repo,
+    } = parse_remote("github", &repo.remote_url)?
+    else {
+        return Err(AppError::BadRequest(
+            "could not parse GitHub owner/repo from remote URL".into(),
+        ));
+    };
+
+    let case_keys = resolve_case_keys(&state, project_id, &body).await?;
+    if case_keys.is_empty() {
+        return Err(AppError::BadRequest(
+            "select at least one case (case_ids, case_keys, or source_run_id)".into(),
+        ));
+    }
+
+    let run_name = body
+        .run_name
+        .unwrap_or_else(|| format!("CI {}", Utc::now().format("%Y-%m-%d %H:%M")));
+    let run = sqlx::query_as::<_, TestRun>(&format!(
+        r#"INSERT INTO test_runs
+            (project_id, name, status, source, meta, lifecycle, ci_provider, ci_repo, suite_name)
+           VALUES ($1, $2, 'queued', 'ci:github', $3, 'ci', 'github', $4, $2)
+           RETURNING {cols}"#,
+        cols = crate::models::TEST_RUN_COLS
+    ))
+    .bind(project_id)
+    .bind(&run_name)
+    .bind(json!({
+        "automation_repo_id": repo.id,
+        "workflow_file": workflow_file,
+        "workflow_ref": workflow_ref,
+        "case_keys": case_keys,
+    }))
+    .bind(format!("{owner}/{gh_repo}"))
+    .fetch_one(&state.pool)
+    .await?;
+
+    // Attach run_items for selected cases (lookup by key).
+    for key in &case_keys {
+        let case_id: Option<Uuid> = sqlx::query_scalar(
+            r#"SELECT id FROM test_cases WHERE project_id = $1 AND upper(key) = upper($2)"#,
+        )
+        .bind(project_id)
+        .bind(key)
+        .fetch_optional(&state.pool)
+        .await?;
+        if let Some(cid) = case_id {
+            let _ = sqlx::query(
+                r#"INSERT INTO run_items (run_id, case_id, status)
+                   VALUES ($1, $2, 'untested')
+                   ON CONFLICT (run_id, case_id) DO NOTHING"#,
+            )
+            .bind(run.id)
+            .bind(cid)
+            .execute(&state.pool)
+            .await;
+        }
+    }
+
+    let cfg = upsert_github_dispatch_config(
+        &state,
+        project_id,
+        &repo,
+        &api_base,
+        &owner,
+        &gh_repo,
+        workflow_file,
+        workflow_ref,
+        &actions_token,
+    )
+    .await?;
+
+    let inputs = json!({
+        "vulyk_run_id": run.id.to_string(),
+        "case_keys": case_keys.join(","),
+    });
+
+    let dispatch = sqlx::query_as::<_, CiDispatch>(
+        r#"INSERT INTO ci_dispatches (project_id, ci_config_id, run_id, status, inputs)
+           VALUES ($1, $2, $3, 'queued', $4)
+           RETURNING id, project_id, ci_config_id, run_id, status, external_id, external_url,
+                     inputs, last_error, created_at, updated_at"#,
+    )
+    .bind(project_id)
+    .bind(cfg.id)
+    .bind(run.id)
+    .bind(&inputs)
+    .fetch_one(&state.pool)
+    .await?;
+
+    let updated = match github::dispatch(&cfg.config, &inputs).await {
+        Ok(h) => {
+            let d = sqlx::query_as::<_, CiDispatch>(
+                r#"UPDATE ci_dispatches
+                   SET status = $2, external_id = COALESCE($3, external_id),
+                       external_url = COALESCE($4, external_url), updated_at = NOW()
+                   WHERE id = $1
+                   RETURNING id, project_id, ci_config_id, run_id, status, external_id, external_url,
+                             inputs, last_error, created_at, updated_at"#,
+            )
+            .bind(dispatch.id)
+            .bind(&h.status)
+            .bind(&h.external_id)
+            .bind(&h.external_url)
+            .fetch_one(&state.pool)
+            .await?;
+            // Seed pipeline_url with the workflow page until workflow_run webhook arrives.
+            if let Some(url) = &h.external_url {
+                let _ = sqlx::query(
+                    r#"UPDATE test_runs SET pipeline_url = COALESCE(pipeline_url, $2), updated_at = NOW()
+                       WHERE id = $1"#,
+                )
+                .bind(run.id)
+                .bind(url)
+                .execute(&state.pool)
+                .await;
+            }
+            d
+        }
+        Err(err) => {
+            let msg = err.to_string();
+            let _ = sqlx::query(
+                r#"UPDATE test_runs SET status = 'failed', finished_at = NOW(), updated_at = NOW()
+                   WHERE id = $1"#,
+            )
+            .bind(run.id)
+            .execute(&state.pool)
+            .await;
+            sqlx::query_as::<_, CiDispatch>(
+                r#"UPDATE ci_dispatches
+                   SET status = 'failed', last_error = $2, updated_at = NOW()
+                   WHERE id = $1
+                   RETURNING id, project_id, ci_config_id, run_id, status, external_id, external_url,
+                             inputs, last_error, created_at, updated_at"#,
+            )
+            .bind(dispatch.id)
+            .bind(&msg)
+            .fetch_one(&state.pool)
+            .await?
+        }
+    };
+
+    let run = sqlx::query_as::<_, TestRun>(&format!(
+        r#"SELECT {cols} FROM test_runs WHERE id = $1"#,
+        cols = crate::models::TEST_RUN_COLS
+    ))
+    .bind(run.id)
+    .fetch_one(&state.pool)
+    .await?;
+
+    Ok(Json(RunInCiResponse {
+        run,
+        dispatch: updated,
+        case_keys,
+    }))
+}
+
+async fn load_repo_for_run_in_ci(
+    state: &AppState,
+    project_id: Uuid,
+    repo_id: Option<Uuid>,
+) -> AppResult<AutomationRepoRow> {
+    if let Some(id) = repo_id {
+        let row = repo_svc::load_repo_by_id(&state.pool, id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+        let links = repo_svc::project_ids_for_repo(&state.pool, id).await?;
+        if !links.contains(&project_id) && row.project_id != Some(project_id) {
+            return Err(AppError::BadRequest(
+                "automation repo is not linked to this project".into(),
+            ));
+        }
+        return Ok(row);
+    }
+    repo_svc::load_repo_for_project(&state.pool, project_id)
+        .await?
+        .ok_or_else(|| {
+            AppError::BadRequest(
+                "no automation repo linked to this project; configure one under Settings".into(),
+            )
+        })
+}
+
+async fn resolve_case_keys(
+    state: &AppState,
+    project_id: Uuid,
+    body: &RunInCiRequest,
+) -> AppResult<Vec<String>> {
+    let mut keys: Vec<String> = body
+        .case_keys
+        .iter()
+        .map(|k| k.trim().to_uppercase())
+        .filter(|k| !k.is_empty())
+        .collect();
+
+    if !body.case_ids.is_empty() {
+        let rows: Vec<String> = sqlx::query_scalar(
+            r#"SELECT key FROM test_cases
+               WHERE project_id = $1 AND id = ANY($2) AND key IS NOT NULL AND key <> ''"#,
+        )
+        .bind(project_id)
+        .bind(&body.case_ids)
+        .fetch_all(&state.pool)
+        .await?;
+        keys.extend(rows.into_iter().map(|k| k.to_uppercase()));
+    }
+
+    if let Some(source_run_id) = body.source_run_id {
+        let rows: Vec<String> = sqlx::query_scalar(
+            r#"SELECT DISTINCT c.key
+               FROM run_items ri
+               JOIN test_cases c ON c.id = ri.case_id
+               JOIN test_runs r ON r.id = ri.run_id
+               WHERE ri.run_id = $1 AND r.project_id = $2
+                 AND c.key IS NOT NULL AND c.key <> ''"#,
+        )
+        .bind(source_run_id)
+        .bind(project_id)
+        .fetch_all(&state.pool)
+        .await?;
+        keys.extend(rows.into_iter().map(|k| k.to_uppercase()));
+    }
+
+    keys.sort();
+    keys.dedup();
+    Ok(keys)
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn upsert_github_dispatch_config(
+    state: &AppState,
+    project_id: Uuid,
+    repo: &AutomationRepoRow,
+    api_base: &str,
+    owner: &str,
+    gh_repo: &str,
+    workflow_file: &str,
+    workflow_ref: &str,
+    actions_token: &str,
+) -> AppResult<CiConfig> {
+    let name = format!("vulyk-actions-{}", &repo.id.to_string()[..8]);
+    let config = json!({
+        "token": actions_token,
+        "owner": owner,
+        "repo": gh_repo,
+        "workflow_id": workflow_file,
+        "ref": workflow_ref,
+        "api_base": api_base,
+    });
+    validate_config("github", &config)?;
+
+    if let Some(existing) = sqlx::query_as::<_, CiConfig>(
+        r#"SELECT id, project_id, provider, name, config, webhook_secret, enabled,
+                  created_at, updated_at
+           FROM ci_configs WHERE project_id = $1 AND name = $2"#,
+    )
+    .bind(project_id)
+    .bind(&name)
+    .fetch_optional(&state.pool)
+    .await?
+    {
+        let merged = merge_ci_config(&existing.config, config);
+        let row = sqlx::query_as::<_, CiConfig>(
+            r#"UPDATE ci_configs
+               SET config = $2, enabled = TRUE, updated_at = NOW()
+               WHERE id = $1
+               RETURNING id, project_id, provider, name, config, webhook_secret, enabled,
+                         created_at, updated_at"#,
+        )
+        .bind(existing.id)
+        .bind(merged)
+        .fetch_one(&state.pool)
+        .await?;
+        return Ok(row);
+    }
+
+    let row = sqlx::query_as::<_, CiConfig>(
+        r#"INSERT INTO ci_configs (project_id, provider, name, config, enabled)
+           VALUES ($1, 'github', $2, $3, TRUE)
+           RETURNING id, project_id, provider, name, config, webhook_secret, enabled,
+                     created_at, updated_at"#,
+    )
+    .bind(project_id)
+    .bind(&name)
+    .bind(config)
+    .fetch_one(&state.pool)
+    .await?;
+    Ok(row)
 }
 
 async fn load_config(state: &AppState, id: Uuid) -> AppResult<CiConfig> {

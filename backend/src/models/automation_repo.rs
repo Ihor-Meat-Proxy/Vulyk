@@ -15,6 +15,11 @@ pub struct AutomationRepoPublic {
     pub branch: String,
     pub subpath: String,
     pub has_token: bool,
+    /// Encrypted Actions write token is set (workflow_dispatch).
+    pub has_actions_token: bool,
+    /// Workflow file/id for `workflow_dispatch` (empty = not configured).
+    pub ci_workflow_file: String,
+    pub ci_workflow_ref: String,
     pub index_status: String,
     pub last_indexed_at: Option<DateTime<Utc>>,
     pub last_index_error: Option<String>,
@@ -36,6 +41,10 @@ pub struct AutomationRepoRow {
     pub subpath: String,
     pub token_ciphertext: Option<Vec<u8>>,
     pub token_nonce: Option<Vec<u8>>,
+    pub actions_token_ciphertext: Option<Vec<u8>>,
+    pub actions_token_nonce: Option<Vec<u8>>,
+    pub ci_workflow_file: String,
+    pub ci_workflow_ref: String,
     pub index_status: String,
     pub last_indexed_at: Option<DateTime<Utc>>,
     pub last_index_error: Option<String>,
@@ -59,6 +68,9 @@ impl AutomationRepoRow {
             branch: self.branch.clone(),
             subpath: self.subpath.clone(),
             has_token: self.token_ciphertext.is_some(),
+            has_actions_token: self.actions_token_ciphertext.is_some(),
+            ci_workflow_file: self.ci_workflow_file.clone(),
+            ci_workflow_ref: self.ci_workflow_ref.clone(),
             index_status: self.index_status.clone(),
             last_indexed_at: self.last_indexed_at,
             last_index_error: self.last_index_error.clone(),
@@ -81,6 +93,12 @@ pub struct CreateAutomationRepo {
     #[serde(default)]
     pub subpath: String,
     pub token: Option<String>,
+    /// GitHub Actions write token (workflow_dispatch); encrypted at rest.
+    pub actions_token: Option<String>,
+    #[serde(default)]
+    pub ci_workflow_file: Option<String>,
+    #[serde(default)]
+    pub ci_workflow_ref: Option<String>,
     /// Projects to attach (many-to-many).
     #[serde(default)]
     pub project_ids: Vec<Uuid>,
@@ -95,6 +113,10 @@ pub struct UpdateAutomationRepo {
     pub subpath: Option<String>,
     /// Omit to leave unchanged; empty string clears.
     pub token: Option<String>,
+    /// Omit to leave unchanged; empty string clears.
+    pub actions_token: Option<String>,
+    pub ci_workflow_file: Option<String>,
+    pub ci_workflow_ref: Option<String>,
     pub project_ids: Option<Vec<Uuid>>,
 }
 
@@ -108,6 +130,9 @@ pub struct UpsertAutomationRepo {
     #[serde(default)]
     pub subpath: String,
     pub token: Option<String>,
+    pub actions_token: Option<String>,
+    pub ci_workflow_file: Option<String>,
+    pub ci_workflow_ref: Option<String>,
     pub name: Option<String>,
 }
 
@@ -158,4 +183,27 @@ pub struct ContextFileRef {
     pub language: String,
     pub score: f64,
     pub reason: String,
+}
+
+/// Trigger a GitHub workflow_dispatch for selected cases / a prior suite.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct RunInCiRequest {
+    /// Automation repo that holds the Actions write token + workflow settings.
+    pub repo_id: Option<Uuid>,
+    /// Case UUIDs to include (keys resolved server-side).
+    #[serde(default)]
+    pub case_ids: Vec<Uuid>,
+    /// Explicit case keys (merged with resolved ids).
+    #[serde(default)]
+    pub case_keys: Vec<String>,
+    /// Re-run cases from an existing suite/run.
+    pub source_run_id: Option<Uuid>,
+    pub run_name: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct RunInCiResponse {
+    pub run: crate::models::TestRun,
+    pub dispatch: crate::models::CiDispatch,
+    pub case_keys: Vec<String>,
 }

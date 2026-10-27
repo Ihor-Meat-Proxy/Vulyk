@@ -48,6 +48,9 @@ type RepoFormState = {
   branch: string
   subpath: string
   token: string
+  actions_token: string
+  ci_workflow_file: string
+  ci_workflow_ref: string
   project_ids: string[]
 }
 
@@ -59,6 +62,9 @@ const emptyRepoForm = (): RepoFormState => ({
   branch: 'main',
   subpath: '',
   token: '',
+  actions_token: '',
+  ci_workflow_file: '',
+  ci_workflow_ref: 'main',
   project_ids: [],
 })
 
@@ -315,6 +321,9 @@ export function Settings() {
       branch: repo.branch,
       subpath: repo.subpath,
       token: '',
+      actions_token: '',
+      ci_workflow_file: repo.ci_workflow_file || '',
+      ci_workflow_ref: repo.ci_workflow_ref || 'main',
       project_ids: repo.project_ids?.length
         ? [...repo.project_ids]
         : repo.project_id
@@ -328,7 +337,9 @@ export function Settings() {
       `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
         indexed +
         (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
-        (repo.has_token ? ' · token set' : ''),
+        (repo.has_token ? ' · token set' : '') +
+        (repo.has_actions_token ? ' · actions token set' : '') +
+        (repo.ci_workflow_file ? ` · ${repo.ci_workflow_file}` : ''),
     )
   }
 
@@ -355,6 +366,11 @@ export function Settings() {
           branch: repoForm.branch.trim() || 'main',
           subpath: repoForm.subpath.trim(),
           ...(repoForm.token ? { token: repoForm.token } : {}),
+          ...(repoForm.actions_token
+            ? { actions_token: repoForm.actions_token }
+            : {}),
+          ci_workflow_file: repoForm.ci_workflow_file.trim(),
+          ci_workflow_ref: repoForm.ci_workflow_ref.trim() || 'main',
           project_ids: repoForm.project_ids,
         })
       } else {
@@ -365,6 +381,11 @@ export function Settings() {
           branch: repoForm.branch.trim() || 'main',
           subpath: repoForm.subpath.trim(),
           ...(repoForm.token ? { token: repoForm.token } : {}),
+          ...(repoForm.actions_token
+            ? { actions_token: repoForm.actions_token }
+            : {}),
+          ci_workflow_file: repoForm.ci_workflow_file.trim(),
+          ci_workflow_ref: repoForm.ci_workflow_ref.trim() || 'main',
           project_ids: repoForm.project_ids,
         })
       }
@@ -854,6 +875,47 @@ export function Settings() {
                 autoComplete="off"
                 placeholder={t('admin.automationTokenHint')}
                 {...testIdProps(TestIds.settingsAutomationTokenInput)}
+              />
+            </label>
+            <label className="field">
+              <span>{t('admin.automationActionsToken')}</span>
+              <input
+                type="password"
+                value={repoForm.actions_token}
+                onChange={(e) =>
+                  setRepoForm((f) => ({ ...f, actions_token: e.target.value }))
+                }
+                autoComplete="off"
+                placeholder={t('admin.automationActionsTokenHint')}
+                {...testIdProps(TestIds.settingsAutomationActionsTokenInput)}
+              />
+            </label>
+            <label className="field">
+              <span>{t('admin.automationWorkflowFile')}</span>
+              <input
+                value={repoForm.ci_workflow_file}
+                onChange={(e) =>
+                  setRepoForm((f) => ({
+                    ...f,
+                    ci_workflow_file: e.target.value,
+                  }))
+                }
+                placeholder=".github/workflows/vulyk.yml"
+                {...testIdProps(TestIds.settingsAutomationWorkflowFileInput)}
+              />
+            </label>
+            <label className="field">
+              <span>{t('admin.automationWorkflowRef')}</span>
+              <input
+                value={repoForm.ci_workflow_ref}
+                onChange={(e) =>
+                  setRepoForm((f) => ({
+                    ...f,
+                    ci_workflow_ref: e.target.value,
+                  }))
+                }
+                placeholder="main"
+                {...testIdProps(TestIds.settingsAutomationWorkflowRefInput)}
               />
             </label>
             <fieldset className="field">
