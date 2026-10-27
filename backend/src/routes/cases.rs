@@ -1006,16 +1006,23 @@ pub async fn bulk_cases(
             res.rows_affected() as i64
         }
         "add_tags" | "remove_tags" | "set_tags" => {
+            // Only count / mutate cases that belong to this project (review #39).
+            let case_ids = crate::services::cases::filter_case_ids_in_project(
+                &state.pool,
+                project_id,
+                &body.case_ids,
+            )
+            .await?;
             let tag_ids =
                 resolve_tag_ids(&mut tx, project_id, &body.tag_ids, &body.tag_names).await?;
-            for case_id in &body.case_ids {
+            for case_id in &case_ids {
                 match action {
                     "add_tags" => add_case_tags(&mut tx, *case_id, &tag_ids).await?,
                     "remove_tags" => remove_case_tags(&mut tx, *case_id, &tag_ids).await?,
                     _ => replace_case_tags(&mut tx, *case_id, &tag_ids).await?,
                 }
             }
-            body.case_ids.len() as i64
+            case_ids.len() as i64
         }
         "set_custom_fields" => {
             if body.custom_field_values.is_empty() {

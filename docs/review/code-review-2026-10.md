@@ -410,6 +410,9 @@ project on create, update, bulk `move_suite`, and chat confirm.
 
 `backend/src/routes/cases.rs:912-922` — foreign/missing IDs still counted.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME — filter
+`case_ids` to the project before tag mutate; `affected` is the in-project count.
+
 ### 40. **bug** — MCP bulk ingest commits partial batches then 400s
 
 `backend/src/routes/runs.rs:724-776` — per-row insert without a transaction.
