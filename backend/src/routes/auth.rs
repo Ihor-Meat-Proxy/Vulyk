@@ -691,12 +691,42 @@ pub(crate) fn safe_post_login_redirect(redirect_to: Option<&str>, base: &str) ->
     fallback
 }
 
-fn session_cookie_secure() -> bool {
-    if let Ok(v) = std::env::var("VULYK_COOKIE_SECURE") {
-        return matches!(v.to_lowercase().as_str(), "1" | "true" | "yes");
+/// Secure flag for session / CSRF cookies (security audit M1).
+pub(crate) fn session_cookie_secure_from(
+    cookie_secure: Option<&str>,
+    env: Option<&str>,
+    base_url: Option<&str>,
+) -> bool {
+    if let Some(v) = cookie_secure {
+        if matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        ) {
+            return true;
+        }
+        if matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "0" | "false" | "no" | "off"
+        ) {
+            return false;
+        }
     }
-    let base = std::env::var("VULYK_BASE_URL").unwrap_or_default();
-    base.starts_with("https://")
+    let env_prod = matches!(
+        env.map(|s| s.trim().to_ascii_lowercase()).as_deref(),
+        Some("production" | "prod")
+    );
+    let https_base = base_url
+        .map(|u| u.trim().to_ascii_lowercase().starts_with("https://"))
+        .unwrap_or(false);
+    env_prod || https_base
+}
+
+fn session_cookie_secure() -> bool {
+    session_cookie_secure_from(
+        std::env::var("VULYK_COOKIE_SECURE").ok().as_deref(),
+        std::env::var("VULYK_ENV").ok().as_deref(),
+        std::env::var("VULYK_BASE_URL").ok().as_deref(),
+    )
 }
 
 fn normalize_email(email: &str) -> AppResult<String> {
@@ -715,7 +745,34 @@ pub fn auth_user_public(auth: &AuthUser) -> UserPublic {
 
 #[cfg(test)]
 mod tests {
-    use super::safe_post_login_redirect;
+    use super::{safe_post_login_redirect, session_cookie_secure_from};
+
+    #[test]
+    fn session_cookie_secure_follows_env_and_https_base() {
+        assert!(!session_cookie_secure_from(None, None, None));
+        assert!(!session_cookie_secure_from(
+            None,
+            Some("development"),
+            Some("http://localhost:8080")
+        ));
+        assert!(session_cookie_secure_from(Some("true"), None, None));
+        assert!(session_cookie_secure_from(Some("1"), None, None));
+        assert!(!session_cookie_secure_from(
+            Some("false"),
+            Some("production"),
+            Some("https://app.example")
+        ));
+        assert!(session_cookie_secure_from(
+            None,
+            Some("production"),
+            Some("http://internal")
+        ));
+        assert!(session_cookie_secure_from(
+            None,
+            None,
+            Some("https://app.example")
+        ));
+    }
 
     #[test]
     fn rejects_protocol_relative_redirect() {
