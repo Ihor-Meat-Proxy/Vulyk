@@ -77,9 +77,9 @@ export function Runs({ projectId }: Props) {
     }
     let cancelled = false
     api
-      .listResults(selectedRunId)
+      .listResults(selectedRunId, { limit: 500 })
       .then((data) => {
-        if (!cancelled) setResults(data)
+        if (!cancelled) setResults(data.items)
       })
       .catch(() => {
         if (!cancelled) setResults([])

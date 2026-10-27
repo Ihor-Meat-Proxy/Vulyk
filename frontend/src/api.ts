@@ -2830,8 +2830,12 @@ export const api = {
   revokeToken: (id: string) =>
     request<void>(`/api/v1/tokens/${id}`, { method: 'DELETE' }),
 
-  listResults: (runId: string) =>
-    request<TestResult[]>(`/api/v1/runs/${runId}/results`),
+  listResults: (runId: string, opts?: { limit?: number; offset?: number }) => {
+    const qs = new URLSearchParams()
+    qs.set('limit', String(opts?.limit ?? 500))
+    if (opts?.offset != null) qs.set('offset', String(opts.offset))
+    return request<Page<TestResult>>(`/api/v1/runs/${runId}/results?${qs}`)
+  },
   ingestRun: (
     runId: string,
     body: {

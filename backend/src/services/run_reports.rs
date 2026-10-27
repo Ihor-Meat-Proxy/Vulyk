@@ -569,9 +569,11 @@ async fn list_run_case_results_inner(
         }
     });
 
-    // Export may request up to 10_000; interactive pages stay within PageQuery max.
-    let max_limit = if load_details { 500 } else { 20_000 };
-    let limit = query.limit.unwrap_or(50).clamp(1, max_limit);
+    // Interactive + export share PageQuery max (review #15).
+    let limit = query
+        .limit
+        .unwrap_or(crate::models::PAGE_DEFAULT_LIMIT)
+        .clamp(1, crate::models::PAGE_MAX_LIMIT);
     let offset = query.offset.unwrap_or(0).max(0);
     let page: Vec<_> = rows
         .into_iter()

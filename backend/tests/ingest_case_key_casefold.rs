@@ -138,7 +138,7 @@ async fn bulk_results_match_lowercase_case_key() {
         .json()
         .await
         .unwrap();
-    let rows = results.as_array().unwrap();
+    let rows = results["items"].as_array().unwrap();
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["case_id"].as_str().unwrap(), case_id);
 }
