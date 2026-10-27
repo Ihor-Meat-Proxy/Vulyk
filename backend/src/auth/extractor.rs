@@ -516,7 +516,8 @@ pub async fn require_permission(
     match auth {
         Some(user) if user.is_system_admin() => Ok(()),
         Some(user) => {
-            // Project CI tokens: UploadResults + ExecuteRuns + ViewProject on their project only.
+            // Project CI tokens: least privilege — upload results + view their project only.
+            // ExecuteRuns / manage / mutate APIs are not granted (use a user token instead).
             if let AuthVia::CiToken {
                 project_id: token_project,
                 ..
@@ -528,9 +529,7 @@ pub async fn require_permission(
                     ));
                 }
                 return match permission {
-                    Permission::UploadResults
-                    | Permission::ExecuteRuns
-                    | Permission::ViewProject => Ok(()),
+                    Permission::UploadResults | Permission::ViewProject => Ok(()),
                     _ => Err(AppError::Forbidden(format!(
                         "CI token missing permission: {}",
                         permission.as_str()

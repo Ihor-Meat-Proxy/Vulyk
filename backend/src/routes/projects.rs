@@ -6,7 +6,7 @@ use axum::{
 use uuid::Uuid;
 
 use crate::auth::{
-    require_permission, require_project_role, OptionalAuthUser, Permission, ProjectRole,
+    require_permission, require_project_role, AuthVia, OptionalAuthUser, Permission, ProjectRole,
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{CreateProject, Project, UpdateProject};
@@ -90,6 +90,14 @@ pub async fn create_project(
 ) -> AppResult<Json<Project>> {
     if state.auth.required && auth.is_none() {
         return Err(AppError::Unauthorized("authentication required".into()));
+    }
+    // Project-scoped CI tokens must not create projects.
+    if let Some(user) = &auth {
+        if matches!(user.via, AuthVia::CiToken { .. }) {
+            return Err(AppError::Forbidden(
+                "CI tokens cannot create projects".into(),
+            ));
+        }
     }
 
     if body.name.trim().is_empty() {
