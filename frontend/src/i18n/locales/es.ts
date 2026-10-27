@@ -644,6 +644,7 @@ const es: Dict = {
   'reports.title': "Informes",
   'reports.trends': "Tendencias acierto / fallo",
   'reports.uncovered': "No cubiertos",
+  'runs.loadMore': "Cargar más",
   'status.blocked': "Bloqueado",
   'status.cancelled': "Cancelado",
   'status.closed': "Cerrado",

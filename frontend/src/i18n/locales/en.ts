@@ -644,6 +644,7 @@ const en: Dict = {
   'reports.title': "Reports",
   'reports.trends': "Pass / fail trends",
   'reports.uncovered': "Uncovered",
+  'runs.loadMore': "Load more",
   'status.blocked': "Blocked",
   'status.cancelled': "Cancelled",
   'status.closed': "Closed",

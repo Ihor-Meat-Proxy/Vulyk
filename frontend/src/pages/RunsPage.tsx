@@ -4,8 +4,12 @@ import { api, type Suite, type TestPlan, type TestRun } from '../api'
 import { useAuth } from '../auth'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { useI18n } from '../i18n'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
+
+/** Page size for runs list + load-more (review #46). */
+export const RUNS_PAGE_SIZE = 50
 
 type Props = {
   projectId: string | null
@@ -14,6 +18,7 @@ type Props = {
 
 export function RunsPage({ projectId, suites }: Props) {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { user, status } = useAuth()
   const { can } = useProjectPermissions(projectId)
   const canExecute = can('execute_runs')
@@ -27,9 +32,11 @@ export function RunsPage({ projectId, suites }: Props) {
     })
 
   const [runs, setRuns] = useState<TestRun[]>([])
+  const [runsTotal, setRunsTotal] = useState(0)
   const [plans, setPlans] = useState<TestPlan[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [name, setName] = useState('')
   const [planId, setPlanId] = useState('')
   const [suiteId, setSuiteId] = useState('')
@@ -39,18 +46,27 @@ export function RunsPage({ projectId, suites }: Props) {
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
+  const applyRunsPage = (runPage: { items: TestRun[]; total: number }, append: boolean) => {
+    setRuns((prev) => (append ? [...prev, ...runPage.items] : runPage.items))
+    setRunsTotal(runPage.total)
+  }
+
   useEffect(() => {
     if (!projectId) {
       setRuns([])
+      setRunsTotal(0)
       setPlans([])
       return
     }
     let cancelled = false
     setLoading(true)
-    Promise.all([api.listRuns(projectId), api.listPlans(projectId)])
+    Promise.all([
+      api.listRuns(projectId, RUNS_PAGE_SIZE, 0),
+      api.listPlans(projectId),
+    ])
       .then(([runPage, planList]) => {
         if (cancelled) return
-        setRuns(runPage.items)
+        applyRunsPage(runPage, false)
         setPlans(planList)
         setError(null)
       })
@@ -65,6 +81,24 @@ export function RunsPage({ projectId, suites }: Props) {
     }
   }, [projectId])
 
+  const loadMoreRuns = async () => {
+    if (!projectId || loadingMore || runs.length >= runsTotal) return
+    setLoadingMore(true)
+    try {
+      const runPage = await api.listRuns(
+        projectId,
+        RUNS_PAGE_SIZE,
+        runs.length,
+      )
+      applyRunsPage(runPage, true)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   const createRun = async () => {
     if (!projectId || !name.trim()) return
     setCreating(true)
@@ -78,8 +112,8 @@ export function RunsPage({ projectId, suites }: Props) {
       if (!planId && !suiteId) body.include_all_cases = true
       const detail = await api.createRun(projectId, body)
       setName('')
-      const runPage = await api.listRuns(projectId)
-      setRuns(runPage.items)
+      const runPage = await api.listRuns(projectId, RUNS_PAGE_SIZE, 0)
+      applyRunsPage(runPage, false)
       navigate(`/runs/${detail.run.id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -102,8 +136,8 @@ export function RunsPage({ projectId, suites }: Props) {
       setUploadMessage(
         `Ingested ${result.parsed} results (${result.inserted} inserted).`,
       )
-      const runPage = await api.listRuns(projectId)
-      setRuns(runPage.items)
+      const runPage = await api.listRuns(projectId, RUNS_PAGE_SIZE, 0)
+      applyRunsPage(runPage, false)
       setError(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -277,40 +311,57 @@ export function RunsPage({ projectId, suites }: Props) {
           </div>
         )}
         {runs.length > 0 && (
-          <table className="table" {...testIdProps(TestIds.runsList)}>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Started</th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((r, index) => (
-                <tr
-                  key={r.id}
-                  {...listItemProps(TestIds.runRow, {
-                    // UUID only — run names are freeform (spaces) and must not be entity keys
-                    entityId: r.id,
-                    index,
-                  })}
-                >
-                  <td {...testIdProps(TestIds.runRowName)}>
-                    <Link
-                      to={`/runs/${r.id}`}
-                      {...listChildProps(TestIds.runRow, 'link')}
-                    >
-                      {r.name}
-                    </Link>
-                  </td>
-                  <td {...testIdProps(TestIds.runRowStatus)}>
-                    <StatusBadge status={r.status} testId="runs-page-status-badge" />
-                  </td>
-                  <td className="muted">{fmt(r.started_at)}</td>
+          <>
+            <table className="table" {...testIdProps(TestIds.runsList)}>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Started</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {runs.map((r, index) => (
+                  <tr
+                    key={r.id}
+                    {...listItemProps(TestIds.runRow, {
+                      // UUID only — run names are freeform (spaces) and must not be entity keys
+                      entityId: r.id,
+                      index,
+                    })}
+                  >
+                    <td {...testIdProps(TestIds.runRowName)}>
+                      <Link
+                        to={`/runs/${r.id}`}
+                        {...listChildProps(TestIds.runRow, 'link')}
+                      >
+                        {r.name}
+                      </Link>
+                    </td>
+                    <td {...testIdProps(TestIds.runRowStatus)}>
+                      <StatusBadge status={r.status} testId="runs-page-status-badge" />
+                    </td>
+                    <td className="muted">{fmt(r.started_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {runs.length < runsTotal && (
+              <div style={{ marginTop: '0.75rem' }}>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={loadingMore}
+                  onClick={() => void loadMoreRuns()}
+                  {...testIdProps(TestIds.runsLoadMoreButton)}
+                >
+                  {loadingMore
+                    ? t('common.loading')
+                    : `${t('runs.loadMore')} (${runs.length} / ${runsTotal})`}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
