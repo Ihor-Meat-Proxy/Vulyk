@@ -46,7 +46,7 @@ Mark a config **Global (all projects)** in Admin → LLM providers to share one 
 
 - **Model** dropdown on both “Cases from requirements” and “Automation code” (default preselected).
 - **Case picker** (search by key/title, folder tree, multi-select, folder select, chips). Cases page bulk action **Generate automation** opens Generate with the selection.
-- **Automation repo** (Admin → Integrations): connect a GitHub / GitLab / generic HTTPS repo (token encrypted). Re-index clones shallowly and indexes source; generate-code retrieves BM25 context (framework configs, page objects, helpers, similar tests) and returns `context_files` for preview. Download generated code from the UI — no automatic commits.
+- **Automation repo** (Admin → Integrations / Settings → Test automation repositories): connect a GitHub / GitLab / generic HTTPS repo (token encrypted). GitHub/GitLab re-index via the provider REST API (no local clone); generic remotes still shallow-clone. Generate-code retrieves BM25 context (framework configs, page objects, helpers, similar tests) and returns `context_files` for preview. Download generated code from the UI — no automatic commits. See [automation-repo.md](./automation-repo.md) and [Run in CI](./guides/ci-integration.md#two-way-trigger-run-in-ci).
 
 ## Chat propose / create
 

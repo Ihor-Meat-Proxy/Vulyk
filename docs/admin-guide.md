@@ -40,8 +40,8 @@ helm upgrade --install vulyk deploy/helm/vulyk \
   --set secrets.create=true \
   --set auth.required=true \
   --set setup.adminPassword=change-me-admin12 \
-  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.2.0 \
-  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.2.0
+  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.3.0 \
+  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.3.0
 ```
 
 Chart path: [`deploy/helm/vulyk`](../deploy/helm/vulyk). Auth is **required by default**. A setup Job runs `vulyk-api setup --yes`. Provide Secret keys:
@@ -216,7 +216,7 @@ Rollback: `--confirm=ROLLBACK` (or `VULYK_ROLLBACK_CONFIRM=ROLLBACK`).
 | `VULYK_COOKIE_SECURE` | Force `Secure` on the session cookie (`1`/`true`) |
 | `VULYK_EGRESS_ALLOW_PRIVATE` | Lab/tests only — allow private/link-local/metadata URLs and `file://` git; **never** in production |
 | `VULYK_CONTENT_BACKUP_DIR` | Root for local content-backup destinations (default `./data/content-backups`) |
-| `VULYK_REPO_CACHE` | Shallow clone cache for automation repos (default `/tmp/vulyk-repos`) |
+| `VULYK_REPO_CACHE` | Shallow clone cache for **generic** HTTPS automation repos (default `/tmp/vulyk-repos`); GitHub/GitLab index via REST |
 | `VULYK_VERSION_BACKUP_DIR` / `VULYK_ROLLBACK_RETENTION_DAYS` / `VULYK_VERSION_BACKUP_COUNT` | Post-upgrade rollback points — [guides/upgrade.md](guides/upgrade.md) |
 
 CI webhook secrets are **required** for webhook authorization; see [guides/ingest-and-ci.md](guides/ingest-and-ci.md). Full index: [README.md](README.md).

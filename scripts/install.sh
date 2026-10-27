@@ -168,17 +168,17 @@ After compose/prod/dev, if setup did not complete automatically:
   # or: cargo run -p vulyk-api -- setup ...
 
 Install a published release (pulls GHCR; no local Rust/Node build):
-  ./scripts/install.sh compose --yes --version 0.1.0
-  ./scripts/install.sh prod --yes --version 0.1.0
+  ./scripts/install.sh compose --yes --version 0.3.0
+  ./scripts/install.sh prod --yes --version 0.3.0
 
 Upgrade (keeps the named Postgres volume; never runs docker compose down -v):
   ./scripts/install.sh upgrade --yes
-  ./scripts/install.sh upgrade --yes --version 0.1.0   # GHCR images
-  ./scripts/install.sh upgrade --yes --to=v0.2.0       # git checkout + source build
+  ./scripts/install.sh upgrade --yes --version 0.3.0   # GHCR images
+  ./scripts/install.sh upgrade --yes --to=v0.3.0       # git checkout + source build
   ./scripts/install.sh backup
-  ./scripts/install.sh restore ./backups/vulyk-0.1.0-20260101T120000Z.sql.gz
+  ./scripts/install.sh restore ./backups/vulyk-0.3.0-20260101T120000Z.sql.gz
   ./scripts/install.sh rollback --confirm=ROLLBACK
-  ./scripts/install.sh rollback --version 0.1.0 --confirm=ROLLBACK
+  ./scripts/install.sh rollback --version 0.3.0 --confirm=ROLLBACK
 
 WARNING: never run 'docker compose down -v' on a data you care about -
 the -v flag deletes named volumes (Postgres data).
