@@ -91,9 +91,9 @@ pub async fn create_project(
     if state.auth.required && auth.is_none() {
         return Err(AppError::Unauthorized("authentication required".into()));
     }
-    // CI tokens (and other non-user principals) must not create projects.
+    // Project-scoped CI tokens must not create projects.
     if let Some(user) = &auth {
-        if matches!(user.via, AuthVia::CiToken { .. }) || user.id() == Uuid::nil() {
+        if matches!(user.via, AuthVia::CiToken { .. }) {
             return Err(AppError::Forbidden(
                 "CI tokens cannot create projects".into(),
             ));
