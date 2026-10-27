@@ -355,7 +355,7 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 | P0 | #2 stale job reclaim | [#46](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46) |
 | P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) **merged** |
 | P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
-| P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) |
+| P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) **merged** |
 | P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) **merged** |
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
 | Later | #24 / #44–#46 a11y i18n | separate UI PR |
@@ -374,7 +374,7 @@ From parallel passes: [Backend correctness review](bc-3c5709c2-a5ba-5dcd-bb51-25
 
 `backend/src/openapi.rs:69` vs `VERSION` / `CARGO_PKG_VERSION`.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58
 
 ### 36. **bug** — Per-requirement `coverage_percent` is binary 0/100
 
