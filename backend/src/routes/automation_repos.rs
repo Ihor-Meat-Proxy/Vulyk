@@ -70,7 +70,8 @@ pub fn router() -> Router<AppState> {
 }
 
 const SELECT_COLS: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
-    token_ciphertext, token_nonce, index_status, last_indexed_at,
+    token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
+    ci_workflow_file, ci_workflow_ref, index_status, last_indexed_at,
     last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
 
 async fn to_public(
@@ -222,18 +223,28 @@ pub async fn create_repo(
     } else {
         body.branch.trim().to_string()
     };
-    let (ct, nonce) = match body.token.as_deref() {
-        Some("") | None => (None, None),
-        Some(tok) => {
-            let (c, n) = state.secrets.encrypt(tok)?;
-            (Some(c), Some(n))
-        }
-    };
+    let (ct, nonce) = encrypt_optional_token(&state, body.token.as_deref())?;
+    let (act, anonce) = encrypt_optional_token(&state, body.actions_token.as_deref())?;
+    let workflow_file = body
+        .ci_workflow_file
+        .as_deref()
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    let workflow_ref = body
+        .ci_workflow_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("main")
+        .to_string();
     let legacy_project = body.project_ids.first().copied();
     let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
         r#"INSERT INTO automation_repos
-            (name, project_id, provider, remote_url, branch, subpath, token_ciphertext, token_nonce)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (name, project_id, provider, remote_url, branch, subpath,
+             token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
+             ci_workflow_file, ci_workflow_ref)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING {SELECT_COLS}"#
     ))
     .bind(body.name.trim())
@@ -244,6 +255,10 @@ pub async fn create_repo(
     .bind(body.subpath.trim())
     .bind(ct)
     .bind(nonce)
+    .bind(act)
+    .bind(anonce)
+    .bind(&workflow_file)
+    .bind(&workflow_ref)
     .fetch_one(&state.pool)
     .await?;
 
@@ -358,20 +373,40 @@ pub async fn update_repo(
 
     let (ct, nonce) = match body.token.as_deref() {
         Some("") => (None, None),
-        Some(tok) => {
-            let (c, n) = state.secrets.encrypt(tok)?;
-            (Some(c), Some(n))
-        }
+        Some(tok) => encrypt_optional_token(&state, Some(tok))?,
         None => (
             existing.token_ciphertext.clone(),
             existing.token_nonce.clone(),
         ),
     };
+    let (act, anonce) = match body.actions_token.as_deref() {
+        Some("") => (None, None),
+        Some(tok) => encrypt_optional_token(&state, Some(tok))?,
+        None => (
+            existing.actions_token_ciphertext.clone(),
+            existing.actions_token_nonce.clone(),
+        ),
+    };
+    let workflow_file = body
+        .ci_workflow_file
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or(existing.ci_workflow_file.as_str())
+        .to_string();
+    let workflow_ref = body
+        .ci_workflow_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(existing.ci_workflow_ref.as_str())
+        .to_string();
 
     let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
         r#"UPDATE automation_repos SET
              name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
-             token_ciphertext = $7, token_nonce = $8, updated_at = NOW()
+             token_ciphertext = $7, token_nonce = $8,
+             actions_token_ciphertext = $9, actions_token_nonce = $10,
+             ci_workflow_file = $11, ci_workflow_ref = $12, updated_at = NOW()
            WHERE id = $1
            RETURNING {SELECT_COLS}"#
     ))
@@ -383,6 +418,10 @@ pub async fn update_repo(
     .bind(&subpath)
     .bind(ct)
     .bind(nonce)
+    .bind(act)
+    .bind(anonce)
+    .bind(&workflow_file)
+    .bind(&workflow_ref)
     .fetch_one(&state.pool)
     .await?;
 
@@ -686,21 +725,55 @@ pub async fn upsert_repo(
     let existing = repo_svc::load_repo_for_project(&state.pool, project_id).await?;
     let (ct, nonce) = match body.token.as_deref() {
         Some("") => (None, None),
-        Some(tok) => {
-            let (c, n) = state.secrets.encrypt(tok)?;
-            (Some(c), Some(n))
-        }
+        Some(tok) => encrypt_optional_token(&state, Some(tok))?,
         None => match &existing {
             Some(e) => (e.token_ciphertext.clone(), e.token_nonce.clone()),
             None => (None, None),
         },
     };
+    let (act, anonce) = match body.actions_token.as_deref() {
+        Some("") => (None, None),
+        Some(tok) => encrypt_optional_token(&state, Some(tok))?,
+        None => match &existing {
+            Some(e) => (
+                e.actions_token_ciphertext.clone(),
+                e.actions_token_nonce.clone(),
+            ),
+            None => (None, None),
+        },
+    };
+    let workflow_file = body
+        .ci_workflow_file
+        .as_deref()
+        .map(str::trim)
+        .unwrap_or_else(|| {
+            existing
+                .as_ref()
+                .map(|e| e.ci_workflow_file.as_str())
+                .unwrap_or("")
+        })
+        .to_string();
+    let workflow_ref = body
+        .ci_workflow_ref
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            existing
+                .as_ref()
+                .map(|e| e.ci_workflow_ref.as_str())
+                .unwrap_or("main")
+        })
+        .to_string();
 
     let row = if let Some(ex) = existing {
         sqlx::query_as::<_, AutomationRepoRow>(&format!(
             r#"UPDATE automation_repos SET
                  name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
-                 token_ciphertext = $7, token_nonce = $8, project_id = $9, updated_at = NOW()
+                 token_ciphertext = $7, token_nonce = $8,
+                 actions_token_ciphertext = $9, actions_token_nonce = $10,
+                 ci_workflow_file = $11, ci_workflow_ref = $12,
+                 project_id = $13, updated_at = NOW()
                WHERE id = $1
                RETURNING {SELECT_COLS}"#
         ))
@@ -712,14 +785,20 @@ pub async fn upsert_repo(
         .bind(body.subpath.trim())
         .bind(ct)
         .bind(nonce)
+        .bind(act)
+        .bind(anonce)
+        .bind(&workflow_file)
+        .bind(&workflow_ref)
         .bind(project_id)
         .fetch_one(&state.pool)
         .await?
     } else {
         let created = sqlx::query_as::<_, AutomationRepoRow>(&format!(
             r#"INSERT INTO automation_repos
-                (name, project_id, provider, remote_url, branch, subpath, token_ciphertext, token_nonce)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                (name, project_id, provider, remote_url, branch, subpath,
+                 token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
+                 ci_workflow_file, ci_workflow_ref)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
                RETURNING {SELECT_COLS}"#
         ))
         .bind(&name)
@@ -730,6 +809,10 @@ pub async fn upsert_repo(
         .bind(body.subpath.trim())
         .bind(ct)
         .bind(nonce)
+        .bind(act)
+        .bind(anonce)
+        .bind(&workflow_file)
+        .bind(&workflow_ref)
         .fetch_one(&state.pool)
         .await?;
         repo_svc::set_project_links(&state.pool, created.id, &[project_id], Some(project_id))
@@ -970,8 +1053,32 @@ async fn test_provider_connection(
     .map_err(|e| AppError::Internal(format!("git test task: {e}")))?
 }
 
+#[allow(clippy::type_complexity)]
+fn encrypt_optional_token(
+    state: &AppState,
+    token: Option<&str>,
+) -> AppResult<(Option<Vec<u8>>, Option<Vec<u8>>)> {
+    match token {
+        Some("") | None => Ok((None, None)),
+        Some(tok) => {
+            let (c, n) = state.secrets.encrypt(tok)?;
+            Ok((Some(c), Some(n)))
+        }
+    }
+}
+
 fn decrypt_token(state: &AppState, row: &AutomationRepoRow) -> AppResult<Option<String>> {
     match (&row.token_ciphertext, &row.token_nonce) {
+        (Some(ct), Some(nonce)) => Ok(Some(state.secrets.decrypt(ct, nonce)?)),
+        _ => Ok(None),
+    }
+}
+
+pub(crate) fn decrypt_actions_token(
+    state: &AppState,
+    row: &AutomationRepoRow,
+) -> AppResult<Option<String>> {
+    match (&row.actions_token_ciphertext, &row.actions_token_nonce) {
         (Some(ct), Some(nonce)) => Ok(Some(state.secrets.decrypt(ct, nonce)?)),
         _ => Ok(None),
     }

@@ -1258,6 +1258,9 @@ export type AutomationRepo = {
   branch: string
   subpath: string
   has_token: boolean
+  has_actions_token: boolean
+  ci_workflow_file: string
+  ci_workflow_ref: string
   index_status: string
   last_indexed_at: string | null
   last_index_error: string | null
@@ -1275,6 +1278,9 @@ export type CreateAutomationRepoBody = {
   branch?: string
   subpath?: string
   token?: string
+  actions_token?: string
+  ci_workflow_file?: string
+  ci_workflow_ref?: string
   project_ids?: string[]
 }
 
@@ -1286,6 +1292,9 @@ export type UpdateAutomationRepoBody = {
   subpath?: string
   /** Omit to leave unchanged; empty string clears. */
   token?: string
+  actions_token?: string
+  ci_workflow_file?: string
+  ci_workflow_ref?: string
   project_ids?: string[]
 }
 
@@ -2522,6 +2531,24 @@ export const api = {
       `/api/v1/projects/${projectId}/suites-runs/${runId}`,
       { method: 'DELETE' },
     ),
+  runInCi: (
+    projectId: string,
+    body: {
+      repo_id?: string
+      case_ids?: string[]
+      case_keys?: string[]
+      source_run_id?: string
+      run_name?: string
+    },
+  ) =>
+    request<{
+      run: TestRun
+      dispatch: CiDispatch
+      case_keys: string[]
+    }>(`/api/v1/projects/${projectId}/run-in-ci`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   rerunSuite: (projectId: string, runId: string) =>
     request<AutomatedSuite>(
       `/api/v1/projects/${projectId}/suites-runs/${runId}`,

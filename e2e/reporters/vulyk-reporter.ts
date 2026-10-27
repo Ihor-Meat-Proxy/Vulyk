@@ -6,11 +6,14 @@
  *   VULYK_CI_TOKEN     — project CI token `vulyk_ci_…` (alias: VULYK_API_TOKEN)
  *   VULYK_PROJECT      — project key or UUID (aliases: VULYK_PROJECT_KEY, VULYK_PROJECT_ID)
  *   VULYK_RUN_NAME     — optional suite / run display name
+ *   VULYK_RUN_ID       — optional existing Vulyk run id (from workflow_dispatch /
+ *                        Run in CI). When set, skips open and attaches results
+ *                        to that run instead of creating a new one.
  *
  * Case keys are read from each test's Playwright annotation
  * `{ type: 'vulyk', description: 'VQA-123' }` (or tag `@VQA-123`).
  *
- * Lifecycle: open → start (in_progress) → POST results by case_key → close.
+ * Lifecycle: open (unless VULYK_RUN_ID) → start (in_progress) → POST results → close.
  */
 import type {
   FullConfig,
@@ -169,31 +172,43 @@ export default class VulykReporter implements Reporter {
 
   private async publish(result: FullResult): Promise<void> {
     this.projectId = await this.resolveProjectId()
-    const externalRef =
-      env('VULYK_EXTERNAL_REF') ||
-      `playwright:${process.env.GITHUB_RUN_ID || 'local'}:${Date.now()}`
+    const pipelineUrl = process.env.GITHUB_SERVER_URL
+      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+      : undefined
+    const existingRunId = env('VULYK_RUN_ID')
 
-    const opened = await this.api<{
-      run: { id: string; status: string }
-    }>('POST', `/api/v1/projects/${this.projectId}/ci/runs`, {
-      provider: process.env.GITHUB_ACTIONS ? 'github' : 'other',
-      suite_name: this.runName,
-      name: this.runName,
-      external_ref: externalRef,
-      branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
-      commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
-      pipeline_url: process.env.GITHUB_SERVER_URL
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : undefined,
-      start: false,
-    })
-    this.runId = opened.run.id
-    console.log(`[vulyk-reporter] opened run ${this.runId} (${opened.run.status})`)
+    if (existingRunId) {
+      this.runId = existingRunId
+      console.log(`[vulyk-reporter] attaching to existing run ${this.runId}`)
+    } else {
+      const externalRef =
+        env('VULYK_EXTERNAL_REF') ||
+        `playwright:${process.env.GITHUB_RUN_ID || 'local'}:${Date.now()}`
+
+      const opened = await this.api<{
+        run: { id: string; status: string }
+      }>('POST', `/api/v1/projects/${this.projectId}/ci/runs`, {
+        provider: process.env.GITHUB_ACTIONS ? 'github' : 'other',
+        suite_name: this.runName,
+        name: this.runName,
+        external_ref: externalRef,
+        branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
+        commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
+        pipeline_url: pipelineUrl,
+        start: false,
+      })
+      this.runId = opened.run.id
+      console.log(`[vulyk-reporter] opened run ${this.runId} (${opened.run.status})`)
+    }
 
     await this.api(
       'POST',
       `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/start`,
-      {},
+      {
+        pipeline_url: pipelineUrl,
+        branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
+        commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
+      },
     )
     console.log(`[vulyk-reporter] run ${this.runId} → in_progress`)
 

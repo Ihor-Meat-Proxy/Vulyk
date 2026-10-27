@@ -16,7 +16,7 @@ use crate::ingest::parse_payload;
 use crate::models::{
     BulkResultsRequest, CiRunResultsResponse, CloseCiRunRequest, CreateProjectCiToken,
     CreateProjectCiTokenResponse, IngestRequest, OpenCiRunRequest, OpenCiRunResponse,
-    ProjectCiTokenPublic, TestRun, TEST_RUN_COLS,
+    ProjectCiTokenPublic, StartCiRunRequest, TestRun, TEST_RUN_COLS,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
@@ -441,6 +441,7 @@ pub async fn start_ci_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    body: Result<Json<StartCiRunRequest>, axum::extract::rejection::JsonRejection>,
 ) -> AppResult<Json<TestRun>> {
     require_permission(
         &state.pool,
@@ -452,15 +453,25 @@ pub async fn start_ci_run(
     .await?;
     let run = load_ci_run(&state.pool, project_id, run_id).await?;
     assert_ci_writable(&run)?;
+    // Accept empty body from older reporters that POST with no JSON.
+    let body = body.map(|Json(b)| b).unwrap_or_default();
     let updated = sqlx::query_as::<_, TestRun>(&format!(
         r#"UPDATE test_runs SET
              status = 'in_progress',
              started_at = COALESCE(started_at, NOW()),
+             pipeline_url = COALESCE($2, pipeline_url),
+             job_url = COALESCE($3, job_url),
+             ci_branch = COALESCE($4, ci_branch),
+             ci_commit = COALESCE($5, ci_commit),
              updated_at = NOW()
            WHERE id = $1
            RETURNING {TEST_RUN_COLS}"#
     ))
     .bind(run_id)
+    .bind(body.pipeline_url.as_deref())
+    .bind(body.job_url.as_deref())
+    .bind(body.branch.as_deref())
+    .bind(body.commit.as_deref())
     .fetch_one(&state.pool)
     .await?;
     Ok(Json(updated))

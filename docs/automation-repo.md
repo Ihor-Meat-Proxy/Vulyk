@@ -14,6 +14,8 @@ Named Git connections used when generating automation code so the model can reus
 | Branch | Default `main` |
 | Subpath | Optional subdirectory to index |
 | Token | Encrypted at rest (`VULYK_SECRETS_KEY`); omit on update to keep existing; shown masked. Used as a Bearer token for GitHub/GitLab REST; optional for public repos |
+| Actions write token | Separate encrypted GitHub token with `actions:write` for **Run in CI** (`workflow_dispatch`) |
+| CI workflow file / ref | Workflow path or id and git ref for dispatch (GitHub only) |
 | Projects | Multi-select; a repo may belong to several projects |
 
 Buttons:

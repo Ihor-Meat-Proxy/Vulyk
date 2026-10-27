@@ -309,6 +309,7 @@ async fn sync_run_status(state: &AppState, dispatch: &CiDispatch) -> AppResult<(
         r#"UPDATE test_runs
            SET status = $2,
                external_ref = COALESCE($3, external_ref),
+               pipeline_url = COALESCE($4, pipeline_url),
                finished_at = CASE WHEN $2 IN ('completed', 'failed') THEN COALESCE(finished_at, NOW()) ELSE finished_at END,
                updated_at = NOW()
            WHERE id = $1"#,
@@ -316,6 +317,7 @@ async fn sync_run_status(state: &AppState, dispatch: &CiDispatch) -> AppResult<(
     .bind(run_id)
     .bind(run_status)
     .bind(&dispatch.external_id)
+    .bind(&dispatch.external_url)
     .execute(&state.pool)
     .await?;
     Ok(())
