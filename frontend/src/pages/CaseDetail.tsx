@@ -706,7 +706,7 @@ export function CaseDetail({
           onClick={() => setTab('details')}
           {...testIdProps(TestIds.caseDetailTabDetails)}
         >
-          Details
+          {t('cases.tabDetails')}
         </button>
         <button
           type="button"
@@ -716,7 +716,7 @@ export function CaseDetail({
           onClick={() => setTab('history')}
           {...testIdProps(TestIds.caseDetailTabHistory)}
         >
-          History / Results
+          {t('cases.tabHistory')}
         </button>
         <button
           type="button"
@@ -734,43 +734,51 @@ export function CaseDetail({
         <>
           <div className="meta-row">
             <span>
-              Priority:{' '}
+              {t('cases.colPriority')}:{' '}
               {editing ? (
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   {...testIdProps(TestIds.caseDetailPrioritySelect)}
                 >
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                  <option value="critical">critical</option>
+                  <option value="low">{t('priority.low')}</option>
+                  <option value="medium">{t('priority.medium')}</option>
+                  <option value="high">{t('priority.high')}</option>
+                  <option value="critical">{t('priority.critical')}</option>
                 </select>
               ) : (
-                c.priority
+                (() => {
+                  const key = `priority.${c.priority}`
+                  const label = t(key)
+                  return label === key ? c.priority : label
+                })()
               )}
             </span>
             <span>
-              Status:{' '}
+              {t('cases.colStatus')}:{' '}
               {editing ? (
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value)}
                   {...testIdProps(TestIds.caseDetailStatusSelect)}
                 >
-                  <option value="draft">draft</option>
-                  <option value="ready">ready</option>
-                  <option value="deprecated">deprecated</option>
+                  <option value="draft">{t('status.draft')}</option>
+                  <option value="ready">{t('status.ready')}</option>
+                  <option value="deprecated">{t('status.deprecated')}</option>
                 </select>
               ) : (
-                c.status
+                (() => {
+                  const key = `status.${c.status}`
+                  const label = t(key)
+                  return label === key ? c.status : label
+                })()
               )}
             </span>
-            <span>Version: {c.version}</span>
+            <span>{t('cases.version')}: {c.version}</span>
           </div>
 
           <section className="tag-row">
-            <strong>Tags</strong>
+            <strong>{t('cases.colTags')}</strong>
             {editing ? (
               <input
                 className="search-input"
@@ -780,18 +788,18 @@ export function CaseDetail({
                 {...testIdProps(TestIds.caseDetailTagsInput)}
               />
             ) : tags.length === 0 ? (
-              <span className="muted">none</span>
+              <span className="muted">{t('common.none')}</span>
             ) : (
-              tags.map((t) => (
-                <span key={t.id} className="tag-chip" style={{ borderColor: t.color }}>
-                  {t.name}
+              tags.map((tag) => (
+                <span key={tag.id} className="tag-chip" style={{ borderColor: tag.color }}>
+                  {tag.name}
                 </span>
               ))
             )}
           </section>
 
           <section style={{ marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.35rem' }}>Preconditions</h3>
+            <h3 style={{ marginBottom: '0.35rem' }}>{t('cases.preconditions')}</h3>
             {editing ? (
               <textarea
                 className="area"
@@ -808,7 +816,7 @@ export function CaseDetail({
           </section>
 
           <section style={{ marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.35rem' }}>Description</h3>
+            <h3 style={{ marginBottom: '0.35rem' }}>{t('cases.description')}</h3>
             {editing ? (
               <textarea
                 className="area"
@@ -827,7 +835,7 @@ export function CaseDetail({
               style={{ marginBottom: '1rem' }}
               {...testIdProps(TestIds.caseDetailCustomFields)}
             >
-              <h3>Custom fields</h3>
+              <h3>{t('admin.customFields')}</h3>
               <div className="cf-grid">
                 {editing
                   ? fields.map((cf, index) => (
@@ -1031,9 +1039,9 @@ export function CaseDetail({
           </section>
 
           <section style={{ marginTop: '1.5rem' }}>
-            <h3>Linked requirements</h3>
+            <h3>{t('cases.linkedRequirements')}</h3>
             {linked.length === 0 ? (
-              <p className="muted">No requirements linked.</p>
+              <p className="muted">{t('cases.noLinkedRequirements')}</p>
             ) : (
               <ul className="req-list">
                 {linked.map((r) => (
@@ -1052,7 +1060,7 @@ export function CaseDetail({
                   aria-label={t('a11y.requirementToLink')}
                   {...testIdProps(TestIds.caseDetailLinkRequirementSelect)}
                 >
-                  <option value="">Link a requirement…</option>
+                  <option value="">{t('cases.linkRequirementPlaceholder')}</option>
                   {allReqs
                     .filter((r) => !linked.some((l) => l.id === r.id))
                     .map((r) => (
@@ -1081,7 +1089,7 @@ export function CaseDetail({
                   }}
                   {...testIdProps(TestIds.caseDetailLinkRequirementButton)}
                 >
-                  Link
+                  {t('cases.linkRequirement')}
                 </button>
               </div>
             )}
@@ -1091,15 +1099,15 @@ export function CaseDetail({
             style={{ marginTop: '1.5rem' }}
             {...testIdProps(TestIds.caseDetailHistory)}
           >
-            <h3>Edit history</h3>
+            <h3>{t('cases.editHistory')}</h3>
             {versions.length === 0 ? (
-              <p className="muted">No snapshots yet.</p>
+              <p className="muted">{t('cases.noSnapshots')}</p>
             ) : (
               <ul className="history-list">
                 {versions.map((v) => (
                   <li key={v.id}>
                     <span className="badge">v{v.version}</span>{' '}
-                    {v.change_summary || 'snapshot'}{' '}
+                    {v.change_summary || t('cases.snapshot')}{' '}
                     <span className="muted">
                       ·{' '}
                       {formatTimestamp(v.created_at, {
@@ -1119,33 +1127,33 @@ export function CaseDetail({
       {tab === 'executions' && (
         <section className="case-executions-tab" aria-label={t('a11y.caseExecutions')}>
           {execLoading && !execPage ? (
-            <p className="muted">Loading executions…</p>
+            <p className="muted">{t('cases.loadingExecutions')}</p>
           ) : !execPage ? (
-            <p className="muted">No executions yet.</p>
+            <p className="muted">{t('cases.noExecutions')}</p>
           ) : (
             <>
               <div className="meta-row results-summary">
                 <span>
-                  Pass rate: <strong>{execPage.pass_rate.toFixed(0)}%</strong>
+                  {t('executions.passRate')}: <strong>{execPage.pass_rate.toFixed(0)}%</strong>
                 </span>
-                <span>Total: {execPage.total}</span>
+                <span>{t('common.total')}: {execPage.total}</span>
                 <Sparkline statuses={execPage.sparkline} />
               </div>
               {execPage.items.length === 0 ? (
-                <p className="muted">No executions yet.</p>
+                <p className="muted">{t('cases.noExecutions')}</p>
               ) : (
                 <div className="table-wrap">
                   <table className="table">
                     <thead>
                       <tr>
-                        <th>Path</th>
-                        <th>Plan</th>
-                        <th>Exec #</th>
-                        <th>Mode</th>
-                        <th>Status</th>
-                        <th>By</th>
-                        <th>On</th>
-                        <th>Issues</th>
+                        <th>{t('executions.path')}</th>
+                        <th>{t('executions.planType')}</th>
+                        <th>{t('executions.execNumber')}</th>
+                        <th>{t('executions.mode')}</th>
+                        <th>{t('executions.colStatus')}</th>
+                        <th>{t('executions.executedBy')}</th>
+                        <th>{t('executions.executedOn')}</th>
+                        <th>{t('executions.linkedIssues')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1191,11 +1199,12 @@ export function CaseDetail({
                   }
                   {...testIdProps(TestIds.caseDetailExecutionsPrevButton)}
                 >
-                  Previous
+                  {t('common.previous')}
                 </button>
                 <span className="muted">
                   {execOffset + 1}–
-                  {Math.min(execOffset + execLimit, execPage.total)} of{' '}
+                  {Math.min(execOffset + execLimit, execPage.total)}{' '}
+                  {t('common.of')}{' '}
                   {execPage.total}
                 </span>
                 <button
@@ -1207,7 +1216,7 @@ export function CaseDetail({
                   onClick={() => void loadExecutions(execOffset + execLimit)}
                   {...testIdProps(TestIds.caseDetailExecutionsNextButton)}
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               </div>
             </>
@@ -1224,15 +1233,15 @@ export function CaseDetail({
           {summary && (
             <div className="meta-row results-summary">
               <span>
-                Latest:{' '}
+                {t('cases.latestStatus')}:{' '}
                 {summary.latest_status ? (
                   <StatusBadge status={summary.latest_status} />
                 ) : (
                   '—'
                 )}
               </span>
-              <span>Total results: {summary.total_results}</span>
-              <span>Pass rate: {summary.pass_rate.toFixed(0)}%</span>
+              <span>{t('cases.totalResults')}: {summary.total_results}</span>
+              <span>{t('executions.passRate')}: {summary.pass_rate.toFixed(0)}%</span>
               <span className="muted">
                 P{summary.passed} / F{summary.failed} / B{summary.blocked} / S
                 {summary.skipped}
@@ -1248,13 +1257,13 @@ export function CaseDetail({
               onChange={(e) => setFilterStatus(e.target.value)}
               {...testIdProps(TestIds.caseDetailResultsStatusFilter)}
             >
-              <option value="">All statuses</option>
-              <option value="Passed">Passed</option>
-              <option value="Failed">Failed</option>
-              <option value="Blocked">Blocked</option>
-              <option value="Skipped">Skipped</option>
-              <option value="Retest">Retest</option>
-              <option value="Untested">Untested</option>
+              <option value="">{t('cases.allStatuses')}</option>
+              <option value="Passed">{t('status.passed')}</option>
+              <option value="Failed">{t('status.failed')}</option>
+              <option value="Blocked">{t('status.blocked')}</option>
+              <option value="Skipped">{t('status.skipped')}</option>
+              <option value="Retest">{t('status.retest')}</option>
+              <option value="Untested">{t('status.untested')}</option>
             </select>
             <input
               className="search-input"
@@ -1271,31 +1280,33 @@ export function CaseDetail({
               onClick={() => void loadResults(0)}
               {...testIdProps(TestIds.caseDetailResultsApplyButton)}
             >
-              Apply filters
+              {t('cases.applyFilters')}
             </button>
           </div>
 
           {resultsLoading && !resultsPage ? (
-            <p className="muted">Loading results…</p>
+            <p className="muted">{t('cases.loadingResults')}</p>
           ) : !resultsPage || resultsPage.items.length === 0 ? (
-            <p className="muted">No results yet.</p>
+            <p className="muted">{t('cases.noResults')}</p>
           ) : (
             <>
               <ol className="timeline-list" aria-label={t('a11y.caseResultsAcrossRuns')}>
                 {resultsPage.items.map((h) => (
                   <li key={h.result.id}>
                     <StatusBadge status={h.result.status} />{' '}
-                    <strong>{h.run_name || 'Run'}</strong>{' '}
+                    <strong>{h.run_name || t('cases.runFallback')}</strong>{' '}
                     <span className="muted">
                       {new Date(h.result.executed_at).toLocaleString()}
                       {h.executed_by_name ? ` · ${h.executed_by_name}` : ''}
                       {h.result.case_version != null
-                        ? ` · case v${h.result.case_version}`
+                        ? ` · ${t('cases.caseVersion', { n: h.result.case_version })}`
                         : ''}
                       {h.attachment_count > 0
-                        ? ` · ${h.attachment_count} attachment(s)`
+                        ? ` · ${t('cases.attachmentsCount', { n: h.attachment_count })}`
                         : ''}
-                      {h.defect_count > 0 ? ` · ${h.defect_count} defect(s)` : ''}
+                      {h.defect_count > 0
+                        ? ` · ${t('cases.defectsCount', { n: h.defect_count })}`
+                        : ''}
                       {h.result.message ? ` — ${h.result.message}` : ''}
                     </span>
                   </li>

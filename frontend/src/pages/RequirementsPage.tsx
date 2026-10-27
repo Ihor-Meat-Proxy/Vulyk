@@ -80,7 +80,7 @@ export function RequirementsPage({ projectId }: Props) {
   }, [projectId, selectedId])
 
   if (!projectId) {
-    return <p className="muted">Select a project first.</p>
+    return <p className="muted">{t('cases.selectProject')}</p>
   }
 
   const onCreate = async (e: FormEvent) => {
@@ -122,10 +122,9 @@ export function RequirementsPage({ projectId }: Props) {
 
   return (
     <div className="panel" {...testIdProps(TestIds.requirementsPage)}>
-      <h2>Requirements</h2>
+      <h2>{t('nav.requirements')}</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Track requirements locally or import them from OpenProject / Jira
-        integrations. Link cases from the case detail view.
+        {t('requirements.help')}
       </p>
 
       {canManage && (
@@ -143,7 +142,7 @@ export function RequirementsPage({ projectId }: Props) {
             disabled={!title.trim()}
             {...testIdProps(TestIds.requirementsAddButton)}
           >
-            Add
+            {t('requirements.add')}
           </button>
         </form>
       )}
@@ -155,11 +154,11 @@ export function RequirementsPage({ projectId }: Props) {
       )}
       {loading ? (
         <p className="muted" {...testIdProps(TestIds.requirementsLoading)}>
-          Loading…
+          {t('common.loading')}
         </p>
       ) : items.length === 0 ? (
         <p className="empty" {...testIdProps(TestIds.requirementsEmpty)}>
-          No requirements yet.
+          {t('requirements.empty')}
         </p>
       ) : (
         <table
@@ -168,9 +167,9 @@ export function RequirementsPage({ projectId }: Props) {
         >
           <thead>
             <tr>
-              <th>Key</th>
-              <th>Title</th>
-              <th>Source</th>
+              <th>{t('requirements.colKey')}</th>
+              <th>{t('requirements.colTitle')}</th>
+              <th>{t('requirements.colSource')}</th>
             </tr>
           </thead>
           <tbody>

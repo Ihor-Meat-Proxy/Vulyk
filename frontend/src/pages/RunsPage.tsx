@@ -134,7 +134,10 @@ export function RunsPage({ projectId, suites }: Props) {
         source: 'ui',
       })
       setUploadMessage(
-        `Ingested ${result.parsed} results (${result.inserted} inserted).`,
+        t('runs.ingestedResults', {
+          parsed: result.parsed,
+          inserted: result.inserted,
+        }),
       )
       const runPage = await api.listRuns(projectId, RUNS_PAGE_SIZE, 0)
       applyRunsPage(runPage, false)
@@ -160,7 +163,7 @@ export function RunsPage({ projectId, suites }: Props) {
   if (!projectId) {
     return (
       <div className="runs-page empty" {...testIdProps(TestIds.runsPage)}>
-        Select a project to manage runs.
+        {t('runs.selectProject')}
       </div>
     )
   }
@@ -169,14 +172,14 @@ export function RunsPage({ projectId, suites }: Props) {
     <div className="runs-page" {...testIdProps(TestIds.runsPage)}>
       {canExecute && (
       <section className="panel" style={{ marginBottom: '1rem' }}>
-        <h2 style={{ marginTop: 0 }}>Start a run</h2>
+        <h2 style={{ marginTop: 0 }}>{t('runs.startTitle')}</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Create from a plan, suite filter, or all cases — TestRail-style execution queue.
+          {t('runs.startHelp')}
         </p>
         <div className="form-row">
           <input
             className="search-input"
-            placeholder="Run name"
+            placeholder={t('runs.namePlaceholder')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             {...testIdProps(TestIds.runsCreateNameInput)}
@@ -187,7 +190,7 @@ export function RunsPage({ projectId, suites }: Props) {
             onChange={(e) => setPlanId(e.target.value)}
             {...testIdProps(TestIds.runsPlanSelect)}
           >
-            <option value="">No plan</option>
+            <option value="">{t('runs.noPlan')}</option>
             {plans.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.name}
@@ -200,7 +203,7 @@ export function RunsPage({ projectId, suites }: Props) {
             onChange={(e) => setSuiteId(e.target.value)}
             {...testIdProps(TestIds.runsSuiteSelect)}
           >
-            <option value="">All suites</option>
+            <option value="">{t('runs.allSuites')}</option>
             {suites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -214,7 +217,7 @@ export function RunsPage({ projectId, suites }: Props) {
             onClick={() => void createRun()}
             {...testIdProps(TestIds.runsCreateButton)}
           >
-            {creating ? 'Creating…' : 'Create run'}
+            {creating ? t('runs.creating') : t('runs.create')}
           </button>
         </div>
       </section>
@@ -222,9 +225,9 @@ export function RunsPage({ projectId, suites }: Props) {
 
       {canUpload && (
       <section className="panel" style={{ marginBottom: '1rem' }}>
-        <h3 style={{ marginTop: 0 }}>Upload JUnit results</h3>
+        <h3 style={{ marginTop: 0 }}>{t('runs.uploadJunit')}</h3>
         <p className="muted" style={{ marginTop: 0 }}>
-          Select a run, then choose a JUnit XML file to ingest.
+          {t('runs.uploadHelp')}
         </p>
         <div className="form-row">
           <select
@@ -234,7 +237,7 @@ export function RunsPage({ projectId, suites }: Props) {
             aria-label={t('a11y.uploadTargetRun')}
             {...testIdProps(TestIds.runsUploadRunSelect)}
           >
-            <option value="">Select run…</option>
+            <option value="">{t('runs.selectRun')}</option>
             {runs.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
@@ -259,12 +262,12 @@ export function RunsPage({ projectId, suites }: Props) {
       )}
 
       <section className="panel" style={{ marginBottom: '1rem' }}>
-        <h3 style={{ marginTop: 0 }}>Plans</h3>
+        <h3 style={{ marginTop: 0 }}>{t('runs.plans')}</h3>
         {canPlans && (
         <div className="form-row">
           <input
             className="search-input"
-            placeholder="New plan name"
+            placeholder={t('runs.planNamePlaceholder')}
             value={planName}
             onChange={(e) => setPlanName(e.target.value)}
             {...testIdProps(TestIds.runsPlanNameInput)}
@@ -275,12 +278,12 @@ export function RunsPage({ projectId, suites }: Props) {
             onClick={() => void createPlan()}
             {...testIdProps(TestIds.runsPlanAddButton)}
           >
-            Add plan
+            {t('runs.addPlan')}
           </button>
         </div>
         )}
         {plans.length === 0 ? (
-          <p className="muted">No plans yet.</p>
+          <p className="muted">{t('runs.noPlans')}</p>
         ) : (
           <ul className="history-list">
             {plans.map((p) => (
@@ -294,7 +297,7 @@ export function RunsPage({ projectId, suites }: Props) {
       </section>
 
       <section className="panel">
-        <h3 style={{ marginTop: 0 }}>Recent runs</h3>
+        <h3 style={{ marginTop: 0 }}>{t('runs.recent')}</h3>
         {error && (
           <p className="error" {...testIdProps(TestIds.runsError)}>
             {error}
@@ -302,12 +305,12 @@ export function RunsPage({ projectId, suites }: Props) {
         )}
         {loading && (
           <p className="muted" {...testIdProps(TestIds.runsLoading)}>
-            Loading…
+            {t('common.loading')}
           </p>
         )}
         {!loading && runs.length === 0 && (
           <div className="empty" {...testIdProps(TestIds.runsEmpty)}>
-            No runs yet.
+            {t('runs.empty')}
           </div>
         )}
         {runs.length > 0 && (
@@ -315,9 +318,9 @@ export function RunsPage({ projectId, suites }: Props) {
             <table className="table" {...testIdProps(TestIds.runsList)}>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Started</th>
+                  <th>{t('runs.colName')}</th>
+                  <th>{t('runs.colStatus')}</th>
+                  <th>{t('runs.colStarted')}</th>
                 </tr>
               </thead>
               <tbody>
