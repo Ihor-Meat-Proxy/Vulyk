@@ -96,7 +96,7 @@ export function Runs({ projectId }: Props) {
     setBusy(true)
     try {
       const detail = await api.createRun(projectId, {
-        name: runName.trim() || 'Untitled run',
+        name: runName.trim() || t('runs.untitledRun'),
         source: 'ui',
         status: 'running',
       })
@@ -143,7 +143,7 @@ export function Runs({ projectId }: Props) {
   }
 
   if (!projectId) {
-    return <p className="muted">Select a project to manage runs and CI.</p>
+    return <p className="muted">{t('runs.selectProjectCi')}</p>
   }
 
   return (
@@ -155,10 +155,9 @@ export function Runs({ projectId }: Props) {
       )}
 
       <section className="panel">
-        <h2>Runs</h2>
+        <h2>{t('runs.title')}</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Ingest automated results via CLI, GitHub Action, or GitLab template.
-          Create a run here as an upload target, or trigger CI below.
+          {t('runs.ciIngestHelp')}
         </p>
         {canExecute && (
         <div className="toolbar">
@@ -176,22 +175,22 @@ export function Runs({ projectId }: Props) {
             onClick={() => void onCreateRun()}
             {...testIdProps(TestIds.runsCreateButton)}
           >
-            New run
+            {t('runs.newRun')}
           </button>
         </div>
         )}
         {runs.length === 0 ? (
           <p className="empty" {...testIdProps(TestIds.runsEmpty)}>
-            No runs yet.
+            {t('runs.empty')}
           </p>
         ) : (
           <table className="table" {...testIdProps(TestIds.runsList)}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Source</th>
-                <th>Created</th>
+                <th>{t('runs.colName')}</th>
+                <th>{t('runs.colStatus')}</th>
+                <th>{t('runs.colSource')}</th>
+                <th>{t('runs.colCreated')}</th>
               </tr>
             </thead>
             <tbody>
@@ -228,18 +227,18 @@ export function Runs({ projectId }: Props) {
         {selectedRunId && (
           <div style={{ marginTop: '1.25rem' }}>
             <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 0.5rem' }}>
-              Results
+              {t('runs.results')}
             </h3>
             {results.length === 0 ? (
-              <p className="muted">No results ingested for this run yet.</p>
+              <p className="muted">{t('runs.noResults')}</p>
             ) : (
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Status</th>
-                    <th>External id</th>
-                    <th>Message</th>
-                    <th>ms</th>
+                    <th>{t('runs.colStatus')}</th>
+                    <th>{t('runs.colExternalId')}</th>
+                    <th>{t('runs.colMessage')}</th>
+                    <th>{t('runs.colDurationMs')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -264,12 +263,9 @@ export function Runs({ projectId }: Props) {
 
       {(canManageCi || canTrigger) && (
       <section className="panel">
-        <h2>CI triggers</h2>
+        <h2>{t('runs.ciTriggers')}</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          Dispatch GitHub <code>workflow_dispatch</code> or a GitLab pipeline, then
-          sync status through webhooks (
-          <code>/api/v1/webhooks/github</code>, <code>/api/v1/webhooks/gitlab</code>
-          ).
+          {t('runs.ciTriggersHelp')}
         </p>
         {canManageCi && (
         <>
@@ -306,7 +302,7 @@ export function Runs({ projectId }: Props) {
             onClick={() => void onSaveCi()}
             {...testIdProps(TestIds.runsCiSaveButton)}
           >
-            Save config
+            {t('runs.saveConfig')}
           </button>
         </div>
         <textarea
@@ -324,8 +320,8 @@ export function Runs({ projectId }: Props) {
           <table className="table" style={{ marginTop: '1rem' }}>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Provider</th>
+                <th>{t('runs.colName')}</th>
+                <th>{t('runs.colProvider')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -346,7 +342,7 @@ export function Runs({ projectId }: Props) {
                         index,
                       })}
                     >
-                      Dispatch
+                      {t('runs.dispatch')}
                     </button>
                     )}
                   </td>
@@ -359,15 +355,15 @@ export function Runs({ projectId }: Props) {
         {dispatches.length > 0 && (
           <>
             <h3 style={{ fontFamily: 'var(--font-display)', margin: '1.25rem 0 0.5rem' }}>
-              Recent dispatches
+              {t('runs.recentDispatches')}
             </h3>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>External</th>
-                  <th>Error</th>
-                  <th>When</th>
+                  <th>{t('runs.colStatus')}</th>
+                  <th>{t('runs.colExternal')}</th>
+                  <th>{t('runs.colError')}</th>
+                  <th>{t('runs.colWhen')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -387,7 +383,7 @@ export function Runs({ projectId }: Props) {
                             index,
                           })}
                         >
-                          {d.external_id ?? 'open'}
+                          {d.external_id ?? t('runs.openExternal')}
                         </a>
                       ) : (
                         (d.external_id ?? '—')

@@ -283,6 +283,7 @@ function UsersPanel({
   onCreated: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const { status } = useAuth()
   const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [email, setEmail] = useState('')
@@ -293,9 +294,7 @@ function UsersPanel({
   if (!isAdmin) {
     return (
       <div className="panel">
-        <p className="muted">
-          System administrator access is required to manage users.
-        </p>
+        <p className="muted">{t('admin.usersNeedAdmin')}</p>
       </div>
     )
   }
@@ -322,13 +321,13 @@ function UsersPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>Users</h3>
+        <h3>{t('admin.users')}</h3>
         <table className="table" {...testIdProps(TestIds.adminUserList)}>
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Name</th>
-              <th>Admin</th>
+              <th>{t('admin.usersColEmail')}</th>
+              <th>{t('admin.usersColName')}</th>
+              <th>{t('admin.usersColAdmin')}</th>
             </tr>
           </thead>
           <tbody>
@@ -343,16 +342,16 @@ function UsersPanel({
               >
                 <td>{u.email}</td>
                 <td>{u.display_name}</td>
-                <td>{u.is_system_admin ? 'yes' : '—'}</td>
+                <td>{u.is_system_admin ? t('admin.usersYes') : '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-        <h3>Add user</h3>
+        <h3>{t('admin.usersAdd')}</h3>
         <label className="field">
-          <span>Email</span>
+          <span>{t('admin.usersEmail')}</span>
           <input
             type="email"
             value={email}
@@ -362,7 +361,7 @@ function UsersPanel({
           />
         </label>
         <label className="field">
-          <span>Display name</span>
+          <span>{t('admin.usersDisplayName')}</span>
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
@@ -371,7 +370,7 @@ function UsersPanel({
           />
         </label>
         <label className="field">
-          <span>Password</span>
+          <span>{t('admin.usersPassword')}</span>
           <input
             type="password"
             value={password}
@@ -389,14 +388,14 @@ function UsersPanel({
             onChange={(e) => setSystemAdmin(e.target.checked)}
             {...testIdProps(TestIds.adminUserSystemAdminCheckbox)}
           />
-          System admin
+          {t('admin.usersSystemAdmin')}
         </label>
         <button
           className="btn"
           type="submit"
           {...testIdProps(TestIds.adminUserCreateButton)}
         >
-          Create user
+          {t('admin.usersCreate')}
         </button>
       </form>
     </div>
@@ -420,13 +419,14 @@ function RolesPanel({
   onChanged: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const [userId, setUserId] = useState('')
   const [role, setRole] = useState<ProjectRole>('viewer')
 
   if (!project) {
     return (
       <div className="panel">
-        <p className="muted">Select a project to manage memberships.</p>
+        <p className="muted">{t('admin.rolesNeedProject')}</p>
       </div>
     )
   }
@@ -445,16 +445,13 @@ function RolesPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>Roles — {project.key}</h3>
-        <p className="muted">
-          Per-project: Admin, Test Architect, Test Automation Engineer,
-          Developer, Viewer.
-        </p>
+        <h3>{t('admin.rolesTitle', { key: project.key })}</h3>
+        <p className="muted">{t('admin.rolesHelp')}</p>
         <table className="table">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Role</th>
+              <th>{t('admin.rolesColUser')}</th>
+              <th>{t('admin.rolesColRole')}</th>
             </tr>
           </thead>
           <tbody>
@@ -479,20 +476,20 @@ function RolesPanel({
       </div>
       {canManage && (
         <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-          <h3>Assign role</h3>
+          <h3>{t('admin.rolesAssign')}</h3>
           {!isAdmin && users.length === 0 && (
-            <p className="muted">User directory requires system admin.</p>
+            <p className="muted">{t('admin.rolesNeedAdminDirectory')}</p>
           )}
           {users.length > 0 ? (
             <label className="field">
-              <span>User</span>
+              <span>{t('admin.rolesUser')}</span>
               <select
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
                 required
                 {...testIdProps(TestIds.adminRoleUserSelect)}
               >
-                <option value="">Select…</option>
+                <option value="">{t('admin.rolesSelectUser')}</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.email}
@@ -502,7 +499,7 @@ function RolesPanel({
             </label>
           ) : (
             <label className="field">
-              <span>User id</span>
+              <span>{t('admin.rolesUserId')}</span>
               <input
                 value={userId}
                 onChange={(e) => setUserId(e.target.value)}
@@ -512,7 +509,7 @@ function RolesPanel({
             </label>
           )}
           <label className="field">
-            <span>Role</span>
+            <span>{t('admin.rolesRole')}</span>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value as ProjectRole)}
@@ -530,7 +527,7 @@ function RolesPanel({
             type="submit"
             {...testIdProps(TestIds.adminRoleSaveButton)}
           >
-            Save membership
+            {t('admin.rolesSave')}
           </button>
         </form>
       )}
@@ -547,6 +544,7 @@ function ProjectsPanel({
   onCreated: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const [key, setKey] = useState('')
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -571,12 +569,12 @@ function ProjectsPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>Projects</h3>
+        <h3>{t('admin.projects')}</h3>
         <table className="table" {...testIdProps(TestIds.adminProjectList)}>
           <thead>
             <tr>
-              <th>Key</th>
-              <th>Name</th>
+              <th>{t('admin.projectsColKey')}</th>
+              <th>{t('admin.projectsColName')}</th>
             </tr>
           </thead>
           <tbody>
@@ -600,9 +598,9 @@ function ProjectsPanel({
         </table>
       </div>
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-        <h3>New project</h3>
+        <h3>{t('admin.projectsNew')}</h3>
         <label className="field">
-          <span>Name</span>
+          <span>{t('admin.projectsName')}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -611,17 +609,17 @@ function ProjectsPanel({
           />
         </label>
         <label className="field">
-          <span>Key (optional)</span>
+          <span>{t('admin.projectsKeyOptional')}</span>
           <input
             value={key}
             onChange={(e) => setKey(e.target.value.toUpperCase())}
             pattern="[A-Z][A-Z0-9_]{1,31}"
-            placeholder="Derived from name when empty"
+            placeholder={t('admin.projectsKeyPlaceholder')}
             {...testIdProps(TestIds.adminProjectKeyInput)}
           />
         </label>
         <label className="field">
-          <span>Description</span>
+          <span>{t('admin.projectsDescription')}</span>
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -633,7 +631,7 @@ function ProjectsPanel({
           type="submit"
           {...testIdProps(TestIds.adminProjectCreateButton)}
         >
-          Create project
+          {t('admin.projectsCreate')}
         </button>
       </form>
     </div>
@@ -987,6 +985,7 @@ function LlmPanel({
   onChanged: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const [provider, setProvider] = useState('mock')
   const [name, setName] = useState('Default mock')
   const [model, setModel] = useState('mock-1')
@@ -1005,7 +1004,7 @@ function LlmPanel({
   if (!projectId) {
     return (
       <div className="panel">
-        <p className="muted">Select a project to configure LLM providers.</p>
+        <p className="muted">{t('admin.llmNeedProject')}</p>
       </div>
     )
   }
@@ -1032,11 +1031,8 @@ function LlmPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>LLM providers</h3>
-        <p className="muted">
-          Resolution: project provider → global default → mock only if none
-          exist.
-        </p>
+        <h3>{t('admin.llm')}</h3>
+        <p className="muted">{t('admin.llmHelp')}</p>
         <ul className="plain-list" {...testIdProps(TestIds.adminLlmList)}>
           {configs.map((c, index) => (
             <li
@@ -1048,9 +1044,9 @@ function LlmPanel({
             >
               <strong>{c.name}</strong> · {c.provider}
               {c.model ? ` · ${c.model}` : ''}
-              {c.project_id == null ? ' · global' : ''}
-              {c.is_default ? ' · default' : ''}
-              {c.has_api_key ? ' · key set' : ''}
+              {c.project_id == null ? ` · ${t('admin.llmGlobalBadge')}` : ''}
+              {c.is_default ? ` · ${t('admin.llmDefaultBadge')}` : ''}
+              {c.has_api_key ? ` · ${t('admin.llmKeySetBadge')}` : ''}
               <button
                 type="button"
                 className="linkish"
@@ -1059,21 +1055,19 @@ function LlmPanel({
                 }
                 {...testIdProps(TestIds.adminLlmDeleteButton)}
               >
-                Delete
+                {t('common.delete')}
               </button>
             </li>
           ))}
           {configs.length === 0 && (
-            <li className="muted">
-              No providers yet — mock is used until you add one.
-            </li>
+            <li className="muted">{t('admin.llmEmpty')}</li>
           )}
         </ul>
       </div>
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-        <h3>Save provider</h3>
+        <h3>{t('admin.llmSaveTitle')}</h3>
         <label className="field">
-          <span>Provider</span>
+          <span>{t('admin.llmProvider')}</span>
           <select
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
@@ -1087,7 +1081,7 @@ function LlmPanel({
           </select>
         </label>
         <label className="field">
-          <span>Name</span>
+          <span>{t('admin.llmName')}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -1096,7 +1090,7 @@ function LlmPanel({
           />
         </label>
         <label className="field">
-          <span>Model</span>
+          <span>{t('admin.llmModel')}</span>
           <input
             value={model}
             onChange={(e) => setModel(e.target.value)}
@@ -1104,7 +1098,7 @@ function LlmPanel({
           />
         </label>
         <label className="field">
-          <span>Base URL</span>
+          <span>{t('admin.llmBaseUrl')}</span>
           <input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
@@ -1112,7 +1106,7 @@ function LlmPanel({
           />
         </label>
         <label className="field">
-          <span>API key</span>
+          <span>{t('admin.llmApiKey')}</span>
           <input
             type="password"
             value={apiKey}
@@ -1128,7 +1122,7 @@ function LlmPanel({
             onChange={(e) => setIsDefault(e.target.checked)}
             {...testIdProps(TestIds.adminLlmDefaultCheckbox)}
           />
-          {isGlobal ? 'Global default' : 'Default for this project'}
+          {isGlobal ? t('admin.llmGlobalDefault') : t('admin.llmProjectDefault')}
         </label>
         <label className="check">
           <input
@@ -1137,14 +1131,14 @@ function LlmPanel({
             onChange={(e) => setIsGlobal(e.target.checked)}
             {...testIdProps(TestIds.adminLlmGlobalCheckbox)}
           />
-          Global (all projects)
+          {t('admin.llmGlobalAll')}
         </label>
         <button
           className="btn"
           type="submit"
           {...testIdProps(TestIds.adminLlmSaveButton)}
         >
-          Save provider
+          {t('admin.llmSave')}
         </button>
       </form>
     </div>
@@ -1164,6 +1158,7 @@ function TokensPanel({
   onChanged: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const [tokenName, setTokenName] = useState('mcp-local')
 
   const onSubmit = async (e: FormEvent) => {
@@ -1180,13 +1175,11 @@ function TokensPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>API tokens (MCP / CI)</h3>
-        <p className="muted">
-          Use as <code>VULYK_API_TOKEN</code>. Secrets are shown once.
-        </p>
+        <h3>{t('admin.tokensTitle')}</h3>
+        <p className="muted">{t('admin.tokensHelp')}</p>
         {secretOnce && (
           <p className="token-secret" {...testIdProps(TestIds.adminTokenSecret)}>
-            Copy now: <code>{secretOnce}</code>
+            {t('admin.tokensCopyNow')} <code>{secretOnce}</code>
           </p>
         )}
         <ul className="plain-list" {...testIdProps(TestIds.adminTokenList)}>
@@ -1199,7 +1192,7 @@ function TokensPanel({
               })}
             >
               <strong>{tok.name}</strong> · {tok.token_prefix}…
-              {tok.revoked_at ? ' · revoked' : ''}
+              {tok.revoked_at ? ` · ${t('admin.tokensRevoked')}` : ''}
               {!tok.revoked_at && (
                 <button
                   type="button"
@@ -1207,7 +1200,7 @@ function TokensPanel({
                   onClick={() => void api.revokeToken(tok.id).then(onChanged)}
                   {...testIdProps(TestIds.adminTokenRevokeButton)}
                 >
-                  Revoke
+                  {t('admin.tokensRevoke')}
                 </button>
               )}
             </li>
@@ -1215,9 +1208,9 @@ function TokensPanel({
         </ul>
       </div>
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-        <h3>Create token</h3>
+        <h3>{t('admin.tokensCreate')}</h3>
         <label className="field">
-          <span>Name</span>
+          <span>{t('admin.tokensName')}</span>
           <input
             value={tokenName}
             onChange={(e) => setTokenName(e.target.value)}
@@ -1230,7 +1223,7 @@ function TokensPanel({
           type="submit"
           {...testIdProps(TestIds.adminTokenCreateButton)}
         >
-          Generate
+          {t('admin.tokensGenerate')}
         </button>
       </form>
     </div>
@@ -1973,17 +1966,14 @@ function SsoPanel({
   return (
     <div className="panel">
       <h3>{t('admin.sso')}</h3>
-      <p className="muted">
-        Enable or disable configured OIDC providers. Client secrets are managed
-        server-side.
-      </p>
+      <p className="muted">{t('admin.ssoHelp')}</p>
       <table className="table" {...testIdProps(TestIds.adminSsoList)}>
         <thead>
           <tr>
-            <th>Key</th>
-            <th>Name</th>
-            <th>Client id</th>
-            <th>Enabled</th>
+            <th>{t('admin.ssoColKey')}</th>
+            <th>{t('admin.ssoColName')}</th>
+            <th>{t('admin.ssoColClientId')}</th>
+            <th>{t('admin.ssoColEnabled')}</th>
             <th></th>
           </tr>
         </thead>
@@ -2002,7 +1992,7 @@ function SsoPanel({
               </td>
               <td>{p.display_name}</td>
               <td className="muted">{p.client_id || '—'}</td>
-              <td>{p.enabled ? 'yes' : 'no'}</td>
+              <td>{p.enabled ? t('admin.yes') : t('admin.no')}</td>
               <td>
                 <button
                   type="button"
@@ -2010,7 +2000,7 @@ function SsoPanel({
                   onClick={() => void toggleEnabled(p)}
                   {...testIdProps(TestIds.adminSsoToggleButton)}
                 >
-                  {p.enabled ? 'Disable' : 'Enable'}
+                  {p.enabled ? t('admin.ssoDisable') : t('admin.ssoEnable')}
                 </button>
               </td>
             </tr>
@@ -2018,7 +2008,7 @@ function SsoPanel({
           {providers.length === 0 && (
             <tr>
               <td colSpan={5} className="muted">
-                No SSO providers configured yet.
+                {t('admin.ssoEmpty')}
               </td>
             </tr>
           )}
