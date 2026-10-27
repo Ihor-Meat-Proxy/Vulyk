@@ -523,8 +523,12 @@ coverage.
 
 **Partial fix:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/96 — CaseDetail /
 RunsPage / RunDetail / RequirementsPage chrome wired through `t(…)`
-(EN/UK/FR/ES/DE). Admin Users/Roles/Projects/LLM/Tokens/SSO panels and the CI
-`Runs.tsx` page remain for a follow-up.
+(EN/UK/FR/ES/DE).
+
+**Follow-up:** Admin Users/Roles/Projects/LLM/Tokens/SSO panels and the CI
+`Runs.tsx` page chrome wired through `t(…)` (EN/UK/FR/ES/DE). Integrations and
+other Admin panels (lists/custom fields copy already partially covered) remain
+for later if needed.
 
 ### 48. **risk** — Dialogs without focus trap
 
