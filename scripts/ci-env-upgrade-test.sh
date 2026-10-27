@@ -50,6 +50,7 @@ from pathlib import Path
 
 src = Path(os.environ["OLD_EXAMPLE"]).read_text(encoding="utf-8").splitlines()
 out = []
+skipped_empty = []
 assign = re.compile(r"^(#\s*)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$")
 for line in src:
     s = line.strip()
@@ -59,10 +60,16 @@ for line in src:
         continue
     key, raw = m.group(2), m.group(3)
     value = raw.split("#", 1)[0].rstrip()
+    # Empty template placeholders are not a working install's secrets - omit so
+    # HEAD sync can add/generate them (never-overwrite still applies to real values).
+    if value == "":
+        skipped_empty.append(key)
+        continue
     out.append(f"{key}={value}")
 Path(os.environ["OPERATOR_ENV"]).write_text("\n".join(out) + "\n", encoding="utf-8")
 print(
     f"seeded operator .env with {len(out)} keys from {os.environ['PREV_TAG']}"
+    + (f" (omitted empty: {', '.join(skipped_empty)})" if skipped_empty else "")
 )
 PY
 
@@ -91,6 +98,32 @@ fi
 if ! grep -qE '^VULYK_UPDATER_TOKEN=.' "${OPERATOR_ENV}"; then
   die "VULYK_UPDATER_TOKEN missing after sync (mark @vulyk:sync @vulyk:secret on it)"
 fi
+
+# Every Compose ${VAR:?...} must be non-empty after sync (catches empty-template seeds).
+OPERATOR_ENV="${OPERATOR_ENV}" python3 - <<'PY'
+import os, re, sys
+from pathlib import Path
+
+root = Path(".")
+env = {}
+for line in Path(os.environ["OPERATOR_ENV"]).read_text(encoding="utf-8").splitlines():
+    s = line.strip()
+    if not s or s.startswith("#") or "=" not in s:
+        continue
+    k, _, v = s.partition("=")
+    env[k.strip()] = v
+
+pat = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\?:")
+missing = []
+for path in (root / "docker-compose.yml", root / "docker-compose.prod.yml"):
+    for key in pat.findall(path.read_text(encoding="utf-8")):
+        if not str(env.get(key, "")).strip():
+            missing.append(f"{key} ({path.name})")
+if missing:
+    print("compose ?: vars empty/missing after sync:", ", ".join(missing), file=sys.stderr)
+    sys.exit(1)
+print("compose ?: vars satisfied after sync")
+PY
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   log "docker compose config with synced .env..."
