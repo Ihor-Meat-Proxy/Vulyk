@@ -291,4 +291,20 @@ async fn export_pdf_contains_key_title_cyrillic_and_mixed_results() {
         "expected zip, ctype={zip_ctype}"
     );
     assert!(zip_bytes.starts_with(b"PK"), "ZIP magic");
+
+    // Cap: more than MAX_BULK_EXPORT_CASES → 400 (no PDF work).
+    let too_many: Vec<String> = (0..=100).map(|_| case_id.to_string()).collect();
+    let over = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases/export"))
+        .json(&serde_json::json!({ "case_ids": too_many }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(over.status(), reqwest::StatusCode::BAD_REQUEST);
+    let body: Value = over.json().await.unwrap();
+    let msg = body["error"]["message"].as_str().unwrap_or("");
+    assert!(
+        msg.contains("maximum") || msg.contains("case_ids"),
+        "unexpected error body: {body}"
+    );
 }
