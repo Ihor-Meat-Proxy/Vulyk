@@ -10,9 +10,9 @@ use cookie::{Cookie, SameSite};
 use serde::Deserialize;
 
 use crate::auth::{
-    generate_session_token, hash_password_async, hash_secret, issue_jwt, session_cookie_name,
-    verify_password_async, verify_password_for_login_async, AuthUser, OptionalAuthUser,
-    RequireAuth,
+    csrf_cookie_name, generate_session_token, hash_password_async, hash_secret, issue_jwt,
+    session_cookie_name, verify_password_async, verify_password_for_login_async, AuthUser,
+    OptionalAuthUser, RequireAuth,
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{
@@ -341,16 +341,27 @@ pub async fn logout(
     }
 
     let mut headers = HeaderMap::new();
-    let clear = Cookie::build((session_cookie_name(), ""))
+    let clear_session = Cookie::build((session_cookie_name(), ""))
         .http_only(true)
         .path("/")
         .same_site(SameSite::Lax)
         .max_age(time::Duration::seconds(0))
         .build();
-    headers.insert(
+    let clear_csrf = Cookie::build((csrf_cookie_name(), ""))
+        .http_only(false)
+        .path("/")
+        .same_site(SameSite::Lax)
+        .max_age(time::Duration::seconds(0))
+        .build();
+    headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&clear.to_string())
+        HeaderValue::from_str(&clear_session.to_string())
             .map_err(|e| AppError::Internal(format!("cookie header: {e}")))?,
+    );
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&clear_csrf.to_string())
+            .map_err(|e| AppError::Internal(format!("csrf cookie header: {e}")))?,
     );
     Ok((headers, StatusCode::NO_CONTENT))
 }
@@ -601,21 +612,39 @@ async fn issue_auth_response(
     .execute(&state.pool)
     .await?;
 
-    let mut cookie = Cookie::build((session_cookie_name(), session_token))
+    let secure = session_cookie_secure();
+    let mut session_cookie = Cookie::build((session_cookie_name(), session_token))
         .http_only(true)
         .path("/")
         .same_site(SameSite::Lax)
         .max_age(time::Duration::hours(state.auth.session_ttl_hours));
-    if session_cookie_secure() {
-        cookie = cookie.secure(true);
+    if secure {
+        session_cookie = session_cookie.secure(true);
     }
-    let cookie = cookie.build();
+    let session_cookie = session_cookie.build();
+
+    // Readable CSRF cookie for double-submit (security audit M2). Not HttpOnly.
+    let csrf_token = generate_session_token();
+    let mut csrf_cookie = Cookie::build((csrf_cookie_name(), csrf_token))
+        .http_only(false)
+        .path("/")
+        .same_site(SameSite::Lax)
+        .max_age(time::Duration::hours(state.auth.session_ttl_hours));
+    if secure {
+        csrf_cookie = csrf_cookie.secure(true);
+    }
+    let csrf_cookie = csrf_cookie.build();
 
     let mut headers = HeaderMap::new();
-    headers.insert(
+    headers.append(
         SET_COOKIE,
-        HeaderValue::from_str(&cookie.to_string())
+        HeaderValue::from_str(&session_cookie.to_string())
             .map_err(|e| AppError::Internal(format!("cookie header: {e}")))?,
+    );
+    headers.append(
+        SET_COOKIE,
+        HeaderValue::from_str(&csrf_cookie.to_string())
+            .map_err(|e| AppError::Internal(format!("csrf cookie header: {e}")))?,
     );
 
     Ok((

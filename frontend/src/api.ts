@@ -2,6 +2,23 @@ import { getStoredToken } from './token'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
+/** Parse double-submit CSRF cookie value from a Cookie header / document.cookie string. */
+export function csrfTokenFromCookieHeader(cookieHeader: string): string | null {
+  const match = cookieHeader.match(/(?:^|; )vulyk_csrf=([^;]*)/)
+  if (!match) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return match[1]
+  }
+}
+
+/** Read double-submit CSRF cookie set at login (`vulyk_csrf`). */
+export function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null
+  return csrfTokenFromCookieHeader(document.cookie)
+}
+
 export class ApiError extends Error {
   status: number
   code: string
@@ -22,6 +39,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (token) {
     headers.Authorization = `Bearer ${token}`
+  }
+  const csrf = getCsrfToken()
+  if (csrf) {
+    headers['X-Vulyk-Csrf'] = csrf
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -1859,6 +1880,8 @@ export const api = {
     const token = getStoredToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-Vulyk-Csrf'] = csrf
     const res = await fetch(
       `${API_BASE}/api/v1/admin/backups/runs/${id}/download`,
       { headers, credentials: 'include' },
@@ -2017,6 +2040,8 @@ export const api = {
     const token = getStoredToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-Vulyk-Csrf'] = csrf
     if (opts.locale) headers['Accept-Language'] = opts.locale
     const res = await fetch(
       `${API_BASE}/api/v1/projects/${projectId}/cases/${encodeURIComponent(idOrKey)}/export.pdf?${qs}`,
@@ -2045,6 +2070,8 @@ export const api = {
       'Content-Type': 'application/json',
     }
     if (token) headers.Authorization = `Bearer ${token}`
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-Vulyk-Csrf'] = csrf
     if (body.locale) headers['Accept-Language'] = body.locale
     const res = await fetch(
       `${API_BASE}/api/v1/projects/${projectId}/cases/export`,
@@ -2271,6 +2298,8 @@ export const api = {
       'Content-Type': 'application/json',
     }
     if (token) headers.Authorization = `Bearer ${token}`
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-Vulyk-Csrf'] = csrf
     const res = await fetch(`${API_BASE}/api/v1/admin/config/export`, {
       method: 'POST',
       headers,
@@ -2937,6 +2966,8 @@ export const api = {
     const token = getStoredToken()
     const headers: Record<string, string> = {}
     if (token) headers.Authorization = `Bearer ${token}`
+    const csrf = getCsrfToken()
+    if (csrf) headers['X-Vulyk-Csrf'] = csrf
     const res = await fetch(
       `${API_BASE}/api/v1/projects/${projectId}/reports/export?${qs}`,
       { headers, credentials: 'include' },
