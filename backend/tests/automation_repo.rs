@@ -308,3 +308,207 @@ async fn developer_has_llm_assist_in_role_matrix() {
     assert!(ProjectRole::TestArchitect.allows(Permission::ManageAutomationRepo));
     assert!(!ProjectRole::Viewer.allows(Permission::LlmAssist));
 }
+
+#[derive(Clone)]
+struct GhMockState {
+    blob_hits: Arc<AtomicUsize>,
+}
+
+async fn gh_commit() -> Json<Value> {
+    Json(json!({
+        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "commit": { "tree": { "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } }
+    }))
+}
+
+async fn gh_tree() -> Json<Value> {
+    Json(json!({
+        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "truncated": false,
+        "tree": [{
+            "path": "e2e/login.spec.ts",
+            "type": "blob",
+            "sha": "cccccccccccccccccccccccccccccccccccccccc",
+            "size": 24
+        }]
+    }))
+}
+
+async fn gh_blob(AxumState(state): AxumState<GhMockState>) -> Json<Value> {
+    state.blob_hits.fetch_add(1, Ordering::SeqCst);
+    Json(json!({
+        "content": "export const ok = true;\n",
+        "encoding": "utf-8"
+    }))
+}
+
+/// Minimal GitHub Enterprise-shaped API for REST indexing tests.
+async fn spawn_github_mock() -> (String, Arc<AtomicUsize>) {
+    let blob_hits = Arc::new(AtomicUsize::new(0));
+    let state = GhMockState {
+        blob_hits: blob_hits.clone(),
+    };
+
+    let app = Router::new()
+        .route(
+            "/api/v3/repos/{owner}/{repo}/commits/{branch}",
+            axum::routing::get(gh_commit),
+        )
+        .route(
+            "/api/v3/repos/{owner}/{repo}/git/trees/{sha}",
+            axum::routing::get(gh_tree),
+        )
+        .route(
+            "/api/v3/repos/{owner}/{repo}/git/blobs/{sha}",
+            axum::routing::get(gh_blob),
+        )
+        .with_state(state);
+
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("bind github mock");
+    let addr = listener.local_addr().expect("addr");
+    tokio::spawn(async move {
+        axum::serve(listener, app).await.expect("serve github mock");
+    });
+    tokio::time::sleep(Duration::from_millis(30)).await;
+    (format!("http://{addr}"), blob_hits)
+}
+
+#[tokio::test]
+async fn github_rest_indexes_without_git_and_is_incremental() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
+
+    let base = spawn_api().await;
+    let client = reqwest::Client::new();
+    let (mock_base, blob_hits) = spawn_github_mock().await;
+    let remote = format!("{mock_base}/acme/demo");
+
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({ "name": "GH REST Demo" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    // Preview test on unsaved form values (no 404).
+    let preview: Value = client
+        .post(format!("{base}/api/v1/automation-repos/test"))
+        .json(&json!({
+            "provider": "github",
+            "remote_url": remote,
+            "branch": "main",
+            "project_ids": [project_id]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(preview["ok"], true, "{preview}");
+
+    // Legacy project test before save must not be a raw 404.
+    let unsaved = client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/automation-repo/test"
+        ))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(unsaved.status(), StatusCode::BAD_REQUEST);
+    let body: Value = unsaved.json().await.unwrap();
+    let msg = body["error"]["message"].as_str().unwrap_or("");
+    assert!(
+        msg.to_lowercase().contains("save") || msg.to_lowercase().contains("form"),
+        "expected friendly message, got {body}"
+    );
+
+    let repo: Value = client
+        .post(format!("{base}/api/v1/automation-repos"))
+        .json(&json!({
+            "name": "GH Demo",
+            "provider": "github",
+            "remote_url": remote,
+            "branch": "main",
+            "subpath": "e2e",
+            "project_ids": [project_id]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let repo_id = repo["id"].as_str().unwrap();
+
+    let indexed: Value = client
+        .post(format!("{base}/api/v1/automation-repos/{repo_id}/reindex"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(indexed["status"], "ready", "{indexed}");
+    assert_eq!(indexed["file_count"], 1);
+    assert!(indexed["chunk_count"].as_i64().unwrap() >= 1);
+    let first_blobs = blob_hits.load(Ordering::SeqCst);
+    assert!(first_blobs >= 1, "expected blob fetch");
+
+    // Second reindex: same blob SHA → incremental skip.
+    let again: Value = client
+        .post(format!("{base}/api/v1/automation-repos/{repo_id}/reindex"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(again["status"], "ready");
+    assert_eq!(again["file_count"], 1);
+    assert_eq!(
+        blob_hits.load(Ordering::SeqCst),
+        first_blobs,
+        "incremental reindex should not re-fetch unchanged blobs"
+    );
+}
+
+#[tokio::test]
+async fn generic_test_reports_missing_git_clearly_when_unavailable() {
+    // Unit-level: when git binary is absent the helper surfaces a clear message.
+    // Integration environments usually have git; skip the live call if present.
+    if vulyk_api::services::automation_repo::git_available() {
+        eprintln!("skipping: git is available in this environment");
+        return;
+    }
+    let (ok, message, _) = vulyk_api::services::automation_repo::test_connection(
+        "https://example.com/acme/demo.git",
+        "main",
+        None,
+    )
+    .unwrap();
+    assert!(!ok);
+    assert!(
+        message.contains("git is not installed") || message.contains("git not available"),
+        "{message}"
+    );
+}

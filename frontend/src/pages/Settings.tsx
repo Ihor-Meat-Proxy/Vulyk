@@ -321,8 +321,12 @@ export function Settings() {
           ? [repo.project_id]
           : [],
     })
+    const indexed = repo.last_indexed_at
+      ? ` · last indexed ${new Date(repo.last_indexed_at).toLocaleString()}`
+      : ''
     setRepoInfo(
       `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
+        indexed +
         (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
         (repo.has_token ? ' · token set' : ''),
     )
@@ -394,11 +398,21 @@ export function Settings() {
   }
 
   const onTestRepo = async () => {
-    if (!repoForm.id) return
+    if (!repoForm.remote_url.trim()) return
     setRepoBusy(true)
     setError(null)
     try {
-      const res = await api.testAutomationRepoById(repoForm.id)
+      const res =
+        repoForm.id && !repoForm.token
+          ? await api.testAutomationRepoById(repoForm.id)
+          : await api.testAutomationRepoPreview({
+              provider: repoForm.provider,
+              remote_url: repoForm.remote_url.trim(),
+              branch: repoForm.branch.trim() || 'main',
+              subpath: repoForm.subpath.trim(),
+              ...(repoForm.token ? { token: repoForm.token } : {}),
+              project_ids: repoForm.project_ids,
+            })
       setRepoInfo(res.message)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -880,17 +894,17 @@ export function Settings() {
                   ? t('admin.automationSave')
                   : t('settings.automationAdd')}
               </button>
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={repoBusy || !repoForm.remote_url.trim()}
+                onClick={() => void onTestRepo()}
+                {...testIdProps(TestIds.settingsAutomationTestButton)}
+              >
+                {t('admin.automationTest')}
+              </button>
               {repoForm.id ? (
                 <>
-                  <button
-                    type="button"
-                    className="btn secondary"
-                    disabled={repoBusy}
-                    onClick={() => void onTestRepo()}
-                    {...testIdProps(TestIds.settingsAutomationTestButton)}
-                  >
-                    {t('admin.automationTest')}
-                  </button>
                   <button
                     type="button"
                     className="btn secondary"

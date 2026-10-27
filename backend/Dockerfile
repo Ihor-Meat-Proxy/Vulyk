@@ -10,7 +10,7 @@ RUN cargo build --release -p vulyk-api
 # Runtime
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates libssl3 curl \
+    && apt-get install -y --no-install-recommends ca-certificates libssl3 curl git \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --system --uid 10001 --home /var/lib/vulyk --create-home vulyk
 WORKDIR /app

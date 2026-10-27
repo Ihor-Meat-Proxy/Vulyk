@@ -1,4 +1,5 @@
 pub mod automation_repo;
+pub mod automation_repo_remote;
 pub mod backup;
 pub mod campaigns;
 pub mod case_export;

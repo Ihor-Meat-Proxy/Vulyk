@@ -235,6 +235,13 @@ curl -fsS https://vulyk.example/health
 
 Setup Job is **post-install only** (not re-run on every upgrade).
 
+### API image packages
+
+The `vulyk-api` runtime image installs **`git`** so the **generic** automation-repo
+provider can shallow-clone. GitHub/GitLab providers index via REST and do not need
+it. No schema migration is required for that change — redeploy the API image only.
+Details: [automation-repo.md](../automation-repo.md#upgrade-notes).
+
 ## Versioning
 
 - Canonical semver is the root [`VERSION`](../../VERSION) file; Rust crates inherit

@@ -12,11 +12,13 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
     AutomationRepoIndexResult, AutomationRepoPublic, AutomationRepoRow, AutomationRepoTestResult,
-    CreateAutomationRepo, SetRepoProjects, UpdateAutomationRepo, UpsertAutomationRepo,
+    CreateAutomationRepo, SetRepoProjects, TestAutomationRepoBody, UpdateAutomationRepo,
+    UpsertAutomationRepo,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
 use crate::services::automation_repo as repo_svc;
+use crate::services::automation_repo_remote as remote_svc;
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -24,6 +26,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/v1/automation-repos",
             get(list_repos).post(create_repo),
+        )
+        .route(
+            "/api/v1/automation-repos/test",
+            axum::routing::post(test_repo_preview),
         )
         .route(
             "/api/v1/automation-repos/{id}",
@@ -451,6 +457,50 @@ pub async fn set_repo_projects(
 
 #[utoipa::path(
     post,
+    path = "/api/v1/automation-repos/test",
+    tag = "automation-repo",
+    request_body = TestAutomationRepoBody,
+    responses((status = 200, body = AutomationRepoTestResult)),
+    security(("bearer_auth" = []))
+)]
+pub async fn test_repo_preview(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Json(body): Json<TestAutomationRepoBody>,
+) -> AppResult<Json<AutomationRepoTestResult>> {
+    require_manage_on_projects(&state, &auth, &body.project_ids).await?;
+    for pid in &body.project_ids {
+        ensure_project(&state.pool, *pid).await?;
+    }
+    let provider = validate_provider(&body.provider)?;
+    if body.remote_url.trim().is_empty() {
+        return Ok(Json(AutomationRepoTestResult {
+            ok: false,
+            message: "remote_url required".into(),
+            commit_sha: None,
+        }));
+    }
+    let branch = if body.branch.trim().is_empty() {
+        "main".to_string()
+    } else {
+        body.branch.trim().to_string()
+    };
+    let (ok, message, commit_sha) = test_provider_connection(
+        &provider,
+        body.remote_url.trim(),
+        &branch,
+        body.token.as_deref(),
+    )
+    .await?;
+    Ok(Json(AutomationRepoTestResult {
+        ok,
+        message,
+        commit_sha,
+    }))
+}
+
+#[utoipa::path(
+    post,
     path = "/api/v1/automation-repos/{id}/test",
     tag = "automation-repo",
     params(("id" = Uuid, Path)),
@@ -467,8 +517,13 @@ pub async fn test_repo_by_id(
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
     let token = decrypt_token(&state, &row)?;
-    let (ok, message, commit_sha) =
-        repo_svc::test_connection(&row.remote_url, &row.branch, token.as_deref())?;
+    let (ok, message, commit_sha) = test_provider_connection(
+        &row.provider,
+        &row.remote_url,
+        &row.branch,
+        token.as_deref(),
+    )
+    .await?;
     Ok(Json(AutomationRepoTestResult {
         ok,
         message,
@@ -756,10 +811,21 @@ pub async fn test_repo(
     .await?;
     let row = repo_svc::load_repo_for_project(&state.pool, project_id)
         .await?
-        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+        .ok_or_else(|| {
+            AppError::BadRequest(
+                "No automation repo saved for this project yet. Save the connection first, or use \
+                 POST /api/v1/automation-repos/test with the form values."
+                    .into(),
+            )
+        })?;
     let token = decrypt_token(&state, &row)?;
-    let (ok, message, commit_sha) =
-        repo_svc::test_connection(&row.remote_url, &row.branch, token.as_deref())?;
+    let (ok, message, commit_sha) = test_provider_connection(
+        &row.provider,
+        &row.remote_url,
+        &row.branch,
+        token.as_deref(),
+    )
+    .await?;
     Ok(Json(AutomationRepoTestResult {
         ok,
         message,
@@ -820,10 +886,88 @@ async fn sync_and_index(
     row: &AutomationRepoRow,
     token: Option<&str>,
 ) -> AppResult<(String, i32, i32)> {
-    let sha = repo_svc::sync_repo(row.id, &row.remote_url, &row.branch, token)?;
-    let files = repo_svc::index_workdir(row.id, &row.subpath)?;
+    let provider = row.provider.to_lowercase();
+    if matches!(provider.as_str(), "github" | "gitlab") {
+        let known = repo_svc::load_content_hashes(&state.pool, row.id).await?;
+        let index =
+            remote_svc::fetch_tree(&provider, &row.remote_url, &row.branch, &row.subpath, token)
+                .await?;
+        let changed = remote_svc::fetch_changed_files(
+            &provider,
+            &row.remote_url,
+            &row.branch,
+            token,
+            &index,
+            &known,
+        )
+        .await?;
+        let tree_paths: std::collections::HashMap<String, String> = index
+            .entries
+            .iter()
+            .map(|e| (e.path.clone(), e.blob_sha.clone()))
+            .collect();
+        let (fc, cc) = repo_svc::persist_index_incremental(
+            &state.pool,
+            row.id,
+            &tree_paths,
+            &changed,
+            &index.commit_sha,
+        )
+        .await?;
+        return Ok((index.commit_sha, fc, cc));
+    }
+
+    if !repo_svc::git_available() {
+        return Err(AppError::BadRequest(
+            "git is not installed in this environment. The generic provider needs the git binary \
+             in the API image; use the github or gitlab provider for REST indexing without git."
+                .into(),
+        ));
+    }
+    let repo_id = row.id;
+    let remote_url = row.remote_url.clone();
+    let branch = row.branch.clone();
+    let subpath = row.subpath.clone();
+    let token_owned = token.map(str::to_string);
+    let sha = tokio::task::spawn_blocking(move || {
+        repo_svc::sync_repo(repo_id, &remote_url, &branch, token_owned.as_deref())
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("git sync task: {e}")))??;
+    let files = tokio::task::spawn_blocking(move || repo_svc::index_workdir(repo_id, &subpath))
+        .await
+        .map_err(|e| AppError::Internal(format!("git index task: {e}")))??;
     let (fc, cc) = repo_svc::persist_index(&state.pool, row.id, &files, &sha).await?;
     Ok((sha, fc, cc))
+}
+
+async fn test_provider_connection(
+    provider: &str,
+    remote_url: &str,
+    branch: &str,
+    token: Option<&str>,
+) -> AppResult<(bool, String, Option<String>)> {
+    let provider = provider.trim().to_lowercase();
+    if matches!(provider.as_str(), "github" | "gitlab") {
+        return remote_svc::test_remote(&provider, remote_url, branch, token).await;
+    }
+    if !repo_svc::git_available() {
+        return Ok((
+            false,
+            "git is not installed in this environment. The generic provider needs the git binary \
+             in the API image; use the github or gitlab provider for REST indexing without git."
+                .into(),
+            None,
+        ));
+    }
+    let remote_url = remote_url.to_string();
+    let branch = branch.to_string();
+    let token_owned = token.map(str::to_string);
+    tokio::task::spawn_blocking(move || {
+        repo_svc::test_connection(&remote_url, &branch, token_owned.as_deref())
+    })
+    .await
+    .map_err(|e| AppError::Internal(format!("git test task: {e}")))?
 }
 
 fn decrypt_token(state: &AppState, row: &AutomationRepoRow) -> AppResult<Option<String>> {

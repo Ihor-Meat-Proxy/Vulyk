@@ -654,8 +654,28 @@ function AutomationRepoPanel({
   const [subpath, setSubpath] = useState('')
   const [token, setToken] = useState('')
   const [status, setStatus] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
   const [busy, setBusy] = useState(false)
   const [info, setInfo] = useState<string | null>(null)
+
+  const formatIndexStatus = (repo: {
+    index_status: string
+    file_count: number
+    chunk_count: number
+    commit_sha: string | null
+    last_indexed_at: string | null
+    has_token: boolean
+  }) => {
+    const indexed = repo.last_indexed_at
+      ? ` · last indexed ${new Date(repo.last_indexed_at).toLocaleString()}`
+      : ''
+    return (
+      `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
+      indexed +
+      (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
+      (repo.has_token ? ' · token set' : '')
+    )
+  }
 
   const load = useCallback(async () => {
     if (!projectId) return
@@ -665,13 +685,11 @@ function AutomationRepoPanel({
       setRemoteUrl(repo.remote_url)
       setBranch(repo.branch)
       setSubpath(repo.subpath)
-      setStatus(
-        `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
-          (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
-          (repo.has_token ? ' · token set' : ''),
-      )
+      setSaved(true)
+      setStatus(formatIndexStatus(repo))
       setInfo(repo.last_index_error)
     } catch {
+      setSaved(false)
       setStatus(null)
       setInfo(null)
     }
@@ -711,9 +729,24 @@ function AutomationRepoPanel({
   }
 
   const onTest = async () => {
+    if (!remoteUrl.trim()) {
+      onError(t('admin.automationUrl'))
+      return
+    }
     setBusy(true)
     try {
-      const res = await api.testAutomationRepo(projectId)
+      // Prefer form values so unsaved edits / new connections never hit a raw 404.
+      const res =
+        saved && !token
+          ? await api.testAutomationRepo(projectId)
+          : await api.testAutomationRepoPreview({
+              provider,
+              remote_url: remoteUrl.trim(),
+              branch: branch.trim() || 'main',
+              subpath: subpath.trim(),
+              ...(token ? { token } : {}),
+              project_ids: [projectId],
+            })
       setInfo(res.message)
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err))
@@ -723,6 +756,10 @@ function AutomationRepoPanel({
   }
 
   const onReindex = async () => {
+    if (!saved) {
+      onError(t('admin.automationSaveFirst'))
+      return
+    }
     setBusy(true)
     try {
       const res = await api.reindexAutomationRepo(projectId)
@@ -809,7 +846,7 @@ function AutomationRepoPanel({
           <button
             className="btn secondary"
             type="button"
-            disabled={busy}
+            disabled={busy || !remoteUrl.trim()}
             onClick={() => void onTest()}
             {...testIdProps(TestIds.adminAutomationTestButton)}
           >
@@ -818,7 +855,8 @@ function AutomationRepoPanel({
           <button
             className="btn secondary"
             type="button"
-            disabled={busy}
+            disabled={busy || !saved}
+            title={!saved ? t('admin.automationSaveFirst') : undefined}
             onClick={() => void onReindex()}
             {...testIdProps(TestIds.adminAutomationReindexButton)}
           >

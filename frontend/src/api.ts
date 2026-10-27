@@ -2753,6 +2753,18 @@ export const api = {
     request<AutomationRepo[]>(
       `/api/v1/projects/${projectId}/automation-repos`,
     ),
+  testAutomationRepoPreview: (body: {
+    provider: string
+    remote_url: string
+    branch?: string
+    subpath?: string
+    token?: string
+    project_ids?: string[]
+  }) =>
+    request<{ ok: boolean; message: string; commit_sha: string | null }>(
+      `/api/v1/automation-repos/test`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
   testAutomationRepoById: (id: string) =>
     request<{ ok: boolean; message: string; commit_sha: string | null }>(
       `/api/v1/automation-repos/${id}/test`,
