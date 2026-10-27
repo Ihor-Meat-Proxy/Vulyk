@@ -104,51 +104,91 @@ pub async fn create_project(
         return Err(AppError::BadRequest("name is required".into()));
     }
 
-    let key = if let Some(raw) = body
+    let explicit_key = body
         .key
         .as_ref()
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
-    {
-        let validated = validate_project_key(raw)?;
-        // Explicit keys must be unique; DB unique constraint is the final guard.
-        validated
-    } else {
-        unique_key_for_name(&state.pool, body.name.trim()).await?
-    };
+        .map(validate_project_key)
+        .transpose()?;
+    let prefix_seed = body
+        .case_key_prefix
+        .as_ref()
+        .map(|s| validate_prefix(s))
+        .transpose()?;
 
-    let prefix = if let Some(raw) = body.case_key_prefix.as_ref() {
-        let validated = validate_prefix(raw)?;
-        unique_prefix(&state.pool, &validated, None).await?
-    } else {
-        unique_prefix_for_name(&state.pool, body.name.trim()).await?
-    };
+    // Allocate then INSERT; on unique violation re-allocate and retry so concurrent
+    // creates get a clean Conflict/retry instead of an opaque DB race (review #5).
+    const MAX_INSERT_RETRIES: u32 = 8;
+    let mut last_conflict: Option<String> = None;
+    for attempt in 0..MAX_INSERT_RETRIES {
+        let key = if let Some(ref k) = explicit_key {
+            k.clone()
+        } else {
+            unique_key_for_name(&state.pool, body.name.trim()).await?
+        };
+        let prefix = if let Some(ref raw) = prefix_seed {
+            unique_prefix(&state.pool, raw, None).await?
+        } else {
+            unique_prefix_for_name(&state.pool, body.name.trim()).await?
+        };
 
-    let project = sqlx::query_as::<_, Project>(&format!(
-        r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
-           VALUES ($1, $2, $3, $4, 0)
-           RETURNING {PROJECT_COLS}"#
-    ))
-    .bind(&key)
-    .bind(body.name.trim())
-    .bind(&body.description)
-    .bind(&prefix)
-    .fetch_one(&state.pool)
-    .await?;
+        let inserted = sqlx::query_as::<_, Project>(&format!(
+            r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
+               VALUES ($1, $2, $3, $4, 0)
+               RETURNING {PROJECT_COLS}"#
+        ))
+        .bind(&key)
+        .bind(body.name.trim())
+        .bind(&body.description)
+        .bind(&prefix)
+        .fetch_one(&state.pool)
+        .await;
 
-    if let Some(user) = auth.filter(|u| u.id() != uuid::Uuid::nil()) {
-        sqlx::query(
-            r#"INSERT INTO memberships (project_id, user_id, role)
-               VALUES ($1, $2, 'admin')
-               ON CONFLICT (project_id, user_id) DO NOTHING"#,
-        )
-        .bind(project.id)
-        .bind(user.id())
-        .execute(&state.pool)
-        .await?;
+        let project = match inserted {
+            Ok(p) => p,
+            Err(sqlx::Error::Database(ref db)) if db.constraint().is_some() => {
+                let constraint = db.constraint().unwrap_or("projects").to_string();
+                last_conflict = Some(constraint.clone());
+                if explicit_key.is_some()
+                    && (constraint.contains("key") || constraint == "projects_pkey")
+                {
+                    return Err(AppError::Conflict(format!(
+                        "project key '{key}' already exists"
+                    )));
+                }
+                // Auto key/prefix: another writer won the race — re-read uniqueness and retry.
+                tracing::debug!(
+                    attempt,
+                    %constraint,
+                    %key,
+                    %prefix,
+                    "project create unique conflict; retrying allocation"
+                );
+                continue;
+            }
+            Err(e) => return Err(e.into()),
+        };
+
+        if let Some(user) = auth.as_ref().filter(|u| u.id() != uuid::Uuid::nil()) {
+            sqlx::query(
+                r#"INSERT INTO memberships (project_id, user_id, role)
+                   VALUES ($1, $2, 'admin')
+                   ON CONFLICT (project_id, user_id) DO NOTHING"#,
+            )
+            .bind(project.id)
+            .bind(user.id())
+            .execute(&state.pool)
+            .await?;
+        }
+
+        return Ok(Json(project));
     }
 
-    Ok(Json(project))
+    Err(AppError::Conflict(format!(
+        "unable to allocate unique project key/prefix after retries ({})",
+        last_conflict.unwrap_or_else(|| "unique".into())
+    )))
 }
 
 #[utoipa::path(
