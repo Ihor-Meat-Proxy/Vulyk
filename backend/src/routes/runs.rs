@@ -746,6 +746,8 @@ pub async fn ingest_results(
     )
     .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
+    // All-or-nothing: a mid-batch 400 must not leave earlier rows committed (review #40).
+    let mut tx = state.pool.begin().await?;
     let mut out = Vec::with_capacity(body.results.len());
     for item in body.results {
         let case_id = if let Some(id) = item.case_id {
@@ -757,7 +759,7 @@ pub async fn ingest_results(
             )
             .bind(project_id)
             .bind(key)
-            .fetch_optional(&state.pool)
+            .fetch_optional(&mut *tx)
             .await?
         } else {
             None
@@ -774,7 +776,7 @@ pub async fn ingest_results(
         let case_version: Option<i32> = if let Some(cid) = case_id {
             sqlx::query_scalar("SELECT version FROM test_cases WHERE id = $1")
                 .bind(cid)
-                .fetch_optional(&state.pool)
+                .fetch_optional(&mut *tx)
                 .await?
         } else {
             None
@@ -795,10 +797,11 @@ pub async fn ingest_results(
         .bind(item.duration_ms)
         .bind(&item.raw)
         .bind(case_version)
-        .fetch_one(&state.pool)
+        .fetch_one(&mut *tx)
         .await?;
         out.push(row);
     }
+    tx.commit().await?;
     Ok(Json(out))
 }
 
