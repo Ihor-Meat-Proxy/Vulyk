@@ -161,6 +161,8 @@ async fn export_import_roundtrip_local_destination() {
         .await;
 
     let tmp = tempfile_dir();
+    // Local destinations must stay under VULYK_CONTENT_BACKUP_DIR.
+    std::env::set_var("VULYK_CONTENT_BACKUP_DIR", &tmp);
     let mut headers = reqwest::header::HeaderMap::new();
     if !token.is_empty() {
         headers.insert(
