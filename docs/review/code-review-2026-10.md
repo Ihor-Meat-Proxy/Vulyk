@@ -360,7 +360,7 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
 | Later | #24 / #44–#46 a11y i18n | separate UI PR |
 | Later | #37–#40 project isolation | correctness follow-up (overlaps security) |
-| Security agent | #20 auth on result history | out of scope here |
+| Security agent | #20 auth on result history | fixed by [#50](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/50) |
 
 ---
 
