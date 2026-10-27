@@ -428,12 +428,7 @@ pub async fn list_cases(
                   tc.sort_order, tc.created_at, tc.updated_at,
                   (tc.external_key IS NOT NULL) AS automated,
                   su.name AS folder_name,
-                  (
-                    SELECT tr.status FROM test_results tr
-                    WHERE tr.case_id = tc.id
-                    ORDER BY tr.executed_at DESC NULLS LAST, tr.created_at DESC
-                    LIMIT 1
-                  ) AS last_run_status,
+                  tc.last_run_status,
                   (
                     SELECT string_agg(tg2.name, ', ' ORDER BY tg2.name)
                     FROM case_tags ct2

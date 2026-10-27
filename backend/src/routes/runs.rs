@@ -801,6 +801,8 @@ pub async fn ingest_results(
         .await?;
         out.push(row);
     }
+    let touched: Vec<Uuid> = out.iter().filter_map(|r| r.case_id).collect();
+    crate::services::results::refresh_last_run_status_tx(&mut tx, &touched).await?;
     tx.commit().await?;
     Ok(Json(out))
 }
@@ -956,6 +958,10 @@ pub async fn create_result(
             .execute(&mut *tx)
             .await?;
         }
+    }
+
+    if let Some(cid) = case_id {
+        crate::services::results::refresh_last_run_status_tx(&mut tx, &[cid]).await?;
     }
 
     tx.commit().await?;

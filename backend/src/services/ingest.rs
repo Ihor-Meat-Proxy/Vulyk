@@ -102,6 +102,9 @@ pub async fn persist_results(
     }
 
     refresh_last_automation(pool, run_id, &matched_case_updates).await?;
+    // Keep denormalized case-list column in sync (review #11).
+    let case_ids: Vec<Uuid> = matched_case_updates.iter().map(|(id, _)| *id).collect();
+    crate::services::results::refresh_last_run_status(pool, &case_ids).await?;
 
     if inserted > 0 || idempotent_replays > 0 {
         if lifecycle == "ci" {
