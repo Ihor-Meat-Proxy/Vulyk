@@ -528,7 +528,10 @@ async fn cross_project_results_and_jobs_are_forbidden() {
         .json()
         .await
         .expect("case json");
-    let case_id = case["id"].as_str().expect("case id");
+    let case_id = case["case"]["id"]
+        .as_str()
+        .or_else(|| case["id"].as_str())
+        .expect("case id");
 
     let denied = client
         .get(format!(
