@@ -118,6 +118,10 @@ with only a non-unique index on `(run_id, external_id)`. Concurrent workers can
 insert duplicate history rows for the same external id. Consider a partial unique
 index or `ON CONFLICT` if duplicate suppression is required.
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/90 — partial unique
+index `(run_id, external_id, status)` for non-empty `external_id`; ingest uses
+`ON CONFLICT DO NOTHING RETURNING` (different status still appends history).
+
 ### 7. **risk** — Case updates lack optimistic concurrency
 
 `backend/src/routes/cases.rs:722-727`
