@@ -19,6 +19,9 @@ use crate::models::User;
 use crate::routes::AppState;
 
 const SESSION_COOKIE: &str = "vulyk_session";
+/// Double-submit CSRF cookie (readable by JS; paired with `X-Vulyk-Csrf`).
+const CSRF_COOKIE: &str = "vulyk_csrf";
+const CSRF_HEADER: &str = "x-vulyk-csrf";
 
 #[derive(Clone, Debug)]
 pub struct AuthConfig {
@@ -294,6 +297,11 @@ pub async fn bearer_middleware(
         if let Some(cookie) = jar.get(SESSION_COOKIE) {
             match authenticate_session(&state.pool, cookie.value()).await {
                 Ok(user) => {
+                    // Cookie-only mutations need double-submit CSRF (security audit M2).
+                    // Bearer / API-token auth is exempt (not automatically sent cross-site).
+                    if is_unsafe_method(&method) && !csrf_double_submit_ok(req.headers()) {
+                        return csrf_forbidden();
+                    }
                     if let Some(resp) = block_if_must_change(&user, &method, &path) {
                         return resp;
                     }
@@ -646,9 +654,69 @@ pub fn session_cookie_name() -> &'static str {
     SESSION_COOKIE
 }
 
+pub fn csrf_cookie_name() -> &'static str {
+    CSRF_COOKIE
+}
+
+pub fn csrf_header_name() -> &'static str {
+    CSRF_HEADER
+}
+
+fn is_unsafe_method(method: &str) -> bool {
+    matches!(
+        method.to_ascii_uppercase().as_str(),
+        "POST" | "PUT" | "PATCH" | "DELETE"
+    )
+}
+
+/// Double-submit: `vulyk_csrf` cookie value must equal `X-Vulyk-Csrf` header.
+pub fn csrf_double_submit_ok(headers: &axum::http::HeaderMap) -> bool {
+    let jar = CookieJar::from_headers(headers);
+    let Some(cookie) = jar.get(CSRF_COOKIE) else {
+        return false;
+    };
+    let cookie_val = cookie.value();
+    if cookie_val.is_empty() {
+        return false;
+    }
+    let Some(header_val) = headers.get(CSRF_HEADER).and_then(|v| v.to_str().ok()) else {
+        return false;
+    };
+    // Length check first; equality is fine for random session secrets.
+    cookie_val.len() == header_val.len() && cookie_val == header_val
+}
+
+fn csrf_forbidden() -> Response {
+    (
+        StatusCode::FORBIDDEN,
+        Json(json!({
+            "error": {
+                "code": "csrf_rejected",
+                "message": "CSRF validation failed for cookie session; send X-Vulyk-Csrf matching vulyk_csrf cookie, or use a Bearer token"
+            }
+        })),
+    )
+        .into_response()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn csrf_double_submit_requires_matching_header() {
+        let mut headers = axum::http::HeaderMap::new();
+        assert!(!csrf_double_submit_ok(&headers));
+        headers.insert(
+            axum::http::header::COOKIE,
+            "vulyk_csrf=secret-token".parse().unwrap(),
+        );
+        assert!(!csrf_double_submit_ok(&headers));
+        headers.insert(CSRF_HEADER, "wrong".parse().unwrap());
+        assert!(!csrf_double_submit_ok(&headers));
+        headers.insert(CSRF_HEADER, "secret-token".parse().unwrap());
+        assert!(csrf_double_submit_ok(&headers));
+    }
 
     #[test]
     fn production_like_detects_env_and_https_base() {
