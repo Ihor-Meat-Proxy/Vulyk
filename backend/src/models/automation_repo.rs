@@ -121,6 +121,21 @@ pub struct SetRepoProjects {
     pub default_project_id: Option<Uuid>,
 }
 
+/// Probe connectivity from unsaved form values (no repo id required).
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct TestAutomationRepoBody {
+    pub provider: String,
+    pub remote_url: String,
+    #[serde(default = "default_branch")]
+    pub branch: String,
+    #[serde(default)]
+    pub subpath: String,
+    pub token: Option<String>,
+    /// Optional projects used for RBAC when auth is required.
+    #[serde(default)]
+    pub project_ids: Vec<Uuid>,
+}
+
 #[derive(Debug, Serialize, ToSchema)]
 pub struct AutomationRepoTestResult {
     pub ok: bool,

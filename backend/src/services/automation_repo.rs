@@ -11,9 +11,9 @@ use uuid::Uuid;
 use crate::error::{AppError, AppResult};
 use crate::models::{AutomationRepoRow, ContextFileRef};
 
-const MAX_FILE_BYTES: u64 = 200_000;
-const MAX_FILES: usize = 800;
-const CHUNK_LINES: usize = 40;
+pub(crate) const MAX_FILE_BYTES: u64 = 200_000;
+pub(crate) const MAX_FILES: usize = 800;
+pub(crate) const CHUNK_LINES: usize = 40;
 const DEFAULT_TOKEN_BUDGET: usize = 6_000;
 
 const LANG_EXTS: &[(&str, &str)] = &[
@@ -82,9 +82,17 @@ fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
     if let Some(dir) = cwd {
         cmd.current_dir(dir);
     }
-    let out = cmd
-        .output()
-        .map_err(|e| AppError::BadRequest(format!("git not available: {e}")))?;
+    let out = cmd.output().map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            AppError::BadRequest(
+                "git is not installed in this environment. The generic provider needs the git binary \
+                 in the API image; use the github or gitlab provider for REST indexing without git."
+                    .into(),
+            )
+        } else {
+            AppError::BadRequest(format!("git not available: {e}"))
+        }
+    })?;
     if !out.status.success() {
         let stderr = String::from_utf8_lossy(&out.stderr);
         let redacted = crate::services::egress::redact_url_credentials(&stderr);
@@ -94,6 +102,16 @@ fn run_git(args: &[&str], cwd: Option<&Path>) -> AppResult<String> {
         )));
     }
     Ok(String::from_utf8_lossy(&out.stdout).trim().to_string())
+}
+
+/// True when `git` is on PATH (generic provider only).
+pub fn git_available() -> bool {
+    Command::new("git")
+        .arg("--version")
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
 }
 
 /// Shallow clone or fetch+checkout the configured branch.
@@ -173,6 +191,11 @@ fn language_for(path: &Path) -> Option<&'static str> {
         .iter()
         .find(|(e, _)| *e == ext)
         .map(|(_, lang)| *lang)
+}
+
+/// Language for a repo-relative path string (used by REST indexing).
+pub fn language_for_path(path: &str) -> Option<&'static str> {
+    language_for(Path::new(path))
 }
 
 fn should_skip_dir(name: &str) -> bool {
@@ -364,31 +387,134 @@ pub async fn persist_index(
 
     let mut chunk_count = 0i32;
     for f in files {
-        let file_id: Uuid = sqlx::query_scalar(
-            r#"INSERT INTO automation_repo_files (repo_id, path, language, size_bytes, content_hash)
-               VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
-        )
-        .bind(repo_id)
-        .bind(&f.path)
-        .bind(&f.language)
-        .bind(f.size_bytes)
-        .bind(&f.content_hash)
-        .fetch_one(&mut *tx)
-        .await?;
-        for (idx, chunk) in f.chunks.iter().enumerate() {
-            sqlx::query(
-                r#"INSERT INTO automation_repo_chunks (file_id, chunk_index, content)
-                   VALUES ($1, $2, $3)"#,
-            )
-            .bind(file_id)
-            .bind(idx as i32)
-            .bind(chunk)
-            .execute(&mut *tx)
+        chunk_count += insert_file_with_chunks(&mut tx, repo_id, f).await?;
+    }
+
+    finalize_index_meta(
+        &mut tx,
+        repo_id,
+        commit_sha,
+        files.len() as i32,
+        chunk_count,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok((files.len() as i32, chunk_count))
+}
+
+/// Load path → content_hash (blob SHA for REST indexes) for incremental sync.
+pub async fn load_content_hashes(
+    pool: &PgPool,
+    repo_id: Uuid,
+) -> AppResult<HashMap<String, String>> {
+    let rows: Vec<(String, String)> = sqlx::query_as(
+        r#"SELECT path, content_hash FROM automation_repo_files WHERE repo_id = $1"#,
+    )
+    .bind(repo_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().collect())
+}
+
+/// Incremental persist: drop removed paths, replace only changed files, keep the rest.
+pub async fn persist_index_incremental(
+    pool: &PgPool,
+    repo_id: Uuid,
+    tree_paths: &HashMap<String, String>,
+    changed: &[IndexedFile],
+    commit_sha: &str,
+) -> AppResult<(i32, i32)> {
+    let mut tx = pool.begin().await?;
+
+    let existing: Vec<(Uuid, String)> =
+        sqlx::query_as(r#"SELECT id, path FROM automation_repo_files WHERE repo_id = $1"#)
+            .bind(repo_id)
+            .fetch_all(&mut *tx)
             .await?;
-            chunk_count += 1;
+
+    for (file_id, path) in &existing {
+        if !tree_paths.contains_key(path) {
+            sqlx::query("DELETE FROM automation_repo_files WHERE id = $1")
+                .bind(file_id)
+                .execute(&mut *tx)
+                .await?;
         }
     }
 
+    for f in changed {
+        sqlx::query("DELETE FROM automation_repo_files WHERE repo_id = $1 AND path = $2")
+            .bind(repo_id)
+            .bind(&f.path)
+            .execute(&mut *tx)
+            .await?;
+        insert_file_with_chunks(&mut tx, repo_id, f).await?;
+    }
+
+    let file_count: i64 =
+        sqlx::query_scalar(r#"SELECT COUNT(*) FROM automation_repo_files WHERE repo_id = $1"#)
+            .bind(repo_id)
+            .fetch_one(&mut *tx)
+            .await?;
+    let chunk_count: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(*) FROM automation_repo_chunks c
+           JOIN automation_repo_files f ON f.id = c.file_id
+           WHERE f.repo_id = $1"#,
+    )
+    .bind(repo_id)
+    .fetch_one(&mut *tx)
+    .await?;
+
+    finalize_index_meta(
+        &mut tx,
+        repo_id,
+        commit_sha,
+        file_count as i32,
+        chunk_count as i32,
+    )
+    .await?;
+    tx.commit().await?;
+    Ok((file_count as i32, chunk_count as i32))
+}
+
+async fn insert_file_with_chunks(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    repo_id: Uuid,
+    f: &IndexedFile,
+) -> AppResult<i32> {
+    let file_id: Uuid = sqlx::query_scalar(
+        r#"INSERT INTO automation_repo_files (repo_id, path, language, size_bytes, content_hash)
+           VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
+    )
+    .bind(repo_id)
+    .bind(&f.path)
+    .bind(&f.language)
+    .bind(f.size_bytes)
+    .bind(&f.content_hash)
+    .fetch_one(&mut **tx)
+    .await?;
+    let mut chunk_count = 0i32;
+    for (idx, chunk) in f.chunks.iter().enumerate() {
+        sqlx::query(
+            r#"INSERT INTO automation_repo_chunks (file_id, chunk_index, content)
+               VALUES ($1, $2, $3)"#,
+        )
+        .bind(file_id)
+        .bind(idx as i32)
+        .bind(chunk)
+        .execute(&mut **tx)
+        .await?;
+        chunk_count += 1;
+    }
+    Ok(chunk_count)
+}
+
+async fn finalize_index_meta(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    repo_id: Uuid,
+    commit_sha: &str,
+    file_count: i32,
+    chunk_count: i32,
+) -> AppResult<()> {
     sqlx::query(
         r#"UPDATE automation_repos SET
              index_status = 'ready',
@@ -402,13 +528,11 @@ pub async fn persist_index(
     )
     .bind(repo_id)
     .bind(commit_sha)
-    .bind(files.len() as i32)
+    .bind(file_count)
     .bind(chunk_count)
-    .execute(&mut *tx)
+    .execute(&mut **tx)
     .await?;
-
-    tx.commit().await?;
-    Ok((files.len() as i32, chunk_count))
+    Ok(())
 }
 
 pub async fn mark_indexing(pool: &PgPool, repo_id: Uuid) -> AppResult<()> {
