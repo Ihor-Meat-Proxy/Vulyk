@@ -62,14 +62,79 @@ impl AuthConfig {
     }
 }
 
-/// Accepts `VULYK_AUTH_REQUIRED` (W1) or legacy `VULYK_REQUIRE_AUTH` (W9/W10).
-pub fn require_auth_enabled() -> bool {
-    for key in ["VULYK_AUTH_REQUIRED", "VULYK_REQUIRE_AUTH"] {
-        if let Ok(v) = std::env::var(key) {
-            return matches!(v.to_lowercase().as_str(), "1" | "true" | "yes");
+/// True when deployment looks production-like (`VULYK_ENV=production|prod` or
+/// `VULYK_BASE_URL` is `https://…`). Used to fail closed on auth (H11).
+pub fn production_like_deployment(env: Option<&str>, base_url: Option<&str>) -> bool {
+    if let Some(env) = env.map(str::trim).filter(|s| !s.is_empty()) {
+        let lower = env.to_ascii_lowercase();
+        if matches!(lower.as_str(), "production" | "prod") {
+            return true;
+        }
+    }
+    if let Some(base) = base_url.map(str::trim).filter(|s| !s.is_empty()) {
+        if base.to_ascii_lowercase().starts_with("https://") {
+            return true;
         }
     }
     false
+}
+
+fn production_like_from_env() -> bool {
+    production_like_deployment(
+        std::env::var("VULYK_ENV").ok().as_deref(),
+        std::env::var("VULYK_BASE_URL").ok().as_deref(),
+    )
+}
+
+/// Explicit auth flag from env: `Some(true/false)` when set, `None` when unset/empty.
+fn explicit_auth_required_from_env() -> Option<bool> {
+    for key in ["VULYK_AUTH_REQUIRED", "VULYK_REQUIRE_AUTH"] {
+        if let Ok(v) = std::env::var(key) {
+            let trimmed = v.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+            return Some(matches!(
+                trimmed.to_ascii_lowercase().as_str(),
+                "1" | "true" | "yes"
+            ));
+        }
+    }
+    None
+}
+
+/// Resolve whether auth is required.
+///
+/// - Local/dev (no production markers): defaults to **open** when unset.
+/// - Production-like (`VULYK_ENV=production|prod` or https `VULYK_BASE_URL`):
+///   defaults to **required**; panics if auth is explicitly disabled.
+pub fn resolve_auth_required(explicit: Option<bool>, production_like: bool) -> bool {
+    match (explicit, production_like) {
+        (Some(false), true) => {
+            panic!(
+                "refusing to start with auth disabled under production markers \
+                 (VULYK_ENV=production|prod or https VULYK_BASE_URL). \
+                 Set VULYK_AUTH_REQUIRED=true (or unset it to auto-enable)"
+            );
+        }
+        (Some(v), _) => v,
+        (None, true) => {
+            tracing::warn!(
+                "production markers detected without VULYK_AUTH_REQUIRED; enabling auth (fail closed)"
+            );
+            true
+        }
+        (None, false) => false,
+    }
+}
+
+/// Accepts `VULYK_AUTH_REQUIRED` (W1) or legacy `VULYK_REQUIRE_AUTH` (W9/W10).
+/// Fail-closed under production markers (see [`resolve_auth_required`]).
+pub fn require_auth_enabled() -> bool {
+    resolve_auth_required(
+        explicit_auth_required_from_env(),
+        production_like_from_env(),
+    )
 }
 
 #[derive(Clone, Debug)]
@@ -579,4 +644,51 @@ pub async fn project_role_for(
 
 pub fn session_cookie_name() -> &'static str {
     SESSION_COOKIE
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_like_detects_env_and_https_base() {
+        assert!(!production_like_deployment(None, None));
+        assert!(!production_like_deployment(
+            Some("development"),
+            Some("http://localhost:8080")
+        ));
+        assert!(!production_like_deployment(
+            Some("staging"),
+            Some("http://app.example")
+        ));
+        assert!(production_like_deployment(Some("production"), None));
+        assert!(production_like_deployment(Some("PROD"), None));
+        assert!(production_like_deployment(
+            None,
+            Some("https://vulyk.example")
+        ));
+        assert!(production_like_deployment(
+            Some("production"),
+            Some("https://vulyk.example")
+        ));
+    }
+
+    #[test]
+    fn resolve_auth_keeps_local_open_by_default() {
+        assert!(!resolve_auth_required(None, false));
+        assert!(!resolve_auth_required(Some(false), false));
+        assert!(resolve_auth_required(Some(true), false));
+    }
+
+    #[test]
+    fn resolve_auth_fail_closed_under_production_markers() {
+        assert!(resolve_auth_required(None, true));
+        assert!(resolve_auth_required(Some(true), true));
+    }
+
+    #[test]
+    #[should_panic(expected = "refusing to start with auth disabled")]
+    fn resolve_auth_panics_when_explicitly_disabled_in_production() {
+        let _ = resolve_auth_required(Some(false), true);
+    }
 }

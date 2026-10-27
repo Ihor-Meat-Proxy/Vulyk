@@ -8,8 +8,9 @@ Bearer auth accepts **JWT**, **session secrets** (`vulyk_s_…`), or **API token
 
 | Mode | Env | Behavior |
 |------|-----|----------|
-| Open (default local/dev) | `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` unset or false | Anonymous CRUD for projects/suites/cases still works. Admin/user routes require auth. |
-| Enforced | `VULYK_AUTH_REQUIRED=true` or `VULYK_REQUIRE_AUTH=1` | Project APIs require Bearer JWT, session cookie, or API token. Project lists are filtered by membership (system admins see all). |
+| Open (default local/dev) | `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` unset or false, and **no** production markers | Anonymous CRUD for projects/suites/cases still works. Admin/user routes require auth. |
+| Enforced | `VULYK_AUTH_REQUIRED=true` / `VULYK_REQUIRE_AUTH=1`, **or** production markers with auth unset | Project APIs require Bearer JWT, session cookie, or API token. Project lists are filtered by membership (system admins see all). |
+| Fail-closed | `VULYK_ENV=production\|prod` or https `VULYK_BASE_URL` with auth explicitly `false` | **Boot panics** — cannot disable auth under production markers. |
 
 ## Credentials & first-run
 
@@ -38,7 +39,8 @@ Seeded admins with `VULYK_ADMIN_MUST_CHANGE=1` (set by `install.sh` when it gene
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` | `false` | Enforce auth on project APIs |
+| `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` | `false` locally; **auto-true** under production markers | Enforce auth on project APIs. Production markers: `VULYK_ENV=production\|prod` or https `VULYK_BASE_URL` — auth unset → enabled; auth `false` → boot panic |
+| `VULYK_ENV` | (unset) | When `production`/`prod`, forces auth fail-closed (see above) |
 | `VULYK_JWT_SECRET` | insecure dev default only when auth is **off** | HMAC secret for JWTs. **Fail-closed:** when auth is required, unset/empty/`vulyk-dev-jwt-secret-change-me` panics at boot — set a strong secret in prod |
 | `VULYK_JWT_TTL_HOURS` | `12` | Access token lifetime |
 | `VULYK_SESSION_TTL_HOURS` | `168` | Session cookie lifetime |
