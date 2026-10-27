@@ -385,8 +385,10 @@ async fn vulyk_json_async_job() {
         .unwrap();
     let job_id = ingest["job_id"].as_str().expect("job_id");
 
+    // Parallel cargo tests share one DB and many workers; allow longer for claim+ingest.
     let mut status = String::new();
-    for _ in 0..40 {
+    let mut last_job = Value::Null;
+    for _ in 0..100 {
         let job: Value = client
             .get(format!("{base}/api/v1/jobs/{job_id}"))
             .send()
@@ -396,13 +398,21 @@ async fn vulyk_json_async_job() {
             .await
             .unwrap();
         status = job["status"].as_str().unwrap_or("").to_string();
+        last_job = job;
         if status == "completed" || status == "failed" {
-            assert_eq!(status, "completed", "job error: {:?}", job["last_error"]);
+            assert_eq!(
+                status, "completed",
+                "job error: {:?}",
+                last_job["last_error"]
+            );
             break;
         }
-        tokio::time::sleep(Duration::from_millis(100)).await;
+        tokio::time::sleep(Duration::from_millis(200)).await;
     }
-    assert_eq!(status, "completed");
+    assert_eq!(
+        status, "completed",
+        "job did not finish in time: {last_job}"
+    );
 
     let results: Value = client
         .get(format!("{base}/api/v1/runs/{run_id}/results"))
