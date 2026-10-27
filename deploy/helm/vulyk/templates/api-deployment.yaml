@@ -19,6 +19,10 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: api
     spec:
+      {{- with .Values.podSecurityContext.api }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- if .Values.migrate.enabled }}
       # Fresh install (no pre-upgrade hook yet) and belt-and-suspenders after the
       # migrate Job. Advisory lock keeps concurrent replicas safe.
@@ -26,6 +30,10 @@ spec:
         - name: migrate
           image: {{ .Values.image.api | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           command: ["vulyk-api"]
           args: ["migrate", "run"]
           env:
@@ -43,6 +51,10 @@ spec:
         - name: api
           image: {{ .Values.image.api | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: 8080

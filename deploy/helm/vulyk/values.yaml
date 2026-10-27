@@ -91,6 +91,29 @@ resources:
   api: {}
   web: {}
 
+# Container hardening (security audit M8). API image USER=10001; web unprivileged nginx=101.
+podSecurityContext:
+  api:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  web:
+    runAsNonRoot: true
+    runAsUser: 101
+    fsGroup: 101
+    seccompProfile:
+      type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  # API writes attachments under /var/lib/vulyk; nginx needs cache/temp writable.
+  readOnlyRootFilesystem: false
+
 probes:
   api:
     readiness:
