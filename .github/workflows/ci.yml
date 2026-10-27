@@ -454,7 +454,7 @@ jobs:
   # Real PWA/a11y regressions still show as a red (soft) check — investigate
   # before release, but do not treat infra flakes as merge blockers.
   lighthouse:
-    name: Lighthouse PWA/a11y (advisory)
+    name: Lighthouse a11y/PWA (advisory)
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -489,11 +489,12 @@ jobs:
           echo "UI failed to start" >&2
           cat /tmp/vulyk-lh.log >&2
           exit 1
-      - name: Lighthouse PWA + accessibility
+      - name: Lighthouse a11y + PWA static gates
         working-directory: frontend
         env:
           LIGHTHOUSE_URL: http://127.0.0.1:5173
-          LH_MIN_PWA: "0.8"
+          # PWA category removed in Lighthouse ≥12; a11y stays scored. Static
+          # manifest/SW checks live in scripts/pwa-gates.mjs (audit M14).
           LH_MIN_A11Y: "0.85"
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
         run: |
