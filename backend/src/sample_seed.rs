@@ -139,6 +139,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         include_str!("../seed/vulyk-qa.d/multi-repo-ci-ingest.json"),
     ),
     (
+        "password-policy-lockout",
+        include_str!("../seed/vulyk-qa.d/password-policy-lockout.json"),
+    ),
+    (
         "qa-coverage-hardening",
         include_str!("../seed/vulyk-qa.d/qa-coverage-hardening.json"),
     ),
