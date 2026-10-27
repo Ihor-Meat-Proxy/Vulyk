@@ -475,6 +475,9 @@ rolls back earlier rows.
 
 `backend/src/routes/campaigns.rs:545-550` vs service clamp `1..=200`.
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/99 — `clamp_campaign_limit` / query helpers so `Page.limit` matches the
+clamped fetch size.
+
 ### 43. **bug** — Docs invent restore/preview + project-admin backup RBAC
 
 `docs/backup-design.md` vs `RequireSystemAdmin` + `dry_run` on restore only.

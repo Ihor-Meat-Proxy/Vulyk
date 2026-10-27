@@ -212,6 +212,14 @@ pub struct AutomatedSuite {
     pub is_sample: bool,
 }
 
+/// Max page size for campaign/execution list endpoints (service clamps to this).
+pub const CAMPAIGN_PAGE_MAX: i64 = 200;
+
+/// Clamp a campaign/execution list `limit` to `1..=CAMPAIGN_PAGE_MAX` (review #42).
+pub fn clamp_campaign_limit(limit: i64) -> i64 {
+    limit.clamp(1, CAMPAIGN_PAGE_MAX)
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct AutomatedSuitesQuery {
     pub status: Option<String>,
@@ -227,6 +235,16 @@ pub struct AutomatedSuitesQuery {
 
 fn default_limit() -> i64 {
     25
+}
+
+impl AutomatedSuitesQuery {
+    pub fn limit(&self) -> i64 {
+        clamp_campaign_limit(self.limit)
+    }
+
+    pub fn offset(&self) -> i64 {
+        self.offset.max(0)
+    }
 }
 
 fn default_sort() -> String {
@@ -320,4 +338,31 @@ pub struct PipelineIngestResponse {
     pub unmatched_case_keys: Vec<String>,
     pub job_id: Option<Uuid>,
     pub parsed: i64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn clamp_campaign_limit_bounds() {
+        assert_eq!(clamp_campaign_limit(0), 1);
+        assert_eq!(clamp_campaign_limit(-5), 1);
+        assert_eq!(clamp_campaign_limit(25), 25);
+        assert_eq!(clamp_campaign_limit(10_000), CAMPAIGN_PAGE_MAX);
+    }
+
+    #[test]
+    fn automated_suites_query_echoes_clamped_limit() {
+        let q = AutomatedSuitesQuery {
+            status: None,
+            created_by: None,
+            q: None,
+            limit: 9_999,
+            offset: -3,
+            sort: "created_at_desc".into(),
+        };
+        assert_eq!(q.limit(), CAMPAIGN_PAGE_MAX);
+        assert_eq!(q.offset(), 0);
+    }
 }

@@ -725,7 +725,7 @@ pub async fn list_automated_suites(
         .bind(status)
         .bind(created_by)
         .bind(q)
-        .bind(limit.clamp(1, 200))
+        .bind(crate::models::clamp_campaign_limit(limit))
         .bind(offset.max(0))
         .fetch_all(pool)
         .await?;
@@ -905,7 +905,7 @@ pub async fn list_suite_results(
            LIMIT $2 OFFSET $3"#,
     )
     .bind(run_id)
-    .bind(limit.clamp(1, 200))
+    .bind(crate::models::clamp_campaign_limit(limit))
     .bind(offset.max(0))
     .fetch_all(pool)
     .await?;
@@ -967,7 +967,7 @@ pub async fn case_execution_history(
     )
     .bind(project_id)
     .bind(case_id)
-    .bind(limit.clamp(1, 200))
+    .bind(crate::models::clamp_campaign_limit(limit))
     .bind(offset.max(0))
     .fetch_all(pool)
     .await?;
@@ -1037,8 +1037,8 @@ pub async fn case_execution_history(
     Ok(CaseExecutionHistoryPage {
         items,
         total,
-        limit,
-        offset,
+        limit: crate::models::clamp_campaign_limit(limit),
+        offset: offset.max(0),
         pass_rate,
         sparkline,
     })
