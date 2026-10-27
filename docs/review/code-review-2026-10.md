@@ -82,7 +82,7 @@ on a 20k-case project “select all + export”.
 **Fix:** Reject requests above a documented max (e.g. 100) with `400 bad_request`;
 document in `docs/api.md`.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51
 
 ---
 
@@ -354,7 +354,7 @@ or 20k list scroll. Folder lazy load has coverage (`folder-tree-lazy.spec.ts`).
 | P0 | #1 run-item `executed_at` | [#42](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/42) **merged** |
 | P0 | #2 stale job reclaim | [#46](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/46) |
 | P1 | #3 ingest case_key normalize | [#49](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/49) **merged** |
-| P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) |
+| P1 | #4 bulk export cap | [#51](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/51) **merged** |
 | P1 | #35 OpenAPI version pin | [#58](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/58) **merged** |
 | P1 | #36 requirement coverage % | [#60](https://github.com/Ihor-Meat-Proxy/Vulyk/pull/60) **merged** |
 | Later | #11–#15 perf | separate scale PR (not in this pass) |
