@@ -401,6 +401,8 @@ const uk: Dict = {
   'generate.cases': "Кейси",
   'generate.casesFromRequirements': "Кейси з вимог",
   'generate.casesNotice': "Згенеровано {count} чернеток через {provider}/{model}; збережено {persisted}.",
+  'generate.casesTruncated': "Показано {shown} з {total} кейсів (ліміт {limit}). Скористайтеся пошуком або папками — не всі кейси завантажені.",
+  'generate.casesTruncatedPrefill': "У проєкті {total} кейсів; пікер завантажує по {limit}. Prefill за можливості підтягнув вибрані id поза першою сторінкою.",
   'generate.codeNotice': "Код від {provider}/{model}",
   'generate.contextFiles': "Використаний контекст репозиторію",
   'generate.download': "Завантажити код",

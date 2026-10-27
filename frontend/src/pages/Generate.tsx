@@ -8,7 +8,11 @@ import {
   type LlmConfig,
   type TestCase,
 } from '../api'
-import { CasePicker, type PickedCase } from '../components/CasePicker'
+import {
+  CASE_PICKER_LIMIT,
+  CasePicker,
+  type PickedCase,
+} from '../components/CasePicker'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { TestIds, testIdProps } from '../testing'
@@ -89,15 +93,38 @@ export function Generate({ projectId }: Props) {
     let cancelled = false
     void (async () => {
       try {
-        const page = await api.listCases(projectId, { limit: 500 })
+        const page = await api.listCases(projectId, {
+          limit: CASE_PICKER_LIMIT,
+        })
         if (cancelled) return
         const map = new Map(page.items.map((c: TestCase) => [c.id, c]))
         const next: PickedCase[] = []
+        let fetchedExtra = 0
         for (const id of ids) {
-          const c = map.get(id)
-          if (c) next.push({ id: c.id, key: c.key, title: c.title })
+          let c = map.get(id)
+          if (!c) {
+            // Prefill IDs can sit past the soft list cap — resolve by id (review #45).
+            try {
+              const detail = await api.getCase(projectId, id)
+              c = detail.case
+              fetchedExtra += 1
+            } catch {
+              continue
+            }
+          }
+          next.push({ id: c.id, key: c.key, title: c.title })
         }
+        if (cancelled) return
         if (next.length) setPicked(next)
+        if (page.total > page.items.length || fetchedExtra > 0) {
+          setNotice(
+            t('generate.casesTruncatedPrefill', {
+              shown: page.items.length,
+              total: page.total,
+              limit: CASE_PICKER_LIMIT,
+            }),
+          )
+        }
         setSearchParams({}, { replace: true })
       } catch {
         /* ignore — user can pick manually */

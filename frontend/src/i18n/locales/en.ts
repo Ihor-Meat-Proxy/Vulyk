@@ -401,6 +401,8 @@ const en: Dict = {
   'generate.cases': "Cases",
   'generate.casesFromRequirements': "Cases from requirements",
   'generate.casesNotice': "Generated {count} draft(s) via {provider}/{model}; persisted {persisted}.",
+  'generate.casesTruncated': "Showing {shown} of {total} cases (limit {limit}). Use search or folders — not every case is loaded.",
+  'generate.casesTruncatedPrefill': "Project has {total} cases; picker loads {limit} at a time. Prefill resolved selected ids beyond the first page when possible.",
   'generate.codeNotice': "Code from {provider}/{model}",
   'generate.contextFiles': "Repository context used",
   'generate.download': "Download code",

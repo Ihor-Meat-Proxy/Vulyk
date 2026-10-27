@@ -688,6 +688,7 @@ export const TestIds = {
   casePickerFolder: 'case-picker-folder',
   casePickerChip: 'case-picker-chip',
   casePickerAllFolders: 'case-picker-all-folders',
+  casePickerTruncatedNotice: 'case-picker-truncated-notice',
 
   // —— Automated suites / iteration ——
   automatedSuitesTable: 'automated-suites-table',

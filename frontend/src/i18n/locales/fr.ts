@@ -401,6 +401,8 @@ const fr: Dict = {
   'generate.cases': "Cas",
   'generate.casesFromRequirements': "Cas à partir des exigences",
   'generate.casesNotice': "{count} brouillon(s) généré(s) via {provider}/{model} ; persisté(s) : {persisted}.",
+  'generate.casesTruncated': "Affichage de {shown} cas sur {total} (limite {limit}). Utilisez la recherche ou les dossiers — tous les cas ne sont pas chargés.",
+  'generate.casesTruncatedPrefill': "Le projet contient {total} cas ; le sélecteur charge {limit} à la fois. Le préremplissage a résolu les ids sélectionnés hors de la première page lorsque possible.",
   'generate.codeNotice': "Code de {provider}/{model}",
   'generate.contextFiles': "Contexte du dépôt utilisé",
   'generate.download': "Télécharger le code",
