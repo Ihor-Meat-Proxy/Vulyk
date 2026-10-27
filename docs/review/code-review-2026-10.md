@@ -489,6 +489,9 @@ clamped fetch size.
 
 `docs/backup-design.md` vs `RequireSystemAdmin` + `dry_run` on restore only.
 
+**Fixed:** align design + user guide with live routes (`restore` / `restore/upload` +
+`dry_run`) and system-admin-only RBAC.
+
 ### 44. **bug** — CaseDetail / RunDetail stale paint on fast navigation
 
 `frontend/src/pages/CaseDetail.tsx:365-390`, `RunDetail.tsx:69-89` —
