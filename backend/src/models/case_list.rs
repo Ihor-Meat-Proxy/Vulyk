@@ -66,6 +66,7 @@ pub struct TestCaseListItem {
     #[serde(default)]
     pub automated: bool,
     /// Latest `test_results.status` by executed_at (manual + ingest).
+    /// Served from denormalized `test_cases.last_run_status` (review #11).
     #[serde(default)]
     pub last_run_status: Option<String>,
     /// Folder (suite) display name when filed.

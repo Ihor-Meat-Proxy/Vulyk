@@ -301,3 +301,59 @@ pub async fn load_result_steps(pool: &sqlx::PgPool, result_id: Uuid) -> AppResul
     .fetch_all(pool)
     .await?)
 }
+
+/// Refresh denormalized `test_cases.last_run_status` / `last_run_at` from the
+/// latest `test_results` row per case (code review #11).
+pub async fn refresh_last_run_status(pool: &sqlx::PgPool, case_ids: &[Uuid]) -> AppResult<()> {
+    if case_ids.is_empty() {
+        return Ok(());
+    }
+    sqlx::query(
+        r#"UPDATE test_cases AS tc SET
+             last_run_status = sub.status,
+             last_run_at = sub.executed_at
+           FROM (
+             SELECT DISTINCT ON (tr.case_id)
+               tr.case_id,
+               tr.status,
+               tr.executed_at
+             FROM test_results tr
+             WHERE tr.case_id = ANY($1)
+             ORDER BY tr.case_id, tr.executed_at DESC NULLS LAST, tr.created_at DESC
+           ) AS sub
+           WHERE tc.id = sub.case_id"#,
+    )
+    .bind(case_ids)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Same as [`refresh_last_run_status`] but on an open transaction.
+pub async fn refresh_last_run_status_tx(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    case_ids: &[Uuid],
+) -> AppResult<()> {
+    if case_ids.is_empty() {
+        return Ok(());
+    }
+    sqlx::query(
+        r#"UPDATE test_cases AS tc SET
+             last_run_status = sub.status,
+             last_run_at = sub.executed_at
+           FROM (
+             SELECT DISTINCT ON (tr.case_id)
+               tr.case_id,
+               tr.status,
+               tr.executed_at
+             FROM test_results tr
+             WHERE tr.case_id = ANY($1)
+             ORDER BY tr.case_id, tr.executed_at DESC NULLS LAST, tr.created_at DESC
+           ) AS sub
+           WHERE tc.id = sub.case_id"#,
+    )
+    .bind(case_ids)
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
