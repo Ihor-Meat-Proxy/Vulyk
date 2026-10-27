@@ -52,6 +52,7 @@ Index of guides and references. Prefer these over outdated workstream notes.
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Hooks, migrations, i18n, test ids |
 | [ci-failures.md](ci-failures.md) | CI failure catalog |
 | [testing/test-ids.md](testing/test-ids.md) | Playwright `data-testid` conventions |
+| [testing/playwright-vulyk.md](testing/playwright-vulyk.md) | Map e2e tests to VQA cases + optional CI reporter |
 | [../backend/seed/vulyk-qa.d/README.md](../backend/seed/vulyk-qa.d/README.md) | QA seed fragments |
 
 ## Dated audits (October 2026)

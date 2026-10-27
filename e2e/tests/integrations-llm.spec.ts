@@ -6,7 +6,9 @@ import { AdminPage } from '../pages/AdminPage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('integrations + LLM settings pages (mock LLM)', async ({
+test('integrations + LLM settings pages (mock LLM)', {
+  tag: '@VQA-264', annotation: { type: 'vulyk', description: 'VQA-264' },
+}, async ({
   page,
   request,
 }) => {
@@ -59,7 +61,9 @@ test('integrations + LLM settings pages (mock LLM)', async ({
   expect(list.some((p: { id: string }) => p.id === 'mock' || /mock/i.test(p.id))).toBeTruthy()
 })
 
-test('CI trigger config page', async ({ page, request }) => {
+test('CI trigger config page', {
+  tag: '@VQA-265', annotation: { type: 'vulyk', description: 'VQA-265' },
+}, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const key = uniqueKey('CI')
   await createProject(request, admin.token, { key, name: `CI ${key}` })

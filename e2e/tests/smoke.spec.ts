@@ -18,7 +18,9 @@ test.beforeAll(async ({ request }) => {
   await ensureAdminSession(request)
 })
 
-test('smoke: login → case → run → junit → import → report', async ({ page }) => {
+test('smoke: login → case → run → junit → import → report', {
+  tag: '@VQA-301', annotation: { type: 'vulyk', description: 'VQA-301' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await expect(page.getByTestId(TestIds.appShell)).toBeVisible()
   await expect(page.getByTestId(TestIds.navLinkCases)).toBeVisible()

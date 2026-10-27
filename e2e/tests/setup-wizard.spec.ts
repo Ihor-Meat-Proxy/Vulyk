@@ -23,7 +23,9 @@ test.afterAll(() => {
   }
 })
 
-test('setup token protection + wizard locale/timezone', async ({
+test('setup token protection + wizard locale/timezone', {
+  tag: '@VQA-299', annotation: { type: 'vulyk', description: 'VQA-299' },
+}, async ({
   page,
   request,
 }) => {
@@ -127,7 +129,9 @@ test('setup token protection + wizard locale/timezone', async ({
   ).toBeTruthy()
 })
 
-test('setup CLI --help is available', async () => {
+test('setup CLI --help is available', {
+  tag: '@VQA-300', annotation: { type: 'vulyk', description: 'VQA-300' },
+}, async () => {
   const { execFileSync } = await import('node:child_process')
   const fs = await import('node:fs')
   const path = await import('node:path')

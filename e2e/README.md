@@ -27,10 +27,32 @@ await page.locator(`[data-testid="case-row"][data-entity-key="${key}"]`)
 e2e/
   fixtures/          # auth/api helpers + sample import files
   pages/             # page objects (getByTestId-first)
-  tests/             # focused specs
+  tests/             # focused specs (each test tagged @VQA-N)
+  reporters/         # Vulyk CI ingest reporter (no-op unless env set)
+  scripts/           # sync/check Vulyk case-key annotations
   mock-oidc/server.mjs
   playwright.config.ts
 ```
+
+## Vulyk case keys + reporter
+
+Every test must declare a Vulyk QA case key:
+
+```ts
+test('…', {
+  tag: '@VQA-236',
+  annotation: { type: 'vulyk', description: 'VQA-236' },
+}, async ({ page }) => { /* … */ })
+```
+
+`npm run check:vulyk-case-links` (also via `./scripts/check.sh`) fails when a
+test is missing the annotation. Seed cases + automation links:
+`backend/seed/vulyk-qa.d/playwright-e2e.json`. Full guide:
+[`docs/testing/playwright-vulyk.md`](../docs/testing/playwright-vulyk.md).
+
+To publish results into a local Vulyk project, set `VULYK_URL`,
+`VULYK_CI_TOKEN`, and `VULYK_PROJECT` before `npx playwright test` (reporter is
+a no-op when unset).
 
 ## Prerequisites
 

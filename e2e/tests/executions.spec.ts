@@ -98,7 +98,9 @@ test.beforeAll(async ({ request }) => {
   expect(ingest.ok()).toBeTruthy()
 })
 
-test('executions tree, dashboard, suites drawer', async ({ page }) => {
+test('executions tree, dashboard, suites drawer', {
+  tag: '@VQA-252', annotation: { type: 'vulyk', description: 'VQA-252' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await dismissPwaToasts(page)
 
@@ -121,7 +123,9 @@ test('executions tree, dashboard, suites drawer', async ({ page }) => {
   await executions.openFirstSuiteDetails()
 })
 
-test('case executions tab shows history sparkline', async ({ page, request }) => {
+test('case executions tab shows history sparkline', {
+  tag: '@VQA-253', annotation: { type: 'vulyk', description: 'VQA-253' },
+}, async ({ page, request }) => {
   await loginAsAdmin(page)
   await dismissPwaToasts(page)
 

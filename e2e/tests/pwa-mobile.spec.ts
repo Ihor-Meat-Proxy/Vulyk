@@ -8,7 +8,9 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await ensureAdminSession(request)
   })
 
-  test('bottom nav, folders drawer, and stacked case flow', async ({ page }) => {
+  test('bottom nav, folders drawer, and stacked case flow', {
+  tag: '@VQA-284', annotation: { type: 'vulyk', description: 'VQA-284' },
+}, async ({ page }) => {
     await loginAsAdmin(page)
 
     const bottom = page.getByRole('navigation', { name: 'Mobile primary' })
@@ -94,7 +96,9 @@ test.describe('PWA + mobile Chromium viewport', () => {
     await expect(page.getByRole('tablist')).toBeVisible()
   })
 
-  test('web app manifest and service worker are present', async ({ page }) => {
+  test('web app manifest and service worker are present', {
+  tag: '@VQA-285', annotation: { type: 'vulyk', description: 'VQA-285' },
+}, async ({ page }) => {
     await page.goto('/')
     const manifest = page.locator('link[rel="manifest"]')
     await expect(manifest).toHaveAttribute('href', /manifest\.webmanifest/)
@@ -116,7 +120,9 @@ test.describe('PWA + mobile Chromium viewport', () => {
     expect(swReady).toBeTruthy()
   })
 
-  test('offline fallback document is served', async ({ page }) => {
+  test('offline fallback document is served', {
+  tag: '@VQA-286', annotation: { type: 'vulyk', description: 'VQA-286' },
+}, async ({ page }) => {
     const res = await page.request.get('/offline.html')
     // May 404 in some builds; accept either cached offline page or app shell
     if (res.status() === 200) {

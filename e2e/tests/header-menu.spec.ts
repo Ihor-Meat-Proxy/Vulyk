@@ -15,7 +15,9 @@ import { openUserMenu, userMenuItem } from '../fixtures/header'
 
 test.describe.configure({ mode: 'serial' })
 
-test('gear menu: appearance, admin for admin only, logout', async ({
+test('gear menu: appearance, admin for admin only, logout', {
+  tag: '@VQA-259', annotation: { type: 'vulyk', description: 'VQA-259' },
+}, async ({
   page,
   request,
 }) => {

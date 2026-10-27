@@ -8,7 +8,9 @@ test.describe('sample project seed', () => {
     await ensureAdminSession(request)
   })
 
-  test('Kyiv concert sample project, suites, cases, and two runs exist', async ({
+  test('Kyiv concert sample project, suites, cases, and two runs exist', {
+  tag: '@VQA-297', annotation: { type: 'vulyk', description: 'VQA-297' },
+}, async ({
     request,
   }) => {
     const { token } = await loginApi(request, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -59,7 +61,9 @@ test.describe('sample project seed', () => {
     expect(smoke?.status).toMatch(/in_progress|running/i)
   })
 
-  test('Vulyk QA sample project and area folders appear', async ({
+  test('Vulyk QA sample project and area folders appear', {
+  tag: '@VQA-298', annotation: { type: 'vulyk', description: 'VQA-298' },
+}, async ({
     request,
     page,
   }) => {

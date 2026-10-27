@@ -10,7 +10,9 @@ test.describe.configure({ mode: 'serial' })
 const LEGACY1_HASH =
   '$argon2id$v=19$m=19456,t=2,p=1$XXJTxQ8swVyOTdQcKqkRYg$sisW5ppIbTWToTQHB7r7lj46xWz4rKFNOTC0GfWrcnQ'
 
-test('short legacy password signs in then forces 16+ change', async ({
+test('short legacy password signs in then forces 16+ change', {
+  tag: '@VQA-255', annotation: { type: 'vulyk', description: 'VQA-255' },
+}, async ({
   page,
   request,
 }) => {

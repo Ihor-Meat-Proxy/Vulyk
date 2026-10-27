@@ -40,7 +40,9 @@ test.beforeAll(async ({ request }) => {
   await ensureAdminSession(request)
 })
 
-test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', async ({
+test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', {
+  tag: '@VQA-296', annotation: { type: 'vulyk', description: 'VQA-296' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)

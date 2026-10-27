@@ -39,7 +39,9 @@ test.describe('Appearance & theming', () => {
     await loginAsAdmin(page)
   })
 
-  test('switches each theme and persists after reload', async ({ page }) => {
+  test('switches each theme and persists after reload', {
+  tag: '@VQA-231', annotation: { type: 'vulyk', description: 'VQA-231' },
+}, async ({ page }) => {
     await openAppearance(page)
 
     for (const theme of THEMES) {
@@ -60,7 +62,9 @@ test.describe('Appearance & theming', () => {
     }
   })
 
-  test('persists theme after logout and login', async ({ page }) => {
+  test('persists theme after logout and login', {
+  tag: '@VQA-232', annotation: { type: 'vulyk', description: 'VQA-232' },
+}, async ({ page }) => {
     await openAppearance(page)
     await selectTheme(page, 'dark')
 
@@ -74,7 +78,9 @@ test.describe('Appearance & theming', () => {
     await expect(themeSelect(page)).toHaveValue('dark')
   })
 
-  test('status badges show icon and label', async ({ page }) => {
+  test('status badges show icon and label', {
+  tag: '@VQA-233', annotation: { type: 'vulyk', description: 'VQA-233' },
+}, async ({ page }) => {
     await openAppearance(page)
     const preview = page.locator('.appearance-preview')
     await expect(preview).toBeVisible()
@@ -95,7 +101,9 @@ test.describe('Appearance & theming', () => {
     }
   })
 
-  test('axe accessibility scan per theme', async ({ page }) => {
+  test('axe accessibility scan per theme', {
+  tag: '@VQA-234', annotation: { type: 'vulyk', description: 'VQA-234' },
+}, async ({ page }) => {
     await openAppearance(page)
 
     for (const theme of THEMES) {
@@ -116,7 +124,9 @@ test.describe('Appearance & theming', () => {
     }
   })
 
-  test('font size and density apply to document', async ({ page }) => {
+  test('font size and density apply to document', {
+  tag: '@VQA-235', annotation: { type: 'vulyk', description: 'VQA-235' },
+}, async ({ page }) => {
     await openAppearance(page)
     await page.getByRole('button', { name: '125%' }).click()
     const scale = await page.locator('html').evaluate((el) =>

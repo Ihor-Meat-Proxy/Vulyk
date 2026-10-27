@@ -129,7 +129,9 @@ test.describe('test id audit', () => {
     await ensureAdminSession(request)
   })
 
-  test('login + app shell attrs are unique and non-sensitive', async ({
+  test('login + app shell attrs are unique and non-sensitive', {
+  tag: '@VQA-305', annotation: { type: 'vulyk', description: 'VQA-305' },
+}, async ({
     page,
   }) => {
     await page.goto('/login')

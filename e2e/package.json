@@ -9,6 +9,8 @@
     "test:chromium": "playwright test --project=chromium",
     "test:mobile": "playwright test --project=chromium-mobile",
     "typecheck": "tsc --noEmit",
+    "check:vulyk-case-links": "node scripts/sync-vulyk-case-links.mjs --check",
+    "sync:vulyk-case-links": "node scripts/sync-vulyk-case-links.mjs --annotate",
     "oidc": "node mock-oidc/server.mjs"
   },
   "devDependencies": {

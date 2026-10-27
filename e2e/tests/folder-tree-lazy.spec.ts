@@ -15,7 +15,9 @@ import { CasesPage } from '../pages/CasesPage'
  * smaller scale that still needs pagination (220 direct cases → Load more).
  */
 test.describe('folder tree lazy load + numeric sort', () => {
-  test('recursive counts, expand loads 100, numeric key order', async ({
+  test('recursive counts, expand loads 100, numeric key order', {
+  tag: '@VQA-254', annotation: { type: 'vulyk', description: 'VQA-254' },
+}, async ({
     page,
     request,
   }) => {

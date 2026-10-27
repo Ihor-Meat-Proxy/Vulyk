@@ -48,7 +48,9 @@ async function selectProject(page: import('@playwright/test').Page) {
   if (idx >= 0) await select.selectOption({ index: idx })
 }
 
-test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace', async ({
+test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace', {
+  tag: '@VQA-246', annotation: { type: 'vulyk', description: 'VQA-246' },
+}, async ({
   page,
   context,
 }) => {
@@ -97,7 +99,9 @@ test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace',
   ).toBeVisible({ timeout: 20_000 })
 })
 
-test('deleted case key shows case deleted page', async ({ page, request }) => {
+test('deleted case key shows case deleted page', {
+  tag: '@VQA-247', annotation: { type: 'vulyk', description: 'VQA-247' },
+}, async ({ page, request }) => {
   const doomedTitle = `Doomed ${projectKey}`
   const created = await createCase(request, adminToken, projectId, {
     title: doomedTitle,

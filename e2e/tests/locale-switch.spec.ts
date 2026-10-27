@@ -33,7 +33,9 @@ const LOCALES: Array<{
   { native: 'English', code: 'en' },
 ]
 
-test('globe menu lists locales and switches via entity keys', async ({
+test('globe menu lists locales and switches via entity keys', {
+  tag: '@VQA-268', annotation: { type: 'vulyk', description: 'VQA-268' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)
@@ -62,7 +64,9 @@ test('globe menu lists locales and switches via entity keys', async ({
   }
 })
 
-test('locale persists for signed-in user and in localStorage', async ({
+test('locale persists for signed-in user and in localStorage', {
+  tag: '@VQA-269', annotation: { type: 'vulyk', description: 'VQA-269' },
+}, async ({
   page,
   request,
 }) => {
@@ -92,7 +96,9 @@ test('locale persists for signed-in user and in localStorage', async ({
   await chooseLocale(page, 'English')
 })
 
-test('anonymous login page keeps locale from localStorage', async ({ page }) => {
+test('anonymous login page keeps locale from localStorage', {
+  tag: '@VQA-270', annotation: { type: 'vulyk', description: 'VQA-270' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'Deutsch')
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
@@ -113,7 +119,9 @@ test('anonymous login page keeps locale from localStorage', async ({ page }) => 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
 
-test('Cases nav remains reachable under each locale', async ({ page }) => {
+test('Cases nav remains reachable under each locale', {
+  tag: '@VQA-271', annotation: { type: 'vulyk', description: 'VQA-271' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'English')
   await page.getByTestId(TestIds.navLinkCases).click()
@@ -126,7 +134,9 @@ test('Cases nav remains reachable under each locale', async ({ page }) => {
   await chooseLocale(page, 'English')
 })
 
-test('API errors still display under non-English locale', async ({ page }) => {
+test('API errors still display under non-English locale', {
+  tag: '@VQA-272', annotation: { type: 'vulyk', description: 'VQA-272' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'Français')
   await logout(page)

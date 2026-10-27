@@ -21,7 +21,9 @@ import { LoginPage } from '../pages/LoginPage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('registration open flow creates an account', async ({ page, request }) => {
+test('registration open flow creates an account', {
+  tag: '@VQA-289', annotation: { type: 'vulyk', description: 'VQA-289' },
+}, async ({ page, request }) => {
   await ensureAdminSession(request)
   const status = await authStatus(request)
   test.skip(
@@ -42,7 +44,9 @@ test('registration open flow creates an account', async ({ page, request }) => {
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 })
 
-test('registration disabled hides create-account (when not forced open)', async ({
+test('registration disabled hides create-account (when not forced open)', {
+  tag: '@VQA-290', annotation: { type: 'vulyk', description: 'VQA-290' },
+}, async ({
   page,
   request,
 }) => {
@@ -77,7 +81,9 @@ test('registration disabled hides create-account (when not forced open)', async 
   })
 })
 
-test('SSO via mock OIDC', async ({ page, request }) => {
+test('SSO via mock OIDC', {
+  tag: '@VQA-291', annotation: { type: 'vulyk', description: 'VQA-291' },
+}, async ({ page, request }) => {
   test.skip(
     process.env.E2E_SKIP_MOCK_OIDC === '1',
     'mock OIDC disabled',

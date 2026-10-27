@@ -13,7 +13,10 @@ export default defineConfig({
   workers: 1,
   timeout: 120_000,
   expect: { timeout: 20_000 },
-  reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
+  // Vulyk reporter is a no-op unless VULYK_URL + VULYK_CI_TOKEN + VULYK_PROJECT are set.
+  reporter: process.env.CI
+    ? [['list'], ['html', { open: 'never' }], ['./reporters/vulyk-reporter.ts']]
+    : [['list'], ['./reporters/vulyk-reporter.ts']],
   globalSetup: path.join(__dirname, 'global-setup.ts'),
   globalTeardown: path.join(__dirname, 'global-teardown.ts'),
   use: {

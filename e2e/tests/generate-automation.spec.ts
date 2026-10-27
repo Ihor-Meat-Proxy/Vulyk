@@ -11,7 +11,9 @@ import { GeneratePage } from '../pages/GeneratePage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('Generate page: model dropdown, case picker, stubbed LLM code', async ({
+test('Generate page: model dropdown, case picker, stubbed LLM code', {
+  tag: '@VQA-256', annotation: { type: 'vulyk', description: 'VQA-256' },
+}, async ({
   page,
   request,
 }) => {
@@ -88,7 +90,9 @@ test('Generate page: model dropdown, case picker, stubbed LLM code', async ({
   ).toBeVisible()
 })
 
-test('Cases page bulk action opens Generate with selection', async ({
+test('Cases page bulk action opens Generate with selection', {
+  tag: '@VQA-257', annotation: { type: 'vulyk', description: 'VQA-257' },
+}, async ({
   page,
   request,
 }) => {
@@ -130,7 +134,9 @@ test('Cases page bulk action opens Generate with selection', async ({
   })
 })
 
-test('Admin Integrations shows Automation repo controls', async ({
+test('Admin Integrations shows Automation repo controls', {
+  tag: '@VQA-258', annotation: { type: 'vulyk', description: 'VQA-258' },
+}, async ({
   page,
   request,
 }) => {

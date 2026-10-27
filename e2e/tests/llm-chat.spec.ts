@@ -6,7 +6,9 @@ import { AdminPage } from '../pages/AdminPage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('chat shows provider/model; project key optional; global default resolves', async ({
+test('chat shows provider/model; project key optional; global default resolves', {
+  tag: '@VQA-266', annotation: { type: 'vulyk', description: 'VQA-266' },
+}, async ({
   page,
   request,
 }) => {
@@ -74,7 +76,9 @@ test('chat shows provider/model; project key optional; global default resolves',
   await expect(page.getByLabel(/Global \(all projects\)/i)).toBeVisible()
 })
 
-test('chat surfaces provider errors instead of silent mock', async ({
+test('chat surfaces provider errors instead of silent mock', {
+  tag: '@VQA-267', annotation: { type: 'vulyk', description: 'VQA-267' },
+}, async ({
   request,
 }) => {
   const admin = await ensureAdminSession(request)

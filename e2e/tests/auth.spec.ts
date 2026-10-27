@@ -14,7 +14,9 @@ test.beforeAll(async ({ request }) => {
   await ensureAdminSession(request)
 })
 
-test('login with seeded admin succeeds', async ({ page }) => {
+test('login with seeded admin succeeds', {
+  tag: '@VQA-236', annotation: { type: 'vulyk', description: 'VQA-236' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await expect(page.locator('.app-shell')).toBeVisible()
   await expect(page.getByRole('navigation', { name: 'Primary' })).toContainText(
@@ -22,7 +24,9 @@ test('login with seeded admin succeeds', async ({ page }) => {
   )
 })
 
-test('bad credentials show an error', async ({ page }) => {
+test('bad credentials show an error', {
+  tag: '@VQA-237', annotation: { type: 'vulyk', description: 'VQA-237' },
+}, async ({ page }) => {
   const login = new LoginPage(page)
   await login.goto()
   if (await page.locator('.app-shell').isVisible()) {
@@ -35,7 +39,9 @@ test('bad credentials show an error', async ({ page }) => {
   await expect(page.locator('.app-shell')).toHaveCount(0)
 })
 
-test('logout returns to login panel', async ({ page }) => {
+test('logout returns to login panel', {
+  tag: '@VQA-238', annotation: { type: 'vulyk', description: 'VQA-238' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await logout(page)
   await expect(page.getByLabel(/^Email$/i)).toHaveValue(/.*/)

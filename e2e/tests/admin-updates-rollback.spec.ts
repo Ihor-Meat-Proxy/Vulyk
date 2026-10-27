@@ -20,7 +20,9 @@ async function openUpdates(page: import('@playwright/test').Page) {
   })
 }
 
-test('Updates tab shows version and check control', async ({ page }) => {
+test('Updates tab shows version and check control', {
+  tag: '@VQA-227', annotation: { type: 'vulyk', description: 'VQA-227' },
+}, async ({ page }) => {
   await openUpdates(page)
   const current = page.getByTestId(TestIds.adminUpdatesCurrentVersion)
   await expect(current).toBeVisible()
@@ -29,7 +31,9 @@ test('Updates tab shows version and check control', async ({ page }) => {
   await expect(page.getByTestId(TestIds.adminUpdatesCheckButton)).toBeEnabled()
 })
 
-test('manual install and rollback commands without sidecar', async ({
+test('manual install and rollback commands without sidecar', {
+  tag: '@VQA-228', annotation: { type: 'vulyk', description: 'VQA-228' },
+}, async ({
   page,
 }) => {
   await openUpdates(page)
@@ -45,7 +49,9 @@ test('manual install and rollback commands without sidecar', async ({
   )
 })
 
-test('save update check interval preference', async ({ page, request }) => {
+test('save update check interval preference', {
+  tag: '@VQA-229', annotation: { type: 'vulyk', description: 'VQA-229' },
+}, async ({ page, request }) => {
   await openUpdates(page)
   const input = page.getByTestId(TestIds.adminUpdatesIntervalInput)
   await input.fill('12')
@@ -71,7 +77,9 @@ test('save update check interval preference', async ({ page, request }) => {
   )
 })
 
-test('version backups list and job history regions render', async ({
+test('version backups list and job history regions render', {
+  tag: '@VQA-230', annotation: { type: 'vulyk', description: 'VQA-230' },
+}, async ({
   page,
 }) => {
   await openUpdates(page)
