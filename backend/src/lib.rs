@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod config_cli;
+pub mod cors;
 pub mod crypto;
 pub mod db;
 pub mod error;

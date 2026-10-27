@@ -56,7 +56,8 @@ Seeded admins with `VULYK_ADMIN_MUST_CHANGE=1` (set by `install.sh` when it gene
 | `VULYK_DEFAULT_LOCALE` | `en` | Instance default locale (`en` / `uk` / `fr` / `es` / `de`); users override via globe menu (`users.locale` + `localStorage`) |
 | `VULYK_DEFAULT_TIMEZONE` | `UTC` | Default timezone |
 | `VULYK_REGISTRATION_MODE` | `disabled` | `open` \| `invite` \| `disabled` |
-| `VULYK_BASE_URL` | (empty) | Public API/UI base URL (SSO callbacks) |
+| `VULYK_BASE_URL` | (empty) | Public API/UI base URL (SSO callbacks); origin also feeds CORS allowlist |
+| `VULYK_CORS_ORIGINS` | (unset) | Comma-separated browser origins for CORS + credentials. Local unset → `Any`; production-like always allowlists |
 | `VULYK_SETUP_TOKEN` | (unset) | Optional one-time token for headless setup |
 
 ## Registration modes

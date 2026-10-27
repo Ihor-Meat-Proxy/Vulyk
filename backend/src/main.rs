@@ -1,11 +1,8 @@
 use std::net::SocketAddr;
 
-use axum::{http::Method, middleware};
+use axum::middleware;
 use clap::{Parser, Subcommand};
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace::TraceLayer,
-};
+use tower_http::trace::TraceLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use vulyk_api::auth::AuthConfig;
 use vulyk_api::config_cli::{self, ConfigCommand};
@@ -126,17 +123,7 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
         login_throttle: vulyk_api::auth::LoginThrottle::new(),
         password_policy: vulyk_api::auth::PasswordPolicy::from_env(),
     };
-    let cors = CorsLayer::new()
-        .allow_origin(Any)
-        .allow_methods([
-            Method::GET,
-            Method::POST,
-            Method::PUT,
-            Method::PATCH,
-            Method::DELETE,
-            Method::OPTIONS,
-        ])
-        .allow_headers(Any);
+    let cors = vulyk_api::cors::cors_layer_from_env();
 
     let app = app_router(state)
         .layer(middleware::from_fn(
