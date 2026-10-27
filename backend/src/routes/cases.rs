@@ -363,6 +363,18 @@ pub async fn list_cases(
                )
              ))"#;
 
+    // Tag filter via EXISTS (review #12) — avoid LEFT JOIN case_tags/tags + GROUP BY
+    // row multiplication when a tag is set; skip the predicate entirely when unset.
+    let tag_predicate = if query.tag.as_deref().is_some_and(|t| !t.is_empty()) {
+        "EXISTS (
+               SELECT 1 FROM case_tags ct
+               INNER JOIN tags tg ON tg.id = ct.tag_id
+               WHERE ct.case_id = tc.id AND tg.name = $5
+             )"
+    } else {
+        "TRUE"
+    };
+
     let total_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
              SELECT id FROM suites WHERE id = $2
@@ -370,15 +382,13 @@ pub async fn list_cases(
              SELECT s.id FROM suites s
              INNER JOIN suite_tree st ON s.parent_id = st.id
            )
-           SELECT COUNT(DISTINCT tc.id)::bigint
+           SELECT COUNT(*)::bigint
            FROM test_cases tc
-           LEFT JOIN case_tags ct ON ct.case_id = tc.id
-           LEFT JOIN tags tg ON tg.id = ct.tag_id
            WHERE tc.project_id = $1
              AND ({suite_predicate})
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
-             AND ($5::text IS NULL OR tg.name = $5)
+             AND ({tag_predicate})
              AND (
                $6::text IS NULL OR
                tc.search_vector @@ plainto_tsquery('english', $6) OR
@@ -438,14 +448,12 @@ pub async fn list_cases(
                   {cf_sort_select}
            FROM test_cases tc
            LEFT JOIN suites su ON su.id = tc.suite_id
-           LEFT JOIN case_tags ct ON ct.case_id = tc.id
-           LEFT JOIN tags tg ON tg.id = ct.tag_id
            {cf_join}
            WHERE tc.project_id = $1
              AND ({suite_predicate})
              AND ($3::text IS NULL OR tc.status = $3)
              AND ($4::text IS NULL OR tc.priority = $4)
-             AND ($5::text IS NULL OR tg.name = $5)
+             AND ({tag_predicate})
              AND (
                $6::text IS NULL OR
                tc.search_vector @@ plainto_tsquery('english', $6) OR
@@ -453,16 +461,10 @@ pub async fn list_cases(
                tc.key ILIKE '%' || $6 || '%'
              )
              AND {cf_predicate}
-           GROUP BY tc.id, su.name{group_cf}
            ORDER BY
              {rank_prefix}
              {order_sql}
-           LIMIT $8 OFFSET $9"#,
-        group_cf = if cf_sort_id.is_some() {
-            ", cf_sort.value"
-        } else {
-            ""
-        }
+           LIMIT $8 OFFSET $9"#
     );
 
     let rows = if let Some(field_id) = cf_sort_id {

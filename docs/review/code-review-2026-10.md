@@ -173,6 +173,10 @@ Joining `case_tags` / `tags` multiplies rows; `COUNT(DISTINCT)` and `GROUP BY`
 compensate but add cost. Use `EXISTS` / `IN (SELECT …)` for the tag predicate
 when `tag` is set, and avoid the join when it is not.
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/85 — tag filter uses
+`EXISTS` only when `tag` is set; removed `LEFT JOIN case_tags/tags` + `GROUP BY`
+from count/list (tag names stay a per-row scalar subquery).
+
 ### 13. **risk** — Title/key `ILIKE '%'||q||'%'` defeats index use
 
 `backend/src/routes/cases.rs:353-357`
