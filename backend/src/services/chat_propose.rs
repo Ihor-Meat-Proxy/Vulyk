@@ -462,6 +462,13 @@ pub async fn confirm_proposal(
         body.model.as_str()
     };
 
+    // Reject cross-project suite placement before opening the write tx (review #38).
+    if !body.proposal.cases.is_empty() {
+        if let Some(folder_id) = body.proposal.placement.folder_id {
+            crate::services::suites::ensure_suite_in_project(pool, project_id, folder_id).await?;
+        }
+    }
+
     let mut tx = pool.begin().await?;
     let mut created_folder_id = None;
 

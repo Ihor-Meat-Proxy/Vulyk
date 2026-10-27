@@ -626,6 +626,9 @@ pub async fn create_case(
     if body.title.trim().is_empty() {
         return Err(AppError::BadRequest("title is required".into()));
     }
+    if let Some(suite_id) = body.suite_id {
+        crate::services::suites::ensure_suite_in_project(&state.pool, project_id, suite_id).await?;
+    }
 
     let mut tx = state.pool.begin().await?;
     let (key, _number) = allocate_case_key(&mut tx, project_id).await?;
@@ -793,6 +796,12 @@ pub async fn update_case(
     } else {
         body.suite_id.or(existing.suite_id)
     };
+    // Only re-check when the client explicitly sets a new suite_id.
+    if !body.clear_suite {
+        if let Some(sid) = body.suite_id {
+            crate::services::suites::ensure_suite_in_project(&state.pool, project_id, sid).await?;
+        }
+    }
     let description = body.description.unwrap_or(existing.description);
     let precondition = body.precondition.unwrap_or(existing.precondition);
     let priority = body.priority.unwrap_or(existing.priority);
@@ -978,6 +987,12 @@ pub async fn bulk_cases(
             } else {
                 body.suite_id
             };
+            if let Some(sid) = suite_id {
+                // Validate before mutating — foreign suite_ids would hang cases
+                // under another project's folder (review #38).
+                crate::services::suites::ensure_suite_in_project(&state.pool, project_id, sid)
+                    .await?;
+            }
             let res = sqlx::query(
                 r#"UPDATE test_cases
                    SET suite_id = $3, version = version + 1, updated_at = NOW()

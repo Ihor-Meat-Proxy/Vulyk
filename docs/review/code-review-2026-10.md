@@ -402,6 +402,10 @@ create-run, bulk ingest, and result execute paths.
 `backend/src/routes/cases.rs` create/update/bulk move; chat confirm. Cases can
 hang under another project’s folder.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/69 — reject
+`suite_id` / chat placement `folder_id` that is missing or belongs to another
+project on create, update, bulk `move_suite`, and chat confirm.
+
 ### 39. **bug** — Bulk tag ops report `affected = case_ids.len()` blindly
 
 `backend/src/routes/cases.rs:912-922` — foreign/missing IDs still counted.

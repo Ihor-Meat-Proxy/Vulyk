@@ -2,8 +2,31 @@
 
 use uuid::Uuid;
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::models::Suite;
+
+/// Reject `suite_id` that is missing or belongs to another project.
+pub async fn ensure_suite_in_project(
+    pool: &sqlx::PgPool,
+    project_id: Uuid,
+    suite_id: Uuid,
+) -> AppResult<()> {
+    let ok: bool = sqlx::query_scalar(
+        r#"SELECT EXISTS(
+               SELECT 1 FROM suites WHERE id = $1 AND project_id = $2
+           )"#,
+    )
+    .bind(suite_id)
+    .bind(project_id)
+    .fetch_one(pool)
+    .await?;
+    if !ok {
+        return Err(AppError::BadRequest(
+            "suite_id does not belong to this project".into(),
+        ));
+    }
+    Ok(())
+}
 
 /// List suites for a project with recursive + direct case counts.
 ///
