@@ -104,7 +104,7 @@ Unique indexes prevent corruption, but concurrent creates can surface as opaque
 `conflict` DB errors instead of a clean retry. Prefer insert + retry on unique
 violation, or take an advisory lock around allocation.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME — `create_project`
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/89 — `create_project`
 retries allocation on unique violation (auto key/prefix); explicit key conflicts
 return a clear `409` message.
 
