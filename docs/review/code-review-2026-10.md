@@ -270,6 +270,9 @@ accurate for now, but the mapping is too specific if `Gone` is reused.
 `backend/src/routes/campaigns.rs:565-571` (`list_suite_results`) declares no
 `limit`/`offset` query params in utoipa despite accepting them.
 
+**Fixed:** document `limit`/`offset` (and suite list filters) on
+`list_suite_results`, `list_suites`, and `case_executions`.
+
 ### 20. **risk** — Auth gaps on some read endpoints (noted for security agent)
 
 `backend/src/routes/cases.rs:1136-1177` (`list_case_results_*`),

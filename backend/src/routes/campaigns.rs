@@ -510,7 +510,16 @@ pub async fn list_iteration_items(
     get,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}/suites",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(
+        ("project_id" = Uuid, Path),
+        ("iteration_id" = Uuid, Path),
+        ("status" = Option<String>, Query, description = "Filter by suite status"),
+        ("created_by" = Option<String>, Query, description = "Filter by creator"),
+        ("q" = Option<String>, Query, description = "Search text"),
+        ("limit" = Option<i64>, Query, description = "Page size (default 25, max 200)"),
+        ("offset" = Option<i64>, Query, description = "Offset (default 0)"),
+        ("sort" = Option<String>, Query, description = "Sort key (default created_at_desc)")
+    ),
     responses((status = 200, body = Page<AutomatedSuite>)),
     security(("bearer_auth" = []))
 )]
@@ -578,7 +587,12 @@ impl SuiteResultsQuery {
     get,
     path = "/api/v1/projects/{project_id}/suites-runs/{run_id}/results",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(
+        ("project_id" = Uuid, Path),
+        ("run_id" = Uuid, Path),
+        ("limit" = Option<i64>, Query, description = "Page size (default 25, max 200)"),
+        ("offset" = Option<i64>, Query, description = "Offset (default 0)")
+    ),
     responses((status = 200, body = Page<SuiteResultRow>)),
     security(("bearer_auth" = []))
 )]
@@ -718,7 +732,12 @@ pub async fn rerun_suite(
     get,
     path = "/api/v1/projects/{project_id}/cases/{case_id}/executions",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("case_id" = Uuid, Path)),
+    params(
+        ("project_id" = Uuid, Path),
+        ("case_id" = Uuid, Path),
+        ("limit" = Option<i64>, Query, description = "Page size (default 25, max 200)"),
+        ("offset" = Option<i64>, Query, description = "Offset (default 0)")
+    ),
     responses((status = 200, body = CaseExecutionHistoryPage)),
     security(("bearer_auth" = []))
 )]

@@ -708,4 +708,26 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn openapi_suite_results_documents_limit_offset() {
+        let doc = ApiDoc::openapi();
+        let path = doc
+            .paths
+            .paths
+            .get("/api/v1/projects/{project_id}/suites-runs/{run_id}/results")
+            .expect("suite results path");
+        let get = path.get.as_ref().expect("GET operation");
+        let names: Vec<&str> = get
+            .parameters
+            .as_ref()
+            .into_iter()
+            .flatten()
+            .map(|p| p.name.as_str())
+            .collect();
+        assert!(
+            names.contains(&"limit") && names.contains(&"offset"),
+            "expected limit/offset query params, got {names:?}"
+        );
+    }
 }
