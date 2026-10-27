@@ -231,7 +231,7 @@ export function RunsPage({ projectId, suites }: Props) {
             className="filter-input"
             value={uploadRunId}
             onChange={(e) => setUploadRunId(e.target.value)}
-            aria-label="Upload target run"
+            aria-label={t('a11y.uploadTargetRun')}
             {...testIdProps(TestIds.runsUploadRunSelect)}
           >
             <option value="">Select run…</option>
@@ -244,7 +244,7 @@ export function RunsPage({ projectId, suites }: Props) {
           <input
             type="file"
             accept=".xml,text/xml,application/xml"
-            aria-label="JUnit XML file"
+            aria-label={t('a11y.junitXmlFile')}
             disabled={!uploadRunId || uploading}
             onChange={(e) => {
               const file = e.target.files?.[0]

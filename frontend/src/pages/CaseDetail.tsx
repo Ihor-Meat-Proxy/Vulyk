@@ -697,7 +697,7 @@ export function CaseDetail({
         </div>
       </div>
 
-      <div className="case-tabs" role="tablist" aria-label="Case sections">
+      <div className="case-tabs" role="tablist" aria-label={t('a11y.caseSections')}>
         <button
           type="button"
           role="tab"
@@ -776,7 +776,7 @@ export function CaseDetail({
                 className="search-input"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
-                placeholder="comma-separated tags"
+                placeholder={t('a11y.placeholder.tagsComma')}
                 {...testIdProps(TestIds.caseDetailTagsInput)}
               />
             ) : tags.length === 0 ? (
@@ -1049,7 +1049,7 @@ export function CaseDetail({
                 <select
                   value={linkId}
                   onChange={(e) => setLinkId(e.target.value)}
-                  aria-label="Requirement to link"
+                  aria-label={t('a11y.requirementToLink')}
                   {...testIdProps(TestIds.caseDetailLinkRequirementSelect)}
                 >
                   <option value="">Link a requirement…</option>
@@ -1117,7 +1117,7 @@ export function CaseDetail({
       )}
 
       {tab === 'executions' && (
-        <section className="case-executions-tab" aria-label="Case executions">
+        <section className="case-executions-tab" aria-label={t('a11y.caseExecutions')}>
           {execLoading && !execPage ? (
             <p className="muted">Loading executions…</p>
           ) : !execPage ? (
@@ -1218,7 +1218,7 @@ export function CaseDetail({
       {tab === 'history' && (
         <section
           className="case-results-history"
-          aria-label="Result history"
+          aria-label={t('a11y.resultHistory')}
           {...testIdProps(TestIds.caseDetailHistory)}
         >
           {summary && (
@@ -1243,7 +1243,7 @@ export function CaseDetail({
           <div className="form-row" style={{ marginBottom: '0.75rem' }}>
             <select
               className="filter-input"
-              aria-label="Filter by status"
+              aria-label={t('a11y.filterByStatus')}
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
               {...testIdProps(TestIds.caseDetailResultsStatusFilter)}
@@ -1258,8 +1258,8 @@ export function CaseDetail({
             </select>
             <input
               className="search-input"
-              placeholder="Filter by run id"
-              aria-label="Filter by run id"
+              placeholder={t('a11y.placeholder.filterByRunId')}
+              aria-label={t('a11y.filterByRunId')}
               value={filterRunId}
               onChange={(e) => setFilterRunId(e.target.value)}
               {...testIdProps(TestIds.caseDetailResultsRunFilter)}
@@ -1281,7 +1281,7 @@ export function CaseDetail({
             <p className="muted">No results yet.</p>
           ) : (
             <>
-              <ol className="timeline-list" aria-label="Case results across runs">
+              <ol className="timeline-list" aria-label={t('a11y.caseResultsAcrossRuns')}>
                 {resultsPage.items.map((h) => (
                   <li key={h.result.id}>
                     <StatusBadge status={h.result.status} />{' '}

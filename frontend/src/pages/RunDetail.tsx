@@ -279,14 +279,14 @@ export function RunDetail({ projectId }: Props) {
           </span>
           {fromCache && <span className="badge">cached</span>}
         </div>
-        <div className="progress-track" aria-label="Run progress">
+        <div className="progress-track" aria-label={t('a11y.runProgress')}>
           <div className="progress-seg passed" style={{ flex: progress.passed || 0.0001 }} />
           <div className="progress-seg failed" style={{ flex: progress.failed || 0.0001 }} />
           <div className="progress-seg blocked" style={{ flex: progress.blocked || 0.0001 }} />
           <div className="progress-seg skipped" style={{ flex: progress.skipped || 0.0001 }} />
           <div className="progress-seg untested" style={{ flex: progress.untested || 0.0001 }} />
         </div>
-        <div className="progress-legend" aria-label="Progress legend">
+        <div className="progress-legend" aria-label={t('a11y.progressLegend')}>
           {(
             [
               ['passed', progress.passed],
@@ -312,7 +312,7 @@ export function RunDetail({ projectId }: Props) {
 
         <ul
           className="run-item-list"
-          aria-label="Run cases"
+          aria-label={t('a11y.runCases')}
           {...testIdProps(TestIds.runDetailCases)}
         >
           {items.map((row, index) => (
@@ -397,18 +397,18 @@ export function RunDetail({ projectId }: Props) {
             <div className="form-row">
               <input
                 className="filter-input"
-                placeholder="Assignee"
+                placeholder={t('a11y.placeholder.assignee')}
                 value={assignee}
                 onChange={(e) => setAssignee(e.target.value)}
-                aria-label="Assignee"
+                aria-label={t('a11y.assignee')}
                 {...testIdProps(TestIds.executionAssigneeInput)}
               />
               <input
                 className="search-input"
-                placeholder="Comment"
+                placeholder={t('a11y.placeholder.comment')}
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                aria-label="Comment"
+                aria-label={t('a11y.comment')}
                 {...testIdProps(TestIds.executionCommentInput)}
               />
             </div>
@@ -516,7 +516,7 @@ export function RunDetail({ projectId }: Props) {
               </div>
             )}
 
-            <div className="exec-actions exec-actions-thumb" role="group" aria-label="Result status">
+            <div className="exec-actions exec-actions-thumb" role="group" aria-label={t('a11y.resultStatus')}>
               {(['Passed', 'Failed', 'Blocked', 'Skipped'] as const).map((s) => (
                 <StatusActionButton
                   key={s}
@@ -530,7 +530,7 @@ export function RunDetail({ projectId }: Props) {
             </div>
 
             {active.history && active.history.length > 0 && (
-              <section className="result-timeline" aria-label="Result history">
+              <section className="result-timeline" aria-label={t('a11y.resultHistory')}>
                 <h4 style={{ marginBottom: '0.35rem' }}>Result history</h4>
                 <ol className="timeline-list">
                   {active.history.map((h) => (
@@ -557,7 +557,7 @@ export function RunDetail({ projectId }: Props) {
                 accept="image/*"
                 capture="environment"
                 className="sr-only"
-                aria-label="Attach photo from camera"
+                aria-label={t('a11y.attachPhoto')}
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) void attachPhoto(file)

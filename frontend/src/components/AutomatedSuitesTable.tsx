@@ -213,7 +213,7 @@ export function AutomatedSuitesTable({
           className="filter-input"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          aria-label="Sort"
+          aria-label={t('a11y.sort')}
           {...testIdProps(TestIds.automatedSuitesSortSelect)}
         >
           <option value="created_at_desc">Newest</option>

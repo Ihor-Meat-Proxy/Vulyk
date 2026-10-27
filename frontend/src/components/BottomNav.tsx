@@ -47,7 +47,7 @@ export function BottomNav({ showReports = true }: Props) {
   return (
     <nav
       className="bottom-nav"
-      aria-label="Mobile primary"
+      aria-label={t('a11y.mobilePrimary')}
       {...testIdProps(TestIds.bottomNav)}
     >
       {items.map((item) => (
