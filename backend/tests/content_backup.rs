@@ -331,6 +331,8 @@ async fn github_destination_mock_test_connection() {
     });
     tokio::time::sleep(Duration::from_millis(30)).await;
     let api_base = format!("http://{addr}");
+    // Mock GitHub API listens on loopback HTTP — allow private egress for this test only.
+    std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
 
     let (base, pool) = spawn_app().await;
     let client = reqwest::Client::new();

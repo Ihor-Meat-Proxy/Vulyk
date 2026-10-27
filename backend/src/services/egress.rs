@@ -4,15 +4,31 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
 
 use crate::error::{AppError, AppResult};
 
+fn allow_private_egress() -> bool {
+    std::env::var("VULYK_EGRESS_ALLOW_PRIVATE")
+        .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes"))
+        .unwrap_or(false)
+}
+
 /// Validate that `raw` is an `https://` URL whose host resolves only to public IPs.
 /// Rejects `file://`, `git://`, `http://`, literal private IPs, and DNS that resolves
 /// into RFC1918 / link-local / loopback / cloud metadata ranges.
+///
+/// Set `VULYK_EGRESS_ALLOW_PRIVATE=1` only for local/dev/tests (e.g. mock HTTP servers).
 pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
     let raw = raw.trim();
     if raw.is_empty() {
         return Err(AppError::BadRequest("URL is required".into()));
     }
     let lower = raw.to_ascii_lowercase();
+    if allow_private_egress() {
+        if !(lower.starts_with("https://") || lower.starts_with("http://")) {
+            return Err(AppError::BadRequest(
+                "only http(s):// URLs are allowed for remote egress".into(),
+            ));
+        }
+        return Ok(());
+    }
     if !(lower.starts_with("https://")) {
         return Err(AppError::BadRequest(
             "only https:// URLs are allowed for remote egress".into(),
