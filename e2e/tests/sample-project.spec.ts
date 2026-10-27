@@ -8,7 +8,9 @@ test.describe('sample project seed', () => {
     await ensureAdminSession(request)
   })
 
-  test('Kyiv concert sample project, suites, cases, and two runs exist', async ({
+  test('Kyiv concert sample project, suites, cases, and two runs exist', {
+  tag: '@VQA-297', annotation: { type: 'vulyk', description: 'VQA-297' },
+}, async ({
     request,
   }) => {
     const { token } = await loginApi(request, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -59,7 +61,9 @@ test.describe('sample project seed', () => {
     expect(smoke?.status).toMatch(/in_progress|running/i)
   })
 
-  test('Vulyk QA sample project and area folders appear', async ({
+  test('Vulyk QA sample project and area folders appear', {
+  tag: '@VQA-298', annotation: { type: 'vulyk', description: 'VQA-298' },
+}, async ({
     request,
     page,
   }) => {
@@ -106,8 +110,8 @@ test.describe('sample project seed', () => {
         : (Array.isArray(cases) ? cases : cases.items ?? []).length
     expect(total).toBeGreaterThanOrEqual(120)
     // Upper bound grows as feature fragments add Vulyk QA cases
-    // (columns, pdf, lists/CF, coverage hardening, password policy, …).
-    expect(total).toBeLessThanOrEqual(280)
+    // (columns, pdf, lists/CF, coverage hardening, playwright-e2e 1:1, …).
+    expect(total).toBeLessThanOrEqual(400)
 
     const runs = await apiJson<{
       items: { name: string; status: string }[]

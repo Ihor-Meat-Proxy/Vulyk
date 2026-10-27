@@ -49,7 +49,9 @@ async function openCaseEditor(page: import('@playwright/test').Page) {
   await expect(page.getByTestId(TestIds.caseDetailStickyBar)).toBeVisible()
 }
 
-test('Tab in last Expected with content adds a step and focuses Action', async ({
+test('Tab in last Expected with content adds a step and focuses Action', {
+  tag: '@VQA-240', annotation: { type: 'vulyk', description: 'VQA-240' },
+}, async ({
   page,
 }) => {
   await openCaseEditor(page)
@@ -75,7 +77,9 @@ test('Tab in last Expected with content adds a step and focuses Action', async (
   await expect(steps).toHaveCount(before)
 })
 
-test('Ctrl/Cmd+S saves from textarea and shows toast; no changes toast', async ({
+test('Ctrl/Cmd+S saves from textarea and shows toast; no changes toast', {
+  tag: '@VQA-241', annotation: { type: 'vulyk', description: 'VQA-241' },
+}, async ({
   page,
 }) => {
   await openCaseEditor(page)
@@ -112,7 +116,9 @@ test('Ctrl/Cmd+S saves from textarea and shows toast; no changes toast', async (
   ).toBeVisible({ timeout: 10_000 })
 })
 
-test('sticky Save/Cancel bar remains visible while scrolling', async ({
+test('sticky Save/Cancel bar remains visible while scrolling', {
+  tag: '@VQA-242', annotation: { type: 'vulyk', description: 'VQA-242' },
+}, async ({
   page,
 }) => {
   await openCaseEditor(page)
@@ -138,7 +144,9 @@ test('sticky Save/Cancel bar remains visible while scrolling', async ({
   await expect(page.getByTestId(TestIds.caseDetailStickyUnsaved)).toBeVisible()
 })
 
-test('Ctrl/Cmd+S does not preventDefault outside the case editor', async ({
+test('Ctrl/Cmd+S does not preventDefault outside the case editor', {
+  tag: '@VQA-243', annotation: { type: 'vulyk', description: 'VQA-243' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)

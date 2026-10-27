@@ -13,7 +13,9 @@ test.describe.configure({ mode: 'serial' })
 
 const STRONG = `LockoutPass-${uniqueKey('pw').toLowerCase()}9a`
 
-test('auth status exposes password policy min length', async ({ request }) => {
+test('auth status exposes password policy min length', {
+  tag: '@VQA-277', annotation: { type: 'vulyk', description: 'VQA-277' },
+}, async ({ request }) => {
   const res = await request.get(`${API_URL}/api/v1/auth/status`)
   expect(res.ok()).toBeTruthy()
   const body = (await res.json()) as {
@@ -28,7 +30,9 @@ test('auth status exposes password policy min length', async ({ request }) => {
   expect(body.password_policy?.require_digit).toBe(true)
 })
 
-test('registration rejects weak password below policy', async ({
+test('registration rejects weak password below policy', {
+  tag: '@VQA-278', annotation: { type: 'vulyk', description: 'VQA-278' },
+}, async ({
   page,
   request,
 }) => {
@@ -61,7 +65,9 @@ test('registration rejects weak password below policy', async ({
   expect(apiReject.status()).toBeLessThan(500)
 })
 
-test('repeated failed logins lock out then recover', async ({
+test('repeated failed logins lock out then recover', {
+  tag: '@VQA-279', annotation: { type: 'vulyk', description: 'VQA-279' },
+}, async ({
   page,
   request,
 }) => {

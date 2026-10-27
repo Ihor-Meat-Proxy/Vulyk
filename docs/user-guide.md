@@ -18,7 +18,7 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs, plus **Sample nightly #N** automated suites (varied pass/fail/in-progress/cancelled; creator **Sample CI**) |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~220 cases (base + `backend/seed/vulyk-qa.d/` fragments) with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, PDF export, multi-repo CI, password policy, Admin Updates, lists/custom fields, …), requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~300 cases (base + `backend/seed/vulyk-qa.d/` fragments, including a 1:1 Playwright e2e suite) with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, PDF export, multi-repo CI, password policy, Admin Updates, lists/custom fields, …), requirements per area, smoke + regression runs. See [testing/playwright-vulyk.md](./testing/playwright-vulyk.md). |
 
 **Admin → Settings → Sample data** lists installed sample projects, **Remove sample data** (confirm, danger) deletes only `is_sample` rows (idempotent; never user-created projects), and **Re-seed sample data** restores the demos. Case keys on remove go through the retired-key path before the sample project is deleted.
 

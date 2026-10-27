@@ -26,7 +26,9 @@ async function apiJson(
 
 test.describe.configure({ mode: 'serial' })
 
-test('admin lists, custom fields, and config export', async ({ page, request }) => {
+test('admin lists, custom fields, and config export', {
+  tag: '@VQA-226', annotation: { type: 'vulyk', description: 'VQA-226' },
+}, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const key = uniqueKey('cf').toLowerCase().replace(/[^a-z0-9_]/g, '_')
   const listKey = `browsers_${key}`

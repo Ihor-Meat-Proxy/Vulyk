@@ -127,6 +127,10 @@ const VULYK_QA_BASE: &str = include_str!("../seed/vulyk-qa.json");
 /// Register every `backend/seed/vulyk-qa.d/*.json` file here (see that dir's README).
 const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
     (
+        "playwright-e2e",
+        include_str!("../seed/vulyk-qa.d/playwright-e2e.json"),
+    ),
+    (
         "case-list-columns",
         include_str!("../seed/vulyk-qa.d/case-list-columns.json"),
     ),
@@ -1334,8 +1338,8 @@ mod seed_file_tests {
             }
             if key == "VULYK_QA" {
                 assert!(
-                    (120..=250).contains(&cases.len()),
-                    "Vulyk QA expected 120–250 cases, got {}",
+                    (120..=400).contains(&cases.len()),
+                    "Vulyk QA expected 120–400 cases, got {}",
                     cases.len()
                 );
                 assert_eq!(

@@ -44,7 +44,9 @@ test.beforeAll(async ({ request }) => {
   caseId = (created as { case: { id: string } }).case.id
 })
 
-test('create plan and run, execute pass/fail/blocked, attach, close', async ({
+test('create plan and run, execute pass/fail/blocked, attach, close', {
+  tag: '@VQA-280', annotation: { type: 'vulyk', description: 'VQA-280' },
+}, async ({
   page,
   request,
 }) => {

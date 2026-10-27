@@ -5,7 +5,9 @@ import { uniqueKey } from '../fixtures/env'
 import { AdminPage } from '../pages/AdminPage'
 
 test.describe('Admin content backups', () => {
-  test('create local destination, back up now, see restore preview', async ({
+  test('create local destination, back up now, see restore preview', {
+  tag: '@VQA-225', annotation: { type: 'vulyk', description: 'VQA-225' },
+}, async ({
     page,
   }) => {
     await loginAsAdmin(page)

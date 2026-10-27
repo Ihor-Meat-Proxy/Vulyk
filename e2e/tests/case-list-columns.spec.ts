@@ -41,7 +41,9 @@ async function selectProject(page: import('@playwright/test').Page) {
   if (idx >= 0) await select.selectOption({ index: idx })
 }
 
-test('customize columns: hide priority, show automated, keyboard reorder, sort, reset', async ({
+test('customize columns: hide priority, show automated, keyboard reorder, sort, reset', {
+  tag: '@VQA-248', annotation: { type: 'vulyk', description: 'VQA-248' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)
@@ -101,7 +103,9 @@ test('customize columns: hide priority, show automated, keyboard reorder, sort, 
   ).toHaveCount(0)
 })
 
-test('column preferences API persists per project', async ({ request }) => {
+test('column preferences API persists per project', {
+  tag: '@VQA-249', annotation: { type: 'vulyk', description: 'VQA-249' },
+}, async ({ request }) => {
   const body = {
     columns: [
       { id: 'title', visible: true },

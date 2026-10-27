@@ -32,7 +32,9 @@ test.beforeAll(async ({ request }) => {
   caseKey = created.case.key
 })
 
-test('add two automation repos linked to one project', async ({ page }) => {
+test('add two automation repos linked to one project', {
+  tag: '@VQA-273', annotation: { type: 'vulyk', description: 'VQA-273' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const settings = new SettingsPage(page)
   await settings.open()
@@ -64,7 +66,9 @@ test('add two automation repos linked to one project', async ({ page }) => {
   ).toHaveCount(before + 2)
 })
 
-test('create project CI token and reveal secret once', async ({ page }) => {
+test('create project CI token and reveal secret once', {
+  tag: '@VQA-274', annotation: { type: 'vulyk', description: 'VQA-274' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const settings = new SettingsPage(page)
   await settings.open()
@@ -77,7 +81,9 @@ test('create project CI token and reveal secret once', async ({ page }) => {
   await expect(settings.ciTokenRows().first()).toBeVisible()
 })
 
-test('CI open results close for two repo pipelines', async ({ request }) => {
+test('CI open results close for two repo pipelines', {
+  tag: '@VQA-275', annotation: { type: 'vulyk', description: 'VQA-275' },
+}, async ({ request }) => {
   async function openRun(repo: string, externalRef: string) {
     return apiJson<{
       run: { id: string; status: string; lifecycle: string }
@@ -175,7 +181,9 @@ test('CI open results close for two repo pipelines', async ({ request }) => {
   )
 })
 
-test('JUnit ingest maps test_key property to case', async ({ request }) => {
+test('JUnit ingest maps test_key property to case', {
+  tag: '@VQA-276', annotation: { type: 'vulyk', description: 'VQA-276' },
+}, async ({ request }) => {
   const opened = await apiJson<{ run: { id: string } }>(
     request,
     'POST',

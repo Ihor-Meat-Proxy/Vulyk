@@ -52,7 +52,9 @@ test.beforeAll(async ({ request }) => {
   runId = run.run.id
 })
 
-test('JUnit upload via API token', async ({ request }) => {
+test('JUnit upload via API token', {
+  tag: '@VQA-260', annotation: { type: 'vulyk', description: 'VQA-260' },
+}, async ({ request }) => {
   const token = await createApiToken(
     request,
     adminToken,
@@ -71,7 +73,9 @@ test('JUnit upload via API token', async ({ request }) => {
   expect(body.parsed).toBeGreaterThan(0)
 })
 
-test('import TestLink, Xray, Squash TM samples', async ({ page }) => {
+test('import TestLink, Xray, Squash TM samples', {
+  tag: '@VQA-261', annotation: { type: 'vulyk', description: 'VQA-261' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
   await expect.poll(async () => select.locator('option').count()).toBeGreaterThan(0)
@@ -114,7 +118,9 @@ test('import TestLink, Xray, Squash TM samples', async ({ page }) => {
   )
 })
 
-test('requirements can be created', async ({ page }) => {
+test('requirements can be created', {
+  tag: '@VQA-262', annotation: { type: 'vulyk', description: 'VQA-262' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
   const options = await select.locator('option').allTextContents()
@@ -132,7 +138,9 @@ test('requirements can be created', async ({ page }) => {
   await expect(page.getByText(title)).toBeVisible({ timeout: 20_000 })
 })
 
-test('reports page and CSV export', async ({ page }) => {
+test('reports page and CSV export', {
+  tag: '@VQA-263', annotation: { type: 'vulyk', description: 'VQA-263' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.getByTestId(TestIds.headerProjectSelect)
   const options = await select.locator('option').allTextContents()

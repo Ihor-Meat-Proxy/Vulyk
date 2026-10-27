@@ -69,7 +69,9 @@ test.beforeAll(async ({ request }) => {
   }
 })
 
-test('case detail Export as PDF downloads a PDF', async ({ page }) => {
+test('case detail Export as PDF downloads a PDF', {
+  tag: '@VQA-244', annotation: { type: 'vulyk', description: 'VQA-244' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
   await expect.poll(async () => select.locator('option').count()).toBeGreaterThan(0)
@@ -91,7 +93,9 @@ test('case detail Export as PDF downloads a PDF', async ({ page }) => {
   expect(buf.subarray(0, 4).toString('utf8')).toBe('%PDF')
 })
 
-test('cases list row and bulk export download PDF', async ({ page }) => {
+test('cases list row and bulk export download PDF', {
+  tag: '@VQA-245', annotation: { type: 'vulyk', description: 'VQA-245' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
   await expect.poll(async () => select.locator('option').count()).toBeGreaterThan(0)

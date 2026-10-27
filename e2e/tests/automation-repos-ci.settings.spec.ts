@@ -6,7 +6,9 @@ import { SettingsPage } from '../pages/SettingsPage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('settings: automation repo + project CI token CRUD', async ({
+test('settings: automation repo + project CI token CRUD', {
+  tag: '@VQA-239', annotation: { type: 'vulyk', description: 'VQA-239' },
+}, async ({
   page,
   request,
 }) => {

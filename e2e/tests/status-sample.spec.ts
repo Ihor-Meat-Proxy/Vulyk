@@ -9,7 +9,9 @@ test.describe('status badges & sample data', () => {
     await ensureAdminSession(request)
   })
 
-  test('sample nightly suites have varied statuses and Sample CI creator', async ({
+  test('sample nightly suites have varied statuses and Sample CI creator', {
+  tag: '@VQA-302', annotation: { type: 'vulyk', description: 'VQA-302' },
+}, async ({
     request,
   }) => {
     const { token } = await loginApi(request, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -47,7 +49,9 @@ test.describe('status badges & sample data', () => {
     ).toBeTruthy()
   })
 
-  test('Runs list Status column uses status-badge testids with translated labels', async ({
+  test('Runs list Status column uses status-badge testids with translated labels', {
+  tag: '@VQA-303', annotation: { type: 'vulyk', description: 'VQA-303' },
+}, async ({
     page,
   }) => {
     await loginAsAdmin(page)
@@ -73,7 +77,9 @@ test.describe('status badges & sample data', () => {
     expect(text.length).toBeGreaterThan(0)
   })
 
-  test('Admin sample data section is visible under Settings', async ({
+  test('Admin sample data section is visible under Settings', {
+  tag: '@VQA-304', annotation: { type: 'vulyk', description: 'VQA-304' },
+}, async ({
     page,
     request,
   }) => {

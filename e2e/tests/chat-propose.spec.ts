@@ -6,7 +6,9 @@ import { CasesPage } from '../pages/CasesPage'
 
 test.describe.configure({ mode: 'serial' })
 
-test('chat propose preview, change folder, confirm create', async ({
+test('chat propose preview, change folder, confirm create', {
+  tag: '@VQA-250', annotation: { type: 'vulyk', description: 'VQA-250' },
+}, async ({
   page,
   request,
 }) => {
@@ -84,7 +86,9 @@ test('chat propose preview, change folder, confirm create', async ({
   })
 })
 
-test('chat clarify when folder is ambiguous', async ({ page, request }) => {
+test('chat clarify when folder is ambiguous', {
+  tag: '@VQA-251', annotation: { type: 'vulyk', description: 'VQA-251' },
+}, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const key = uniqueKey('CL')
   const project = await createProject(request, admin.token, {

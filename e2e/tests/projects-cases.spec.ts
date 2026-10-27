@@ -28,7 +28,9 @@ test.beforeAll(async ({ request }) => {
   await createSuite(request, admin.token, projectId, 'Smoke')
 })
 
-test('admin can create a project via UI', async ({ page }) => {
+test('admin can create a project via UI', {
+  tag: '@VQA-281', annotation: { type: 'vulyk', description: 'VQA-281' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   const admin = new AdminPage(page)
   await admin.open()
@@ -36,7 +38,9 @@ test('admin can create a project via UI', async ({ page }) => {
   await admin.createProject(`Project ${key}`, key)
 })
 
-test('admin can create a project with name only (auto key)', async ({
+test('admin can create a project with name only (auto key)', {
+  tag: '@VQA-282', annotation: { type: 'vulyk', description: 'VQA-282' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)
@@ -46,7 +50,9 @@ test('admin can create a project with name only (auto key)', async ({
   await admin.createProject(name)
 })
 
-test('suite tree, case CRUD with steps, search, filter, bulk', async ({
+test('suite tree, case CRUD with steps, search, filter, bulk', {
+  tag: '@VQA-283', annotation: { type: 'vulyk', description: 'VQA-283' },
+}, async ({
   page,
   request,
 }) => {

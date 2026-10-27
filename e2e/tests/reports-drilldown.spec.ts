@@ -117,7 +117,9 @@ function rowByKey(page: import('@playwright/test').Page, caseKey: string) {
   )
 }
 
-test('summary card opens run report with breadcrumbs', async ({ page }) => {
+test('summary card opens run report with breadcrumbs', {
+  tag: '@VQA-292', annotation: { type: 'vulyk', description: 'VQA-292' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)
   const reports = new ReportsPage(page)
@@ -131,7 +133,9 @@ test('summary card opens run report with breadcrumbs', async ({ page }) => {
   await expect(page.getByTestId(TestIds.reportsRunSource)).toContainText(/CI|pipeline|ci/i)
 })
 
-test('failed bar segment pre-filters results', async ({ page }) => {
+test('failed bar segment pre-filters results', {
+  tag: '@VQA-293', annotation: { type: 'vulyk', description: 'VQA-293' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)
   const reports = new ReportsPage(page)
@@ -152,7 +156,9 @@ test('failed bar segment pre-filters results', async ({ page }) => {
   await expect(rowByKey(page, caseKeyB)).toHaveCount(0)
 })
 
-test('expand row shows steps; export filtered CSV; Backspace returns', async ({
+test('expand row shows steps; export filtered CSV; Backspace returns', {
+  tag: '@VQA-294', annotation: { type: 'vulyk', description: 'VQA-294' },
+}, async ({
   page,
 }) => {
   await loginAsAdmin(page)
@@ -183,7 +189,9 @@ test('expand row shows steps; export filtered CSV; Backspace returns', async ({
   await expect(page).toHaveURL(/\/reports\/?$/)
 })
 
-test('KPI cards drill to cases, runs, and coverage', async ({ page }) => {
+test('KPI cards drill to cases, runs, and coverage', {
+  tag: '@VQA-295', annotation: { type: 'vulyk', description: 'VQA-295' },
+}, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)
   const reports = new ReportsPage(page)

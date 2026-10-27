@@ -16,7 +16,9 @@ import { API_URL, uniqueKey } from '../fixtures/env'
 
 test.describe.configure({ mode: 'serial' })
 
-test('viewer is denied mutating APIs and hides write UI', async ({
+test('viewer is denied mutating APIs and hides write UI', {
+  tag: '@VQA-287', annotation: { type: 'vulyk', description: 'VQA-287' },
+}, async ({
   page,
   request,
 }) => {
@@ -87,7 +89,9 @@ test('viewer is denied mutating APIs and hides write UI', async ({
   await expect(nav.getByRole('link', { name: /Reports|Звіти/i })).toBeVisible()
 })
 
-test('admin sees admin nav and can list users', async ({ page, request }) => {
+test('admin sees admin nav and can list users', {
+  tag: '@VQA-288', annotation: { type: 'vulyk', description: 'VQA-288' },
+}, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const users = await request.get(`${API_URL}/api/v1/users`, {
     headers: { Authorization: `Bearer ${admin.token}` },

@@ -65,11 +65,12 @@ echo "==> frontend lint / typecheck / test-ids"
   fi
 )
 
-echo "==> e2e typecheck"
+echo "==> e2e typecheck + Vulyk case-key annotations"
 (
   cd e2e
   if [[ ! -d node_modules ]]; then npm ci; fi
   npm run typecheck
+  npm run check:vulyk-case-links
 )
 
 echo "OK: ./scripts/check.sh (${MODE}) passed"

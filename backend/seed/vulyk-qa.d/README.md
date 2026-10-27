@@ -54,3 +54,7 @@ feature — that is what caused CI collisions on PRs #27–#33.
   match `VQA-<digits>` (project prefix `VQA`).
 - Prefer omitting keys so allocation stays collision-proof under parallel PRs.
 - After rebase onto latest `main`, re-run `./scripts/check-seed-keys.sh`.
+- Exception: `playwright-e2e.json` keeps stable `VQA-N` keys so Playwright
+  `@VQA-N` tags stay aligned; regenerate with
+  `node e2e/scripts/sync-vulyk-case-links.mjs --annotate` after rebase if keys
+  collide, then update tags.
