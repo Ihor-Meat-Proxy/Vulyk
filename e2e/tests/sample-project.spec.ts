@@ -105,7 +105,7 @@ test.describe('sample project seed', () => {
         ? cases.total
         : (Array.isArray(cases) ? cases : cases.items ?? []).length
     expect(total).toBeGreaterThanOrEqual(120)
-    expect(total).toBeLessThanOrEqual(200)
+    expect(total).toBeLessThanOrEqual(280)
 
     const runs = await apiJson<{
       items: { name: string; status: string }[]

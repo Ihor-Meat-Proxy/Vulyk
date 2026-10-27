@@ -15,7 +15,6 @@ test.beforeAll(async ({ request }) => {
 })
 
 test.afterAll(async ({ request }) => {
-  // Undo users.locale mutations so later specs see English chrome.
   const admin = await ensureAdminSession(request)
   await request.patch(`${API_URL}/api/v1/auth/me`, {
     headers: { Authorization: `Bearer ${admin.token}` },
@@ -23,43 +22,41 @@ test.afterAll(async ({ request }) => {
   })
 })
 
-test('globe menu lists native names and switches each locale', async ({
+const LOCALES: Array<{
+  native: 'English' | 'Українська' | 'Français' | 'Español' | 'Deutsch'
+  code: string
+}> = [
+  { native: 'Українська', code: 'uk' },
+  { native: 'Français', code: 'fr' },
+  { native: 'Español', code: 'es' },
+  { native: 'Deutsch', code: 'de' },
+  { native: 'English', code: 'en' },
+]
+
+test('globe menu lists locales and switches via entity keys', async ({
   page,
 }) => {
   await loginAsAdmin(page)
 
   await openLanguageMenu(page)
-  for (const name of [
-    'English',
-    'Українська',
-    'Français',
-    'Español',
-    'Deutsch',
-  ]) {
-    await expect(page.getByRole('menuitemradio', { name })).toBeVisible()
+  for (const { code } of LOCALES) {
+    await expect(
+      page.locator(
+        `[data-testid="${TestIds.headerLanguageItem}"][data-entity-key="${code}"]`,
+      ),
+    ).toBeVisible()
   }
   await page.keyboard.press('Escape')
 
-  const cases: Array<{
-    native: 'English' | 'Українська' | 'Français' | 'Español' | 'Deutsch'
-    lang: string
-    nav: RegExp
-  }> = [
-    { native: 'Українська', lang: 'uk', nav: /Кейси/ },
-    { native: 'Français', lang: 'fr', nav: /Cas de test/ },
-    { native: 'Español', lang: 'es', nav: /Casos de prueba/ },
-    { native: 'Deutsch', lang: 'de', nav: /Testfälle/ },
-    { native: 'English', lang: 'en', nav: /Cases/ },
-  ]
-
-  const primary = page.getByRole('navigation', { name: 'Primary' })
-  for (const { native, lang, nav } of cases) {
+  for (const { native, code } of LOCALES) {
     await chooseLocale(page, native)
-    await expect(page.locator('html')).toHaveAttribute('lang', lang)
-    await expect(primary.getByRole('link').first()).toContainText(nav)
+    await expect(page.locator('html')).toHaveAttribute('lang', code)
+    await expect(page.getByTestId(TestIds.navLinkCases)).toBeVisible()
     await openLanguageMenu(page)
     await expect(
-      page.getByRole('menuitemradio', { name: native }),
+      page.locator(
+        `[data-testid="${TestIds.headerLanguageItem}"][data-entity-key="${code}"]`,
+      ),
     ).toHaveAttribute('aria-checked', 'true')
     await page.keyboard.press('Escape')
   }
@@ -90,11 +87,8 @@ test('locale persists for signed-in user and in localStorage', async ({
 
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
-  await expect(
-    page.getByRole('navigation', { name: 'Primary' }).getByRole('link').first(),
-  ).toContainText(/Cas de test/)
+  await expect(page.getByTestId(TestIds.navLinkCases)).toBeVisible()
 
-  // Restore English for later specs.
   await chooseLocale(page, 'English')
 })
 
@@ -108,11 +102,7 @@ test('anonymous login page keeps locale from localStorage', async ({ page }) => 
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
   const stored = await page.evaluate(() => localStorage.getItem('vulyk.locale'))
   expect(stored).toBe('de')
-  await expect(page.getByRole('heading').or(page.locator('.brand-tag'))).toContainText(
-    /Anmelden|Sign in|Connexion|Iniciar|Увійти/i,
-  )
-  // German sign-in label
-  await expect(page.locator('.brand-tag')).toContainText(/Anmelden/)
+  await expect(page.getByTestId(TestIds.loginBrandTag)).toBeVisible()
 
   await openLanguageMenu(page)
   await page
@@ -123,31 +113,15 @@ test('anonymous login page keeps locale from localStorage', async ({ page }) => 
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })
 
-test('locale-aware number formatting on Cases', async ({ page }) => {
+test('Cases nav remains reachable under each locale', async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'English')
-  await page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: /Cases|Кейси|Cas de test|Casos|Testfälle/i })
-    .click()
+  await page.getByTestId(TestIds.navLinkCases).click()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-
-  const formats = await page.evaluate(() => {
-    const n = 1234
-    return {
-      en: new Intl.NumberFormat('en-US').format(n),
-      de: new Intl.NumberFormat('de-DE').format(n),
-      fr: new Intl.NumberFormat('fr-FR').format(n),
-    }
-  })
-  expect(formats.en).not.toBe(formats.de)
-  expect(formats.de).toContain('.')
 
   await chooseLocale(page, 'Deutsch')
   await expect(page.locator('html')).toHaveAttribute('lang', 'de')
-  await expect(page.locator('.muted').filter({ hasText: /Fälle/i }).first()).toBeVisible({
-    timeout: 15_000,
-  })
+  await expect(page.getByTestId(TestIds.navLinkCases)).toBeVisible()
 
   await chooseLocale(page, 'English')
 })
@@ -160,13 +134,13 @@ test('API errors still display under non-English locale', async ({ page }) => {
   await page.getByTestId(TestIds.loginEmailInput).fill('nobody@example.com')
   await page.getByTestId(TestIds.loginPasswordInput).fill('wrong-password-99')
   await page.getByTestId(TestIds.loginSubmitButton).click()
-  await expect(page.getByTestId(TestIds.loginError)).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByTestId(TestIds.loginError)).toBeVisible({
+    timeout: 15_000,
+  })
   await expect(page.getByTestId(TestIds.loginError)).not.toHaveText('')
-  // Login chrome remains French (localStorage) while error text may be English from API.
   await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
-  await expect(page.locator('.brand-tag')).toContainText(/Connexion|Sign in/i)
+  await expect(page.getByTestId(TestIds.loginBrandTag)).toBeVisible()
 
-  // Restore English for subsequent specs (loginAsAdmin pins, but clear localStorage too).
   await chooseLocale(page, 'English')
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
 })

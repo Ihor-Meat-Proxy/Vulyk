@@ -69,6 +69,10 @@ async fn login(client: &reqwest::Client, base: &str, email: &str, password: &str
 
 #[tokio::test]
 async fn updates_status_requires_admin_and_reports_manual() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
     let (base, pool) = spawn_app().await;
     let email = format!(
         "updates-admin+{}@example.com",
@@ -158,6 +162,10 @@ async fn updates_status_requires_admin_and_reports_manual() {
 
 #[tokio::test]
 async fn updates_preferences_roundtrip() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
     let (base, pool) = spawn_app().await;
     let email = format!(
         "updates-prefs+{}@example.com",

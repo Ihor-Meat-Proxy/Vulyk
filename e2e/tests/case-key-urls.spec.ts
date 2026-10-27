@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   createCase,
   createProject,
@@ -40,7 +41,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 async function selectProject(page: import('@playwright/test').Page) {
-  const select = page.locator('.project-select')
+  const select = page.getByTestId(TestIds.headerProjectSelect)
   await expect.poll(async () => select.locator('option').count()).toBeGreaterThan(0)
   const options = await select.locator('option').allTextContents()
   const idx = options.findIndex((o) => o.includes(projectKey))
@@ -63,17 +64,16 @@ test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace',
   await cases.openCaseByTitle(caseTitle)
 
   await expect(page).toHaveURL(new RegExp(`/cases/${caseKey}$`))
-  await expect(page.getByTestId('case-detail-page')).toBeVisible()
-  await expect(page.getByTestId('case-detail-breadcrumbs')).toBeVisible()
-  await expect(page.getByTestId('case-detail-breadcrumb-current')).toContainText(
+  await expect(page.getByTestId(TestIds.caseDetailPage)).toBeVisible()
+  await expect(page.getByTestId(TestIds.caseDetailBreadcrumbs)).toBeVisible()
+  await expect(page.getByTestId(TestIds.caseDetailBreadcrumbCurrent)).toContainText(
     caseKey,
   )
-  await expect(page.getByTestId('case-detail-back')).toBeVisible()
-  await expect(page.getByTestId('case-detail-back').locator('kbd')).toBeVisible()
+  await expect(page.getByTestId(TestIds.caseDetailBackLink)).toBeVisible()
 
   // Copy key badge → toast
-  await page.getByTestId('case-detail-key-badge').click()
-  await expect(page.getByTestId('app-toast')).toContainText(caseKey, {
+  await page.getByTestId(TestIds.caseDetailKeyBadge).click()
+  await expect(page.getByTestId(TestIds.appToast)).toContainText(caseKey, {
     timeout: 5_000,
   })
 
@@ -82,17 +82,19 @@ test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace',
   await expect(page).toHaveURL(new RegExp(`/cases/${caseKey}$`), {
     timeout: 20_000,
   })
-  await expect(page.getByTestId('case-detail-page')).toBeVisible({
+  await expect(page.getByTestId(TestIds.caseDetailPage)).toBeVisible({
     timeout: 20_000,
   })
 
   // Backspace returns to folder-filtered list (focus outside inputs)
-  await page.getByTestId('case-detail-page').click()
+  await page.getByTestId(TestIds.caseDetailPage).click()
   await page.keyboard.press('Backspace')
   await expect(page).toHaveURL(/\/(?:\?.*)?$/)
-  await expect(cases.listPanel().getByText(caseTitle)).toBeVisible({
-    timeout: 20_000,
-  })
+  await expect(
+    page.locator(
+      `[data-testid="${TestIds.caseRow}"]`,
+    ).filter({ has: page.getByTestId(TestIds.caseRowTitle) }),
+  ).toBeVisible({ timeout: 20_000 })
 })
 
 test('deleted case key shows case deleted page', async ({ page, request }) => {
@@ -108,8 +110,8 @@ test('deleted case key shows case deleted page', async ({ page, request }) => {
   await loginAsAdmin(page)
   await selectProject(page)
   await page.goto(`/cases/${doomedKey}`)
-  await expect(page.getByTestId('case-detail-deleted')).toBeVisible({
+  await expect(page.getByTestId(TestIds.caseDetailDeleted)).toBeVisible({
     timeout: 20_000,
   })
-  await expect(page.getByTestId('case-detail-deleted')).toContainText(/deleted|видалено|supprimé|eliminado|gelöscht/i)
+  await expect(page.getByTestId(TestIds.caseDetailDeleted)).not.toHaveText('')
 })

@@ -1,43 +1,46 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import { loginAsAdmin } from '../fixtures/auth'
+import { uniqueKey } from '../fixtures/env'
 import { AdminPage } from '../pages/AdminPage'
 
 test.describe('Admin content backups', () => {
-  test('create local destination, back up now, see history', async ({
+  test('create local destination, back up now, see restore preview', async ({
     page,
   }) => {
     await loginAsAdmin(page)
     const admin = new AdminPage(page)
     await admin.open()
-    await page.getByTestId('admin-tab-backups').click()
-    await expect(page.getByTestId('admin-backups-panel')).toBeVisible()
+    await page.getByTestId(TestIds.adminTabBackups).click()
+    await expect(page.getByTestId(TestIds.adminBackupsPanel)).toBeVisible()
 
-    const destName = `Local e2e ${Date.now()}`
-    await page.getByTestId('admin-backups-dest-name').fill(destName)
-    await page.getByTestId('admin-backups-dest-kind').selectOption('local')
+    const destName = `Local e2e ${uniqueKey('bk')}`
+    const before = await page.getByTestId(TestIds.adminBackupsDestRow).count()
+    await page.getByTestId(TestIds.adminBackupsDestName).fill(destName)
+    await page.getByTestId(TestIds.adminBackupsDestKind).selectOption('local')
     await page
-      .getByTestId('admin-backups-dest-path')
+      .getByTestId(TestIds.adminBackupsDestPath)
       .fill('./data/content-backups-e2e')
-    await page.getByTestId('admin-backups-dest-save').click()
+    await page.getByTestId(TestIds.adminBackupsDestSave).click()
 
-    const destRow = page
-      .getByTestId('admin-backups-destinations')
-      .locator(
-        '[data-testid="admin-backups-dest-row"][data-entity-key="local"]',
-      )
-      .filter({ hasText: destName })
-    await expect(destRow).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByTestId(TestIds.adminBackupsDestRow)).toHaveCount(
+      before + 1,
+      { timeout: 15_000 },
+    )
 
-    await page
-      .getByTestId('admin-backups-run-dest')
-      .selectOption({ label: destName })
-    await page.getByTestId('admin-backups-run-now').click()
+    const runDest = page.getByTestId(TestIds.adminBackupsRunDest)
+    await expect
+      .poll(async () => runDest.locator('option').count())
+      .toBeGreaterThan(1)
+    const optionCount = await runDest.locator('option').count()
+    await runDest.selectOption({ index: optionCount - 1 })
+    await page.getByTestId(TestIds.adminBackupsRunNow).click()
 
     await expect
       .poll(
         async () => {
           const statuses = await page
-            .getByTestId('admin-backups-run-status')
+            .getByTestId(TestIds.adminBackupsRunStatus)
             .allTextContents()
           return statuses.some((s) => s.trim() === 'success')
         },
@@ -45,9 +48,10 @@ test.describe('Admin content backups', () => {
       )
       .toBeTruthy()
 
-    await page.getByTestId('admin-backups-restore').first().click()
-    await expect(page.getByTestId('admin-backups-restore-preview')).toBeVisible({
+    await page.getByTestId(TestIds.adminBackupsRestore).first().click()
+    await expect(page.getByTestId(TestIds.adminBackupsRestorePreview)).toBeVisible({
       timeout: 30_000,
     })
+    await expect(page.getByTestId(TestIds.adminBackupsRestoreCounts)).toBeVisible()
   })
 })

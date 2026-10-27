@@ -1,0 +1,227 @@
+{
+  "feature": "qa-coverage-hardening",
+  "suites": [
+    {
+      "name": {
+        "en": "Coverage hardening",
+        "uk": "Посилення покриття",
+        "fr": "Renforcement de la couverture",
+        "es": "Refuerzo de cobertura",
+        "de": "Abdeckungs-Härtung"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Content backup restore preview via test ids",
+            "uk": "Restore preview бекапу через test ids",
+            "fr": "Content backup restore preview via test ids",
+            "es": "Content backup restore preview via test ids",
+            "de": "Content backup restore preview via test ids"
+          },
+          "description": {
+            "en": "After a successful local backup run, Restore opens admin-backups-restore-preview with counts.",
+            "uk": "Після успішного local backup Restore відкриває admin-backups-restore-preview з counts.",
+            "fr": "After a successful local backup run, Restore opens admin-backups-restore-preview with counts.",
+            "es": "After a successful local backup run, Restore opens admin-backups-restore-preview with counts.",
+            "de": "After a successful local backup run, Restore opens admin-backups-restore-preview with counts."
+          },
+          "precondition": {
+            "en": "System admin; Backups tab available.",
+            "uk": "Системний адмін; вкладка Backups доступна.",
+            "fr": "System admin; Backups tab available.",
+            "es": "System admin; Backups tab available.",
+            "de": "System admin; Backups tab available."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "backups",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-backups.spec.ts",
+          "steps": [
+            {
+              "action": {
+                "en": "Create local destination (admin-backups-dest-*), Back up now, wait for admin-backups-run-status=success, click admin-backups-restore.",
+                "uk": "Створити local destination, Back up now, дочекатися success, натиснути restore.",
+                "fr": "Create local destination (admin-backups-dest-*), Back up now, wait for admin-backups-run-status=success, click admin-backups-restore.",
+                "es": "Create local destination (admin-backups-dest-*), Back up now, wait for admin-backups-run-status=success, click admin-backups-restore.",
+                "de": "Create local destination (admin-backups-dest-*), Back up now, wait for admin-backups-run-status=success, click admin-backups-restore."
+              },
+              "expected_result": {
+                "en": "admin-backups-restore-preview visible; admin-backups-restore-counts present.",
+                "uk": "Видно admin-backups-restore-preview і admin-backups-restore-counts.",
+                "fr": "admin-backups-restore-preview visible; admin-backups-restore-counts present.",
+                "es": "admin-backups-restore-preview visible; admin-backups-restore-counts present.",
+                "de": "admin-backups-restore-preview visible; admin-backups-restore-counts present."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Switch locales via language item entity keys only",
+            "uk": "Перемикання локалей лише через language item entity keys",
+            "fr": "Switch locales via language item entity keys only",
+            "es": "Switch locales via language item entity keys only",
+            "de": "Switch locales via language item entity keys only"
+          },
+          "description": {
+            "en": "Globe menu items use data-testid=header-language-item with data-entity-key en|uk|fr|es|de; nav uses nav-link-cases.",
+            "uk": "Пункти глобуса — header-language-item з data-entity-key; навігація — nav-link-cases.",
+            "fr": "Globe menu items use data-testid=header-language-item with data-entity-key en|uk|fr|es|de; nav uses nav-link-cases.",
+            "es": "Globe menu items use data-testid=header-language-item with data-entity-key en|uk|fr|es|de; nav uses nav-link-cases.",
+            "de": "Globe menu items use data-testid=header-language-item with data-entity-key en|uk|fr|es|de; nav uses nav-link-cases."
+          },
+          "precondition": {
+            "en": "Signed in; language menu available.",
+            "uk": "Увійшли; меню мови доступне.",
+            "fr": "Signed in; language menu available.",
+            "es": "Signed in; language menu available.",
+            "de": "Signed in; language menu available."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "i18n",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:locale-switch.spec.ts#testid-switch",
+          "steps": [
+            {
+              "action": {
+                "en": "For each locale code, click header-language-item[data-entity-key=…]; assert html[lang] and nav-link-cases still visible.",
+                "uk": "Для кожного коду мови клікнути header-language-item; перевірити html[lang] і nav-link-cases.",
+                "fr": "For each locale code, click header-language-item[data-entity-key=…]; assert html[lang] and nav-link-cases still visible.",
+                "es": "For each locale code, click header-language-item[data-entity-key=…]; assert html[lang] and nav-link-cases still visible.",
+                "de": "For each locale code, click header-language-item[data-entity-key=…]; assert html[lang] and nav-link-cases still visible."
+              },
+              "expected_result": {
+                "en": "html lang updates per code; nav-link-cases remains mounted (label may change); checked item has aria-checked=true.",
+                "uk": "html lang оновлюється; nav-link-cases лишається; обраний пункт aria-checked=true.",
+                "fr": "html lang updates per code; nav-link-cases remains mounted (label may change); checked item has aria-checked=true.",
+                "es": "html lang updates per code; nav-link-cases remains mounted (label may change); checked item has aria-checked=true.",
+                "de": "html lang updates per code; nav-link-cases remains mounted (label may change); checked item has aria-checked=true."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Case key URL breadcrumbs use test ids",
+            "uk": "Breadcrumbs кейсу за ключем через test ids",
+            "fr": "Case key URL breadcrumbs use test ids",
+            "es": "Case key URL breadcrumbs use test ids",
+            "de": "Case key URL breadcrumbs use test ids"
+          },
+          "description": {
+            "en": "Opening a case by key shows case-detail-breadcrumbs / breadcrumb-current with the key; project select uses header-project-select.",
+            "uk": "Відкриття кейсу за ключем показує breadcrumbs; проєкт обирається через header-project-select.",
+            "fr": "Opening a case by key shows case-detail-breadcrumbs / breadcrumb-current with the key; project select uses header-project-select.",
+            "es": "Opening a case by key shows case-detail-breadcrumbs / breadcrumb-current with the key; project select uses header-project-select.",
+            "de": "Opening a case by key shows case-detail-breadcrumbs / breadcrumb-current with the key; project select uses header-project-select."
+          },
+          "precondition": {
+            "en": "Project with a case in a folder.",
+            "uk": "Проєкт із кейсом у теці.",
+            "fr": "Project with a case in a folder.",
+            "es": "Project with a case in a folder.",
+            "de": "Project with a case in a folder."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "cases",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:case-key-urls.spec.ts",
+          "steps": [
+            {
+              "action": {
+                "en": "Select project via header-project-select; open case; inspect case-detail-breadcrumbs and case-detail-breadcrumb-current.",
+                "uk": "Обрати проєкт через header-project-select; відкрити кейс; перевірити breadcrumbs.",
+                "fr": "Select project via header-project-select; open case; inspect case-detail-breadcrumbs and case-detail-breadcrumb-current.",
+                "es": "Select project via header-project-select; open case; inspect case-detail-breadcrumbs and case-detail-breadcrumb-current.",
+                "de": "Select project via header-project-select; open case; inspect case-detail-breadcrumbs and case-detail-breadcrumb-current."
+              },
+              "expected_result": {
+                "en": "URL ends with /cases/{KEY}; breadcrumb-current contains the key; no CSS class locators required.",
+                "uk": "URL закінчується /cases/{KEY}; breadcrumb-current містить ключ.",
+                "fr": "URL ends with /cases/{KEY}; breadcrumb-current contains the key; no CSS class locators required.",
+                "es": "URL ends with /cases/{KEY}; breadcrumb-current contains the key; no CSS class locators required.",
+                "de": "URL ends with /cases/{KEY}; breadcrumb-current contains the key; no CSS class locators required."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Reports drill-down filters rows by entity key",
+            "uk": "Reports drill-down фільтрує рядки за entity key",
+            "fr": "Reports drill-down filters rows by entity key",
+            "es": "Reports drill-down filters rows by entity key",
+            "de": "Reports drill-down filters rows by entity key"
+          },
+          "description": {
+            "en": "Run report rows use reports-run-row with data-entity-key; expand uses reports-run-row-expand.",
+            "uk": "Рядки run report — reports-run-row з data-entity-key; expand — reports-run-row-expand.",
+            "fr": "Run report rows use reports-run-row with data-entity-key; expand uses reports-run-row-expand.",
+            "es": "Run report rows use reports-run-row with data-entity-key; expand uses reports-run-row-expand.",
+            "de": "Run report rows use reports-run-row with data-entity-key; expand uses reports-run-row-expand."
+          },
+          "precondition": {
+            "en": "Project with a finished CI run and ≥2 cases.",
+            "uk": "Проєкт із завершеним CI run і ≥2 кейсами.",
+            "fr": "Project with a finished CI run and ≥2 cases.",
+            "es": "Project with a finished CI run and ≥2 cases.",
+            "de": "Project with a finished CI run and ≥2 cases."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "reports",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:reports-drilldown.spec.ts",
+          "steps": [
+            {
+              "action": {
+                "en": "Open run report; filter/assert row by data-entity-key; expand detail via reports-run-row-expand.",
+                "uk": "Відкрити run report; перевірити рядок за data-entity-key; розгорнути detail.",
+                "fr": "Open run report; filter/assert row by data-entity-key; expand detail via reports-run-row-expand.",
+                "es": "Open run report; filter/assert row by data-entity-key; expand detail via reports-run-row-expand.",
+                "de": "Open run report; filter/assert row by data-entity-key; expand detail via reports-run-row-expand."
+              },
+              "expected_result": {
+                "en": "Matched row visible; unrelated key has count 0; detail region reports-run-row-detail appears.",
+                "uk": "Matched рядок видимий; чужий ключ count=0; видно reports-run-row-detail.",
+                "fr": "Matched row visible; unrelated key has count 0; detail region reports-run-row-detail appears.",
+                "es": "Matched row visible; unrelated key has count 0; detail region reports-run-row-detail appears.",
+                "de": "Matched row visible; unrelated key has count 0; detail region reports-run-row-detail appears."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
