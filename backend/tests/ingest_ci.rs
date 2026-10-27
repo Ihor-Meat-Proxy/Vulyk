@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-async fn spawn_app() -> String {
+async fn spawn_app() -> (String, sqlx::PgPool) {
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for integration tests");
     let pool = vulyk_api::db::connect(&database_url)
@@ -14,7 +14,7 @@ async fn spawn_app() -> String {
     vulyk_api::jobs::spawn_worker(pool.clone());
 
     let state = vulyk_api::routes::AppState {
-        pool,
+        pool: pool.clone(),
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
         auth: vulyk_api::auth::AuthConfig {
             required: false,
@@ -34,7 +34,7 @@ async fn spawn_app() -> String {
         axum::serve(listener, app).await.expect("serve");
     });
     tokio::time::sleep(Duration::from_millis(50)).await;
-    format!("http://{addr}")
+    (format!("http://{addr}"), pool)
 }
 
 #[tokio::test]
@@ -44,7 +44,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
         return;
     }
 
-    let base = spawn_app().await;
+    let (base, _pool) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let key = format!(
@@ -248,7 +248,7 @@ async fn webhook_without_secret_is_rejected() {
         return;
     }
 
-    let base = spawn_app().await;
+    let (base, _pool) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let key = format!(
@@ -323,7 +323,7 @@ async fn vulyk_json_async_job() {
         return;
     }
 
-    let base = spawn_app().await;
+    let (base, pool) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let key = format!(
@@ -385,10 +385,13 @@ async fn vulyk_json_async_job() {
         .unwrap();
     let job_id = ingest["job_id"].as_str().expect("job_id");
 
-    // Parallel cargo tests share one DB and many workers; allow longer for claim+ingest.
+    // Parallel cargo test binaries share DATABASE_URL. A worker from another
+    // binary can claim this job and then exit, leaving status=`running` until
+    // the 15m production reclaim window. Drive completion locally: reclaim
+    // short-lived abandoned locks and run worker ticks ourselves.
     let mut status = String::new();
-    let mut last_job = Value::Null;
-    for _ in 0..100 {
+    let mut last_job = json!({});
+    for i in 0..60 {
         let job: Value = client
             .get(format!("{base}/api/v1/jobs/{job_id}"))
             .send()
@@ -397,21 +400,25 @@ async fn vulyk_json_async_job() {
             .json()
             .await
             .unwrap();
+        last_job = job.clone();
         status = job["status"].as_str().unwrap_or("").to_string();
-        last_job = job;
         if status == "completed" || status == "failed" {
-            assert_eq!(
-                status, "completed",
-                "job error: {:?}",
-                last_job["last_error"]
-            );
+            assert_eq!(status, "completed", "job error: {:?}", job["last_error"]);
             break;
         }
-        tokio::time::sleep(Duration::from_millis(200)).await;
+        if status == "running" {
+            // Free locks held longer than 1s (dead peer workers).
+            let _ = vulyk_api::services::jobs::reclaim_stale(&pool, 1).await;
+        }
+        let _ = vulyk_api::jobs::process_one(&pool, "ingest-ci-local").await;
+        // First few iterations give the local spawn_worker a chance before we
+        // reclaim aggressively.
+        let delay = if i < 4 { 100 } else { 200 };
+        tokio::time::sleep(Duration::from_millis(delay)).await;
     }
     assert_eq!(
         status, "completed",
-        "job did not finish in time: {last_job}"
+        "async ingest job did not finish in time: {last_job}"
     );
 
     let results: Value = client

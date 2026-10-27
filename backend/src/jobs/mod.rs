@@ -40,6 +40,12 @@ pub fn spawn_worker(pool: PgPool) {
     });
 }
 
+/// Claim and run at most one pending job (used by integration tests that share
+/// a Postgres with other test binaries whose workers may die mid-job).
+pub async fn process_one(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
+    tick(pool, worker_id).await
+}
+
 async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
     let Some(job) = jobs_svc::claim_next(pool, worker_id)
         .await

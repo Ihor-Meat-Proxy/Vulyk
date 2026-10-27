@@ -7,17 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-27
+
+Second release after the 0.1.0 open-source launch: Admin configuration depth,
+content backups and in-app upgrades/rollback, case PDF export, security
+hardenings from the October 2026 audit, and documentation aligned with `main`.
+
 ### Added
 
+- **Option lists, custom fields, config export/import** — Admin Lists / Custom
+  fields / Export·import; scoped field definitions; `vulyk-api config
+  export|import` and `install.sh config-export|config-import` (#24)
+- **Content backups** — Admin → Backups: ZIP archives to local / GitHub /
+  GitLab / Nextcloud / Drive; schedules, restore modes; path confinement via
+  `VULYK_CONTENT_BACKUP_DIR` (#30)
+- **Case PDF export** — single and bulk (ZIP); Unicode/Cyrillic fonts; locale
+  labels; bulk `case_ids` capped at 100 (#31, #51)
+- **Cases list columns** — customizable columns, server-side sort, custom-field
+  columns (#25)
+- **Case editor UX** — Tab-add-step, scoped Ctrl/Cmd+S, sticky save bar (#29)
+- **Reports drill-down** — deep-linkable run report with filters/grouping/export
+  (#34)
+- **Admin Updates** — check GitHub Releases, optional Compose updater sidecar,
+  one-click upgrade (#37)
+- **Post-upgrade rollback** — version-backup points, Admin Roll back,
+  `install.sh rollback --confirm=ROLLBACK`, retention env vars (#39)
 - Hardened upgrade backups: verified temp-DB restore, config/secrets bundle,
   attachments archive, auto-rollback to previous images, downgrade guards
-- Upgrade CI asserts encrypted LLM secrets decrypt after migrate
-- Admin **Updates** tab: check GitHub Releases, release notes, optional periodic
-  check, one-click upgrade via Compose updater sidecar (manual command on K8s)
-- Post-upgrade **rollback points** (`./version-backups/`, default 7 days) and
-  last-N **version snapshots** (default 3); `install.sh rollback --confirm=ROLLBACK`;
-  Admin Roll back button, backup list/download; prune/expiry never deletes
-  in-progress or current-version points; audit_events on rollback
+- QA seed fragments + Playwright coverage for Updates/rollback, multi-repo CI
+  ingest, password policy/lockout, TestId hardening (#44, #56, #62, #63)
+- Docs index (`docs/README.md`) and Oct 2026 security / quality / review audits
+  linked from README / AGENTS
+
+### Security
+
+- Reject unbound (null-user) headless API tokens (#45)
+- CI webhooks **fail closed** without a verifying secret (#48)
+- Enforce `ViewProject` on results and jobs GETs (#50)
+- Redact CI config tokens and webhook secrets in API responses (#54)
+- Harden SSO redirect, session revoke on password change, JWT secret
+  fail-closed when auth required (#57)
+- Block git SSRF; redact credential leaks; shared egress allowlist;
+  `VULYK_EGRESS_ALLOW_PRIVATE` for lab only (#59)
+- Narrow CI token permissions; block `create_project` via CI tokens (#61)
+- Shared password policy (default 16+, floor 12), forced change, login lockout
+  (#32)
+
+### Fixed
+
+- Preserve run-item `executed_at` when status is omitted (#42)
+- Case-key ingest match is case-insensitive (#49)
+- Avoid panics in report headers and PDF tables (#47)
+- Stable React keys for case steps and chat drafts (#53)
+- Per-requirement coverage from executed links (#60)
+- Reclaim stale `running` jobs after worker crash (#46)
+- OpenAPI / version alignment with crate semver (#58)
+- Collision-proof QA seed fragments and agent check scripts (#36)
+
+### Performance
+
+- Batch ingest case lookup and last_automation updates (#52)
+- Run Argon2 hash/verify via `spawn_blocking` (#55)
+
+### Release artifacts
+
+- GHCR images: `vulyk-api` and `vulyk-web` tagged `0.2.0` and `latest`
+- GitHub Release attaches Linux API/CLI binaries, frontend `dist` archive,
+  Compose/install bundle, and SHA256 checksums
 
 ## [0.1.0] - 2026-10-26
 
