@@ -141,7 +141,7 @@ pre-update state, so recovery is possible but UX is “last write wins”.
 `ON CONFLICT (case_id, version) DO NOTHING` can drop a snapshot under concurrent
 updaters, leaving a version number without a corresponding row.
 
-**Fixed:** plain INSERT (409 on unique conflict); update + custom-field paths
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/98 — plain INSERT (409 on unique conflict); update + custom-field paths
 snapshot the post-bump version so each version has a history row.
 
 ### 9. **risk** — `update_run_item` auto-completes run using only `Untested`
