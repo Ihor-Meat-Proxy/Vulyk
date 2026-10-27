@@ -33,16 +33,22 @@ async fn reclaim_stale_running_job_then_claim() {
     .await
     .expect("mark stale");
 
-    let reclaimed = vulyk_api::services::jobs::reclaim_stale(&pool, 15 * 60)
+    // Parallel cargo tests share DATABASE_URL; another claim_next may have
+    // already reclaimed this row. Assert the planted job ends pending, not
+    // that this particular call's rows_affected is non-zero.
+    let _ = vulyk_api::services::jobs::reclaim_stale(&pool, 15 * 60)
         .await
         .expect("reclaim");
-    assert!(reclaimed >= 1, "expected at least the planted stale job");
 
     let after = vulyk_api::services::jobs::get_job(&pool, job.id)
         .await
         .expect("get")
         .expect("job exists");
-    assert_eq!(after.status, "pending");
+    assert_eq!(
+        after.status, "pending",
+        "stale running job must be requeued (got status={})",
+        after.status
+    );
     assert!(after.locked_at.is_none());
     assert!(after.locked_by.is_none());
 

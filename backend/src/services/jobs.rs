@@ -72,10 +72,10 @@ pub async fn reclaim_stale(pool: &PgPool, stale_after_secs: i64) -> AppResult<u6
             updated_at = NOW()
         WHERE status = 'running'
           AND locked_at IS NOT NULL
-          AND locked_at < NOW() - ($1::text || ' seconds')::interval
+          AND locked_at < NOW() - make_interval(secs => $1::int)
         "#,
     )
-    .bind(stale_after_secs)
+    .bind(stale_after_secs as i32)
     .execute(pool)
     .await?;
     Ok(result.rows_affected())
