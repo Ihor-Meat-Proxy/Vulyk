@@ -104,6 +104,10 @@ pub struct UpdateCase {
     pub change_summary: Option<String>,
     pub sort_order: Option<i32>,
     pub external_key: Option<String>,
+    /// When set, update fails with 409 unless the case is still at this version
+    /// (optimistic concurrency / review #7). Omit for last-write-wins clients.
+    #[serde(default)]
+    pub expected_version: Option<i32>,
 }
 
 fn default_priority() -> String {

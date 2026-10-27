@@ -130,6 +130,10 @@ index `(run_id, external_id, status)` for non-empty `external_id`; ingest uses
 Two editors can silently overwrite each other; version history still snapshots
 pre-update state, so recovery is possible but UX is “last write wins”.
 
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/91 — optional
+`expected_version` on `UpdateCase`; `SELECT … FOR UPDATE` + version-gated
+`UPDATE`; UI sends current version; omit field for last-write-wins clients.
+
 ### 8. **risk** — `snapshot_case` swallows version conflicts
 
 `backend/src/services/cases.rs:253-263`

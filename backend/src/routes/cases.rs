@@ -739,7 +739,10 @@ pub async fn get_case_by_key(
         ("case_id" = Uuid, Path, description = "Case id")
     ),
     request_body = UpdateCase,
-    responses((status = 200, description = "Updated case", body = TestCaseDetail)),
+    responses(
+        (status = 200, description = "Updated case", body = TestCaseDetail),
+        (status = 409, description = "Version mismatch when expected_version was set")
+    ),
     security(("bearer_auth" = []))
 )]
 pub async fn update_case(
@@ -758,16 +761,28 @@ pub async fn update_case(
     .await?;
     let mut tx = state.pool.begin().await?;
 
+    // Lock the row so concurrent editors serialize; optional expected_version
+    // turns last-write-wins into a clean 409 (review #7).
     let existing = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
                   priority, status, version, external_key, sort_order, created_at, updated_at
-           FROM test_cases WHERE project_id = $1 AND id = $2"#,
+           FROM test_cases WHERE project_id = $1 AND id = $2
+           FOR UPDATE"#,
     )
     .bind(project_id)
     .bind(case_id)
     .fetch_optional(&mut *tx)
     .await?
     .ok_or_else(|| AppError::NotFound("case".into()))?;
+
+    if let Some(expected) = body.expected_version {
+        if existing.version != expected {
+            return Err(AppError::Conflict(format!(
+                "case version mismatch: expected {expected}, current {}",
+                existing.version
+            )));
+        }
+    }
 
     // Snapshot current version before mutating.
     snapshot_case(
@@ -779,7 +794,7 @@ pub async fn update_case(
     )
     .await?;
 
-    let title = body.title.unwrap_or(existing.title);
+    let title = body.title.unwrap_or(existing.title.clone());
     let suite_id = if body.clear_suite {
         None
     } else {
@@ -791,19 +806,20 @@ pub async fn update_case(
             crate::services::suites::ensure_suite_in_project(&state.pool, project_id, sid).await?;
         }
     }
-    let description = body.description.unwrap_or(existing.description);
-    let precondition = body.precondition.unwrap_or(existing.precondition);
-    let priority = body.priority.unwrap_or(existing.priority);
-    let status = body.status.unwrap_or(existing.status);
+    let description = body.description.unwrap_or(existing.description.clone());
+    let precondition = body.precondition.unwrap_or(existing.precondition.clone());
+    let priority = body.priority.unwrap_or(existing.priority.clone());
+    let status = body.status.unwrap_or(existing.status.clone());
     let sort_order = body.sort_order.unwrap_or(existing.sort_order);
-    let external_key = body.external_key.or(existing.external_key);
+    let external_key = body.external_key.or(existing.external_key.clone());
+    let from_version = existing.version;
 
     let case = sqlx::query_as::<_, TestCase>(
         r#"UPDATE test_cases
            SET title = $3, suite_id = $4, description = $5, precondition = $6,
                priority = $7, status = $8, sort_order = $9, external_key = $10,
                version = version + 1, updated_at = NOW()
-           WHERE project_id = $1 AND id = $2
+           WHERE project_id = $1 AND id = $2 AND version = $11
            RETURNING id, project_id, suite_id, key, title, description, precondition,
                      priority, status, version, external_key, sort_order, created_at, updated_at"#,
     )
@@ -817,8 +833,14 @@ pub async fn update_case(
     .bind(status)
     .bind(sort_order)
     .bind(external_key)
-    .fetch_one(&mut *tx)
-    .await?;
+    .bind(from_version)
+    .fetch_optional(&mut *tx)
+    .await?
+    .ok_or_else(|| {
+        AppError::Conflict(format!(
+            "case version mismatch: expected {from_version}, changed concurrently"
+        ))
+    })?;
 
     if let Some(ref steps) = body.steps {
         replace_steps(&mut tx, case.id, steps).await?;
