@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use serde_json::Value;
 
-async fn spawn_app() -> String {
+async fn spawn_app() -> (String, sqlx::PgPool) {
     std::env::set_var("VULYK_LLM_MOCK", "1");
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for integration tests");
@@ -14,7 +14,7 @@ async fn spawn_app() -> String {
     vulyk_api::db::migrate(&pool).await.expect("migrate");
 
     let state = vulyk_api::routes::AppState {
-        pool,
+        pool: pool.clone(),
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
         auth: vulyk_api::auth::AuthConfig {
             required: false,
@@ -34,7 +34,7 @@ async fn spawn_app() -> String {
         axum::serve(listener, app).await.expect("serve");
     });
     tokio::time::sleep(Duration::from_millis(50)).await;
-    format!("http://{addr}")
+    (format!("http://{addr}"), pool)
 }
 
 #[tokio::test]
@@ -44,7 +44,7 @@ async fn llm_config_encrypts_key_and_mock_generate() {
         return;
     }
 
-    let base = spawn_app().await;
+    let (base, _pool) = spawn_app().await;
     let client = reqwest::Client::new();
 
     let key = format!(
@@ -155,11 +155,39 @@ async fn api_token_auth_and_runs_for_mcp() {
         return;
     }
 
-    let base = spawn_app().await;
+    let (base, pool) = spawn_app().await;
     let client = reqwest::Client::new();
+
+    // API tokens must be bound to a user — mint via an authenticated session.
+    let email = format!("mcp+{}@example.com", uuid::Uuid::new_v4().simple());
+    let password = "password12345678";
+    let hash = vulyk_api::auth::hash_password(password).expect("hash");
+    sqlx::query(
+        r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
+           VALUES ($1, 'MCP', $2, TRUE)"#,
+    )
+    .bind(&email)
+    .bind(&hash)
+    .execute(&pool)
+    .await
+    .expect("insert user");
+
+    let login: Value = client
+        .post(format!("{base}/api/v1/auth/login"))
+        .json(&serde_json::json!({ "email": email, "password": password }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let jwt = login["token"].as_str().unwrap();
 
     let minted: Value = client
         .post(format!("{base}/api/v1/tokens"))
+        .header("Authorization", format!("Bearer {jwt}"))
         .json(&serde_json::json!({ "name": "mcp-ci" }))
         .send()
         .await

@@ -408,6 +408,42 @@ async fn weak_password_login_forces_change_and_blocks_api() {
 }
 
 #[tokio::test]
+async fn headless_api_token_is_rejected() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+
+    // Insert a legacy unbound API token directly (null user_id).
+    let raw = format!("vulyk_at_{}", uuid::Uuid::new_v4().simple());
+    let hash = vulyk_api::auth::hash_secret(&raw);
+    sqlx::query(
+        r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id)
+           VALUES ('legacy-headless', 'vulyk_at_', $1, NULL)"#,
+    )
+    .bind(&hash)
+    .execute(&pool)
+    .await
+    .expect("insert headless token");
+
+    let resp = client
+        .get(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {raw}"))
+        .send()
+        .await
+        .expect("request");
+    assert_eq!(
+        resp.status().as_u16(),
+        401,
+        "unbound API tokens must not authenticate: {}",
+        resp.text().await.unwrap_or_default()
+    );
+}
+
+#[tokio::test]
 async fn password_policy_rejects_weak_on_create() {
     if std::env::var("DATABASE_URL").is_err() {
         eprintln!("skipping: DATABASE_URL not set");
