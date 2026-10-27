@@ -160,7 +160,7 @@ For every candidate row (before `LIMIT`), Postgres evaluates
 Prefer a lateral join only for the page, or a denormalized
 `last_run_status` column (ingest already updates `last_automation_*`).
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME — denormalized
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/84 — denormalized
 `test_cases.last_run_status` / `last_run_at` (migration + backfill); list SELECT
 uses the column; ingest / manual / bulk result writers refresh via
 `services::results::refresh_last_run_status`.
