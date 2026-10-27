@@ -185,7 +185,7 @@ Alongside FTS, leading-wildcard `ILIKE` forces seq scans on large projects.
 Keep FTS / `pg_trgm` as the primary path; gate or remove the `%q%` fallback for
 short queries.
 
-**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/FIXME — FTS primary;
+**Fixed:** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/86 — FTS primary;
 `%q%` only when trimmed `q` length ≥ 3; shorter queries use prefix `q%` on
 title/key (`case_list::search_q_predicate`).
 
