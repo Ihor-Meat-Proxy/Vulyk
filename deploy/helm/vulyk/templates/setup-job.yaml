@@ -22,10 +22,18 @@ spec:
         app.kubernetes.io/component: setup
     spec:
       restartPolicy: OnFailure
+      {{- with .Values.podSecurityContext.api }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       containers:
         - name: setup
           image: {{ .Values.image.api | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           command: ["vulyk-api"]
           args:
             - setup
