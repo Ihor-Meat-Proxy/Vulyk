@@ -74,11 +74,14 @@ npx playwright test tests/auth.spec.ts
 ## Mock OIDC (SSO)
 
 `global-setup.ts` starts `mock-oidc/server.mjs` on port **9090** (override with `E2E_OIDC_PORT`).
+The mock issues **RS256-signed** `id_token`s and serves a matching JWKS so the API can verify signatures (audit H7).
 
 The SSO spec enables the seeded `oidc` provider via admin API:
 
 - `issuer` = `http://127.0.0.1:9090`
 - `client_id` / `client_secret` = `vulyk-e2e` / `vulyk-e2e-secret`
+
+The API process needs `VULYK_EGRESS_ALLOW_PRIVATE=1` so JWKS fetch to the local mock is allowed (CI sets this; never enable in production).
 
 Set `E2E_SKIP_MOCK_OIDC=1` to skip starting the mock (SSO test will skip).
 

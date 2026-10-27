@@ -1,8 +1,10 @@
 //! OAuth2 / OIDC SSO providers: load, encrypt secrets, authorize, callback, JIT.
 
-use base64::engine::general_purpose::{STANDARD as B64, URL_SAFE_NO_PAD};
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use base64::Engine;
 use chrono::{DateTime, Utc};
+use jsonwebtoken::jwk::JwkSet;
+use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -15,6 +17,7 @@ use crate::auth::{generate_password, hash_password_async, PasswordPolicy, Projec
 use crate::crypto::SecretsKey;
 use crate::error::{AppError, AppResult};
 use crate::models::{SsoProviderPublic, User};
+use crate::services::egress;
 use crate::settings::{self, RegistrationMode};
 
 const USER_COLUMNS: &str = r#"id, email, display_name, password_hash, is_system_admin,
@@ -154,6 +157,10 @@ pub struct ResolvedEndpoints {
     pub authorization: String,
     pub token: String,
     pub userinfo: Option<String>,
+    /// OIDC JWKS endpoint for verifying `id_token` signatures (when discovered/configured).
+    pub jwks_uri: Option<String>,
+    /// Expected `iss` claim for `id_token` verification.
+    pub issuer: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -437,6 +444,8 @@ pub async fn resolve_endpoints(provider: &SsoProvider) -> AppResult<ResolvedEndp
                 authorization: auth.clone(),
                 token: token.clone(),
                 userinfo: provider.userinfo_endpoint.clone(),
+                jwks_uri: provider.jwks_uri.clone(),
+                issuer: provider.issuer_url.clone(),
             });
         }
     }
@@ -463,6 +472,8 @@ pub async fn resolve_endpoints(provider: &SsoProvider) -> AppResult<ResolvedEndp
             authorization: "https://github.com/login/oauth/authorize".into(),
             token: "https://github.com/login/oauth/access_token".into(),
             userinfo: Some("https://api.github.com/user".into()),
+            jwks_uri: None,
+            issuer: None,
         }),
         "gitlab" => {
             let base = provider
@@ -477,6 +488,8 @@ pub async fn resolve_endpoints(provider: &SsoProvider) -> AppResult<ResolvedEndp
                 authorization: format!("{base}/oauth/authorize"),
                 token: format!("{base}/oauth/token"),
                 userinfo: Some(format!("{base}/oauth/userinfo")),
+                jwks_uri: provider.jwks_uri.clone(),
+                issuer: provider.issuer_url.clone(),
             })
         }
         "nextcloud" => {
@@ -492,6 +505,8 @@ pub async fn resolve_endpoints(provider: &SsoProvider) -> AppResult<ResolvedEndp
                 authorization: format!("{base}/index.php/apps/oauth2/authorize"),
                 token: format!("{base}/index.php/apps/oauth2/api/v1/token"),
                 userinfo: Some(format!("{base}/ocs/v2.php/cloud/user")),
+                jwks_uri: provider.jwks_uri.clone(),
+                issuer: provider.issuer_url.clone(),
             })
         }
         _ => {
@@ -534,11 +549,22 @@ async fn discover_oidc(issuer: &str) -> AppResult<ResolvedEndpoints> {
         .get("userinfo_endpoint")
         .and_then(|v| v.as_str())
         .map(str::to_string);
+    let jwks_uri = doc
+        .get("jwks_uri")
+        .and_then(|v| v.as_str())
+        .map(str::to_string);
+    let discovered_issuer = doc
+        .get("issuer")
+        .and_then(|v| v.as_str())
+        .map(str::to_string)
+        .unwrap_or_else(|| issuer.to_string());
 
     Ok(ResolvedEndpoints {
         authorization,
         token,
         userinfo,
+        jwks_uri,
+        issuer: Some(discovered_issuer),
     })
 }
 
@@ -725,40 +751,61 @@ async fn fetch_identity(
     access_token: &str,
     token_json: &Value,
 ) -> AppResult<SsoIdentity> {
-    // Prefer id_token claims when present (OIDC).
+    // Prefer JWKS-verified id_token claims when present (OIDC). Never trust
+    // unsigned JWT payloads — if JWKS is unavailable, fall through to userinfo.
     if let Some(id_token) = token_json.get("id_token").and_then(|v| v.as_str()) {
-        if let Ok(claims) = decode_jwt_payload(id_token) {
+        let jwks_uri = endpoints
+            .jwks_uri
+            .as_deref()
+            .or(provider.jwks_uri.as_deref())
+            .filter(|s| !s.is_empty());
+        if let Some(jwks_uri) = jwks_uri {
+            let issuer = endpoints
+                .issuer
+                .as_deref()
+                .or(provider.issuer_url.as_deref())
+                .filter(|s| !s.is_empty());
+            let claims = verify_id_token(id_token, jwks_uri, issuer, &provider.client_id).await?;
             let subject = claims
                 .get("sub")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
-            if !subject.is_empty() {
-                let email = claims
-                    .get("email")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                let email_verified = claims
-                    .get("email_verified")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(email.is_some());
-                let display_name = claims
-                    .get("name")
-                    .or_else(|| claims.get("preferred_username"))
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                let groups = extract_groups(&claims);
-                if email.is_some() || endpoints.userinfo.is_none() {
-                    return Ok(SsoIdentity {
-                        subject,
-                        email,
-                        email_verified,
-                        display_name,
-                        groups,
-                        raw: claims,
-                    });
-                }
+            if subject.is_empty() {
+                return Err(AppError::Unauthorized(
+                    "id_token missing subject claim".into(),
+                ));
             }
+            let email = claims
+                .get("email")
+                .and_then(|v| v.as_str())
+                .map(str::to_string);
+            let email_verified = claims
+                .get("email_verified")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(email.is_some());
+            let display_name = claims
+                .get("name")
+                .or_else(|| claims.get("preferred_username"))
+                .and_then(|v| v.as_str())
+                .map(str::to_string);
+            let groups = extract_groups(&claims);
+            if email.is_some() || endpoints.userinfo.is_none() {
+                return Ok(SsoIdentity {
+                    subject,
+                    email,
+                    email_verified,
+                    display_name,
+                    groups,
+                    raw: claims,
+                });
+            }
+            // Verified token lacked email but userinfo exists — enrich below.
+        } else {
+            tracing::warn!(
+                provider = %provider.provider_key,
+                "id_token present but no jwks_uri; ignoring unsigned claims and using userinfo"
+            );
         }
     }
 
@@ -954,22 +1001,116 @@ fn extract_groups(claims: &Value) -> Vec<String> {
     groups
 }
 
-fn decode_jwt_payload(token: &str) -> AppResult<Value> {
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() < 2 {
-        return Err(AppError::BadRequest("invalid id_token".into()));
+/// Claims shape used only so `jsonwebtoken` can enforce `exp`/`iss`/`aud`/`sub`.
+#[derive(Debug, Deserialize)]
+struct OidcIdTokenClaims {
+    sub: String,
+    exp: i64,
+    #[serde(default)]
+    iss: Option<String>,
+    #[serde(default)]
+    aud: Option<Value>,
+    #[serde(flatten)]
+    extra: serde_json::Map<String, Value>,
+}
+
+fn id_token_alg_allowed(alg: Algorithm) -> bool {
+    matches!(
+        alg,
+        Algorithm::RS256
+            | Algorithm::RS384
+            | Algorithm::RS512
+            | Algorithm::ES256
+            | Algorithm::ES384
+            | Algorithm::EdDSA
+    )
+}
+
+/// Fetch JWKS and verify an OIDC `id_token` (signature + iss/aud/exp/sub).
+///
+/// `jwks_uri` is subject to the shared egress allowlist (HTTPS / public DNS).
+pub async fn verify_id_token(
+    token: &str,
+    jwks_uri: &str,
+    expected_issuer: Option<&str>,
+    expected_audience: &str,
+) -> AppResult<Value> {
+    let jwks = fetch_jwks(jwks_uri).await?;
+    verify_id_token_with_jwks(token, &jwks, expected_issuer, expected_audience)
+}
+
+async fn fetch_jwks(jwks_uri: &str) -> AppResult<JwkSet> {
+    egress::validate_public_https_url(jwks_uri)?;
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(jwks_uri)
+        .header("Accept", "application/json")
+        .send()
+        .await
+        .map_err(|e| AppError::Unauthorized(format!("JWKS fetch failed: {e}")))?;
+    if !resp.status().is_success() {
+        return Err(AppError::Unauthorized(format!(
+            "JWKS HTTP {}",
+            resp.status()
+        )));
     }
-    let payload = parts[1];
-    let padded = match payload.len() % 4 {
-        2 => format!("{payload}=="),
-        3 => format!("{payload}="),
-        _ => payload.to_string(),
+    resp.json::<JwkSet>()
+        .await
+        .map_err(|e| AppError::Unauthorized(format!("JWKS JSON: {e}")))
+}
+
+/// Pure verification against an already-fetched JWKS (unit-testable).
+pub fn verify_id_token_with_jwks(
+    token: &str,
+    jwks: &JwkSet,
+    expected_issuer: Option<&str>,
+    expected_audience: &str,
+) -> AppResult<Value> {
+    let header = decode_header(token)
+        .map_err(|_| AppError::Unauthorized("invalid id_token header".into()))?;
+    if !id_token_alg_allowed(header.alg) {
+        return Err(AppError::Unauthorized(format!(
+            "unsupported id_token alg {:?}",
+            header.alg
+        )));
+    }
+
+    let jwk = match header.kid.as_deref() {
+        Some(kid) => jwks.find(kid).ok_or_else(|| {
+            AppError::Unauthorized(format!("id_token kid `{kid}` not found in JWKS"))
+        })?,
+        None if jwks.keys.len() == 1 => &jwks.keys[0],
+        None => {
+            return Err(AppError::Unauthorized(
+                "id_token missing kid and JWKS has multiple keys".into(),
+            ));
+        }
     };
-    let bytes = URL_SAFE_NO_PAD
-        .decode(payload)
-        .or_else(|_| B64.decode(&padded))
-        .map_err(|_| AppError::BadRequest("id_token payload decode".into()))?;
-    serde_json::from_slice(&bytes).map_err(|e| AppError::BadRequest(format!("id_token JSON: {e}")))
+
+    let key = DecodingKey::from_jwk(jwk)
+        .map_err(|e| AppError::Unauthorized(format!("JWKS key unusable: {e}")))?;
+
+    let mut validation = Validation::new(header.alg);
+    validation.set_audience(&[expected_audience]);
+    validation.set_required_spec_claims(&["exp", "iss", "aud", "sub"]);
+    if let Some(iss) = expected_issuer.filter(|s| !s.is_empty()) {
+        validation.set_issuer(&[iss]);
+    }
+
+    let data = decode::<OidcIdTokenClaims>(token, &key, &validation)
+        .map_err(|e| AppError::Unauthorized(format!("id_token verification failed: {e}")))?;
+
+    // Rebuild a JSON object for downstream claim readers (email, groups, …).
+    let mut map = data.claims.extra;
+    map.insert("sub".into(), Value::String(data.claims.sub));
+    map.insert("exp".into(), json!(data.claims.exp));
+    if let Some(iss) = data.claims.iss {
+        map.insert("iss".into(), Value::String(iss));
+    }
+    if let Some(aud) = data.claims.aud {
+        map.insert("aud".into(), aud);
+    }
+    Ok(Value::Object(map))
 }
 
 fn role_from_groups(provider: &SsoProvider, groups: &[String]) -> ProjectRole {
@@ -1139,4 +1280,151 @@ async fn load_user(pool: &PgPool, id: Uuid) -> AppResult<User> {
 pub fn callback_redirect_uri(base_url: &str) -> String {
     let base = base_url.trim_end_matches('/');
     format!("{base}/api/v1/auth/sso/callback")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use jsonwebtoken::{encode, EncodingKey, Header};
+
+    // Deterministic RSA keypair for offline JWKS verification tests.
+    const TEST_RSA_PRIVATE_PEM: &str = r#"-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEA3Dm045HZSk7CxoKd2rwE0JnXcqrABRK2fl3ScI2wm+Vw7Eym
+LDvvqWhijkzFxj6N2LQheMLd/cvF6YCoK1IBUNLYdDwjrTlcLaUqlhjhL36Ast8L
+DIY4hYvZb5X2CqQKh6r87/9jJD/upUzjUdeLAj/5anz/xQNYliMokYVh1bPa3C8j
+evGUGxHOOhLNNoZ9WjqKvgNr2wfOV8kHPAHAdUslnZKJR+3avNXL3MJqq6bJPGxN
+7L8c8axm6AYMHG0UopNQ0sxQUgw+UFG6DrP2kayXxBGZ57/7UsSwnPFJZtcwEoUE
+gmDdzUT6fGxR9UMXl7dqJTBnfaJ9+EUmcGZTZwIDAQABAoIBABWfOtHfF4Dys6/u
+0hXQQP7EJAGXnyvAVxeYGZnAZ5ce01P4AJa2OcUdwRNsmTxqFt4wbVrgcxBAiglv
+ftNmBUgMs4DSCMSwrYqzvTcocS+LEZK+UGTl5rXB8dLBW/tWeMwyLwxXPEIqXsFv
+B6CY84aAhnn8lNYginmPMSP8fwsOo2ZmYBVFqMOl4U2gKsQGcPeFsWi/uc++3nH6
+IVc/JQ161bBhnoE1cg2Ps19v+ElbLjOMcc7MrmcW1fXRsXVTyVbfS8386oi9ALyN
+ut4YP/zrj70hdw9nIBx28/1tF6cCPID/pSmz0MsUtb3GGtBeVmui92iXOS6nmjMv
+Eptz7CkCgYEA9fz3b4V6KvIrfx3vP2kc7UWPdmXYF8DZEvWpY0lDhDjKLFuuzkzE
+1AHlOK2EKDbIE4hVVgRzFjyj/ldjhNnA2BmvsHecj0kjYruLzi0riVrxH/lin0iv
+Okaf6UkqoYlyzcmP6liHwZ5IrCEtf9pKtcDLj6CTD7TtT58pn6keEnkCgYEA5TBP
+N4YTxDd0lYKbkkAvdNQ/x9bSNN8sZZygDjNLs2OY+j5RBpmwDEew3GyZR6zjqSlz
+g+cp3L4YLnO5flPo+3qj+35ZIU9E0q/UIMNPpj1VsLKBdO1lUVN6AEPg3wsXGZt8
+kMUr8Zjk/7N51s0Vg3qu3E5cnvH+aX9uFvrnHN8CgYBxRVUjE1GYKP+Cf2RFzL83
+Owq+uFLzTSgoJNslDv16CzR9jJJICO2xulW07aGnauJirCqve0kLek0Bt3fqGuNE
+Hz/ZgJqlGEalFjtga0ha7XePA6U4N54ItbC5Gan5zHMC88fDX5TTwXExYe2zq+8v
+FmIl9wkA+I02VtIx5Qwl8QKBgAdDca9Dy4qTa1l1qzKGYDqmo2LU9xJ/5CtQPG5W
+x9ZmmKmNognAgyjQeNVzh6QS4aAx1RxgDh6V07RdLIrJY//cUigdR/vbREYdFm73
+YaXWGcogziODhot+RsaNYCoRcuj32YnJBeyBOPi1mm3pT/47vCD1RtAuwS5cwINv
+7jUnAoGAaYLCp7A+Jkw1KpcD7/A9Mlm35R7RzO/uuIlqejG8tK43b4KbltvO5/Y5
+Nx8WZKSnnW44huPyCpyMOqfSajxICW5pNw1KMJTL4G+p/wFKXiBKQeJIi0JTQyO4
+wYG+c7K7/htjCR51VklL2VJ1Nf4nRe2GzmqzAs9q3M5cnSjgI1Y=
+-----END RSA PRIVATE KEY-----"#;
+
+    const KID: &str = "vulyk-test-key";
+    const ISS: &str = "https://idp.example.com";
+    const AUD: &str = "vulyk-client";
+
+    fn test_encoding_key() -> EncodingKey {
+        EncodingKey::from_rsa_pem(TEST_RSA_PRIVATE_PEM.as_bytes()).expect("rsa pem")
+    }
+
+    fn test_jwks() -> JwkSet {
+        let enc = test_encoding_key();
+        let mut jwk =
+            jsonwebtoken::jwk::Jwk::from_encoding_key(&enc, Algorithm::RS256).expect("jwk");
+        jwk.common.key_id = Some(KID.into());
+        JwkSet { keys: vec![jwk] }
+    }
+
+    fn sign_id_token(claims: Value) -> String {
+        let mut header = Header::new(Algorithm::RS256);
+        header.kid = Some(KID.into());
+        encode(&header, &claims, &test_encoding_key()).expect("sign")
+    }
+
+    fn valid_claims() -> Value {
+        let now = chrono::Utc::now().timestamp();
+        json!({
+            "iss": ISS,
+            "sub": "user-123",
+            "aud": AUD,
+            "exp": now + 3600,
+            "iat": now,
+            "email": "alice@example.com",
+            "email_verified": true,
+            "name": "Alice",
+        })
+    }
+
+    #[test]
+    fn verifies_signed_id_token() {
+        let token = sign_id_token(valid_claims());
+        let claims =
+            verify_id_token_with_jwks(&token, &test_jwks(), Some(ISS), AUD).expect("verify");
+        assert_eq!(claims.get("sub").and_then(|v| v.as_str()), Some("user-123"));
+        assert_eq!(
+            claims.get("email").and_then(|v| v.as_str()),
+            Some("alice@example.com")
+        );
+    }
+
+    #[test]
+    fn rejects_forged_unsigned_payload() {
+        // Classic attack: take a real header+payload shape but empty/wrong signature,
+        // or craft claims without a valid RS256 signature.
+        let forged = {
+            let header =
+                URL_SAFE_NO_PAD.encode(br#"{"alg":"RS256","kid":"vulyk-test-key","typ":"JWT"}"#);
+            let payload = URL_SAFE_NO_PAD.encode(
+                br#"{"iss":"https://idp.example.com","sub":"attacker","aud":"vulyk-client","exp":9999999999,"email":"evil@evil.test"}"#,
+            );
+            format!("{header}.{payload}.AAAA")
+        };
+        let err = verify_id_token_with_jwks(&forged, &test_jwks(), Some(ISS), AUD)
+            .expect_err("forged token must fail");
+        let msg = format!("{err:?}");
+        assert!(
+            msg.contains("id_token verification failed") || msg.contains("Unauthorized"),
+            "unexpected error: {msg}"
+        );
+    }
+
+    #[test]
+    fn rejects_wrong_audience() {
+        let token = sign_id_token(valid_claims());
+        let err = verify_id_token_with_jwks(&token, &test_jwks(), Some(ISS), "other-client")
+            .expect_err("aud mismatch");
+        assert!(format!("{err:?}").contains("id_token verification failed"));
+    }
+
+    #[test]
+    fn rejects_wrong_issuer() {
+        let token = sign_id_token(valid_claims());
+        let err =
+            verify_id_token_with_jwks(&token, &test_jwks(), Some("https://evil.example"), AUD)
+                .expect_err("iss mismatch");
+        assert!(format!("{err:?}").contains("id_token verification failed"));
+    }
+
+    #[test]
+    fn rejects_expired_token() {
+        let mut claims = valid_claims();
+        claims["exp"] = json!(chrono::Utc::now().timestamp() - 3600);
+        let token = sign_id_token(claims);
+        let err =
+            verify_id_token_with_jwks(&token, &test_jwks(), Some(ISS), AUD).expect_err("expired");
+        assert!(format!("{err:?}").contains("id_token verification failed"));
+    }
+
+    #[test]
+    fn rejects_hmac_alg_even_if_signed() {
+        // HS256 is not acceptable for JWKS-backed id_token verification.
+        let claims = valid_claims();
+        let header = Header::new(Algorithm::HS256);
+        let token = encode(
+            &header,
+            &claims,
+            &EncodingKey::from_secret(b"not-a-real-oidc-secret"),
+        )
+        .expect("hs256");
+        let err = verify_id_token_with_jwks(&token, &test_jwks(), Some(ISS), AUD)
+            .expect_err("hmac rejected");
+        assert!(format!("{err:?}").contains("unsupported id_token alg"));
+    }
 }
