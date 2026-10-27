@@ -447,6 +447,11 @@ previous case/run cannot paint after navigation.
 
 `frontend/src/components/CasePicker.tsx:44-46`, `Generate.tsx:92`.
 
+**Fixed (merged):** https://github.com/Ihor-Meat-Proxy/Vulyk/pull/73 — surface a
+truncated notice when `total > loaded`, resolve Generate `?cases=` prefill via
+`getCase` for ids past the soft page, and add i18n + `case-picker-truncated-notice`
+testid.
+
 ### 46. **bug** — Runs list hard-capped at 50 with no load-more
 
 `frontend/src/pages/RunsPage.tsx:50` + `api.ts` default limit.

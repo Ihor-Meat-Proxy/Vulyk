@@ -401,6 +401,8 @@ const es: Dict = {
   'generate.cases': "Casos",
   'generate.casesFromRequirements': "Casos a partir de requisitos",
   'generate.casesNotice': "Se generaron {count} borrador(es) vía {provider}/{model}; persistidos {persisted}.",
+  'generate.casesTruncated': "Mostrando {shown} de {total} casos (límite {limit}). Use búsqueda o carpetas: no se cargan todos los casos.",
+  'generate.casesTruncatedPrefill': "El proyecto tiene {total} casos; el selector carga {limit} a la vez. El precargado resolvió ids seleccionados fuera de la primera página cuando fue posible.",
   'generate.codeNotice': "Código de {provider}/{model}",
   'generate.contextFiles': "Contexto del repositorio usado",
   'generate.download': "Descargar código",

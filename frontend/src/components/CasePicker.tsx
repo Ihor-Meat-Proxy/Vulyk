@@ -27,10 +27,14 @@ function buildTree(suites: Suite[]): SuiteNode[] {
   return roots
 }
 
+/** Soft cap for the in-memory picker list (matches previous silent limit). */
+export const CASE_PICKER_LIMIT = 500
+
 export function CasePicker({ projectId, selected, onChange }: Props) {
   const { t } = useI18n()
   const [suites, setSuites] = useState<Suite[]>([])
   const [cases, setCases] = useState<TestCase[]>([])
+  const [caseTotal, setCaseTotal] = useState(0)
   const [search, setSearch] = useState('')
   const [activeSuite, setActiveSuite] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -43,11 +47,12 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
       try {
         const [s, page] = await Promise.all([
           api.listSuites(projectId),
-          api.listCases(projectId, { limit: 500 }),
+          api.listCases(projectId, { limit: CASE_PICKER_LIMIT }),
         ])
         if (cancelled) return
         setSuites(s)
         setCases(page.items)
+        setCaseTotal(page.total)
         setError(null)
       } catch (err) {
         if (!cancelled) {
@@ -61,6 +66,8 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
       cancelled = true
     }
   }, [projectId])
+
+  const truncated = caseTotal > cases.length
 
   const tree = useMemo(() => buildTree(suites), [suites])
   const selectedIds = useMemo(
@@ -183,6 +190,19 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="muted">{t('common.loading')}</p>}
+      {truncated && !loading && (
+        <p
+          className="notice"
+          role="status"
+          {...testIdProps(TestIds.casePickerTruncatedNotice)}
+        >
+          {t('generate.casesTruncated', {
+            shown: cases.length,
+            total: caseTotal,
+            limit: CASE_PICKER_LIMIT,
+          })}
+        </p>
+      )}
 
       <div className="case-picker-grid">
         <div className="case-picker-folders">
