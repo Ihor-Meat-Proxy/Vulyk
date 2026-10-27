@@ -390,6 +390,46 @@ async fn github_destination_mock_test_connection() {
     assert_eq!(test["ok"], true, "{test}");
 }
 
+#[tokio::test]
+async fn local_destination_rejects_path_outside_backup_root() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let (base, pool) = spawn_app().await;
+    let client = reqwest::Client::new();
+    let token = ensure_admin_token(&client, &base, &pool).await;
+
+    let allowed = tempfile_dir();
+    std::env::set_var("VULYK_CONTENT_BACKUP_DIR", &allowed);
+    let outside = tempfile_dir(); // sibling temp dir — must be rejected
+
+    let mut headers = reqwest::header::HeaderMap::new();
+    headers.insert(
+        reqwest::header::AUTHORIZATION,
+        format!("Bearer {token}").parse().unwrap(),
+    );
+
+    let res = client
+        .post(format!("{base}/api/v1/admin/backups/destinations"))
+        .headers(headers)
+        .json(&json!({
+            "name": "Escape hatch",
+            "kind": "local",
+            "config": { "path": outside },
+            "enabled": true
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(
+        res.status(),
+        reqwest::StatusCode::BAD_REQUEST,
+        "outside path should be rejected: {}",
+        res.text().await.unwrap_or_default()
+    );
+}
+
 fn tempfile_dir() -> String {
     let dir = std::env::temp_dir().join(format!("vulyk-backup-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&dir).unwrap();
