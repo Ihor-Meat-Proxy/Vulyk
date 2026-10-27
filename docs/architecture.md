@@ -1,40 +1,38 @@
 # Vulyk Architecture
 
-Vulyk (Ukrainian for *beehive*) is an open-source test management system. This document is the Phase 1 foundation plan for the whole product so parallel workstreams can build features without colliding.
+Vulyk (Ukrainian for *beehive*) is an open-source test management system: cases and folders, plans/runs, CI ingest, requirements/ALM, reports, LLM assists, MCP, and Docker/Helm deploy.
+
+This document describes the **current** system shape. Operator and user workflows live in [user-guide.md](user-guide.md) and [admin-guide.md](admin-guide.md). Full doc index: [README.md](README.md).
 
 ## Goals
 
 | Area | Capability |
 |------|------------|
-| Repository | Projects (with case key prefix + monotonic counter), nested suite/folder trees, cases with steps, custom fields, versioning, key tombstones; UI case URLs are `/cases/{KEY}` with `GET /api/v1/cases/by-key/{key}` |
-| Execution | Test plans, test runs, campaigns/iterations, result ingestion |
-| CI ingest | GitHub Actions / GitLab CI → JUnit XML, Playwright/pytest JSON, Vulyk JSON, CLI/reporter |
-| Traceability | Requirements import + link cases ↔ requirements |
-| Reporting | Dashboards, run summaries, coverage |
-| Admin | Users, roles, projects, integrations, LLM providers |
-| Scale | Bulk ingest, Postgres FTS + `pg_trgm`, background jobs |
-| Integrations | OpenProject, Jira Cloud, Jira Server/DC (requirements + defects) |
-| Importers | Xray, Zephyr, Squash TM, TestLink, TestRail, qTest, Qase, Kiwi TCMS, … |
-| CI trigger | `workflow_dispatch` (GitHub) and pipeline trigger (GitLab) |
-| LLM | Local (Ollama, Unsloth/OpenAI-compatible) + cloud (OpenRouter, Anthropic, Gemini, OpenAI, xAI) |
-| MCP | First-class MCP server for AI assistants |
-| API | OpenAPI 3 from code; interactive docs (Scalar / Swagger UI) |
+| Repository | Projects (optional key, case prefix + monotonic counter), nested folders, cases with steps, tags, option lists + custom fields, versioning, key tombstones; UI URLs `/cases/{KEY}` |
+| Execution | Plans, runs, step results, campaigns/iterations, attachments |
+| CI ingest | GitHub / GitLab → JUnit / Playwright / pytest / Vulyk JSON; project CI tokens; multi-repo dispatch + webhooks (secrets required) |
+| Traceability | Requirements + case links; OpenProject / Jira adapters |
+| Reporting | Dashboards, trends, coverage, flaky, CSV/PDF; case PDF export |
+| Admin | Users, RBAC, SSO, LLM, lists/fields, config export/import, content backups, in-app updates/rollback |
+| Scale | Bulk ingest, Postgres FTS + `pg_trgm`, background jobs (`SKIP LOCKED`) |
+| LLM / MCP | Multi-provider LLM; `vulyk-mcp` over the HTTP API |
+| API | OpenAPI 3 (utoipa) + Scalar at `/api/docs` |
 
-**Non-goal:** Do not open PRs or commits against the OpenProject project itself. Vulyk only *integrates with* OpenProject via its REST API; document that contract here and in `docs/integrations/openproject.md` when implemented.
+**Non-goal:** Do not open PRs or commits against OpenProject upstream. Document the integration contract only in this repo ([integrations/openproject.md](integrations/openproject.md)).
 
 ## Monorepo layout
 
 ```
 backend/          # Rust API (Axum, Tokio, SQLx, utoipa)
-frontend/         # React + Vite + TypeScript UI
-mcp/              # MCP server (Rust rmcp), calls same API / shared crates
+frontend/         # React + Vite + TypeScript UI (PWA)
+mcp/              # MCP server (rmcp), thin HTTP client of /api/v1
 cli/              # vulyk CLI + result reporter
-deploy/           # Docker, Kubernetes manifests, Helm chart skeleton
-docs/             # Architecture, ADRs, integration notes
-scripts/          # install.sh and helper scripts
+deploy/           # Docker, Kubernetes manifests, Helm chart
+docs/             # Guides, architecture, audits
+e2e/              # Playwright
+scripts/          # install.sh, check.sh, helpers
+action/ + ci/     # GitHub Action / GitLab helpers for result upload
 ```
-
-Shared Rust logic (domain types, OpenAPI models) may later move to `crates/` (`vulyk-core`, `vulyk-db`). Phase 1 keeps a single `backend` crate for speed of bootstrap.
 
 ## Module boundaries
 
@@ -50,27 +48,31 @@ Shared Rust logic (domain types, OpenAPI models) may later move to `crates/` (`v
               │  routes │ services  │
               │  importers │ llm    │
               │  integrations │ jobs│
+              │  egress │ backup    │
               └──────────┬──────────┘
                          ▼
               ┌─────────────────────┐
               │  PostgreSQL 16+     │
-              │  (+ job queue table)│
+              │  (+ jobs queue)     │
               └─────────────────────┘
 ```
 
 | Module | Owns | Must not |
 |--------|------|----------|
-| `routes` | HTTP, auth extractors, OpenAPI annotations | Business rules, SQL |
-| `services` | Domain logic, transactions | HTTP types |
-| `db` / migrations | Schema, queries | HTTP |
-| `importers` | Pluggable import adapters | Persist without going through services |
+| `routes` | HTTP, auth extractors, OpenAPI | Business rules, SQL |
+| `services` | Domain logic, transactions (cases, jobs, egress, backup, config_bundle, option_lists, custom_fields, case_export, …) | HTTP types |
+| migrations | Schema | HTTP |
+| `importers` | Pluggable import adapters | Persist without services |
 | `integrations` | OpenProject / Jira / CI clients | UI concerns |
-| `llm` | Provider trait + adapters | Direct DB writes of generated content without review hooks |
-| `jobs` | Queue workers (ingest, import, LLM) | Sync long work on request path |
-| `mcp` | MCP tool surface | Duplicate business logic (call API or shared services) |
+| `llm` | Provider trait + adapters | Unreviewed direct DB writes of generated content |
+| `jobs` | Queue workers (ingest, import, LLM, backup, reclaim) | Sync long work on request path |
+| `egress` | URL allowlist / SSRF guards for outbound HTTP and git | Bypass for “convenience” in prod |
+| `mcp` | MCP tool surface | Second persistence path (call API) |
 | `frontend` | UX | Bypass API for mutations |
 
 ## Data model (ERD)
+
+Core entities (simplified). Additional tables cover SSO, CI configs/tokens, automation repos, option lists, scoped custom fields, content-backup destinations/policies, version-backup metadata, and audit events — see migrations under `backend/migrations/`.
 
 ```mermaid
 erDiagram
@@ -82,7 +84,10 @@ erDiagram
   suites ||--o{ test_cases : contains
   test_cases ||--o{ test_steps : has
   test_cases ||--o{ case_versions : versions
-  projects ||--o{ custom_fields : defines
+  option_lists ||--o{ option_list_items : has
+  custom_fields }o--o| option_lists : may_use
+  projects ||--o{ custom_field_scopes : scoped
+  custom_fields ||--o{ custom_field_scopes : applies
   test_cases ||--o{ custom_field_values : has
   projects ||--o{ requirements : tracks
   requirements ||--o{ case_requirements : links
@@ -91,6 +96,7 @@ erDiagram
   test_plans ||--o{ test_runs : schedules
   test_runs ||--o{ test_results : collects
   test_cases ||--o{ test_results : measured
+  projects ||--o{ ci_configs : configures
   projects ||--o{ integrations : configures
   projects ||--o{ llm_configs : configures
   jobs ||--o{ job_attempts : retries
@@ -100,6 +106,7 @@ erDiagram
     text email UK
     text display_name
     text password_hash
+    boolean is_system_admin
     timestamptz created_at
   }
 
@@ -107,7 +114,9 @@ erDiagram
     uuid id PK
     text key UK
     text name
-    text description
+    text case_key_prefix
+    int next_case_number
+    boolean is_sample
     timestamptz created_at
   }
 
@@ -125,8 +134,6 @@ erDiagram
     uuid suite_id FK
     text key
     text title
-    text description
-    text precondition
     text priority
     text status
     tsvector search_vector
@@ -134,13 +141,18 @@ erDiagram
     timestamptz updated_at
   }
 
-  test_steps {
+  option_lists {
     uuid id PK
-    uuid case_id FK
-    int position
-    text action
-    text expected_result
-    text data
+    text name
+    text key UK
+  }
+
+  custom_fields {
+    uuid id PK
+    text name
+    text key UK
+    text field_type
+    uuid option_list_id FK
   }
 
   test_runs {
@@ -149,8 +161,6 @@ erDiagram
     uuid plan_id FK
     text name
     text status
-    timestamptz started_at
-    timestamptz finished_at
   }
 
   test_results {
@@ -158,18 +168,9 @@ erDiagram
     uuid run_id FK
     uuid case_id FK
     text status
-    text message
     text source
     jsonb raw
     timestamptz executed_at
-  }
-
-  requirements {
-    uuid id PK
-    uuid project_id FK
-    text external_key
-    text title
-    text source
   }
 
   jobs {
@@ -182,146 +183,78 @@ erDiagram
   }
 ```
 
-Phase 1 migrations create: `users`, `projects`, `suites`, `test_cases`, `test_steps`, `test_runs`, `test_results`, `requirements`, plus supporting indexes (`pg_trgm`, FTS). W2/W3 migrations add `tags`, `case_tags`, `custom_fields`, `custom_field_values`, `case_versions`, `attachments`, `test_plans`, `test_plan_cases`, `run_items`, `result_steps`, and enrich `test_runs` / `test_results`. Memberships, tokens, integrations, jobs land in follow-up migrations on their workstreams.
-
 ## API conventions
 
 - Base path: `/api/v1`
-- Resources: plural nouns (`/projects`, `/projects/{id}/suites`, `/projects/{id}/cases`)
-- IDs: UUID in path; project also addressable by `key` where noted
-- Errors: `{ "error": { "code": "...", "message": "..." } }` with appropriate HTTP status
-- Auth: session cookie or `Authorization: Bearer <jwt|api_token>` (W1; see [auth-and-rbac.md](./auth-and-rbac.md). Default local/dev keeps auth optional via `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH`.)
-- Pagination: `?limit=&offset=` (later: cursor)
-- Bulk: `POST /api/v1/runs/{id}/results:bulk` for ingest
-- OpenAPI: generated with **utoipa**, served at `/api/docs` (Scalar UI)
-- Health: `GET /health` (liveness), `GET /ready` (DB ping)
+- Resources: plural nouns; IDs UUID in path; cases also by key
+- Errors: `{ "error": { "code": "...", "message": "..." } }`
+- Auth: session cookie or `Authorization: Bearer <jwt|session|api_token|ci_token>` — see [auth-and-rbac.md](auth-and-rbac.md)
+- When auth is required, `VULYK_JWT_SECRET` must be a non-default value (fail-closed at boot)
+- Pagination: `?limit=&offset=`
+- OpenAPI: utoipa → `/api/docs` (Scalar)
+- Health: `GET /health` (includes `version`), `GET /ready` (DB ping)
+
+Major surfaces (non-exhaustive): projects/suites/cases, plans/runs, executions, ingest + CI reporting + webhooks, reports + case PDF export, requirements/integrations, importers, LLM, admin (sample data, lists, custom fields, config export/import, content backups, updates/rollback). Details: [api.md](api.md).
 
 ## Plugin interfaces
 
-### Importers
+Importers, ALM integrations, CI triggers, and LLM providers remain trait-based adapters registered in the backend. See [integrations/](integrations/), [llm.md](llm.md), and [guides/ci-integration.md](guides/ci-integration.md).
 
-```rust
-#[async_trait]
-pub trait Importer: Send + Sync {
-    fn id(&self) -> &'static str;           // e.g. "testrail", "xray"
-    fn name(&self) -> &str;
-    fn supported_formats(&self) -> &[&str]; // "csv", "xml", "api"
-    async fn preview(&self, input: ImportInput) -> Result<ImportPreview>;
-    async fn run(&self, ctx: ImportContext, input: ImportInput) -> Result<ImportReport>;
-}
-```
+## MCP
 
-Register via a static registry / DI in `backend`. Heavy imports enqueue a `jobs` row; worker executes `Importer::run`.
+- Crate: `mcp/` (**rmcp**), stdio + Streamable HTTP
+- Tools implemented: search/get/create/update cases, runs, results, ingest, `ask_tests` — see [mcp.md](mcp.md)
+- Auth: `VULYK_API_TOKEN` (`vulyk_at_…`) + `VULYK_API_URL`
+- Thin client of `/api/v1` only
 
-### Integrations (ALM / defect trackers)
-
-```rust
-#[async_trait]
-pub trait AlmIntegration: Send + Sync {
-    fn id(&self) -> &'static str; // "openproject", "jira_cloud", "jira_dc"
-    async fn list_requirements(&self, cfg: &IntegrationConfig, query: &str) -> Result<Vec<RemoteRequirement>>;
-    async fn link_requirement(&self, cfg: &IntegrationConfig, link: RequirementLink) -> Result<()>;
-    async fn create_defect(&self, cfg: &IntegrationConfig, defect: DefectDraft) -> Result<RemoteIssue>;
-}
-```
-
-**OpenProject:** use OpenProject REST API (work packages as requirements/defects). Configuration stores base URL + API token in `integrations`. No contributions are made to the OpenProject upstream project from this repo.
-
-**Jira Cloud / Server-DC:** separate adapters sharing issue DTO mapping; auth differs (OAuth/API token vs PAT).
-
-### CI triggers
-
-```rust
-#[async_trait]
-pub trait CiTrigger: Send + Sync {
-    async fn dispatch(&self, cfg: &CiConfig, inputs: serde_json::Value) -> Result<CiDispatchHandle>;
-}
-```
-
-GitHub: `workflow_dispatch`. GitLab: pipeline trigger token / API.
-
-### LLM providers
-
-```rust
-#[async_trait]
-pub trait LlmProvider: Send + Sync {
-    fn id(&self) -> &'static str;
-    async fn complete(&self, req: LlmRequest) -> Result<LlmResponse>;
-}
-```
-
-Adapters: Ollama, OpenAI-compatible (Unsloth/local), OpenRouter, Anthropic, Gemini, OpenAI, xAI. Used for: generate cases, generate automation code, Q&A over project tests (RAG later).
-
-## MCP design
-
-- Crate: `mcp/` using **rmcp** (Rust), speaking MCP over stdio (and optionally SSE).
-- Tools (planned): `search_cases`, `get_case`, `create_case`, `update_case`, `list_runs`, `create_run`, `ingest_results`, `ask_tests` (LLM).
-- Auth: API token from env `VULYK_API_TOKEN` + `VULYK_API_URL`.
-- Implementation rule: MCP is a thin client of `/api/v1`; no second persistence path.
-- Phase 1: crate skeleton + health/tool stub list so the workstream can land tools without reshaping the repo.
-
-## Frontend UX (spirit of TestRail / Xray)
+## Frontend UX
 
 ```
 ┌────────┬──────────────────┬────────────────────┐
-│ Brand  │ Project switcher │ User / settings    │
+│ Brand  │ Project switcher │ Locale / user menu │
 ├────────┼──────────────────┼────────────────────┤
-│ Suites │ Case list        │ Case detail / steps│
-│ tree   │ (filter/search)  │ Runs | Reports     │
-│        │                  │ Admin              │
+│ App    │ Cases (folder    │ Detail / Runs /    │
+│ nav    │ tree + list)     │ Reports / Admin    │
 └────────┴──────────────────┴────────────────────┘
 ```
 
-Phase 1: shell layout, navigation, project-scoped suite tree stub, case list + case detail wired to API.
+PWA + offline queue: [guides/pwa-and-mobile.md](guides/pwa-and-mobile.md). Design tokens: [design-tokens.md](design-tokens.md).
 
 ## Background jobs
 
-Postgres-backed queue (`jobs` table + `SKIP LOCKED` worker). Kinds: `ingest_junit`, `ingest_json`, `import_*`, `llm_generate`, `ci_dispatch`. Horizontal scale: multiple API pods running workers with lease timeout.
+Postgres-backed queue (`jobs` + `SKIP LOCKED`). Kinds include ingest, import, LLM, CI dispatch, content backup, and stale-running reclaim after worker crash. Multiple API pods may run workers with lease timeout.
 
-## Scale notes
+## Security (summary)
 
-- Bulk insert for results (`UNNEST` / `COPY`-style batches)
-- `tsvector` + GIN on cases; `pg_trgm` for fuzzy title search
-- Partition `test_results` by time when volume demands (post Phase 1)
-- Read replicas optional; search stays on primary until separate search service is justified
+- Argon2id passwords; HttpOnly sessions; short-lived JWT; hashed API/CI tokens; unbound (null-user) API tokens rejected
+- RBAC: system admin + five project roles — [auth-and-rbac.md](auth-and-rbac.md)
+- Outbound HTTP/git: HTTPS + block private/link-local/metadata unless `VULYK_EGRESS_ALLOW_PRIVATE=1` (lab/tests only)
+- CI webhooks fail closed without a verifying secret; CI config responses redact tokens (`has_webhook_secret` / `has_token`)
+- Integration/LLM/SSO secrets encrypted at rest (`VULYK_SECRETS_KEY`)
+- October 2026 audit (historical + fix PRs): [security/audit-2026-10.md](security/audit-2026-10.md)
 
-## Security
+## Workstreams (shipped)
 
-- Argon2 password hashes, HttpOnly session cookies, short-lived JWT, scoped API tokens
-- RBAC: system admin + five per-project roles — `admin`, `test_architect`, `test_automation_engineer`, `developer`, `viewer` (legacy aliases: `project_lead`→architect, `tester`→automation engineer). See [auth-and-rbac.md](auth-and-rbac.md).
-- Registration modes: `open` | `invite` | `disabled`; first-run via env seed, `vulyk-api setup`, or web wizard ([guides/first-run-setup.md](guides/first-run-setup.md))
-- OAuth2/OIDC SSO (Google, Entra, GitHub, GitLab, Nextcloud) — [guides/sso.md](guides/sso.md)
-- Secrets for integrations/SSO encrypted at rest (envelope key from env)
+Original parallel workstreams W0–W11 are largely delivered on `main`. Treat the table as historical labels, not an unfinished roadmap:
 
-## Roadmap — parallelisable workstreams
+| ID | Theme | Where to read |
+|----|-------|----------------|
+| W0–W3 | Foundation, auth, cases, plans/runs | [user-guide.md](user-guide.md), [w2-w3-cases-runs.md](w2-w3-cases-runs.md) (archive) |
+| W4–W5 | Ingest, CLI, CI reporting / multi-repo | [guides/ci-integration.md](guides/ci-integration.md) |
+| W6–W7 | Requirements, ALM, importers | [integrations/](integrations/) |
+| W8 | Reports + PDF | [api.md](api.md), user guide |
+| W9–W10 | LLM + MCP | [llm.md](llm.md), [mcp.md](mcp.md) |
+| W11 | Deploy, upgrades, backups, updates | [admin-guide.md](admin-guide.md), [guides/upgrade.md](guides/upgrade.md) |
 
-Agents can own one stream each; contracts live in this doc + OpenAPI.
+Later features (option lists / config export, content backups, Admin Updates/rollback, security hardenings) are documented in the admin guide and guides above.
 
-| ID | Workstream | Depends on | Deliverables |
-|----|------------|------------|--------------|
-| **W0** | Foundation (this PR) | — | Monorepo, migrations core, CRUD projects/suites/cases, OpenAPI docs, UI shell, compose, CI |
-| **W1** | Auth & admin | W0 | Sessions/JWT, API tokens, users, roles, memberships, admin UI |
-| **W2** | Case repository depth | W0 | Steps editor UX, custom fields, case versioning, FTS search API, tags, bulk, pagination (**see [w2-w3-cases-runs.md](w2-w3-cases-runs.md)**) |
-| **W3** | Plans, runs, results | W0 | Plans/runs CRUD, result model UI, status workflow, step execution, attachments (**see [w2-w3-cases-runs.md](w2-w3-cases-runs.md)**) |
-| **W4** | Ingest & CLI reporter | W3 | JUnit + Vulyk JSON ingest, `cli` reporter, job worker — see [guides/ingest-and-ci.md](guides/ingest-and-ci.md) |
-| **W5** | CI integrations | W4 | GHA/GitLab webhook status sync; `workflow_dispatch` / pipeline trigger from UI; reusable Action + GitLab template |
-| **W6** | Requirements & ALM | W0 | Requirements CRUD, OpenProject + Jira Cloud/DC adapters, defect create |
-| **W7** | Importers | W2 | `Importer` trait + Xray, Zephyr, Squash, TestLink, TestRail, qTest, Qase, Kiwi |
-| **W8** | Reports & dashboards | W3 | Run summary, pass-rate trends, requirement coverage, flaky detection, CSV/PDF export — `/api/v1/projects/{id}/reports/*` + Reports UI |
-| **W9** | LLM abstraction | W1* | Provider trait, encrypted keys, Admin UI, generate case / code / Q&A — see [llm.md](llm.md). *Minimal API tokens ship with W10 so MCP works before full W1 RBAC.* |
-| **W10** | MCP server | W0 + W1* | Full tool set on `mcp/` (stdio + HTTP), docs for Cursor/Claude — see [mcp.md](mcp.md) |
-| **W11** | Deploy hardening | W0 | Prod compose (`docker-compose.prod.yml`, auth on), Helm chart, backups docs, install.sh (Linux/macOS/WSL2), perf smoke |
-
-Suggested merge order for conflicting areas: **W1 → W2/W3 → W4 → others**. Importers (W7) and ALM (W6) are independent after W0/W2.
-
-## Tech stack (decided)
+## Tech stack
 
 - Backend: Rust, Axum, Tokio, SQLx, utoipa, PostgreSQL 16+
-- Frontend: TypeScript, React, Vite
-- MCP: Rust (`rmcp`) preferred; TypeScript acceptable if shared client libs help
-- No PHP
-- License: repository `LICENSE` (AGPL-3.0) — keep unless maintainers re-license
+- Frontend: TypeScript, React, Vite PWA
+- MCP: Rust (`rmcp`)
+- License: AGPL-3.0 ([LICENSE](../LICENSE))
 
 ## Local development
 
-See root [README.md](../README.md). Quick path: `docker compose up --build` then open UI on `:5173` (or served build) and API docs on `:8080/api/docs`.
+See root [README.md](../README.md). Quick path: `./scripts/install.sh compose --yes` then UI `:5173` and API docs `:8080/api/docs`.

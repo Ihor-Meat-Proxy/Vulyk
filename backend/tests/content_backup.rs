@@ -3,7 +3,7 @@
 #![allow(clippy::type_complexity)]
 
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use axum::{
@@ -15,6 +15,13 @@ use axum::{
 };
 use serde_json::{json, Value};
 use tokio::sync::Mutex;
+
+/// Serialize tests that mutate process-global `VULYK_CONTENT_BACKUP_DIR` /
+/// `VULYK_EGRESS_ALLOW_PRIVATE` (parallel cargo test otherwise races).
+fn env_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 async fn spawn_app() -> (String, sqlx::PgPool) {
     let database_url =
@@ -90,6 +97,7 @@ async fn export_import_roundtrip_local_destination() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _env = env_lock().lock().await;
     let (base, pool) = spawn_app().await;
     let client = reqwest::Client::new();
     let token = ensure_admin_token(&client, &base, &pool).await;
@@ -291,6 +299,7 @@ async fn github_destination_mock_test_connection() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _env = env_lock().lock().await;
     let store: Arc<Mutex<Vec<(String, Vec<u8>)>>> = Arc::new(Mutex::new(Vec::new()));
     let store2 = store.clone();
     let mock = Router::new()
@@ -396,6 +405,7 @@ async fn local_destination_rejects_path_outside_backup_root() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _env = env_lock().lock().await;
     let (base, pool) = spawn_app().await;
     let client = reqwest::Client::new();
     let token = ensure_admin_token(&client, &base, &pool).await;

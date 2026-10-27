@@ -98,30 +98,30 @@ Helm runs `vulyk-api migrate run` as a pre-upgrade Job.
 
 ## Documentation
 
+Full index: **[docs/README.md](docs/README.md)**.
+
 | Doc | Description |
 |-----|-------------|
-| [docs/architecture.md](docs/architecture.md) | Product plan, ERD, workstreams W0–W11 |
-| [docs/user-guide.md](docs/user-guide.md) | End-user workflows (incl. customizable Cases columns) |
-| [docs/admin-guide.md](docs/admin-guide.md) | Deploy, DB backups, perf smoke, Helm |
+| [docs/architecture.md](docs/architecture.md) | Modules, ERD, security summary |
+| [docs/user-guide.md](docs/user-guide.md) | End-user workflows (cases, PDF, custom fields, Updates) |
+| [docs/admin-guide.md](docs/admin-guide.md) | Deploy, env/security, lists/fields, backups, Helm |
 | [docs/guides/releasing.md](docs/guides/releasing.md) | Version bump, tags, GHCR, install `--version` |
-| [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, backups, migrate CLI, Helm hooks |
+| [docs/guides/upgrade.md](docs/guides/upgrade.md) | Safe upgrades, verified backups, rollback |
 | [docs/guides/in-app-updates.md](docs/guides/in-app-updates.md) | Admin Updates tab + updater sidecar |
-| [docs/guides/backup.md](docs/guides/backup.md) | Application-level content backup / restore (ZIP → GitHub/GitLab/Nextcloud/Drive/local) |
-| [docs/backup-design.md](docs/backup-design.md) | Content backup architecture (Mermaid) |
+| [docs/guides/backup.md](docs/guides/backup.md) | Content backup / restore (ZIP destinations) |
 | [docs/api.md](docs/api.md) | API overview + OpenAPI link |
-| [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth, roles, registration, seeding |
-| [docs/guides/first-run-setup.md](docs/guides/first-run-setup.md) | Compose / Helm / CLI / wizard |
-| [docs/guides/sso.md](docs/guides/sso.md) | Google, Entra, GitHub, GitLab, Nextcloud |
-| [docs/integrations/](docs/integrations/) | OpenProject, Jira, importers |
-| [docs/guides/ci-integration.md](docs/guides/ci-integration.md) | GitHub Actions / GitLab CI result reporting |
-| [docs/automation-integration-design.md](docs/automation-integration-design.md) | Multi-repo + CI reporting design |
-| [docs/automation-integration-comparison.md](docs/automation-integration-comparison.md) | SquashTM / TestRail / Xray conventions |
+| [docs/auth-and-rbac.md](docs/auth-and-rbac.md) | Auth, JWT fail-closed, roles, tokens |
+| [docs/guides/ci-integration.md](docs/guides/ci-integration.md) | Preferred CI reporting (multi-repo) |
+| [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | Formats, dispatch, webhooks |
+| [docs/automation-repo.md](docs/automation-repo.md) | Automation Git repos for Generate |
 | [docs/mcp.md](docs/mcp.md) | MCP server (Cursor / Claude) |
-| [docs/llm.md](docs/llm.md) | LLM providers, generate, chat propose/create |
-| [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md) | JUnit ingest & CI triggers |
-| [docs/guides/executions.md](docs/guides/executions.md) | Campaigns, iterations, pipeline upload |
-| [docs/guides/pwa-and-mobile.md](docs/guides/pwa-and-mobile.md) | PWA install, offline queue, mobile UX |
-| [docs/design-tokens.md](docs/design-tokens.md) | Themes, appearance, locale prefs |
+| [docs/llm.md](docs/llm.md) | LLM providers, generate, chat |
+| [AGENTS.md](AGENTS.md) / [CONTRIBUTING.md](CONTRIBUTING.md) | PR guardrails, seeds, test ids |
+| [docs/ci-failures.md](docs/ci-failures.md) | CI failure catalog |
+| [docs/testing/test-ids.md](docs/testing/test-ids.md) | Playwright `data-testid` conventions |
+| [docs/security/audit-2026-10.md](docs/security/audit-2026-10.md) | Security audit (Oct 2026) + fix PRs |
+| [docs/quality/code-quality-2026-10.md](docs/quality/code-quality-2026-10.md) | Code quality audit (Oct 2026) |
+| [docs/review/code-review-2026-10.md](docs/review/code-review-2026-10.md) | Senior code review (Oct 2026) |
 
 ## Repository layout
 
@@ -139,10 +139,11 @@ scripts/    install.sh, perf-smoke.sh, helpers
 ## API highlights
 
 - Auth / RBAC, projects (optional key), nested folders, auto `PREFIX-N` case keys
+- Option lists, custom fields, config export/import; case PDF export
 - Plans, runs, step results; automation executions (campaigns / iterations / pipeline ingest)
-- Ingest: JUnit / Playwright / pytest / Vulyk JSON; CI dispatch + webhooks
-- Requirements / ALM; importers; reports (dashboard, trends, coverage, flaky, export)
-- LLM generate/chat (propose/create); MCP; personal API tokens
+- Ingest: JUnit / Playwright / pytest / Vulyk JSON; multi-repo CI tokens + webhooks (secrets required)
+- Requirements / ALM; importers; reports (dashboard, trends, coverage, flaky, CSV/PDF)
+- Content backups; Admin Updates / rollback; LLM generate/chat; MCP; personal API tokens
 - Locales: `en` / `uk` / `fr` / `es` / `de` — Interactive docs: `/api/docs`
 
 ## Testing

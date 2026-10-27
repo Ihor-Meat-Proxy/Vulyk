@@ -44,7 +44,7 @@ Service worker registration is disabled in `vite` dev (`devOptions.enabled: fals
 
 ## CI checks
 
-- **Playwright** (`e2e/`): Desktop Chromium plus **iPhone 13** and **Pixel 5** projects (`pwa-mobile.spec.ts` covers bottom nav, folders drawer, manifest/SW).
+- **Playwright** (`e2e/`): Desktop Chromium plus a **Pixel 5** viewport project for `pwa-mobile.spec.ts` (bottom nav, folders drawer, manifest/SW). No separate iOS/WebKit project.
 - **Lighthouse**: `frontend/scripts/lighthouse-ci.mjs` asserts accessibility ≥ 0.9 and PWA audits (`installable-manifest`, `service-worker`, `maskable-icon`, `viewport`, splash/theme).
 
 Workflow jobs: `Playwright e2e` and `Lighthouse PWA/a11y` in `.github/workflows/ci.yml`.

@@ -1,6 +1,6 @@
 # Automation repository
 
-Named Git connections used when generating automation code so the model can reuse existing patterns. Repos are **app-level** and attach to **many projects** (many-to-many). See [automation-integration-design.md](./automation-integration-design.md) and the user guide [guides/ci-integration.md](./guides/ci-integration.md#automation-repositories-generate).
+Named Git connections used when generating automation code so the model can reuse existing patterns. Repos are **app-level** and attach to **many projects** (many-to-many). Operator guide: [guides/ci-integration.md](./guides/ci-integration.md#automation-repositories-generate). Design archive: [automation-integration-design.md](./automation-integration-design.md).
 
 ## Connect
 
@@ -10,7 +10,7 @@ Named Git connections used when generating automation code so the model can reus
 |-------|--------|
 | Name | Display label |
 | Provider | `github`, `gitlab`, or `generic` |
-| Remote URL | HTTPS clone URL |
+| Remote URL | **Public HTTPS** clone URL (SSRF guard). Private/link-local/`file://` remotes are rejected unless `VULYK_EGRESS_ALLOW_PRIVATE=1` (lab/tests only) |
 | Branch | Default `main` |
 | Subpath | Optional subdirectory to index |
 | Token | Encrypted at rest (`VULYK_SECRETS_KEY`); omit on update to keep existing; shown masked |

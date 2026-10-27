@@ -4,7 +4,7 @@ Thanks for helping build the beehive.
 
 ## Ground rules
 
-1. Read [docs/architecture.md](docs/architecture.md) before large changes. Pick a workstream id (W1–W11) and keep module boundaries.
+1. Read [docs/README.md](docs/README.md) and [docs/architecture.md](docs/architecture.md) before large changes. Keep module boundaries (`routes` / `services` / …).
 2. Do **not** open PRs or commits against the OpenProject project itself. Document Vulyk↔OpenProject integration only in this repo.
 3. Prefer small, reviewable PRs. Match existing style (`cargo fmt`, frontend oxlint/tsc).
 4. License is AGPL-3.0 (existing `LICENSE`). Do not re-license without maintainer agreement.
@@ -42,7 +42,7 @@ docker build -f backend/Dockerfile -t vulyk-api:local .
 docker build -f frontend/Dockerfile -t vulyk-web:local ./frontend
 ```
 
-Agents: see root [AGENTS.md](AGENTS.md) and [docs/ci-failures.md](docs/ci-failures.md).
+Agents: see root [AGENTS.md](AGENTS.md), [docs/ci-failures.md](docs/ci-failures.md), and the Oct 2026 audits linked from [docs/README.md](docs/README.md).
 
 ## Database migrations
 
@@ -85,7 +85,7 @@ Interactive UI must expose stable `data-testid` attributes. Convention, list/row
 
 ## Parallel workstreams
 
-Coordinate via the table in `docs/architecture.md`. Shared contracts: OpenAPI + this doc. Suggested merge order when conflicting: **W1 → W2/W3 → W4 → others**.
+Shared contracts: OpenAPI + this doc + [docs/architecture.md](docs/architecture.md). Prefer small PRs; rebase onto latest `main` before merge.
 
 **Rebase onto latest `main` immediately before merge.** For sample cases, prefer
 `backend/seed/vulyk-qa.d/` fragments with omitted keys over appending `VQA-NNN` to

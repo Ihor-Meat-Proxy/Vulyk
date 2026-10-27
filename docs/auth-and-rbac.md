@@ -39,9 +39,10 @@ Seeded admins with `VULYK_ADMIN_MUST_CHANGE=1` (set by `install.sh` when it gene
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` | `false` | Enforce auth on project APIs |
-| `VULYK_JWT_SECRET` | insecure dev default | HMAC secret for JWTs |
+| `VULYK_JWT_SECRET` | insecure dev default only when auth is **off** | HMAC secret for JWTs. **Fail-closed:** when auth is required, unset/empty/`vulyk-dev-jwt-secret-change-me` panics at boot — set a strong secret in prod |
 | `VULYK_JWT_TTL_HOURS` | `12` | Access token lifetime |
 | `VULYK_SESSION_TTL_HOURS` | `168` | Session cookie lifetime |
+| `VULYK_COOKIE_SECURE` | auto | When `1`/`true`, session cookie sets `Secure`. When unset, Secure follows HTTPS/`VULYK_BASE_URL` |
 | `VULYK_ADMIN_EMAIL` | `admin@vulyk.local` | Seeded / setup admin email |
 | `VULYK_ADMIN_PASSWORD` | (unset) | When set, seeds admin and completes setup |
 | `VULYK_ADMIN_DISPLAY_NAME` | `Administrator` | Admin display name |
@@ -120,11 +121,19 @@ Legacy API aliases: `project_lead` → `test_architect`, `tester` → `test_auto
 
 Role keys: `admin`, `test_architect`, `test_automation_engineer`, `developer`, `viewer`.
 
+## Tokens & CI
+
+- **Personal API tokens** (`vulyk_at_…`): bound to a user. Tokens with `user_id IS NULL` are **rejected** (401) — they are never treated as system admin.
+- **Project CI tokens** (`vulyk_ci_…`): scoped to CI reporting (open/upload/close). They do **not** grant broad project admin (e.g. cannot `create_project`). See [guides/ci-integration.md](guides/ci-integration.md).
+- **Webhook secrets**: required for GitHub/GitLab webhook authorization (fail-closed). Responses expose `has_webhook_secret` only.
+
 ## Admin UI
 
-Admin panel: **Users**, **Roles**, **Projects**, **Integrations**, **SSO**, **LLM providers**, **API tokens**, **Instance settings**.
+Admin panel: **Users**, **Roles**, **Projects**, **Integrations**, **SSO**, **LLM providers**, **API tokens**, **Lists**, **Custom fields**, **Export / import**, **Backups**, **Updates**, **Instance settings** / **Sample data**.
 
 ## Migrations
 
 - `backend/migrations/20261025143000_auth_rbac.sql` — sessions, memberships, user admin columns, API token ownership
 - `backend/migrations/20261025150000_roles_setup_sso.sql` — five-role matrix, setup tokens, registration/invites, SSO providers
+
+Security audit (Oct 2026) + fix PRs: [security/audit-2026-10.md](security/audit-2026-10.md).

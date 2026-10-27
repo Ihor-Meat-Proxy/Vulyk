@@ -75,27 +75,29 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 2. Change the admin password if the default was used.
 3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled). Rows are flagged `is_sample` and show a **Sample** badge:
    - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, dress rehearsal + ticketing smoke runs, and **Sample nightly #N** CI suites (creator **Sample CI**, varied outcomes).
-   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~160+ cases, prefix `VQA`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance, status badges & sample data), requirements, and two example runs. Folder cases document the single Cases-page tree (All cases root, recursive counts, lazy Load more, numeric keys, mobile drawer). i18n cases cover globe menu EN/UK/FR/ES/DE, persistence, `--locale`, formatting, key fallback, and graceful API errors. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
+   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~220 cases, prefix `VQA`; base seed + fragments under `backend/seed/vulyk-qa.d/`), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance, status badges & sample data, PDF, multi-repo CI, password policy, Admin Updates, lists/custom fields), requirements, and example runs. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`.
 4. Create additional projects and memberships under gear → **Admin settings**.
 5. Under **Admin → Settings → Sample data**, inspect what is installed, **Remove sample data** (confirm; deletes only `is_sample` rows; idempotent), or **Re-seed sample data**. System-admin only (`GET/DELETE /api/v1/admin/sample-data`, `POST /api/v1/admin/sample-data/reseed`).
-6. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens).
-7. Configure LLM providers, ALM integrations, and [SSO](guides/sso.md) as needed.
+6. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens). Prefer `vulyk_at_…` personal tokens; project CI uses `vulyk_ci_…`.
+7. Configure LLM providers, ALM integrations, [SSO](guides/sso.md), **Lists / Custom fields / Export·import**, and [content backups](guides/backup.md) as needed.
 8. Set instance **default locale** (`en` / `uk` / `fr` / `es` / `de`) and theme under Admin settings (or `--locale` / `VULYK_DEFAULT_LOCALE` at first-run).
 
 ## Upgrades & backups
 
 **Never run `docker compose down -v`** — `-v` deletes named volumes (Postgres data).
 
-Preferred path: [guides/upgrade.md](guides/upgrade.md) (`./scripts/install.sh upgrade|backup|restore`).
+Preferred path: [guides/upgrade.md](guides/upgrade.md) (`./scripts/install.sh upgrade|backup|restore|rollback`).
 
 For **portable project content** (cases, requirements, custom fields) to GitHub/GitLab/Nextcloud/Drive/local — not a full DB dump — see [guides/backup.md](guides/backup.md) and Admin → **Backups**.
 
 ### Compose / VM Postgres
 
 ```bash
-# Via install script (gzipped SQL under ./backups/, with retention)
+# Via install script — verified directory bundle under ./backups/ (DB + env/secrets)
 ./scripts/install.sh backup
-./scripts/install.sh restore ./backups/vulyk-VERSION-TIMESTAMP.sql.gz --yes
+./scripts/install.sh restore ./backups/vulyk-VERSION-TIMESTAMP/ --yes
+# Post-upgrade rollback (typed confirmation; see upgrade guide)
+./scripts/install.sh rollback --confirm=ROLLBACK
 
 # Or manual custom-format dump
 docker compose -f docker-compose.prod.yml exec -T db \
@@ -196,11 +198,26 @@ API: `POST /api/v1/admin/config/export`, `/import/preview`, `/import` (system ad
 
 `scripts/install.sh` supports **Linux**, **macOS**, and **WSL2**. Native Windows is not supported — use WSL2. The script is written for **bash 3.2+** (macOS system bash) — avoid bash-4-only features; `./scripts/install.sh check` runs `bash -n` as a syntax self-check.
 
-Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`, `upgrade`, `backup`, `restore`, `config-export`, `config-import`.
+Modes: `compose`, `prod`, `dev`, `setup`, `check`, `helm-template`, `perf-smoke`, `upgrade`, `backup`, `restore`, `rollback`, `config-export`, `config-import`.
 
 First-run flags: `--admin-email=`, `--admin-password=`, `--locale=en|uk|fr|es|de`, `--timezone=`, `--registration-mode=`, `--seed-demo=`, `--yes`.
 
-Upgrade flags: `--to=TAG|BRANCH`, `--no-backup`, `--yes`.
+Upgrade / release flags: `--version=X.Y.Z` (GHCR images), `--to=TAG|BRANCH`, `--no-backup`, `--yes`.
+Rollback: `--confirm=ROLLBACK` (or `VULYK_ROLLBACK_CONFIRM=ROLLBACK`).
+
+## Security-related environment
+
+| Variable | Purpose |
+|----------|---------|
+| `VULYK_JWT_SECRET` | Required non-default value when `VULYK_AUTH_REQUIRED` / `VULYK_REQUIRE_AUTH` is on (boot panics otherwise) |
+| `VULYK_SECRETS_KEY` | Envelope encryption for LLM / integration / SSO / backup destination secrets |
+| `VULYK_COOKIE_SECURE` | Force `Secure` on the session cookie (`1`/`true`) |
+| `VULYK_EGRESS_ALLOW_PRIVATE` | Lab/tests only — allow private/link-local/metadata URLs and `file://` git; **never** in production |
+| `VULYK_CONTENT_BACKUP_DIR` | Root for local content-backup destinations (default `./data/content-backups`) |
+| `VULYK_REPO_CACHE` | Shallow clone cache for automation repos (default `/tmp/vulyk-repos`) |
+| `VULYK_VERSION_BACKUP_DIR` / `VULYK_ROLLBACK_RETENTION_DAYS` / `VULYK_VERSION_BACKUP_COUNT` | Post-upgrade rollback points — [guides/upgrade.md](guides/upgrade.md) |
+
+CI webhook secrets are **required** for webhook authorization; see [guides/ingest-and-ci.md](guides/ingest-and-ci.md). Full index: [README.md](README.md).
 
 If Compose started without completing setup, re-run:
 

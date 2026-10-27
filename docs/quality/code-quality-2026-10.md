@@ -1,5 +1,9 @@
 # Vulyk code quality audit — 2026-10
 
+> Historical snapshot. Doc index: [../README.md](../README.md). Companion audits:
+> [../security/audit-2026-10.md](../security/audit-2026-10.md),
+> [../review/code-review-2026-10.md](../review/code-review-2026-10.md).
+
 Snapshot audit of backend (Rust / Axum / SQLx), frontend (React / TypeScript),
 and scripts. Findings cite `file:line` on the tree as of this document’s landing
 commit. Parallel agents land frequently — re-verify line numbers after rebase.
