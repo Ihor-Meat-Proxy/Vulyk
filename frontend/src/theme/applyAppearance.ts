@@ -9,6 +9,12 @@ import {
   type ThemeChoice,
   type ThemeId,
 } from './tokens'
+import {
+  applyUiFontVars,
+  loadUiFont,
+  normalizeFontFamily,
+  type UiFontFamily,
+} from './fonts'
 
 export function readStoredAppearance(): AppearancePrefs {
   try {
@@ -32,6 +38,7 @@ export function writeStoredAppearance(prefs: AppearancePrefs): void {
 export function normalizePrefs(
   partial: Partial<AppearancePrefs> & {
     font_size?: number
+    font_family?: string
     reduced_motion?: boolean | null
   },
 ): AppearancePrefs {
@@ -43,11 +50,16 @@ export function normalizePrefs(
     'high_contrast',
     'sepia',
   ]
+  const fontFamilyRaw =
+    partial.fontFamily ??
+    (partial as { font_family?: string }).font_family ??
+    DEFAULT_APPEARANCE.fontFamily
   return {
     theme: validThemes.includes(theme) ? theme : 'system',
     fontSize: clampFontSize(
       partial.fontSize ?? partial.font_size ?? DEFAULT_APPEARANCE.fontSize,
     ),
+    fontFamily: normalizeFontFamily(fontFamilyRaw) as UiFontFamily,
     density:
       partial.density === 'compact' || partial.density === 'comfortable'
         ? partial.density
@@ -103,6 +115,8 @@ export function applyAppearance(prefs: AppearancePrefs): ThemeId {
   root.setAttribute('data-theme-choice', prefs.theme)
   root.setAttribute('data-density', prefs.density)
   root.style.setProperty('--font-scale', String(prefs.fontSize / 100))
+  applyUiFontVars(prefs.fontFamily)
+  void loadUiFont(prefs.fontFamily)
 
   const vars = tokensToCssVars(tokens)
   for (const [key, value] of Object.entries(vars)) {
@@ -137,6 +151,7 @@ export function applyAppearance(prefs: AppearancePrefs): ThemeId {
 export function prefsFromApi(userPrefs: {
   theme?: string
   font_size?: number
+  font_family?: string
   density?: string
   reduced_motion?: boolean | null
 } | null | undefined): AppearancePrefs {
@@ -144,6 +159,7 @@ export function prefsFromApi(userPrefs: {
   return normalizePrefs({
     theme: userPrefs.theme as ThemeChoice | undefined,
     font_size: userPrefs.font_size,
+    font_family: userPrefs.font_family,
     density: userPrefs.density as AppearancePrefs['density'] | undefined,
     reduced_motion: userPrefs.reduced_motion ?? null,
   })
@@ -153,6 +169,7 @@ export function prefsToApi(prefs: AppearancePrefs) {
   return {
     theme: prefs.theme,
     font_size: prefs.fontSize,
+    font_family: prefs.fontFamily,
     density: prefs.density,
     reduced_motion: prefs.reducedMotion,
   }

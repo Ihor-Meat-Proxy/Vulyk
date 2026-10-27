@@ -83,16 +83,17 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: ({ request }) =>
-              request.destination === 'font' ||
-              request.destination === 'style' ||
-              request.url.includes('fonts.googleapis.com') ||
-              request.url.includes('fonts.gstatic.com'),
+            // Self-hosted @fontsource woff2 / CSS only (no Google Fonts CDN).
+            urlPattern: ({ request, sameOrigin }) =>
+              sameOrigin &&
+              (request.destination === 'font' ||
+                (request.destination === 'style' &&
+                  /fontsource|fonts?\./i.test(request.url))),
             handler: 'CacheFirst',
             options: {
               cacheName: 'vulyk-fonts',
               expiration: {
-                maxEntries: 30,
+                maxEntries: 40,
                 maxAgeSeconds: 60 * 60 * 24 * 365,
               },
               cacheableResponse: { statuses: [0, 200] },

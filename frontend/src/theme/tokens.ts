@@ -282,6 +282,8 @@ export type FontSizeStep = (typeof FONT_SIZE_STEPS)[number]
 export type AppearancePrefs = {
   theme: ThemeChoice
   fontSize: number
+  /** Self-hosted UI body font id — see theme/fonts.ts */
+  fontFamily: import('./fonts').UiFontFamily
   density: Density
   /** null = follow prefers-reduced-motion */
   reducedMotion: boolean | null
@@ -290,6 +292,7 @@ export type AppearancePrefs = {
 export const DEFAULT_APPEARANCE: AppearancePrefs = {
   theme: 'system',
   fontSize: 100,
+  fontFamily: 'inter',
   density: 'comfortable',
   reducedMotion: null,
 }

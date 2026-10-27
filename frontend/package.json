@@ -15,6 +15,12 @@
     "lighthouse:ci": "node scripts/lighthouse-ci.mjs"
   },
   "dependencies": {
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/ibm-plex-sans": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/noto-sans": "^5.3.0",
+    "@fontsource/source-sans-3": "^5.3.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.9.4"

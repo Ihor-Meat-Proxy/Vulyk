@@ -27,6 +27,7 @@ type AppearanceContextValue = {
   prefs: AppearancePrefs
   setTheme: (theme: ThemeChoice) => Promise<void>
   setFontSize: (fontSize: number) => Promise<void>
+  setFontFamily: (fontFamily: AppearancePrefs['fontFamily']) => Promise<void>
   setDensity: (density: Density) => Promise<void>
   setReducedMotion: (value: boolean | null) => Promise<void>
   updatePrefs: (patch: Partial<AppearancePrefs>) => Promise<void>
@@ -126,6 +127,10 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
     (fontSize: number) => updatePrefs({ fontSize }),
     [updatePrefs],
   )
+  const setFontFamily = useCallback(
+    (fontFamily: AppearancePrefs['fontFamily']) => updatePrefs({ fontFamily }),
+    [updatePrefs],
+  )
   const setDensity = useCallback(
     (density: Density) => updatePrefs({ density }),
     [updatePrefs],
@@ -140,11 +145,20 @@ export function AppearanceProvider({ children }: { children: ReactNode }) {
       prefs,
       setTheme,
       setFontSize,
+      setFontFamily,
       setDensity,
       setReducedMotion,
       updatePrefs,
     }),
-    [prefs, setTheme, setFontSize, setDensity, setReducedMotion, updatePrefs],
+    [
+      prefs,
+      setTheme,
+      setFontSize,
+      setFontFamily,
+      setDensity,
+      setReducedMotion,
+      updatePrefs,
+    ],
   )
 
   return (
