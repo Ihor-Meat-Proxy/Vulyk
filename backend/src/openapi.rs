@@ -90,6 +90,8 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::auth::update_me,
         crate::routes::auth::change_password,
         crate::routes::auth::sso_providers,
+        crate::routes::auth::sso_start,
+        crate::routes::auth::sso_callback,
         crate::routes::setup::setup_status,
         crate::routes::setup::setup_complete,
         crate::routes::sso_admin::list_providers,
@@ -329,6 +331,11 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::backups::get_run,
         crate::routes::backups::download_run,
         crate::routes::backups::restore,
+        crate::routes::backups::restore_upload,
+        crate::routes::webhooks::github_webhook,
+        crate::routes::webhooks::github_webhook_for_config,
+        crate::routes::webhooks::gitlab_webhook,
+        crate::routes::webhooks::gitlab_webhook_for_config,
     ),
     components(schemas(
         HealthResponse,
@@ -680,5 +687,25 @@ mod tests {
     fn openapi_doc_builds_without_stack_overflow() {
         let doc = ApiDoc::openapi();
         assert!(!doc.paths.paths.is_empty());
+    }
+
+    #[test]
+    fn openapi_registers_sso_webhooks_and_restore_upload() {
+        let doc = ApiDoc::openapi();
+        let paths = &doc.paths.paths;
+        for path in [
+            "/api/v1/auth/sso/{key}/start",
+            "/api/v1/auth/sso/callback",
+            "/api/v1/webhooks/github",
+            "/api/v1/webhooks/github/{config_id}",
+            "/api/v1/webhooks/gitlab",
+            "/api/v1/webhooks/gitlab/{config_id}",
+            "/api/v1/admin/backups/restore/upload",
+        ] {
+            assert!(
+                paths.contains_key(path),
+                "OpenAPI must register path {path}"
+            );
+        }
     }
 }

@@ -360,6 +360,25 @@ fn default_conflict() -> String {
     "skip".into()
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/backups/restore/upload",
+    tag = "backups",
+    params(
+        ("mode" = Option<String>, Query, description = "Restore mode (default: merge)"),
+        ("conflict" = Option<String>, Query, description = "Conflict strategy (default: skip)"),
+        ("target_project_id" = Option<Uuid>, Query, description = "Existing project to restore into"),
+        ("new_project_key" = Option<String>, Query, description = "Key when creating a new project"),
+        ("dry_run" = Option<bool>, Query, description = "Preview only when true")
+    ),
+    request_body(
+        content = Vec<u8>,
+        description = "ZIP or JSON content archive bytes",
+        content_type = "application/octet-stream"
+    ),
+    responses((status = 200, body = RestorePreview)),
+    security(("bearer_auth" = []))
+)]
 pub async fn restore_upload(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
