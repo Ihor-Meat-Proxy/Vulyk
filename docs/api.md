@@ -24,18 +24,24 @@ The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `b
 | Auth | `/api/v1/auth/*` |
 | Projects / folders (suites) / cases | `/api/v1/projects…` — project `key` is optional on create (derived from name like `case_key_prefix`); projects expose `case_key_prefix` + `next_case_number`; case create omits `key` (auto `PREFIX-N`); suites list returns recursive `case_count` + `direct_case_count`; cases list accepts `suite_id`, `direct_only`, `unfiled_only`, server-side `sort`/`order`/`cf_ids`, and returns enriched list rows; suite delete accepts `on_nonempty`; `GET /api/v1/cases/by-key/{key}` resolves a case by human-readable key (case-insensitive; `410 case_deleted` when the key is retired) |
 | Case list column prefs | `GET/PUT/DELETE /api/v1/projects/{id}/preferences/case-list-columns` — per-user layout (order/visibility + optional sort); Title cannot be hidden |
-| Automation repos | `/api/v1/automation-repos` (+ project links); legacy `/api/v1/projects/{id}/automation-repo` — see [automation-integration-design.md](automation-integration-design.md) |
+| Automation repos | `/api/v1/automation-repos` (+ project links); legacy `/api/v1/projects/{id}/automation-repo` — [automation-repo.md](automation-repo.md) |
 | CI reporting | `/api/v1/projects/{id}/ci/runs` (open / results / ingest / close), project CI tokens — [guides/ci-integration.md](guides/ci-integration.md) |
+| CI configs / webhooks | `/api/v1/projects/{id}/ci-configs`; `/api/v1/webhooks/github|gitlab[/{config_id}]` — webhook secret **required** (fail-closed); responses redact secrets (`has_webhook_secret` / `has_token`) |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
 | Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` |
 | Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — see [guides/executions.md](guides/executions.md) |
 | Ingest | `POST /api/v1/projects/{id}/ingest` (pipeline), `POST /api/v1/runs/{id}/ingest` (`junit` / `vulyk_json` / `playwright_json` / `pytest_json`), `…/results:bulk` |
-| Reports (W8) | `/api/v1/projects/{id}/reports/*` |
+| Reports | `/api/v1/projects/{id}/reports/*` |
 | Requirements / ALM | `/requirements`, `/integrations`, `/defects` |
 | Importers | `/api/v1/importers`, `/imports` |
 | LLM | `/api/v1/projects/{id}/llm/*` (incl. `chat`, `chat/confirm`) |
 | Chat tools | `GET /api/v1/llm/chat-tools` |
 | Requirement folders | `/api/v1/projects/{id}/requirement-folders` |
+| Option lists | `/api/v1/admin/option-lists` (system admin) |
+| Custom fields | `/api/v1/admin/custom-fields` (+ project field APIs for values / available-to-add) |
+| Config export / import | `POST /api/v1/admin/config/export`, `/import/preview`, `/import` — also `vulyk-api config export|import` |
+| Content backups | `/api/v1/admin/backups/*` — destinations, policies, run, history, download, restore |
+| Updates / rollback | `/api/v1/admin/updates*` — check GitHub Releases, trigger Compose updater, list version backups |
 | Tokens | `/api/v1/tokens` |
 | Admin sample data | `GET/DELETE /api/v1/admin/sample-data`, `POST /api/v1/admin/sample-data/reseed` (system admin) — list / remove / re-seed `is_sample` projects |
 
@@ -65,4 +71,4 @@ Requires `export_reports`. Labels follow `locale` query (or `Accept-Language`): 
 - `GET /api/v1/cases/{id_or_key}/export.pdf?results=5` — same, resolves project from the case
 - `POST /api/v1/projects/{project_id}/cases/export` — body `{ "case_ids": ["…"], "results": 5, "locale": "en" }`; one id → PDF, multiple → ZIP of PDFs. **`case_ids` max 100** (400 if exceeded) to bound memory
 
-Further reading: [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md).
+Further reading: [README.md](README.md) (index), [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md), [admin-guide.md](admin-guide.md).

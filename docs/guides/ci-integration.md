@@ -2,7 +2,9 @@
 
 Publish automated test results from **GitHub Actions** or **GitLab CI** into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
 
-For design and vendor comparison see [automation-integration-design.md](../automation-integration-design.md) and [automation-integration-comparison.md](../automation-integration-comparison.md). Legacy one-shot upload notes remain in [ingest-and-ci.md](./ingest-and-ci.md).
+Formats, dispatch, and **webhooks** (secrets required, fail-closed): [ingest-and-ci.md](./ingest-and-ci.md).
+Automation Git repos: [automation-repo.md](../automation-repo.md).
+Historical design / vendor notes: [automation-integration-design.md](../automation-integration-design.md), [automation-integration-comparison.md](../automation-integration-comparison.md).
 
 ## How it fits together
 
@@ -69,6 +71,10 @@ Also recognized: `case_key`, `vulyk_key`, `@vulyk:KOC-12` in the name. Unknown k
 2. Open **Settings** (gear menu) → **Project CI tokens**.
 3. Choose the project → **Create token** → name it (`github-main`) → copy `vulyk_ci_…`.
 4. Store it as `VULYK_CI_TOKEN` / `VULYK_API_TOKEN` in GitHub Secrets or GitLab CI variables.
+
+CI tokens are **narrowly scoped** to reporting (open / upload / close) for that project. They cannot perform general admin actions (for example `create_project`). Prefer a dedicated CI token over a personal `vulyk_at_…` token in pipelines.
+
+When configuring GitHub/GitLab **webhooks** for dispatch status sync, set a **webhook secret** on the CI config — authorization fails closed without one; API responses never echo the raw secret.
 
 ## GitHub Actions
 

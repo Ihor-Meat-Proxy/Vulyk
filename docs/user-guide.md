@@ -18,11 +18,11 @@ On demo/dev installs (`VULYK_SEED_SAMPLE=1`, wizard default on), setup seeds two
 | Project | Key | Prefix | Contents |
 |---------|-----|--------|----------|
 | Kyiv Open-Air Concert 2026 | `KYIV_CONCERT_2026` | `KC` | Concert-domain suites, ~35 cases, requirements, dress rehearsal + ticketing smoke runs, plus **Sample nightly #N** automated suites (varied pass/fail/in-progress/cancelled; creator **Sample CI**) |
-| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~195+ cases with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, PDF export, …), requirements per area, smoke + regression runs |
+| Vulyk QA | `VULYK_QA` | `VQA` | Nested folders by product area, ~220 cases (base + `backend/seed/vulyk-qa.d/` fragments) with Playwright-oriented steps (folder tree, case list columns, key URLs, i18n/locales, header menus, executions, status badges, PDF export, multi-repo CI, password policy, Admin Updates, lists/custom fields, …), requirements per area, smoke + regression runs |
 
 **Admin → Settings → Sample data** lists installed sample projects, **Remove sample data** (confirm, danger) deletes only `is_sample` rows (idempotent; never user-created projects), and **Re-seed sample data** restores the demos. Case keys on remove go through the retired-key path before the sample project is deleted.
 
-Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): admin email `admin@vulyk.local` with password from `VULYK_ADMIN_PASSWORD` in `.env` (forced change when install-generated); demo `user@vulyk.local` / `VULYK_DEMO_PASSWORD` (default `vulyk-demo-user-1`, TAE on sample projects). Password policy defaults to 16+ characters (see `VULYK_PASSWORD_MIN_LENGTH`). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`; regenerate Vulyk QA with `python3 backend/seed/generate_vulyk_qa.py`).
+Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): admin email `admin@vulyk.local` with password from `VULYK_ADMIN_PASSWORD` in `.env` (forced change when install-generated); demo `user@vulyk.local` / `VULYK_DEMO_PASSWORD` (default `vulyk-demo-user-1`, TAE on sample projects). Password policy defaults to 16+ characters (see `VULYK_PASSWORD_MIN_LENGTH`). Data files live under `backend/seed/` (`kyiv-concert-2026.json`, `vulyk-qa.json`, plus fragments in `vulyk-qa.d/`; regenerate the base with `python3 backend/seed/generate_vulyk_qa.py`).
 
 ## Projects & cases
 
@@ -33,7 +33,8 @@ Seed credentials (when `VULYK_SEED_DEMO=1` / admin env seed): admin email `admin
 - Open a case to view Details, History / Results, and Executions. **Edit** opens an inline editor with a sticky Save/Cancel bar, an unsaved-changes indicator, and a leave warning when navigating away with dirty fields.
 - Create / rename / delete / drag folders (or **Move to** on mobile). Deleting a non-empty folder asks whether to move cases to the parent or delete them (deleted cases retire their keys).
 - **Import** brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV; imported keys come from the project counter and original IDs are stored as `external_key`.
-- **Export as PDF** on the case detail page (and per-row / bulk on the Cases list) downloads a server-generated PDF: header metadata, steps table, linked requirements, and the latest mixed manual + automated results (default 5, configurable). Multiple selected cases download as a ZIP of PDFs. Labels follow your UI language (EN/UK/FR/ES/DE); Ukrainian and other Unicode text are supported. Requires the **export reports** permission (all project roles).
+- **Export as PDF** on the case detail page (and per-row / bulk on the Cases list) downloads a server-generated PDF: header metadata, steps table, linked requirements, and the latest mixed manual + automated results (default 5, configurable). Multiple selected cases download as a ZIP of PDFs (**at most 100** cases per bulk request). Labels follow your UI language (EN/UK/FR/ES/DE); Ukrainian and other Unicode text are supported. Requires the **export reports** permission (all project roles).
+- **Custom fields** (when an admin has defined them): checkbox, dropdown / multi-select (from option lists), text, long text, number, date, URL appear on create/edit/detail, as optional list columns/filters, and in bulk edit. Admins manage definitions under **Admin → Lists** and **Admin → Custom fields**; see [admin-guide.md](admin-guide.md#lists-custom-fields--config-export).
 
 ### Keyboard shortcuts (case editor)
 
@@ -88,6 +89,13 @@ System admins can open **Admin settings → Updates** to:
 6. On Kubernetes or installs without the sidecar, **Update now** / one-click rollback are hidden and **manual** `install.sh upgrade` / `rollback` commands are shown instead.
 
 Details: [guides/in-app-updates.md](guides/in-app-updates.md) and [guides/upgrade.md](guides/upgrade.md#data-safety-guarantees).
+
+### Admin → Backups / Export
+
+System admins can also:
+
+- **Admin → Backups** — schedule or run **content** backups (ZIP of projects/cases/fields) to local volume, GitHub, GitLab, Nextcloud, or Drive — [guides/backup.md](guides/backup.md). This is separate from DB dumps used by `install.sh backup` / upgrades.
+- **Admin → Export / import** — versioned JSON/YAML config bundles (fields, lists, settings; secrets redacted) — [admin-guide.md](admin-guide.md#config-export--import-admin--export--import).
 
 ## Appearance
 

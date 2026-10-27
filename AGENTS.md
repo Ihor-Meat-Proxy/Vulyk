@@ -82,6 +82,9 @@ cd e2e && npm run typecheck
 
 ## More docs
 
+- Doc index: [`docs/README.md`](docs/README.md)
 - CI failure catalog + pipeline diagram: [`docs/ci-failures.md`](docs/ci-failures.md)
-- Architecture / workstreams: [`docs/architecture.md`](docs/architecture.md)
+- Architecture: [`docs/architecture.md`](docs/architecture.md)
+- Playwright test ids: [`docs/testing/test-ids.md`](docs/testing/test-ids.md)
+- Audits (Oct 2026): [`docs/security/audit-2026-10.md`](docs/security/audit-2026-10.md), [`docs/quality/code-quality-2026-10.md`](docs/quality/code-quality-2026-10.md), [`docs/review/code-review-2026-10.md`](docs/review/code-review-2026-10.md)
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)

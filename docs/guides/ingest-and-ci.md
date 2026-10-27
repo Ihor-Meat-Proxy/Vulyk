@@ -132,7 +132,12 @@ See [`ci/gitlab-upload.yml`](../../ci/gitlab-upload.yml). Set `VULYK_API_URL`, `
 }
 ```
 
-Optional `webhook_secret` on the CI config: GitHub uses `X-Hub-Signature-256`, GitLab uses `X-Gitlab-Token`. Point provider webhooks at `/api/v1/webhooks/github/{config_id}` or `/api/v1/webhooks/gitlab/{config_id}`.
+**Required `webhook_secret`** on the CI config (fail-closed): configs without a
+verifying secret do **not** authorize webhook traffic. GitHub uses
+`X-Hub-Signature-256`, GitLab uses `X-Gitlab-Token`. Prefer config-scoped URLs:
+`/api/v1/webhooks/github/{config_id}` or `/api/v1/webhooks/gitlab/{config_id}`.
+API responses expose `has_webhook_secret` / `has_token` only — raw secrets are
+never returned after create/update.
 
 ## UI
 

@@ -41,6 +41,8 @@ Custom fields map by key/name; missing definitions and option lists are created.
 
 Credentials are encrypted with `VULYK_SECRETS_KEY` and **masked** in the UI. Supported kinds: `local`, `github`, `gitlab`, `nextcloud`, `gdrive`. Pack mode `unpacked` writes a JSON tree (better Git diffs); `zip` stores a single archive.
 
+**Local root:** set `VULYK_CONTENT_BACKUP_DIR` (default `./data/content-backups`). Local destination paths must stay under that directory (SSRF / path-escape guard). Outbound GitHub/GitLab/Nextcloud/Drive URLs use the shared egress allowlist; set `VULYK_EGRESS_ALLOW_PRIVATE=1` only for lab/mock servers.
+
 ## API
 
 See OpenAPI tag **backups** (`/api/docs`) — destinations, policies, run, history, download, restore.

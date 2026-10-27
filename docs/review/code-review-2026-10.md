@@ -1,5 +1,11 @@
 # Vulyk code review — 2026-10-26
 
+> Historical snapshot. Doc index: [../README.md](../README.md). Companion audits:
+> [../security/audit-2026-10.md](../security/audit-2026-10.md),
+> [../quality/code-quality-2026-10.md](../quality/code-quality-2026-10.md).
+> Several findings (jobs reclaim, PDF cap, React keys, etc.) landed in follow-up
+> PRs after this review — prefer current code over unfixed wording below.
+
 Senior review of the monorepo (`backend`, `frontend`, `e2e`, `mcp`, `cli`,
 `docs`, migrations). Scope: correctness, edge cases, races, migration /
 upgrade safety, OpenAPI vs handlers, error handling, large-project performance

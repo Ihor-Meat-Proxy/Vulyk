@@ -9,7 +9,7 @@
 
 ```bash
 export VULYK_API_URL=http://localhost:8080
-export VULYK_API_TOKEN=vulk_…   # shown once at creation
+export VULYK_API_TOKEN=vulyk_at_…   # shown once at creation (legacy vulk_… still accepted)
 ```
 
 The MCP process sends `Authorization: Bearer …` on every call. Invalid tokens are rejected by the API.
@@ -54,7 +54,7 @@ Add to MCP settings (`.cursor/mcp.json` or Cursor Settings → MCP):
       "cwd": "/absolute/path/to/Vulyk",
       "env": {
         "VULYK_API_URL": "http://localhost:8080",
-        "VULYK_API_TOKEN": "vulk_…"
+        "VULYK_API_TOKEN": "vulyk_at_…"
       }
     }
   }
@@ -74,7 +74,7 @@ Edit `claude_desktop_config.json`:
       "command": "/absolute/path/to/vulyk-mcp",
       "env": {
         "VULYK_API_URL": "http://localhost:8080",
-        "VULYK_API_TOKEN": "vulk_…"
+        "VULYK_API_TOKEN": "vulyk_at_…"
       }
     }
   }

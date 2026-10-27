@@ -315,7 +315,7 @@ pub trait BackupDestination: Send + Sync {
 
 | Kind | Auth | Notes |
 |------|------|-------|
-| `local` | Path on volume (`VULYK_BACKUP_DIR` or config path) | Default for tests / single-node |
+| `local` | Path on volume under `VULYK_CONTENT_BACKUP_DIR` (default `./data/content-backups`; paths outside that root are rejected) | Default for tests / single-node |
 | `github` | PAT / fine-grained token | Contents API or Git Data API; branch + path |
 | `gitlab` | Project access token | Repository files API; branch + path |
 | `nextcloud` | App password | WebDAV `PUT`/`GET`/`PROPFIND` |
