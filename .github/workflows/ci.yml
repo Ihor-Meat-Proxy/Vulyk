@@ -373,6 +373,8 @@ jobs:
       VULYK_DEFAULT_TIMEZONE: UTC
       VULYK_BASE_URL: http://127.0.0.1:5173
       E2E_BASE_URL: http://127.0.0.1:5173
+      # Lab-only: allow API to fetch mock OIDC JWKS from http://127.0.0.1:9090
+      VULYK_EGRESS_ALLOW_PRIVATE: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

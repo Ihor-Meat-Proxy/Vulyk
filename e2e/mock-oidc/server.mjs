@@ -1,13 +1,29 @@
 #!/usr/bin/env node
 /**
  * Minimal mock OIDC provider for Playwright SSO e2e.
- * Endpoints: discovery, authorize (redirect with code), token, userinfo.
+ * Endpoints: discovery, authorize (redirect with code), token, userinfo, JWKS.
+ * Issues RS256-signed id_tokens so the API can verify via JWKS (security H7).
  */
+import crypto from 'node:crypto'
 import http from 'node:http'
 import { URL } from 'node:url'
 
 const PORT = Number(process.env.OIDC_PORT ?? 9090)
 const ISSUER = `http://127.0.0.1:${PORT}`
+const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? 'vulyk-e2e'
+const KID = 'mock-oidc-key-1'
+
+const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
+  modulusLength: 2048,
+  publicExponent: 0x10001,
+})
+
+const PUBLIC_JWK = {
+  ...publicKey.export({ format: 'jwk' }),
+  use: 'sig',
+  alg: 'RS256',
+  kid: KID,
+}
 
 const USER = {
   sub: 'mock-oidc-user-1',
@@ -17,18 +33,25 @@ const USER = {
   preferred_username: 'sso-user',
 }
 
-function b64url(obj) {
+function b64urlJson(obj) {
   return Buffer.from(JSON.stringify(obj)).toString('base64url')
 }
 
-function fakeIdToken() {
-  const header = b64url({ alg: 'none', typ: 'JWT' })
-  const payload = b64url({
+function signedIdToken() {
+  const now = Math.floor(Date.now() / 1000)
+  const header = { alg: 'RS256', typ: 'JWT', kid: KID }
+  const payload = {
     iss: ISSUER,
-    aud: 'vulyk-e2e',
+    aud: CLIENT_ID,
+    exp: now + 3600,
+    iat: now,
     ...USER,
-  })
-  return `${header}.${payload}.`
+  }
+  const data = `${b64urlJson(header)}.${b64urlJson(payload)}`
+  const sig = crypto
+    .sign('RSA-SHA256', Buffer.from(data), privateKey)
+    .toString('base64url')
+  return `${data}.${sig}`
 }
 
 function sendJson(res, status, body) {
@@ -52,7 +75,7 @@ const server = http.createServer((req, res) => {
       jwks_uri: `${ISSUER}/jwks`,
       response_types_supported: ['code'],
       subject_types_supported: ['public'],
-      id_token_signing_alg_values_supported: ['none'],
+      id_token_signing_alg_values_supported: ['RS256'],
       scopes_supported: ['openid', 'email', 'profile'],
     })
   }
@@ -81,7 +104,7 @@ const server = http.createServer((req, res) => {
         access_token: 'mock-access-token',
         token_type: 'Bearer',
         expires_in: 3600,
-        id_token: fakeIdToken(),
+        id_token: signedIdToken(),
         scope: 'openid email profile',
       })
     })
@@ -93,7 +116,7 @@ const server = http.createServer((req, res) => {
   }
 
   if (url.pathname === '/jwks') {
-    return sendJson(res, 200, { keys: [] })
+    return sendJson(res, 200, { keys: [PUBLIC_JWK] })
   }
 
   if (url.pathname === '/health') {
@@ -105,5 +128,5 @@ const server = http.createServer((req, res) => {
 })
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[mock-oidc] listening on ${ISSUER}`)
+  console.log(`[mock-oidc] listening on ${ISSUER} (RS256 JWKS)`)
 })
