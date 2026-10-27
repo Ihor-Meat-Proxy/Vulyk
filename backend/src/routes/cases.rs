@@ -1131,13 +1131,23 @@ pub async fn set_custom_fields(
         ("offset" = Option<i64>, Query),
         ("include_steps" = Option<bool>, Query)
     ),
-    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage))
+    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage)),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_case_results_project(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path((project_id, case_id)): Path<(Uuid, Uuid)>,
     Query(query): Query<CaseResultsQuery>,
 ) -> AppResult<Json<CaseResultsPage>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     let exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM test_cases WHERE project_id = $1 AND id = $2)",
     )
@@ -1166,12 +1176,30 @@ pub async fn list_case_results_project(
         ("offset" = Option<i64>, Query),
         ("include_steps" = Option<bool>, Query)
     ),
-    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage))
+    responses((status = 200, description = "Case result history across runs", body = CaseResultsPage)),
+    security(("bearer_auth" = []))
 )]
 pub async fn list_case_results_by_id(
     State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
     Path(case_id): Path<Uuid>,
     Query(query): Query<CaseResultsQuery>,
 ) -> AppResult<Json<CaseResultsPage>> {
+    let project_id: Option<Uuid> =
+        sqlx::query_scalar("SELECT project_id FROM test_cases WHERE id = $1")
+            .bind(case_id)
+            .fetch_optional(&state.pool)
+            .await?;
+    let Some(project_id) = project_id else {
+        return Err(AppError::NotFound("case".into()));
+    };
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ViewProject,
+    )
+    .await?;
     Ok(Json(list_case_results(&state.pool, case_id, &query).await?))
 }
