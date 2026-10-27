@@ -7,6 +7,10 @@ use uuid::Uuid;
 use crate::error::AppResult;
 use crate::models::Job;
 
+/// Running jobs whose lock is older than this are treated as abandoned
+/// (worker crash / deploy) and returned to `pending` for another claim.
+pub const STALE_RUNNING_SECS: i64 = 15 * 60;
+
 pub async fn enqueue(
     pool: &PgPool,
     kind: &str,
@@ -39,7 +43,48 @@ pub async fn get_job(pool: &PgPool, id: Uuid) -> AppResult<Option<Job>> {
     Ok(job)
 }
 
+/// Requeue jobs stuck in `running` after a worker crash / hard kill.
+///
+/// Jobs that have already exhausted `max_attempts` are marked `failed`
+/// instead of looping forever.
+pub async fn reclaim_stale(pool: &PgPool, stale_after_secs: i64) -> AppResult<u64> {
+    let result = sqlx::query(
+        r#"
+        UPDATE jobs
+        SET status = CASE
+                WHEN attempts >= max_attempts THEN 'failed'
+                ELSE 'pending'
+              END,
+            last_error = COALESCE(
+                last_error,
+                'reclaimed: worker lock expired'
+            ),
+            run_at = CASE
+                WHEN attempts >= max_attempts THEN run_at
+                ELSE NOW()
+              END,
+            locked_at = NULL,
+            locked_by = NULL,
+            completed_at = CASE
+                WHEN attempts >= max_attempts THEN COALESCE(completed_at, NOW())
+                ELSE NULL
+              END,
+            updated_at = NOW()
+        WHERE status = 'running'
+          AND locked_at IS NOT NULL
+          AND locked_at < NOW() - make_interval(secs => $1::int)
+        "#,
+    )
+    .bind(stale_after_secs as i32)
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
 pub async fn claim_next(pool: &PgPool, worker_id: &str) -> AppResult<Option<Job>> {
+    // Best-effort: free abandoned locks before selecting the next pending job.
+    let _ = reclaim_stale(pool, STALE_RUNNING_SECS).await?;
+
     let job = sqlx::query_as::<_, Job>(
         r#"
         UPDATE jobs
