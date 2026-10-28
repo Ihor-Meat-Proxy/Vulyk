@@ -11,13 +11,15 @@ use uuid::Uuid;
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    AutomationRepoIndexResult, AutomationRepoPublic, AutomationRepoRow, AutomationRepoTestResult,
-    CreateAutomationRepo, SetRepoProjects, TestAutomationRepoBody, UpdateAutomationRepo,
+    AutomationRepoBranch, AutomationRepoBranchesResponse, AutomationRepoIndexResult,
+    AutomationRepoPublic, AutomationRepoRow, AutomationRepoTestResult, CreateAutomationRepo,
+    ListBranchesBody, SetRepoProjects, TestAutomationRepoBody, UpdateAutomationRepo,
     UpsertAutomationRepo,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
 use crate::services::automation_repo as repo_svc;
+use crate::services::automation_repo_index;
 use crate::services::automation_repo_remote as remote_svc;
 
 pub fn router() -> Router<AppState> {
@@ -49,6 +51,14 @@ pub fn router() -> Router<AppState> {
             "/api/v1/automation-repos/{id}/reindex",
             axum::routing::post(reindex_repo_by_id),
         )
+        .route(
+            "/api/v1/automation-repos/{id}/branches",
+            get(list_repo_branches),
+        )
+        .route(
+            "/api/v1/automation-repos/branches",
+            axum::routing::post(list_branches_preview),
+        )
         // Project-scoped list (Generate picker)
         .route(
             "/api/v1/projects/{project_id}/automation-repos",
@@ -72,7 +82,16 @@ pub fn router() -> Router<AppState> {
 const SELECT_COLS: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
     token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
     ci_workflow_file, ci_workflow_ref, index_status, last_indexed_at,
-    last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
+    last_index_error, commit_sha, last_index_trigger, poll_interval_minutes,
+    webhook_secret, poll_etag, last_polled_at, seen_branches,
+    file_count, chunk_count, created_at, updated_at"#;
+
+fn normalize_poll_interval(v: Option<i32>) -> i32 {
+    match v {
+        Some(n) if n >= 0 => n,
+        _ => 15,
+    }
+}
 
 async fn to_public(
     pool: &sqlx::PgPool,
@@ -239,12 +258,14 @@ pub async fn create_repo(
         .unwrap_or("main")
         .to_string();
     let legacy_project = body.project_ids.first().copied();
+    let poll_interval = normalize_poll_interval(body.poll_interval_minutes);
+    let webhook_secret = repo_svc::generate_webhook_secret();
     let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
         r#"INSERT INTO automation_repos
             (name, project_id, provider, remote_url, branch, subpath,
              token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
-             ci_workflow_file, ci_workflow_ref)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+             ci_workflow_file, ci_workflow_ref, poll_interval_minutes, webhook_secret)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING {SELECT_COLS}"#
     ))
     .bind(body.name.trim())
@@ -259,6 +280,8 @@ pub async fn create_repo(
     .bind(anonce)
     .bind(&workflow_file)
     .bind(&workflow_ref)
+    .bind(poll_interval)
+    .bind(&webhook_secret)
     .fetch_one(&state.pool)
     .await?;
 
@@ -400,13 +423,23 @@ pub async fn update_repo(
         .filter(|s| !s.is_empty())
         .unwrap_or(existing.ci_workflow_ref.as_str())
         .to_string();
+    let poll_interval = body
+        .poll_interval_minutes
+        .map(|n| n.max(0))
+        .unwrap_or(existing.poll_interval_minutes);
+    let webhook_secret = if body.rotate_webhook_secret.unwrap_or(false) {
+        repo_svc::generate_webhook_secret()
+    } else {
+        existing.webhook_secret.clone()
+    };
 
     let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
         r#"UPDATE automation_repos SET
              name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
              token_ciphertext = $7, token_nonce = $8,
              actions_token_ciphertext = $9, actions_token_nonce = $10,
-             ci_workflow_file = $11, ci_workflow_ref = $12, updated_at = NOW()
+             ci_workflow_file = $11, ci_workflow_ref = $12,
+             poll_interval_minutes = $13, webhook_secret = $14, updated_at = NOW()
            WHERE id = $1
            RETURNING {SELECT_COLS}"#
     ))
@@ -422,6 +455,8 @@ pub async fn update_repo(
     .bind(anonce)
     .bind(&workflow_file)
     .bind(&workflow_ref)
+    .bind(poll_interval)
+    .bind(&webhook_secret)
     .fetch_one(&state.pool)
     .await?;
 
@@ -517,6 +552,8 @@ pub async fn test_repo_preview(
             ok: false,
             message: "remote_url required".into(),
             commit_sha: None,
+            error_code: None,
+            rate_limit_reset_at: None,
         }));
     }
     let branch = if body.branch.trim().is_empty() {
@@ -535,6 +572,8 @@ pub async fn test_repo_preview(
         ok,
         message,
         commit_sha,
+        error_code: None,
+        rate_limit_reset_at: None,
     }))
 }
 
@@ -567,6 +606,8 @@ pub async fn test_repo_by_id(
         ok,
         message,
         commit_sha,
+        error_code: None,
+        rate_limit_reset_at: None,
     }))
 }
 
@@ -587,28 +628,96 @@ pub async fn reindex_repo_by_id(
     let row = repo_svc::load_repo_by_id(&state.pool, id)
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
-    repo_svc::mark_indexing(&state.pool, row.id).await?;
-    let token = decrypt_token(&state, &row)?;
-    match sync_and_index(&state, &row, token.as_deref()).await {
-        Ok((sha, files, chunks)) => Ok(Json(AutomationRepoIndexResult {
-            status: "ready".into(),
-            commit_sha: Some(sha),
-            file_count: files,
-            chunk_count: chunks,
-            error: None,
-        })),
-        Err(e) => {
-            let msg = e.to_string();
-            let _ = repo_svc::mark_index_error(&state.pool, row.id, &msg).await;
-            Ok(Json(AutomationRepoIndexResult {
-                status: "error".into(),
-                commit_sha: None,
-                file_count: 0,
-                chunk_count: 0,
-                error: Some(msg),
-            }))
-        }
+    Ok(Json(
+        automation_repo_index::run_reindex(&state.pool, &state.secrets, &row, "manual")
+            .await
+            .unwrap_or_else(|e| automation_repo_index::index_result_from_err(&e)),
+    ))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/automation-repos/{id}/branches",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = AutomationRepoBranchesResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_repo_branches(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<AutomationRepoBranchesResponse>> {
+    require_manage_linked_or_admin(&state, &auth, id).await?;
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    let provider = row.provider.to_lowercase();
+    if !matches!(provider.as_str(), "github" | "gitlab") {
+        return Err(AppError::BadRequest(
+            "branch listing is only available for github and gitlab providers".into(),
+        ));
     }
+    let token = decrypt_token(&state, &row)?;
+    let branches = remote_svc::list_branches(
+        &provider,
+        &row.remote_url,
+        token.as_deref(),
+        &row.seen_branches,
+    )
+    .await?;
+    let names: Vec<String> = branches.iter().map(|b| b.name.clone()).collect();
+    let _ = repo_svc::merge_seen_branches(&state.pool, row.id, &names).await;
+    Ok(Json(AutomationRepoBranchesResponse {
+        branches: branches
+            .into_iter()
+            .map(|b| AutomationRepoBranch {
+                name: b.name,
+                commit_sha: b.commit_sha,
+                is_new: b.is_new,
+            })
+            .collect(),
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/automation-repos/branches",
+    tag = "automation-repo",
+    request_body = ListBranchesBody,
+    responses((status = 200, body = AutomationRepoBranchesResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_branches_preview(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Json(body): Json<ListBranchesBody>,
+) -> AppResult<Json<AutomationRepoBranchesResponse>> {
+    require_manage_on_projects(&state, &auth, &body.project_ids).await?;
+    let provider = validate_provider(&body.provider)?;
+    if !matches!(provider.as_str(), "github" | "gitlab") {
+        return Err(AppError::BadRequest(
+            "branch listing is only available for github and gitlab providers".into(),
+        ));
+    }
+    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
+    let branches = remote_svc::list_branches(
+        &provider,
+        body.remote_url.trim(),
+        body.token.as_deref(),
+        &[],
+    )
+    .await?;
+    Ok(Json(AutomationRepoBranchesResponse {
+        branches: branches
+            .into_iter()
+            .map(|b| AutomationRepoBranch {
+                name: b.name,
+                commit_sha: b.commit_sha,
+                is_new: false,
+            })
+            .collect(),
+    }))
 }
 
 #[utoipa::path(
@@ -765,6 +874,15 @@ pub async fn upsert_repo(
                 .unwrap_or("main")
         })
         .to_string();
+    let poll_interval = body
+        .poll_interval_minutes
+        .map(|n| n.max(0))
+        .unwrap_or_else(|| {
+            existing
+                .as_ref()
+                .map(|e| e.poll_interval_minutes)
+                .unwrap_or(15)
+        });
 
     let row = if let Some(ex) = existing {
         sqlx::query_as::<_, AutomationRepoRow>(&format!(
@@ -773,7 +891,8 @@ pub async fn upsert_repo(
                  token_ciphertext = $7, token_nonce = $8,
                  actions_token_ciphertext = $9, actions_token_nonce = $10,
                  ci_workflow_file = $11, ci_workflow_ref = $12,
-                 project_id = $13, updated_at = NOW()
+                 poll_interval_minutes = $13,
+                 project_id = $14, updated_at = NOW()
                WHERE id = $1
                RETURNING {SELECT_COLS}"#
         ))
@@ -789,16 +908,18 @@ pub async fn upsert_repo(
         .bind(anonce)
         .bind(&workflow_file)
         .bind(&workflow_ref)
+        .bind(poll_interval)
         .bind(project_id)
         .fetch_one(&state.pool)
         .await?
     } else {
+        let webhook_secret = repo_svc::generate_webhook_secret();
         let created = sqlx::query_as::<_, AutomationRepoRow>(&format!(
             r#"INSERT INTO automation_repos
                 (name, project_id, provider, remote_url, branch, subpath,
                  token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
-                 ci_workflow_file, ci_workflow_ref)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                 ci_workflow_file, ci_workflow_ref, poll_interval_minutes, webhook_secret)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                RETURNING {SELECT_COLS}"#
         ))
         .bind(&name)
@@ -813,6 +934,8 @@ pub async fn upsert_repo(
         .bind(anonce)
         .bind(&workflow_file)
         .bind(&workflow_ref)
+        .bind(poll_interval)
+        .bind(&webhook_secret)
         .fetch_one(&state.pool)
         .await?;
         repo_svc::set_project_links(&state.pool, created.id, &[project_id], Some(project_id))
@@ -913,6 +1036,8 @@ pub async fn test_repo(
         ok,
         message,
         commit_sha,
+        error_code: None,
+        rate_limit_reset_at: None,
     }))
 }
 
@@ -940,88 +1065,11 @@ pub async fn reindex_repo(
     let row = repo_svc::load_repo_for_project(&state.pool, project_id)
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
-    repo_svc::mark_indexing(&state.pool, row.id).await?;
-    let token = decrypt_token(&state, &row)?;
-    match sync_and_index(&state, &row, token.as_deref()).await {
-        Ok((sha, files, chunks)) => Ok(Json(AutomationRepoIndexResult {
-            status: "ready".into(),
-            commit_sha: Some(sha),
-            file_count: files,
-            chunk_count: chunks,
-            error: None,
-        })),
-        Err(e) => {
-            let msg = e.to_string();
-            let _ = repo_svc::mark_index_error(&state.pool, row.id, &msg).await;
-            Ok(Json(AutomationRepoIndexResult {
-                status: "error".into(),
-                commit_sha: None,
-                file_count: 0,
-                chunk_count: 0,
-                error: Some(msg),
-            }))
-        }
-    }
-}
-
-async fn sync_and_index(
-    state: &AppState,
-    row: &AutomationRepoRow,
-    token: Option<&str>,
-) -> AppResult<(String, i32, i32)> {
-    let provider = row.provider.to_lowercase();
-    if matches!(provider.as_str(), "github" | "gitlab") {
-        let known = repo_svc::load_content_hashes(&state.pool, row.id).await?;
-        let index =
-            remote_svc::fetch_tree(&provider, &row.remote_url, &row.branch, &row.subpath, token)
-                .await?;
-        let changed = remote_svc::fetch_changed_files(
-            &provider,
-            &row.remote_url,
-            &row.branch,
-            token,
-            &index,
-            &known,
-        )
-        .await?;
-        let tree_paths: std::collections::HashMap<String, String> = index
-            .entries
-            .iter()
-            .map(|e| (e.path.clone(), e.blob_sha.clone()))
-            .collect();
-        let (fc, cc) = repo_svc::persist_index_incremental(
-            &state.pool,
-            row.id,
-            &tree_paths,
-            &changed,
-            &index.commit_sha,
-        )
-        .await?;
-        return Ok((index.commit_sha, fc, cc));
-    }
-
-    if !repo_svc::git_available() {
-        return Err(AppError::BadRequest(
-            "git is not installed in this environment. The generic provider needs the git binary \
-             in the API image; use the github or gitlab provider for REST indexing without git."
-                .into(),
-        ));
-    }
-    let repo_id = row.id;
-    let remote_url = row.remote_url.clone();
-    let branch = row.branch.clone();
-    let subpath = row.subpath.clone();
-    let token_owned = token.map(str::to_string);
-    let sha = tokio::task::spawn_blocking(move || {
-        repo_svc::sync_repo(repo_id, &remote_url, &branch, token_owned.as_deref())
-    })
-    .await
-    .map_err(|e| AppError::Internal(format!("git sync task: {e}")))??;
-    let files = tokio::task::spawn_blocking(move || repo_svc::index_workdir(repo_id, &subpath))
-        .await
-        .map_err(|e| AppError::Internal(format!("git index task: {e}")))??;
-    let (fc, cc) = repo_svc::persist_index(&state.pool, row.id, &files, &sha).await?;
-    Ok((sha, fc, cc))
+    Ok(Json(
+        automation_repo_index::run_reindex(&state.pool, &state.secrets, &row, "manual")
+            .await
+            .unwrap_or_else(|e| automation_repo_index::index_result_from_err(&e)),
+    ))
 }
 
 async fn test_provider_connection(

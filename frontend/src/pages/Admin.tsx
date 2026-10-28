@@ -662,15 +662,20 @@ function AutomationRepoPanel({
     chunk_count: number
     commit_sha: string | null
     last_indexed_at: string | null
+    last_index_trigger?: string | null
     has_token: boolean
   }) => {
     const indexed = repo.last_indexed_at
       ? ` · last indexed ${new Date(repo.last_indexed_at).toLocaleString()}`
       : ''
+    const trigger = repo.last_index_trigger
+      ? ` · via ${repo.last_index_trigger}`
+      : ''
     return (
       `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
       indexed +
       (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
+      trigger +
       (repo.has_token ? ' · token set' : '')
     )
   }

@@ -25,6 +25,10 @@ pub fn router() -> Router<AppState> {
             "/api/v1/webhooks/gitlab/{config_id}",
             post(gitlab_webhook_for_config),
         )
+        .route(
+            "/api/v1/webhooks/automation-repos/{repo_id}",
+            post(automation_repo_webhook),
+        )
 }
 
 #[utoipa::path(
@@ -392,4 +396,134 @@ fn header_str(headers: &HeaderMap, name: &str) -> Option<String> {
         .get(name)
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string())
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/automation-repos/{repo_id}",
+    tag = "webhooks",
+    params(("repo_id" = Uuid, Path, description = "Automation repo id")),
+    request_body(content = String, description = "GitHub push or GitLab Push Hook JSON", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature or token")
+    )
+)]
+pub async fn automation_repo_webhook(
+    State(state): State<AppState>,
+    Path(repo_id): Path<Uuid>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<WebhookAck>> {
+    let row = crate::services::automation_repo::load_repo_by_id(&state.pool, repo_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+
+    if row.webhook_secret.is_empty() {
+        return Err(AppError::Unauthorized(
+            "automation repo webhook secret not configured".into(),
+        ));
+    }
+
+    let provider = row.provider.to_lowercase();
+    let gh_event = header_str(&headers, "x-github-event");
+    let gl_event = header_str(&headers, "x-gitlab-event");
+    let gl_token = header_str(&headers, "x-gitlab-token");
+    let gh_sig = header_str(&headers, "x-hub-signature-256").unwrap_or_default();
+
+    let verified = if gh_event.is_some() || provider == "github" {
+        github::verify_signature(&row.webhook_secret, &body, &gh_sig)
+    } else if gl_event.is_some() || provider == "gitlab" {
+        gitlab::verify_token(&row.webhook_secret, gl_token.as_deref())
+    } else {
+        false
+    };
+    if !verified {
+        return Err(AppError::Unauthorized(
+            "invalid automation-repo webhook credentials".into(),
+        ));
+    }
+
+    let payload: Value = serde_json::from_slice(&body)
+        .map_err(|e| AppError::BadRequest(format!("invalid JSON: {e}")))?;
+
+    let event_label = gh_event
+        .clone()
+        .or(gl_event.clone())
+        .unwrap_or_else(|| "push".into());
+
+    let should_reindex = branch_moved_for_repo(&row.branch, &provider, &event_label, &payload);
+    if should_reindex {
+        // Fire-and-forget so the webhook returns quickly; skip if already indexing.
+        let pool = state.pool.clone();
+        let secrets = state.secrets.clone();
+        let row_clone = row.clone();
+        tokio::spawn(async move {
+            match crate::services::automation_repo_index::run_reindex(
+                &pool, &secrets, &row_clone, "webhook",
+            )
+            .await
+            {
+                Ok(res) if res.status == "ready" => {
+                    tracing::info!(repo_id = %row_clone.id, "automation-repo webhook reindex ready");
+                }
+                Ok(res) => {
+                    tracing::info!(
+                        repo_id = %row_clone.id,
+                        status = %res.status,
+                        error = ?res.error,
+                        "automation-repo webhook reindex finished"
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(repo_id = %row_clone.id, error = %e, "automation-repo webhook reindex failed");
+                }
+            }
+        });
+    }
+
+    let _ = log_webhook(
+        &state,
+        "automation_repo",
+        &event_label,
+        header_str(&headers, "x-github-delivery").as_deref(),
+        &payload,
+        None,
+    )
+    .await;
+
+    Ok(Json(WebhookAck {
+        received: true,
+        dispatch_id: None,
+        status: if should_reindex {
+            Some("reindex_queued".into())
+        } else {
+            Some("ignored".into())
+        },
+    }))
+}
+
+fn branch_moved_for_repo(configured: &str, provider: &str, event: &str, payload: &Value) -> bool {
+    let configured = configured.trim();
+    if provider == "github" || event == "push" {
+        if event != "push" && provider == "github" {
+            return false;
+        }
+        // GitHub: ref = "refs/heads/main"
+        if let Some(r) = payload.get("ref").and_then(|v| v.as_str()) {
+            let branch = r.strip_prefix("refs/heads/").unwrap_or(r);
+            return branch == configured;
+        }
+    }
+    if provider == "gitlab"
+        || event.to_lowercase().contains("push")
+        || payload.get("object_kind").and_then(|v| v.as_str()) == Some("push")
+    {
+        // GitLab: ref = "refs/heads/main" or checkout_sha present
+        if let Some(r) = payload.get("ref").and_then(|v| v.as_str()) {
+            let branch = r.strip_prefix("refs/heads/").unwrap_or(r);
+            return branch == configured;
+        }
+    }
+    false
 }

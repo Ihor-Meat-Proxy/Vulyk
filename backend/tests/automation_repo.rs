@@ -10,6 +10,7 @@ use axum::{
     extract::State as AxumState, http::StatusCode, response::IntoResponse, routing::post, Json,
     Router,
 };
+use hmac::Mac;
 use serde_json::{json, Value};
 
 async fn spawn_api() -> String {
@@ -311,42 +312,64 @@ async fn developer_has_llm_assist_in_role_matrix() {
 
 #[derive(Clone)]
 struct GhMockState {
-    blob_hits: Arc<AtomicUsize>,
+    zipball_hits: Arc<AtomicUsize>,
+    commit_hits: Arc<AtomicUsize>,
+    zip_bytes: Arc<Vec<u8>>,
 }
 
-async fn gh_commit() -> Json<Value> {
-    Json(json!({
-        "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        "commit": { "tree": { "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } }
-    }))
+async fn gh_commit(AxumState(state): AxumState<GhMockState>) -> impl IntoResponse {
+    state.commit_hits.fetch_add(1, Ordering::SeqCst);
+    (
+        StatusCode::OK,
+        [("etag", "\"commit-etag-1\"")],
+        Json(json!({
+            "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "commit": { "tree": { "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" } }
+        })),
+    )
 }
 
-async fn gh_tree() -> Json<Value> {
-    Json(json!({
-        "sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-        "truncated": false,
-        "tree": [{
-            "path": "e2e/login.spec.ts",
-            "type": "blob",
-            "sha": "cccccccccccccccccccccccccccccccccccccccc",
-            "size": 24
-        }]
-    }))
+async fn gh_zipball(AxumState(state): AxumState<GhMockState>) -> impl IntoResponse {
+    state.zipball_hits.fetch_add(1, Ordering::SeqCst);
+    (
+        StatusCode::OK,
+        [("content-type", "application/zip")],
+        state.zip_bytes.as_ref().clone(),
+    )
 }
 
-async fn gh_blob(AxumState(state): AxumState<GhMockState>) -> Json<Value> {
-    state.blob_hits.fetch_add(1, Ordering::SeqCst);
-    Json(json!({
-        "content": "export const ok = true;\n",
-        "encoding": "utf-8"
-    }))
+async fn gh_branches() -> Json<Value> {
+    Json(json!([
+        { "name": "main", "commit": { "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" } },
+        { "name": "develop", "commit": { "sha": "dddddddddddddddddddddddddddddddddddddddd" } }
+    ]))
 }
 
-/// Minimal GitHub Enterprise-shaped API for REST indexing tests.
-async fn spawn_github_mock() -> (String, Arc<AtomicUsize>) {
-    let blob_hits = Arc::new(AtomicUsize::new(0));
+fn fixture_zipball() -> Vec<u8> {
+    use std::io::{Cursor, Write};
+    let mut buf = Cursor::new(Vec::new());
+    {
+        let mut zip = zip::ZipWriter::new(&mut buf);
+        let opts = zip::write::SimpleFileOptions::default();
+        zip.start_file("acme-demo-aaaaaaaa/e2e/login.spec.ts", opts)
+            .unwrap();
+        zip.write_all(b"export const ok = true;\n").unwrap();
+        zip.start_file("acme-demo-aaaaaaaa/src/other.ts", opts)
+            .unwrap();
+        zip.write_all(b"export const skip = true;\n").unwrap();
+        zip.finish().unwrap();
+    }
+    buf.into_inner()
+}
+
+/// Minimal GitHub Enterprise-shaped API for archive indexing tests.
+async fn spawn_github_mock() -> (String, Arc<AtomicUsize>, Arc<AtomicUsize>) {
+    let zipball_hits = Arc::new(AtomicUsize::new(0));
+    let commit_hits = Arc::new(AtomicUsize::new(0));
     let state = GhMockState {
-        blob_hits: blob_hits.clone(),
+        zipball_hits: zipball_hits.clone(),
+        commit_hits: commit_hits.clone(),
+        zip_bytes: Arc::new(fixture_zipball()),
     };
 
     let app = Router::new()
@@ -355,12 +378,12 @@ async fn spawn_github_mock() -> (String, Arc<AtomicUsize>) {
             axum::routing::get(gh_commit),
         )
         .route(
-            "/api/v3/repos/{owner}/{repo}/git/trees/{sha}",
-            axum::routing::get(gh_tree),
+            "/api/v3/repos/{owner}/{repo}/zipball/{branch}",
+            axum::routing::get(gh_zipball),
         )
         .route(
-            "/api/v3/repos/{owner}/{repo}/git/blobs/{sha}",
-            axum::routing::get(gh_blob),
+            "/api/v3/repos/{owner}/{repo}/branches",
+            axum::routing::get(gh_branches),
         )
         .with_state(state);
 
@@ -372,11 +395,11 @@ async fn spawn_github_mock() -> (String, Arc<AtomicUsize>) {
         axum::serve(listener, app).await.expect("serve github mock");
     });
     tokio::time::sleep(Duration::from_millis(30)).await;
-    (format!("http://{addr}"), blob_hits)
+    (format!("http://{addr}"), zipball_hits, commit_hits)
 }
 
 #[tokio::test]
-async fn github_rest_indexes_without_git_and_is_incremental() {
+async fn github_archive_indexes_without_git_and_is_incremental() {
     if std::env::var("DATABASE_URL").is_err() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
@@ -385,12 +408,12 @@ async fn github_rest_indexes_without_git_and_is_incremental() {
 
     let base = spawn_api().await;
     let client = reqwest::Client::new();
-    let (mock_base, blob_hits) = spawn_github_mock().await;
+    let (mock_base, zipball_hits, _commit_hits) = spawn_github_mock().await;
     let remote = format!("{mock_base}/acme/demo");
 
     let project: Value = client
         .post(format!("{base}/api/v1/projects"))
-        .json(&json!({ "name": "GH REST Demo" }))
+        .json(&json!({ "name": "GH Archive Demo" }))
         .send()
         .await
         .unwrap()
@@ -444,7 +467,8 @@ async fn github_rest_indexes_without_git_and_is_incremental() {
             "remote_url": remote,
             "branch": "main",
             "subpath": "e2e",
-            "project_ids": [project_id]
+            "project_ids": [project_id],
+            "poll_interval_minutes": 15
         }))
         .send()
         .await
@@ -455,6 +479,21 @@ async fn github_rest_indexes_without_git_and_is_incremental() {
         .await
         .unwrap();
     let repo_id = repo["id"].as_str().unwrap();
+    assert!(!repo["webhook_secret"].as_str().unwrap_or("").is_empty());
+    assert!(repo["webhook_url"].as_str().unwrap_or("").contains(repo_id));
+    assert_eq!(repo["poll_interval_minutes"], 15);
+
+    let branches: Value = client
+        .get(format!("{base}/api/v1/automation-repos/{repo_id}/branches"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(branches["branches"].as_array().unwrap().len() >= 2);
 
     let indexed: Value = client
         .post(format!("{base}/api/v1/automation-repos/{repo_id}/reindex"))
@@ -469,10 +508,11 @@ async fn github_rest_indexes_without_git_and_is_incremental() {
     assert_eq!(indexed["status"], "ready", "{indexed}");
     assert_eq!(indexed["file_count"], 1);
     assert!(indexed["chunk_count"].as_i64().unwrap() >= 1);
-    let first_blobs = blob_hits.load(Ordering::SeqCst);
-    assert!(first_blobs >= 1, "expected blob fetch");
+    assert_eq!(indexed["last_index_trigger"], "manual");
+    let first_zips = zipball_hits.load(Ordering::SeqCst);
+    assert_eq!(first_zips, 1, "expected one zipball download");
 
-    // Second reindex: same blob SHA → incremental skip.
+    // Second reindex: still one archive download, but unchanged content is not re-persisted as new.
     let again: Value = client
         .post(format!("{base}/api/v1/automation-repos/{repo_id}/reindex"))
         .send()
@@ -485,11 +525,25 @@ async fn github_rest_indexes_without_git_and_is_incremental() {
         .unwrap();
     assert_eq!(again["status"], "ready");
     assert_eq!(again["file_count"], 1);
-    assert_eq!(
-        blob_hits.load(Ordering::SeqCst),
-        first_blobs,
-        "incremental reindex should not re-fetch unchanged blobs"
-    );
+    assert_eq!(zipball_hits.load(Ordering::SeqCst), 2);
+
+    // Push webhook on configured branch queues reindex.
+    let secret = repo["webhook_secret"].as_str().unwrap();
+    let payload = br#"{"ref":"refs/heads/main"}"#;
+    let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(secret.as_bytes()).expect("hmac key");
+    mac.update(payload);
+    let sig = format!("sha256={}", hex::encode(mac.finalize().into_bytes()));
+    let wh = client
+        .post(format!("{base}/api/v1/webhooks/automation-repos/{repo_id}"))
+        .header("X-GitHub-Event", "push")
+        .header("X-Hub-Signature-256", sig)
+        .body(payload.to_vec())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(wh.status(), StatusCode::OK);
+    let ack: Value = wh.json().await.unwrap();
+    assert_eq!(ack["status"], "reindex_queued");
 }
 
 #[tokio::test]
