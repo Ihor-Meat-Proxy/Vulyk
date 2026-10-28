@@ -378,6 +378,7 @@ pub async fn persist_index(
     repo_id: Uuid,
     files: &[IndexedFile],
     commit_sha: &str,
+    trigger: &str,
 ) -> AppResult<(i32, i32)> {
     let mut tx = pool.begin().await?;
     sqlx::query("DELETE FROM automation_repo_files WHERE repo_id = $1")
@@ -396,6 +397,7 @@ pub async fn persist_index(
         commit_sha,
         files.len() as i32,
         chunk_count,
+        trigger,
     )
     .await?;
     tx.commit().await?;
@@ -423,6 +425,7 @@ pub async fn persist_index_incremental(
     tree_paths: &HashMap<String, String>,
     changed: &[IndexedFile],
     commit_sha: &str,
+    trigger: &str,
 ) -> AppResult<(i32, i32)> {
     let mut tx = pool.begin().await?;
 
@@ -470,6 +473,7 @@ pub async fn persist_index_incremental(
         commit_sha,
         file_count as i32,
         chunk_count as i32,
+        trigger,
     )
     .await?;
     tx.commit().await?;
@@ -514,6 +518,7 @@ async fn finalize_index_meta(
     commit_sha: &str,
     file_count: i32,
     chunk_count: i32,
+    trigger: &str,
 ) -> AppResult<()> {
     sqlx::query(
         r#"UPDATE automation_repos SET
@@ -523,6 +528,7 @@ async fn finalize_index_meta(
              commit_sha = $2,
              file_count = $3,
              chunk_count = $4,
+             last_index_trigger = $5,
              updated_at = NOW()
            WHERE id = $1"#,
     )
@@ -530,6 +536,7 @@ async fn finalize_index_meta(
     .bind(commit_sha)
     .bind(file_count)
     .bind(chunk_count)
+    .bind(trigger)
     .execute(&mut **tx)
     .await?;
     Ok(())
@@ -546,6 +553,18 @@ pub async fn mark_indexing(pool: &PgPool, repo_id: Uuid) -> AppResult<()> {
     Ok(())
 }
 
+/// Atomically claim an indexing slot; returns false if already indexing.
+pub async fn try_mark_indexing(pool: &PgPool, repo_id: Uuid) -> AppResult<bool> {
+    let res = sqlx::query(
+        r#"UPDATE automation_repos SET index_status = 'indexing', last_index_error = NULL, updated_at = NOW()
+           WHERE id = $1 AND index_status IS DISTINCT FROM 'indexing'"#,
+    )
+    .bind(repo_id)
+    .execute(pool)
+    .await?;
+    Ok(res.rows_affected() > 0)
+}
+
 pub async fn mark_index_error(pool: &PgPool, repo_id: Uuid, err: &str) -> AppResult<()> {
     sqlx::query(
         r#"UPDATE automation_repos SET index_status = 'error', last_index_error = $2, updated_at = NOW()
@@ -556,6 +575,77 @@ pub async fn mark_index_error(pool: &PgPool, repo_id: Uuid, err: &str) -> AppRes
     .execute(pool)
     .await?;
     Ok(())
+}
+
+pub fn generate_webhook_secret() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 24];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    hex::encode(bytes)
+}
+
+/// Public webhook URL for operators (uses `VULYK_BASE_URL` when set).
+pub fn webhook_url_for(repo_id: Uuid) -> String {
+    let path = format!("/api/v1/webhooks/automation-repos/{repo_id}");
+    match std::env::var("VULYK_BASE_URL") {
+        Ok(base) if !base.trim().is_empty() => {
+            format!("{}{path}", base.trim().trim_end_matches('/'))
+        }
+        _ => path,
+    }
+}
+
+pub async fn update_poll_meta(pool: &PgPool, repo_id: Uuid, etag: Option<&str>) -> AppResult<()> {
+    sqlx::query(
+        r#"UPDATE automation_repos SET
+             poll_etag = COALESCE($2, poll_etag),
+             last_polled_at = NOW(),
+             updated_at = NOW()
+           WHERE id = $1"#,
+    )
+    .bind(repo_id)
+    .bind(etag)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+pub async fn merge_seen_branches(pool: &PgPool, repo_id: Uuid, names: &[String]) -> AppResult<()> {
+    sqlx::query(
+        r#"UPDATE automation_repos SET
+             seen_branches = (
+               SELECT ARRAY(
+                 SELECT DISTINCT unnest(COALESCE(seen_branches, '{}') || $2::text[])
+                 ORDER BY 1
+               )
+             ),
+             updated_at = NOW()
+           WHERE id = $1"#,
+    )
+    .bind(repo_id)
+    .bind(names)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Repos due for a branch-head poll (interval > 0, github/gitlab, not currently indexing).
+pub async fn list_repos_due_for_poll(pool: &PgPool) -> AppResult<Vec<AutomationRepoRow>> {
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        r#"SELECT {REPO_SELECT} FROM automation_repos
+           WHERE poll_interval_minutes > 0
+             AND provider IN ('github', 'gitlab')
+             AND index_status IS DISTINCT FROM 'indexing'
+             AND (
+               last_polled_at IS NULL
+               OR last_polled_at + make_interval(mins => poll_interval_minutes) <= NOW()
+             )
+           ORDER BY last_polled_at NULLS FIRST, updated_at ASC
+           LIMIT 20"#
+    ))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -726,12 +816,16 @@ pub async fn retrieve_context(
 const REPO_SELECT: &str = r#"id, name, project_id, provider, remote_url, branch, subpath,
     token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
     ci_workflow_file, ci_workflow_ref, index_status, last_indexed_at,
-    last_index_error, commit_sha, file_count, chunk_count, created_at, updated_at"#;
+    last_index_error, commit_sha, last_index_trigger, poll_interval_minutes,
+    webhook_secret, poll_etag, last_polled_at, seen_branches,
+    file_count, chunk_count, created_at, updated_at"#;
 
 const REPO_SELECT_R: &str = r#"r.id, r.name, r.project_id, r.provider, r.remote_url, r.branch, r.subpath,
     r.token_ciphertext, r.token_nonce, r.actions_token_ciphertext, r.actions_token_nonce,
     r.ci_workflow_file, r.ci_workflow_ref, r.index_status, r.last_indexed_at,
-    r.last_index_error, r.commit_sha, r.file_count, r.chunk_count, r.created_at, r.updated_at"#;
+    r.last_index_error, r.commit_sha, r.last_index_trigger, r.poll_interval_minutes,
+    r.webhook_secret, r.poll_etag, r.last_polled_at, r.seen_branches,
+    r.file_count, r.chunk_count, r.created_at, r.updated_at"#;
 
 /// Prefer the project's default linked repo; otherwise the first by sort_order.
 pub async fn load_repo_for_project(

@@ -3,6 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{DateTime, Utc};
 use serde::Serialize;
 use thiserror::Error;
 
@@ -23,6 +24,12 @@ pub enum AppError {
     Forbidden(String),
     #[error("too many requests: {0}")]
     TooManyRequests(String),
+    /// Git host (GitHub/GitLab) REST rate limit; `reset_at` is UTC when known.
+    #[error("{message}")]
+    GitHostRateLimit {
+        message: String,
+        reset_at: Option<DateTime<Utc>>,
+    },
     #[error("internal: {0}")]
     Internal(String),
     #[error(transparent)]
@@ -38,30 +45,40 @@ struct ErrorBody {
 struct ErrorDetail {
     code: &'static str,
     message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reset_at: Option<DateTime<Utc>>,
 }
 
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
-        let (status, code) = match &self {
-            AppError::NotFound(_) => (StatusCode::NOT_FOUND, "not_found"),
-            AppError::Gone(_) => (StatusCode::GONE, "case_deleted"),
-            AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, "bad_request"),
-            AppError::Conflict(_) => (StatusCode::CONFLICT, "conflict"),
-            AppError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized"),
-            AppError::Forbidden(_) => (StatusCode::FORBIDDEN, "forbidden"),
-            AppError::TooManyRequests(_) => (StatusCode::TOO_MANY_REQUESTS, "too_many_requests"),
-            AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
-            AppError::Db(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, "not_found"),
-            AppError::Db(sqlx::Error::Database(err)) if err.constraint().is_some() => {
-                (StatusCode::CONFLICT, "conflict")
+        let (status, code, reset_at) = match &self {
+            AppError::NotFound(_) => (StatusCode::NOT_FOUND, "not_found", None),
+            AppError::Gone(_) => (StatusCode::GONE, "case_deleted", None),
+            AppError::BadRequest(_) => (StatusCode::BAD_REQUEST, "bad_request", None),
+            AppError::Conflict(_) => (StatusCode::CONFLICT, "conflict", None),
+            AppError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized", None),
+            AppError::Forbidden(_) => (StatusCode::FORBIDDEN, "forbidden", None),
+            AppError::TooManyRequests(_) => {
+                (StatusCode::TOO_MANY_REQUESTS, "too_many_requests", None)
             }
-            AppError::Db(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal"),
+            AppError::GitHostRateLimit { reset_at, .. } => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "git_host_rate_limit",
+                *reset_at,
+            ),
+            AppError::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal", None),
+            AppError::Db(sqlx::Error::RowNotFound) => (StatusCode::NOT_FOUND, "not_found", None),
+            AppError::Db(sqlx::Error::Database(err)) if err.constraint().is_some() => {
+                (StatusCode::CONFLICT, "conflict", None)
+            }
+            AppError::Db(_) => (StatusCode::INTERNAL_SERVER_ERROR, "internal", None),
         };
 
         let body = Json(ErrorBody {
             error: ErrorDetail {
                 code,
                 message: self.to_string(),
+                reset_at,
             },
         });
 

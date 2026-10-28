@@ -4,6 +4,7 @@ import {
   api,
   type ApiTokenPublic,
   type AutomationRepo,
+  type AutomationRepoBranch,
   type Project,
   type ProjectCiToken,
   type ProjectRole,
@@ -51,6 +52,9 @@ type RepoFormState = {
   actions_token: string
   ci_workflow_file: string
   ci_workflow_ref: string
+  poll_interval_minutes: number
+  webhook_secret: string
+  webhook_url: string
   project_ids: string[]
 }
 
@@ -65,8 +69,49 @@ const emptyRepoForm = (): RepoFormState => ({
   actions_token: '',
   ci_workflow_file: '',
   ci_workflow_ref: 'main',
+  poll_interval_minutes: 15,
+  webhook_secret: '',
+  webhook_url: '',
   project_ids: [],
 })
+
+function formatRateLimitMessage(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  resetAt: string | null | undefined,
+): string {
+  const local = resetAt
+    ? new Date(resetAt).toLocaleString()
+    : t('settings.automationRateLimitUnknownReset')
+  return t('settings.automationRateLimit', { reset: local })
+}
+
+function formatRepoStatus(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  repo: AutomationRepo,
+): string {
+  const indexed = repo.last_indexed_at
+    ? t('settings.automationLastIndexed', {
+        time: new Date(repo.last_indexed_at).toLocaleString(),
+      })
+    : ''
+  const sha = repo.commit_sha ? repo.commit_sha.slice(0, 8) : ''
+  const trigger = repo.last_index_trigger
+    ? t(`settings.automationTrigger.${repo.last_index_trigger}` as 'settings.automationTrigger.manual')
+    : ''
+  return [
+    repo.index_status,
+    t('settings.automationFilesChunks', {
+      files: repo.file_count,
+      chunks: repo.chunk_count,
+    }),
+    indexed,
+    sha ? t('settings.automationSha', { sha }) : '',
+    trigger ? t('settings.automationTriggerLabel', { trigger }) : '',
+    repo.has_token ? t('settings.automationTokenSet') : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
 
 export function Settings() {
   const { user, status, refreshStatus, changePassword: changePasswordAuth } =
@@ -98,6 +143,7 @@ export function Settings() {
   const [repos, setRepos] = useState<AutomationRepo[]>([])
   const [repoForm, setRepoForm] = useState<RepoFormState>(emptyRepoForm)
   const [repoBusy, setRepoBusy] = useState(false)
+  const [repoBranches, setRepoBranches] = useState<AutomationRepoBranch[]>([])
   const [repoInfo, setRepoInfo] = useState<string | null>(null)
   const [canAutomation, setCanAutomation] = useState(false)
 
@@ -312,8 +358,30 @@ export function Settings() {
     }
   }
 
+  const loadRepoBranches = async (form: RepoFormState = repoForm) => {
+    if (!form.remote_url.trim()) return
+    if (form.provider !== 'github' && form.provider !== 'gitlab') {
+      setRepoBranches([])
+      return
+    }
+    try {
+      const res =
+        form.id && !form.token
+          ? await api.listAutomationRepoBranches(form.id)
+          : await api.listAutomationRepoBranchesPreview({
+              provider: form.provider,
+              remote_url: form.remote_url.trim(),
+              ...(form.token ? { token: form.token } : {}),
+              project_ids: form.project_ids,
+            })
+      setRepoBranches(res.branches ?? [])
+    } catch {
+      /* keep prior list; branch can still be typed */
+    }
+  }
+
   const startEditRepo = (repo: AutomationRepo) => {
-    setRepoForm({
+    const next = {
       id: repo.id,
       name: repo.name,
       provider: repo.provider,
@@ -324,23 +392,18 @@ export function Settings() {
       actions_token: '',
       ci_workflow_file: repo.ci_workflow_file || '',
       ci_workflow_ref: repo.ci_workflow_ref || 'main',
+      poll_interval_minutes: repo.poll_interval_minutes ?? 15,
+      webhook_secret: repo.webhook_secret || '',
+      webhook_url: repo.webhook_url || '',
       project_ids: repo.project_ids?.length
         ? [...repo.project_ids]
         : repo.project_id
           ? [repo.project_id]
           : [],
-    })
-    const indexed = repo.last_indexed_at
-      ? ` · last indexed ${new Date(repo.last_indexed_at).toLocaleString()}`
-      : ''
-    setRepoInfo(
-      `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
-        indexed +
-        (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
-        (repo.has_token ? ' · token set' : '') +
-        (repo.has_actions_token ? ' · actions token set' : '') +
-        (repo.ci_workflow_file ? ` · ${repo.ci_workflow_file}` : ''),
-    )
+    }
+    setRepoForm(next)
+    setRepoInfo(formatRepoStatus(t, repo))
+    void loadRepoBranches(next)
   }
 
   const toggleRepoProject = (projectId: string) => {
@@ -371,6 +434,7 @@ export function Settings() {
             : {}),
           ci_workflow_file: repoForm.ci_workflow_file.trim(),
           ci_workflow_ref: repoForm.ci_workflow_ref.trim() || 'main',
+          poll_interval_minutes: repoForm.poll_interval_minutes,
           project_ids: repoForm.project_ids,
         })
       } else {
@@ -386,10 +450,12 @@ export function Settings() {
             : {}),
           ci_workflow_file: repoForm.ci_workflow_file.trim(),
           ci_workflow_ref: repoForm.ci_workflow_ref.trim() || 'main',
+          poll_interval_minutes: repoForm.poll_interval_minutes,
           project_ids: repoForm.project_ids,
         })
       }
       setRepoForm(emptyRepoForm())
+      setRepoBranches([])
       setRepoInfo(null)
       setMessage(t('settings.automationSaved'))
       await refreshRepos()
@@ -448,11 +514,50 @@ export function Settings() {
     setError(null)
     try {
       const res = await api.reindexAutomationRepoById(repoForm.id)
-      setRepoInfo(
-        res.error
-          ? res.error
-          : `Indexed ${res.file_count} files / ${res.chunk_count} chunks`,
+      if (res.error_code === 'git_host_rate_limit') {
+        setError(formatRateLimitMessage(t, res.rate_limit_reset_at))
+        setRepoInfo(res.error)
+      } else {
+        setRepoInfo(
+          res.error
+            ? res.error
+            : t('settings.automationIndexed', {
+                files: res.file_count,
+                chunks: res.chunk_count,
+              }),
+        )
+      }
+      await refreshRepos()
+      const updated = (await api.listAutomationRepos()).find(
+        (r) => r.id === repoForm.id,
       )
+      if (updated) setRepoInfo(formatRepoStatus(t, updated))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (/rate limit/i.test(msg)) {
+        setError(formatRateLimitMessage(t, null))
+      } else {
+        setError(msg)
+      }
+    } finally {
+      setRepoBusy(false)
+    }
+  }
+
+  const onRotateWebhook = async () => {
+    if (!repoForm.id) return
+    setRepoBusy(true)
+    setError(null)
+    try {
+      const updated = await api.updateAutomationRepo(repoForm.id, {
+        rotate_webhook_secret: true,
+      })
+      setRepoForm((f) => ({
+        ...f,
+        webhook_secret: updated.webhook_secret,
+        webhook_url: updated.webhook_url,
+      }))
+      setMessage(t('settings.automationWebhookRotated'))
       await refreshRepos()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -793,7 +898,14 @@ export function Settings() {
             </ul>
           )}
 
-          {repoInfo && <p className="notice">{repoInfo}</p>}
+          {repoInfo && (
+            <p
+              className="notice"
+              {...testIdProps(TestIds.settingsAutomationStatus)}
+            >
+              {repoInfo}
+            </p>
+          )}
 
           <form
             className="stack-form"
@@ -820,9 +932,10 @@ export function Settings() {
               <span>{t('admin.automationProvider')}</span>
               <select
                 value={repoForm.provider}
-                onChange={(e) =>
+                onChange={(e) => {
                   setRepoForm((f) => ({ ...f, provider: e.target.value }))
-                }
+                  setRepoBranches([])
+                }}
                 {...testIdProps(TestIds.settingsAutomationProviderSelect)}
               >
                 <option value="github">GitHub</option>
@@ -844,14 +957,60 @@ export function Settings() {
             </label>
             <label className="field">
               <span>{t('admin.automationBranch')}</span>
-              <input
-                value={repoForm.branch}
-                onChange={(e) =>
-                  setRepoForm((f) => ({ ...f, branch: e.target.value }))
-                }
-                required
-                {...testIdProps(TestIds.settingsAutomationBranchInput)}
-              />
+              {repoForm.provider === 'github' ||
+              repoForm.provider === 'gitlab' ? (
+                <div className="form-row" style={{ gap: '0.5rem' }}>
+                  <select
+                    value={
+                      repoBranches.some((b) => b.name === repoForm.branch)
+                        ? repoForm.branch
+                        : ''
+                    }
+                    onChange={(e) =>
+                      setRepoForm((f) => ({ ...f, branch: e.target.value }))
+                    }
+                    {...testIdProps(TestIds.settingsAutomationBranchSelect)}
+                  >
+                    <option value="">
+                      {t('settings.automationBranchCustom')}
+                    </option>
+                    {repoBranches.map((b) => (
+                      <option key={b.name} value={b.name}>
+                        {b.name}
+                        {b.is_new ? ` (${t('settings.automationBranchNew')})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    value={repoForm.branch}
+                    onChange={(e) =>
+                      setRepoForm((f) => ({ ...f, branch: e.target.value }))
+                    }
+                    required
+                    {...testIdProps(TestIds.settingsAutomationBranchInput)}
+                  />
+                  <button
+                    type="button"
+                    className="btn secondary"
+                    disabled={repoBusy || !repoForm.remote_url.trim()}
+                    onClick={() => void loadRepoBranches()}
+                    {...testIdProps(
+                      TestIds.settingsAutomationRefreshBranchesButton,
+                    )}
+                  >
+                    {t('settings.automationRefreshBranches')}
+                  </button>
+                </div>
+              ) : (
+                <input
+                  value={repoForm.branch}
+                  onChange={(e) =>
+                    setRepoForm((f) => ({ ...f, branch: e.target.value }))
+                  }
+                  required
+                  {...testIdProps(TestIds.settingsAutomationBranchInput)}
+                />
+              )}
             </label>
             <label className="field">
               <span>{t('admin.automationSubpath')}</span>
@@ -918,6 +1077,58 @@ export function Settings() {
                 {...testIdProps(TestIds.settingsAutomationWorkflowRefInput)}
               />
             </label>
+            <label className="field">
+              <span>{t('settings.automationPollInterval')}</span>
+              <input
+                type="number"
+                min={0}
+                value={repoForm.poll_interval_minutes}
+                onChange={(e) =>
+                  setRepoForm((f) => ({
+                    ...f,
+                    poll_interval_minutes: Math.max(
+                      0,
+                      Number.parseInt(e.target.value || '0', 10) || 0,
+                    ),
+                  }))
+                }
+                {...testIdProps(TestIds.settingsAutomationPollIntervalInput)}
+              />
+              <span className="muted">
+                {t('settings.automationPollIntervalHelp')}
+              </span>
+            </label>
+            {repoForm.id ? (
+              <div className="field">
+                <span>{t('settings.automationWebhook')}</span>
+                <p className="muted">{t('settings.automationWebhookHelp')}</p>
+                <label className="field">
+                  <span>{t('settings.automationWebhookUrl')}</span>
+                  <input
+                    readOnly
+                    value={repoForm.webhook_url}
+                    {...testIdProps(TestIds.settingsAutomationWebhookUrl)}
+                  />
+                </label>
+                <label className="field">
+                  <span>{t('settings.automationWebhookSecret')}</span>
+                  <input
+                    readOnly
+                    value={repoForm.webhook_secret}
+                    {...testIdProps(TestIds.settingsAutomationWebhookSecret)}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={repoBusy}
+                  onClick={() => void onRotateWebhook()}
+                  {...testIdProps(TestIds.settingsAutomationRotateWebhookButton)}
+                >
+                  {t('settings.automationRotateWebhook')}
+                </button>
+              </div>
+            ) : null}
             <fieldset className="field">
               <legend>{t('settings.automationProjects')}</legend>
               {projectsForAutomation.length === 0 ? (
@@ -982,6 +1193,7 @@ export function Settings() {
                     disabled={repoBusy}
                     onClick={() => {
                       setRepoForm(emptyRepoForm())
+                      setRepoBranches([])
                       setRepoInfo(null)
                     }}
                     {...testIdProps(TestIds.settingsAutomationCancelButton)}

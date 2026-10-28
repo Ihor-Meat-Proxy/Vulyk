@@ -239,8 +239,8 @@ Setup Job is **post-install only** (not re-run on every upgrade).
 ### API image packages
 
 The `vulyk-api` runtime image installs **`git`** so the **generic** automation-repo
-provider can shallow-clone. GitHub/GitLab providers index via REST and do not need
-it. No schema migration is required for that change — redeploy the API image only.
+provider can shallow-clone. GitHub/GitLab providers index via a single archive
+download and do not need it. Redeploy the API image on upgrade.
 Details: [automation-repo.md](../automation-repo.md#upgrade-notes).
 
 ### Automation repo Actions CI columns
@@ -249,6 +249,14 @@ Forward migration `20261027140000_automation_repo_actions_ci.sql` adds encrypted
 Actions write-token columns and `ci_workflow_file` / `ci_workflow_ref` for
 **Run in CI**. Applied automatically by `install.sh upgrade` / Helm migrate Job.
 No rollback SQL — restore from the verified pre-upgrade backup if needed.
+
+### Automation repo archive sync / webhooks / poll
+
+Forward migration `20261028102013_automation_repo_archive_sync.sql` adds
+`webhook_secret` (backfilled), `poll_interval_minutes` (default **15**),
+`last_index_trigger`, `poll_etag`, `last_polled_at`, and `seen_branches`.
+Optional env `VULYK_AUTOMATION_REPO_POLL_TICK_SECS` (default 60) is appended
+from `.env.example` on upgrade if missing — existing values are never overwritten.
 
 ## Versioning
 

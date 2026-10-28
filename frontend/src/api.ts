@@ -1279,10 +1279,20 @@ export type AutomationRepo = {
   last_indexed_at: string | null
   last_index_error: string | null
   commit_sha: string | null
+  last_index_trigger: string | null
+  poll_interval_minutes: number
+  webhook_secret: string
+  webhook_url: string
   file_count: number
   chunk_count: number
   created_at: string
   updated_at: string
+}
+
+export type AutomationRepoBranch = {
+  name: string
+  commit_sha: string | null
+  is_new: boolean
 }
 
 export type CreateAutomationRepoBody = {
@@ -1295,6 +1305,7 @@ export type CreateAutomationRepoBody = {
   actions_token?: string
   ci_workflow_file?: string
   ci_workflow_ref?: string
+  poll_interval_minutes?: number
   project_ids?: string[]
 }
 
@@ -1309,6 +1320,8 @@ export type UpdateAutomationRepoBody = {
   actions_token?: string
   ci_workflow_file?: string
   ci_workflow_ref?: string
+  poll_interval_minutes?: number
+  rotate_webhook_secret?: boolean
   project_ids?: string[]
 }
 
@@ -2833,10 +2846,27 @@ export const api = {
       file_count: number
       chunk_count: number
       error: string | null
+      error_code?: string | null
+      rate_limit_reset_at?: string | null
+      last_index_trigger?: string | null
     }>(`/api/v1/automation-repos/${id}/reindex`, {
       method: 'POST',
       body: '{}',
     }),
+  listAutomationRepoBranches: (id: string) =>
+    request<{ branches: AutomationRepoBranch[] }>(
+      `/api/v1/automation-repos/${id}/branches`,
+    ),
+  listAutomationRepoBranchesPreview: (body: {
+    provider: string
+    remote_url: string
+    token?: string
+    project_ids?: string[]
+  }) =>
+    request<{ branches: AutomationRepoBranch[] }>(
+      '/api/v1/automation-repos/branches',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
 
   /** Legacy singular project-scoped automation repo (shim). */
   getAutomationRepo: (projectId: string) =>

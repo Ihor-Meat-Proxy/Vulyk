@@ -1,4 +1,6 @@
 pub mod automation_repo;
+pub mod automation_repo_index;
+pub mod automation_repo_poll;
 pub mod automation_repo_remote;
 pub mod backup;
 pub mod campaigns;

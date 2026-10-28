@@ -24,13 +24,21 @@ pub struct AutomationRepoPublic {
     pub last_indexed_at: Option<DateTime<Utc>>,
     pub last_index_error: Option<String>,
     pub commit_sha: Option<String>,
+    /// How the last index was triggered: `manual` | `webhook` | `poll`.
+    pub last_index_trigger: Option<String>,
+    /// Poll interval in minutes; `0` disables polling.
+    pub poll_interval_minutes: i32,
+    /// Per-repo webhook shared secret (GitHub HMAC / GitLab token).
+    pub webhook_secret: String,
+    /// Absolute webhook URL when `VULYK_BASE_URL` is set; otherwise a path.
+    pub webhook_url: String,
     pub file_count: i32,
     pub chunk_count: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, sqlx::FromRow)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 pub struct AutomationRepoRow {
     pub id: Uuid,
     pub name: String,
@@ -49,6 +57,12 @@ pub struct AutomationRepoRow {
     pub last_indexed_at: Option<DateTime<Utc>>,
     pub last_index_error: Option<String>,
     pub commit_sha: Option<String>,
+    pub last_index_trigger: Option<String>,
+    pub poll_interval_minutes: i32,
+    pub webhook_secret: String,
+    pub poll_etag: Option<String>,
+    pub last_polled_at: Option<DateTime<Utc>>,
+    pub seen_branches: Vec<String>,
     pub file_count: i32,
     pub chunk_count: i32,
     pub created_at: DateTime<Utc>,
@@ -75,6 +89,10 @@ impl AutomationRepoRow {
             last_indexed_at: self.last_indexed_at,
             last_index_error: self.last_index_error.clone(),
             commit_sha: self.commit_sha.clone(),
+            last_index_trigger: self.last_index_trigger.clone(),
+            poll_interval_minutes: self.poll_interval_minutes,
+            webhook_secret: self.webhook_secret.clone(),
+            webhook_url: crate::services::automation_repo::webhook_url_for(self.id),
             file_count: self.file_count,
             chunk_count: self.chunk_count,
             created_at: self.created_at,
@@ -99,6 +117,8 @@ pub struct CreateAutomationRepo {
     pub ci_workflow_file: Option<String>,
     #[serde(default)]
     pub ci_workflow_ref: Option<String>,
+    /// Poll interval minutes; omit for default 15; `0` disables.
+    pub poll_interval_minutes: Option<i32>,
     /// Projects to attach (many-to-many).
     #[serde(default)]
     pub project_ids: Vec<Uuid>,
@@ -117,6 +137,10 @@ pub struct UpdateAutomationRepo {
     pub actions_token: Option<String>,
     pub ci_workflow_file: Option<String>,
     pub ci_workflow_ref: Option<String>,
+    pub poll_interval_minutes: Option<i32>,
+    /// When true, rotate the webhook secret.
+    #[serde(default)]
+    pub rotate_webhook_secret: Option<bool>,
     pub project_ids: Option<Vec<Uuid>>,
 }
 
@@ -133,6 +157,7 @@ pub struct UpsertAutomationRepo {
     pub actions_token: Option<String>,
     pub ci_workflow_file: Option<String>,
     pub ci_workflow_ref: Option<String>,
+    pub poll_interval_minutes: Option<i32>,
     pub name: Option<String>,
 }
 
@@ -166,6 +191,10 @@ pub struct AutomationRepoTestResult {
     pub ok: bool,
     pub message: String,
     pub commit_sha: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rate_limit_reset_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -175,6 +204,34 @@ pub struct AutomationRepoIndexResult {
     pub file_count: i32,
     pub chunk_count: i32,
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rate_limit_reset_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_index_trigger: Option<String>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AutomationRepoBranch {
+    pub name: String,
+    pub commit_sha: Option<String>,
+    pub is_new: bool,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AutomationRepoBranchesResponse {
+    pub branches: Vec<AutomationRepoBranch>,
+}
+
+/// List branches from unsaved form values.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ListBranchesBody {
+    pub provider: String,
+    pub remote_url: String,
+    pub token: Option<String>,
+    #[serde(default)]
+    pub project_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
