@@ -93,9 +93,8 @@ ensure_env() {
     cp "$ENV_EXAMPLE" "$ENV_FILE"
     echo "Wrote $ENV_FILE from docker.env.example"
   fi
-  # shellcheck disable=SC1090
   set -a
-  # shellcheck disable=SC1091
+  # shellcheck disable=SC1090,SC1091
   source "$ENV_FILE"
   set +a
   PW_VERSION="$(resolve_playwright_version)"
@@ -123,7 +122,7 @@ compose_up() {
     "${COMPOSE[@]}" build api web
   fi
   "${COMPOSE[@]}" up -d db mock-oidc api web
-  echo "==> Waiting for API health…"
+  echo "==> Waiting for API health..."
   local api_port="${E2E_API_PORT:-18080}"
   for _ in $(seq 1 90); do
     if curl -fsS "http://127.0.0.1:${api_port}/health" >/dev/null 2>&1; then
@@ -200,7 +199,7 @@ run_playwright_once() {
 
   # Re-source env so --report token is visible to compose.
   set -a
-  # shellcheck disable=SC1091
+  # shellcheck disable=SC1090,SC1091
   source "$ENV_FILE"
   set +a
 
