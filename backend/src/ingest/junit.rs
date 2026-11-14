@@ -83,7 +83,16 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
             }
             Ok(Event::Text(t)) if capture_failure => {
                 if let Some(ref mut c) = current {
-                    let text = t.unescape().map(|s| s.to_string()).unwrap_or_default();
+                    // quick-xml 0.41+: decode encoding, then unescape entities.
+                    let text = t
+                        .decode()
+                        .ok()
+                        .map(|decoded| {
+                            quick_xml::escape::unescape(&decoded)
+                                .map(|u| u.into_owned())
+                                .unwrap_or_else(|_| decoded.into_owned())
+                        })
+                        .unwrap_or_default();
                     if c.message.is_empty() {
                         c.message = text;
                     } else if !text.is_empty() {
