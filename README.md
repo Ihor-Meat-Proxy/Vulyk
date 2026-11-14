@@ -1,8 +1,32 @@
 # Vulyk
 
-Open-source **test management** system. *Vulyk* (вулик) is Ukrainian for *beehive*.
+**Self-hosted test management that stays under your control.**
 
-Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Helm deploy, and CI.
+*Vulyk* (вулик) is Ukrainian for *beehive*.
+
+Vulyk is an open-source test management system for QA and engineering teams who want cases, plans, runs, CI results, and requirement coverage without shipping that data to a vendor SaaS. You run it on your own infrastructure—Docker Compose or Helm, Postgres, your network—under the AGPL. No seat meter, no proprietary export trap, no “your tests live in our cloud” compromise.
+
+## Why Vulyk
+
+- **Yours to host, yours to keep.** Compose and Helm deploy paths, Postgres as the system of record, verified backups and rollback-safe upgrades—operators stay in control of data and downtime.
+- **Truly open source.** Licensed under **AGPL-3.0**. Read the code, audit the security model, fork if you need to. No closed core for the features you actually use.
+- **Full TMS, not a thin tracker.** Nested folders, auto-allocated `PREFIX-N` case keys, steps, versioning, plans and runs with step results, requirements with coverage, option lists and custom fields, case PDF export.
+- **CI that reports in—and runs out.** Ingest JUnit, Playwright, pytest, or Vulyk JSON from GitHub Actions and GitLab CI; multi-repo tokens and webhooks; **Run in CI** dispatches workflows and attaches results back to the same run.
+- **Leave the vendor behind.** Import from TestRail, Xray, Zephyr, Squash TM, TestLink, qTest, Qase, Kiwi TCMS, or CSV—preview mappings before you commit.
+- **Built for humans and agents.** React UI (PWA with offline result queue), OpenAPI at `/api/docs`, CLI reporter, and an **MCP** server so Cursor, Claude, and similar tools work against the same HTTP API. Optional multi-provider LLM for generate and chat.
+- **Auth that fits real orgs.** Email/password or SSO (Google, Microsoft Entra, GitHub, GitLab, Nextcloud, generic OIDC), RBAC, personal API tokens, fail-closed production defaults.
+- **Reports you can drill into.** Dashboards, pass/fail trends, requirement coverage, flaky detection, CSV/PDF export—deep-linkable run reports, not a dead summary page.
+- **Ready for global teams.** UI locales: English, Українська, Français, Español, Deutsch. Appearance themes including high contrast.
+
+## Get started
+
+```bash
+./scripts/install.sh compose --yes
+```
+
+Then open the UI at http://localhost:5173. Full install options (prod Compose, Helm, local Rust/Node), upgrades, and docs are below.
+
+---
 
 ## Quick start
 
@@ -136,7 +160,9 @@ docs/       Architecture, guides, integrations
 scripts/    install.sh, perf-smoke.sh, helpers
 ```
 
-## API highlights
+## Stack & capabilities
+
+Rust API (Axum + SQLx + OpenAPI), React UI, MCP server, CLI reporter, Docker/Helm deploy.
 
 - Auth / RBAC, projects (optional key), nested folders, auto `PREFIX-N` case keys
 - Option lists, custom fields, config export/import; case PDF export
