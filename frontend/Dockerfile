@@ -8,7 +8,8 @@ ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
 
 # Unprivileged nginx (non-root UID 101) — security audit M8.
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+# Keep current with alpine security patches (Trivy image gate).
+FROM nginxinc/nginx-unprivileged:1.31.7-alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=builder /app/dist /usr/share/nginx/html
 EXPOSE 8080

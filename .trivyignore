@@ -10,6 +10,7 @@ RUSTSEC-2023-0071
 
 # lopdf via genpdf PDF export — migrate by 2027-02-01
 RUSTSEC-2026-0187
+GHSA-6fj4-rcr3-r7rr
 
 # libsqlite3-sys unused (Postgres-only) — review by 2027-02-01
 RUSTSEC-2026-0459

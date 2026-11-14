@@ -7,19 +7,27 @@ title = "Vulyk"
 [extend]
 useDefault = true
 
-[allowlist]
-description = "Benign fixtures and placeholders"
+[[allowlists]]
+description = "Test fixtures, sample data, and documented placeholders (not real credentials)"
 paths = [
-    '''e2e/.*\.env\.example''',
-    '''\.env\.example''',
-    '''frontend/licenses/.*''',
-    '''docs/security/audit-2026-10\.md''',
+    '''(^|/)e2e/''',
+    '''\.env\.example$''',
+    '''(^|/)frontend/licenses/''',
+    '''(^|/)docs/''',
+    '''(^|/)backend/seed/''',
+    '''\.gitleaks\.toml$''',
+    '''\.trivyignore$''',
 ]
 regexes = [
-    # Documented example secrets in install/CI docs (not real credentials).
     '''e2e-ci-jwt-secret''',
     '''e2e-ci-secrets-key''',
     '''admin12345678901''',
     '''user123456789012''',
     '''changeme''',
+    '''KYIV_CONCERT_2026''',
 ]
+
+[[allowlists]]
+description = "Deterministic RSA PEM fixture for offline SSO JWKS unit tests only"
+paths = ['''(^|/)backend/src/sso\.rs$''']
+ruleIds = ["private-key"]
