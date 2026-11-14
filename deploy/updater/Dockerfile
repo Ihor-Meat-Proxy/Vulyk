@@ -1,4 +1,4 @@
-FROM python:3.12-slim-bookworm
+FROM python:3.15-slim-bookworm
 # docker.io from Debian; Compose v2 plugin from GitHub releases (no docker-compose-v2
 # apt package on bookworm). Needed so install.sh upgrade/rollback can talk to the
 # mounted Docker socket from the updater sidecar.
