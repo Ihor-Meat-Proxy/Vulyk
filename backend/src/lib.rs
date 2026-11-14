@@ -1,3 +1,4 @@
+pub mod api_coverage;
 pub mod auth;
 pub mod config_cli;
 pub mod cors;

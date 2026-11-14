@@ -60,6 +60,43 @@ jobs:
           ./target/debug/vulyk-api version
           ./target/debug/vulyk-api migrate status || true
 
+  api-coverage:
+    name: API coverage (OpenAPI ↔ Axum)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: OpenAPI inventory, router parity, and endpoint coverage
+        run: |
+          chmod +x scripts/check-api-coverage.sh
+          ./scripts/check-api-coverage.sh
+      - name: Upload API coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-coverage-report
+          path: |
+            target/api-coverage/api-coverage-report.json
+            target/api-coverage/api-coverage-summary.md
+          if-no-files-found: error
+
   migrations:
     name: Migration integrity
     runs-on: ubuntu-latest
@@ -291,12 +328,13 @@ jobs:
           bash -n scripts/check-version.sh
           bash -n scripts/check-security.sh
           bash -n scripts/check-quality.sh
+          bash -n scripts/check-api-coverage.sh
           bash -n scripts/githooks/pre-commit
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
             scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check.sh \
             scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/check-version.sh \
-            scripts/check-security.sh scripts/check-quality.sh
+            scripts/check-security.sh scripts/check-quality.sh scripts/check-api-coverage.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
           if grep -nP '[^\x00-\x7F]' scripts/*.sh scripts/githooks/*; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
@@ -339,6 +377,7 @@ jobs:
           bash -n scripts/check-version.sh
           bash -n scripts/check-security.sh
           bash -n scripts/check-quality.sh
+          bash -n scripts/check-api-coverage.sh
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
           ./scripts/install.sh check

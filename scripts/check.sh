@@ -54,6 +54,16 @@ if [[ "${MODE}" == "full" ]]; then
   cargo test --workspace
 fi
 
+if [[ "${MODE}" == "full" ]]; then
+  echo "==> API coverage"
+  ./scripts/check-api-coverage.sh
+elif [[ "${MODE}" == "quick" ]]; then
+  echo "==> API coverage (skipped in --quick)"
+else
+  echo "==> OpenAPI/Axum parity"
+  cargo test -p vulyk-api api_coverage::tests --lib
+fi
+
 echo "==> frontend lint / typecheck / test-ids"
 (
   cd frontend
