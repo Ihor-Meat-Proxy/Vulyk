@@ -99,7 +99,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('executions tree, dashboard, suites drawer', {
-  tag: '@VQA-252', annotation: { type: 'vulyk', description: 'VQA-252' },
+  tag: ['@VQA-261', '@VUE-38'], annotation: [{ type: 'vulyk', description: 'VQA-261' }, { type: 'vulyk', description: 'VUE-38' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await dismissPwaToasts(page)
@@ -124,7 +124,7 @@ test('executions tree, dashboard, suites drawer', {
 })
 
 test('case executions tab shows history sparkline', {
-  tag: '@VQA-253', annotation: { type: 'vulyk', description: 'VQA-253' },
+  tag: ['@VQA-262', '@VUE-37'], annotation: [{ type: 'vulyk', description: 'VQA-262' }, { type: 'vulyk', description: 'VUE-37' }],
 }, async ({ page, request }) => {
   await loginAsAdmin(page)
   await dismissPwaToasts(page)

@@ -1,0 +1,125 @@
+{
+  "folder": "Sample data",
+  "cases": [
+    {
+      "id": "sample-project-kyiv-concert-sample-project-suites-cases-and-two-runs-exist",
+      "key": "VUE-89",
+      "title": "Kyiv concert sample project, suites, cases, and two runs exist",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test sample-project.spec.ts -g \"Kyiv concert sample project, suites, cases, and two runs exist\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "sample-project.spec.ts",
+      "test": "Kyiv concert sample project, suites, cases, and two runs exist",
+      "external_key": "e2e:sample-project.spec.ts Kyiv concert sample project, suites, cases, and two runs exist",
+      "automation_link": "e2e/tests/sample-project.spec.ts :: Kyiv concert sample project, suites, cases, and two runs exist",
+      "vqa_key": "VQA-313",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "sample-project-vulyk-qa-sample-project-and-area-folders-appear",
+      "key": "VUE-90",
+      "title": "Vulyk QA sample project and area folders appear",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test sample-project.spec.ts -g \"Vulyk QA sample project and area folders appear\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "sample-project.spec.ts",
+      "test": "Vulyk QA sample project and area folders appear",
+      "external_key": "e2e:sample-project.spec.ts Vulyk QA sample project and area folders appear",
+      "automation_link": "e2e/tests/sample-project.spec.ts :: Vulyk QA sample project and area folders appear",
+      "vqa_key": "VQA-314",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "status-sample-admin-sample-data-section-is-visible-under-settings",
+      "key": "VUE-97",
+      "title": "Admin sample data section is visible under Settings",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test status-sample.spec.ts -g \"Admin sample data section is visible under Settings\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "status-sample.spec.ts",
+      "test": "Admin sample data section is visible under Settings",
+      "external_key": "e2e:status-sample.spec.ts Admin sample data section is visible under Settings",
+      "automation_link": "e2e/tests/status-sample.spec.ts :: Admin sample data section is visible under Settings",
+      "vqa_key": "VQA-323",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "status-sample-runs-list-status-column-uses-status-badge-testids-with-translated-",
+      "key": "VUE-98",
+      "title": "Runs list Status column uses status-badge testids with translated labels",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test status-sample.spec.ts -g \"Runs list Status column uses status-badge testids with translated labels\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "status-sample.spec.ts",
+      "test": "Runs list Status column uses status-badge testids with translated labels",
+      "external_key": "e2e:status-sample.spec.ts Runs list Status column uses status-badge testids with translated labels",
+      "automation_link": "e2e/tests/status-sample.spec.ts :: Runs list Status column uses status-badge testids with translated labels",
+      "vqa_key": "VQA-322",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "status-sample-sample-nightly-suites-have-varied-statuses-and-sample-ci-creator",
+      "key": "VUE-99",
+      "title": "sample nightly suites have varied statuses and Sample CI creator",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test status-sample.spec.ts -g \"sample nightly suites have varied statuses and Sample CI creator\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "status-sample.spec.ts",
+      "test": "sample nightly suites have varied statuses and Sample CI creator",
+      "external_key": "e2e:status-sample.spec.ts sample nightly suites have varied statuses and Sample CI creator",
+      "automation_link": "e2e/tests/status-sample.spec.ts :: sample nightly suites have varied statuses and Sample CI creator",
+      "vqa_key": "VQA-321",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

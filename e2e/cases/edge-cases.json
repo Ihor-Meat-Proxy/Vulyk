@@ -1,0 +1,173 @@
+{
+  "folder": "Edge cases",
+  "cases": [
+    {
+      "id": "edge-cases-empty-project-shows-empty-folder-tree-state",
+      "key": "VUE-28",
+      "title": "empty project shows empty folder tree state",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "edge-cases.spec.ts",
+      "test": "empty project shows empty folder tree state",
+      "external_key": "e2e:edge-cases.spec.ts empty project shows empty folder tree state",
+      "automation_link": "e2e/tests/edge-cases.spec.ts :: empty project shows empty folder tree state",
+      "vqa_key": "VQA-252",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "edge-cases-long-case-title-truncates-in-list-but-full-in-detail",
+      "key": "VUE-29",
+      "title": "long case title truncates in list but full in detail",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "edge-cases.spec.ts",
+      "test": "long case title truncates in list but full in detail",
+      "external_key": "e2e:edge-cases.spec.ts long case title truncates in list but full in detail",
+      "automation_link": "e2e/tests/edge-cases.spec.ts :: long case title truncates in list but full in detail",
+      "vqa_key": "VQA-254",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "edge-cases-unicode-and-special-characters-in-case-title",
+      "key": "VUE-30",
+      "title": "unicode and special characters in case title",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "edge-cases.spec.ts",
+      "test": "unicode and special characters in case title",
+      "external_key": "e2e:edge-cases.spec.ts unicode and special characters in case title",
+      "automation_link": "e2e/tests/edge-cases.spec.ts :: unicode and special characters in case title",
+      "vqa_key": "VQA-253",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "error-pages-api-health-is-reachable-for-the-e2e-stack",
+      "key": "VUE-31",
+      "title": "API health is reachable for the e2e stack",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "error-pages.spec.ts",
+      "test": "API health is reachable for the e2e stack",
+      "external_key": "e2e:error-pages.spec.ts API health is reachable for the e2e stack",
+      "automation_link": "e2e/tests/error-pages.spec.ts :: API health is reachable for the e2e stack",
+      "vqa_key": "VQA-258",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "error-pages-bad-password-login-stays-on-login-with-error-401-path",
+      "key": "VUE-32",
+      "title": "bad password login stays on login with error (401 path)",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "error-pages.spec.ts",
+      "test": "bad password login stays on login with error (401 path)",
+      "external_key": "e2e:error-pages.spec.ts bad password login stays on login with error (401 path)",
+      "automation_link": "e2e/tests/error-pages.spec.ts :: bad password login stays on login with error (401 path)",
+      "vqa_key": "VQA-257",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:negative"
+      ]
+    },
+    {
+      "id": "error-pages-expired-session-redirects-to-login-on-next-navigation",
+      "key": "VUE-33",
+      "title": "expired session redirects to login on next navigation",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "error-pages.spec.ts",
+      "test": "expired session redirects to login on next navigation",
+      "external_key": "e2e:error-pages.spec.ts expired session redirects to login on next navigation",
+      "automation_link": "e2e/tests/error-pages.spec.ts :: expired session redirects to login on next navigation",
+      "vqa_key": "VQA-256",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:negative"
+      ]
+    },
+    {
+      "id": "error-pages-unknown-case-key-shows-not-found-state",
+      "key": "VUE-34",
+      "title": "unknown case key shows not-found state",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "error-pages.spec.ts",
+      "test": "unknown case key shows not-found state",
+      "external_key": "e2e:error-pages.spec.ts unknown case key shows not-found state",
+      "automation_link": "e2e/tests/error-pages.spec.ts :: unknown case key shows not-found state",
+      "vqa_key": "VQA-255",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

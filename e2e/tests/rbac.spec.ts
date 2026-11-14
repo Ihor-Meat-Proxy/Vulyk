@@ -18,7 +18,7 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 test.describe.configure({ mode: 'serial' })
 
 test('viewer is denied mutating APIs and hides write UI', {
-  tag: '@VQA-287', annotation: { type: 'vulyk', description: 'VQA-287' },
+  tag: ['@VQA-301', '@VUE-78'], annotation: [{ type: 'vulyk', description: 'VQA-301' }, { type: 'vulyk', description: 'VUE-78' }],
 }, async ({
   page,
   request,
@@ -91,7 +91,7 @@ test('viewer is denied mutating APIs and hides write UI', {
 })
 
 test('admin sees admin nav and can list users', {
-  tag: '@VQA-288', annotation: { type: 'vulyk', description: 'VQA-288' },
+  tag: ['@VQA-302', '@VUE-77'], annotation: [{ type: 'vulyk', description: 'VQA-302' }, { type: 'vulyk', description: 'VUE-77' }],
 }, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const users = await request.get(`${API_URL}/api/v1/users`, {

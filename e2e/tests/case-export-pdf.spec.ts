@@ -70,7 +70,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('case detail Export as PDF downloads a PDF', {
-  tag: '@VQA-244', annotation: { type: 'vulyk', description: 'VQA-244' },
+  tag: ['@VQA-244', '@VUE-20'], annotation: [{ type: 'vulyk', description: 'VQA-244' }, { type: 'vulyk', description: 'VUE-20' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
@@ -94,7 +94,7 @@ test('case detail Export as PDF downloads a PDF', {
 })
 
 test('cases list row and bulk export download PDF', {
-  tag: '@VQA-245', annotation: { type: 'vulyk', description: 'VQA-245' },
+  tag: ['@VQA-245', '@VUE-21'], annotation: [{ type: 'vulyk', description: 'VQA-245' }, { type: 'vulyk', description: 'VUE-21' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')

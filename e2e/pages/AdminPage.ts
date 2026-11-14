@@ -60,7 +60,12 @@ export class AdminPage {
       .fill(displayName)
     await this.page.getByTestId(TestIds.adminUserPasswordInput).fill(password)
     await this.page.getByTestId(TestIds.adminUserCreateButton).click()
-    await expect(this.page.getByText(email)).toBeVisible({ timeout: 20_000 })
+    await expect(
+      this.page
+        .getByTestId(TestIds.adminUserRow)
+        .filter({ hasText: email })
+        .first(),
+    ).toBeVisible({ timeout: 20_000 })
   }
 
   async assignRole(userEmail: string, roleLabel: string) {

@@ -1,0 +1,77 @@
+{
+  "folder": "PWA & a11y",
+  "cases": [
+    {
+      "id": "pwa-mobile-bottom-nav-folders-drawer-and-stacked-case-flow",
+      "key": "VUE-71",
+      "title": "bottom nav, folders drawer, and stacked case flow",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test pwa-mobile.spec.ts -g \"bottom nav, folders drawer, and stacked case flow\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "pwa-mobile.spec.ts",
+      "test": "bottom nav, folders drawer, and stacked case flow",
+      "external_key": "e2e:pwa-mobile.spec.ts bottom nav, folders drawer, and stacked case flow",
+      "automation_link": "e2e/tests/pwa-mobile.spec.ts :: bottom nav, folders drawer, and stacked case flow",
+      "vqa_key": "VQA-295",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "pwa-mobile-offline-fallback-document-is-served",
+      "key": "VUE-72",
+      "title": "offline fallback document is served",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test pwa-mobile.spec.ts -g \"offline fallback document is served\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "pwa-mobile.spec.ts",
+      "test": "offline fallback document is served",
+      "external_key": "e2e:pwa-mobile.spec.ts offline fallback document is served",
+      "automation_link": "e2e/tests/pwa-mobile.spec.ts :: offline fallback document is served",
+      "vqa_key": "VQA-297",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "pwa-mobile-web-app-manifest-and-service-worker-are-present",
+      "key": "VUE-73",
+      "title": "web app manifest and service worker are present",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test pwa-mobile.spec.ts -g \"web app manifest and service worker are present\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "pwa-mobile.spec.ts",
+      "test": "web app manifest and service worker are present",
+      "external_key": "e2e:pwa-mobile.spec.ts web app manifest and service worker are present",
+      "automation_link": "e2e/tests/pwa-mobile.spec.ts :: web app manifest and service worker are present",
+      "vqa_key": "VQA-296",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

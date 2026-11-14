@@ -329,12 +329,14 @@ jobs:
           bash -n scripts/check-security.sh
           bash -n scripts/check-quality.sh
           bash -n scripts/check-api-coverage.sh
+          bash -n scripts/e2e-local.sh
           bash -n scripts/githooks/pre-commit
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
             scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check.sh \
             scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/check-version.sh \
-            scripts/check-security.sh scripts/check-quality.sh scripts/check-api-coverage.sh
+            scripts/check-security.sh scripts/check-quality.sh scripts/check-api-coverage.sh \
+            scripts/e2e-local.sh
           # Non-ASCII next to $var breaks macOS bash 3.2 under set -u (e.g. $env_file…)
           if grep -nP '[^\x00-\x7F]' scripts/*.sh scripts/githooks/*; then
             echo "error: non-ASCII bytes in scripts/*.sh (use ASCII only)" >&2
@@ -378,6 +380,7 @@ jobs:
           bash -n scripts/check-security.sh
           bash -n scripts/check-quality.sh
           bash -n scripts/check-api-coverage.sh
+          bash -n scripts/e2e-local.sh
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
           ./scripts/install.sh check

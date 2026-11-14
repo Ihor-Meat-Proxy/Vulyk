@@ -10,7 +10,7 @@ test.describe('status badges & sample data', () => {
   })
 
   test('sample nightly suites have varied statuses and Sample CI creator', {
-  tag: '@VQA-302', annotation: { type: 'vulyk', description: 'VQA-302' },
+  tag: ['@VQA-321', '@VUE-99'], annotation: [{ type: 'vulyk', description: 'VQA-321' }, { type: 'vulyk', description: 'VUE-99' }],
 }, async ({
     request,
   }) => {
@@ -50,7 +50,7 @@ test.describe('status badges & sample data', () => {
   })
 
   test('Runs list Status column uses status-badge testids with translated labels', {
-  tag: '@VQA-303', annotation: { type: 'vulyk', description: 'VQA-303' },
+  tag: ['@VQA-322', '@VUE-98'], annotation: [{ type: 'vulyk', description: 'VQA-322' }, { type: 'vulyk', description: 'VUE-98' }],
 }, async ({
     page,
   }) => {
@@ -78,7 +78,7 @@ test.describe('status badges & sample data', () => {
   })
 
   test('Admin sample data section is visible under Settings', {
-  tag: '@VQA-304', annotation: { type: 'vulyk', description: 'VQA-304' },
+  tag: ['@VQA-323', '@VUE-97'], annotation: [{ type: 'vulyk', description: 'VQA-323' }, { type: 'vulyk', description: 'VUE-97' }],
 }, async ({
     page,
     request,

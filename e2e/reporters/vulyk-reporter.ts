@@ -41,18 +41,26 @@ function env(...names: string[]): string {
 }
 
 function caseKeyFromTest(test: TestCase): string | null {
+  const prefix = env('VULYK_CASE_KEY_PREFIX').toUpperCase() // e.g. VUE or VQA
+  const keys: string[] = []
   for (const a of test.annotations) {
     if (a.type === 'vulyk' && a.description?.trim()) {
-      return a.description.trim().toUpperCase()
+      keys.push(a.description.trim().toUpperCase())
     }
   }
   for (const tag of test.tags) {
-    const m = /^@?(VQA-\d+)$/i.exec(tag)
-    if (m) return m[1].toUpperCase()
+    const m = /^@?([A-Z][A-Z0-9]{1,7}-\d+)$/i.exec(tag)
+    if (m) keys.push(m[1].toUpperCase())
   }
-  // Fallback: VQA-N in the title
-  const m = /\b(VQA-\d+)\b/i.exec(test.title)
-  return m ? m[1].toUpperCase() : null
+  // Fallback: KEY-N in the title
+  const titleHit = /\b([A-Z][A-Z0-9]{1,7}-\d+)\b/i.exec(test.title)
+  if (titleHit) keys.push(titleHit[1].toUpperCase())
+
+  if (prefix) {
+    const hit = keys.find((k) => k.startsWith(`${prefix}-`))
+    if (hit) return hit
+  }
+  return keys[0] ?? null
 }
 
 function mapStatus(result: TestResult): string {
@@ -157,15 +165,21 @@ export default class VulykReporter implements Reporter {
   }
 
   private async resolveProjectId(): Promise<string> {
+    // Prefer an explicit UUID (CI tokens often cannot list all projects by key).
+    const idEnv = env('VULYK_PROJECT_ID')
+    if (idEnv && /^[0-9a-f-]{36}$/i.test(idEnv)) return idEnv
     const ref = this.projectRef
     if (/^[0-9a-f-]{36}$/i.test(ref)) return ref
     const projects = await this.api<Array<{ id: string; key: string }>>(
       'GET',
       '/api/v1/projects',
     )
-    const hit = projects.find((p) => p.key.toUpperCase() === ref.toUpperCase())
+    const list = Array.isArray(projects) ? projects : []
+    const hit = list.find((p) => p.key?.toUpperCase() === ref.toUpperCase())
     if (!hit) {
-      throw new Error(`project key ${ref} not found`)
+      throw new Error(
+        `project key ${ref} not found (set VULYK_PROJECT_ID to the project UUID when using a CI token)`,
+      )
     }
     return hit.id
   }

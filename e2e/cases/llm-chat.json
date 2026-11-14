@@ -1,0 +1,149 @@
+{
+  "folder": "LLM & chat",
+  "cases": [
+    {
+      "id": "chat-propose-chat-clarify-when-folder-is-ambiguous",
+      "key": "VUE-26",
+      "title": "chat clarify when folder is ambiguous",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test chat-propose.spec.ts -g \"chat clarify when folder is ambiguous\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "chat-propose.spec.ts",
+      "test": "chat clarify when folder is ambiguous",
+      "external_key": "e2e:chat-propose.spec.ts chat clarify when folder is ambiguous",
+      "automation_link": "e2e/tests/chat-propose.spec.ts :: chat clarify when folder is ambiguous",
+      "vqa_key": "VQA-251",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "chat-propose-chat-propose-preview-change-folder-confirm-create",
+      "key": "VUE-27",
+      "title": "chat propose preview, change folder, confirm create",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test chat-propose.spec.ts -g \"chat propose preview, change folder, confirm create\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "chat-propose.spec.ts",
+      "test": "chat propose preview, change folder, confirm create",
+      "external_key": "e2e:chat-propose.spec.ts chat propose preview, change folder, confirm create",
+      "automation_link": "e2e/tests/chat-propose.spec.ts :: chat propose preview, change folder, confirm create",
+      "vqa_key": "VQA-250",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "integrations-llm-ci-trigger-config-page",
+      "key": "VUE-51",
+      "title": "CI trigger config page",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test integrations-llm.spec.ts -g \"CI trigger config page\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "integrations-llm.spec.ts",
+      "test": "CI trigger config page",
+      "external_key": "e2e:integrations-llm.spec.ts CI trigger config page",
+      "automation_link": "e2e/tests/integrations-llm.spec.ts :: CI trigger config page",
+      "vqa_key": "VQA-276",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "integrations-llm-integrations-llm-settings-pages-mock-llm",
+      "key": "VUE-52",
+      "title": "integrations + LLM settings pages (mock LLM)",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test integrations-llm.spec.ts -g \"integrations + LLM settings pages (mock LLM)\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "integrations-llm.spec.ts",
+      "test": "integrations + LLM settings pages (mock LLM)",
+      "external_key": "e2e:integrations-llm.spec.ts integrations + LLM settings pages (mock LLM)",
+      "automation_link": "e2e/tests/integrations-llm.spec.ts :: integrations + LLM settings pages (mock LLM)",
+      "vqa_key": "VQA-275",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "llm-chat-chat-shows-provider-model-project-key-optional-global-default-resolves",
+      "key": "VUE-53",
+      "title": "chat shows provider/model; project key optional; global default resolves",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test llm-chat.spec.ts -g \"chat shows provider/model; project key optional; global default resolves\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "llm-chat.spec.ts",
+      "test": "chat shows provider/model; project key optional; global default resolves",
+      "external_key": "e2e:llm-chat.spec.ts chat shows provider/model; project key optional; global default resolves",
+      "automation_link": "e2e/tests/llm-chat.spec.ts :: chat shows provider/model; project key optional; global default resolves",
+      "vqa_key": "VQA-277",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "llm-chat-chat-surfaces-provider-errors-instead-of-silent-mock",
+      "key": "VUE-54",
+      "title": "chat surfaces provider errors instead of silent mock",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test llm-chat.spec.ts -g \"chat surfaces provider errors instead of silent mock\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "llm-chat.spec.ts",
+      "test": "chat surfaces provider errors instead of silent mock",
+      "external_key": "e2e:llm-chat.spec.ts chat surfaces provider errors instead of silent mock",
+      "automation_link": "e2e/tests/llm-chat.spec.ts :: chat surfaces provider errors instead of silent mock",
+      "vqa_key": "VQA-278",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

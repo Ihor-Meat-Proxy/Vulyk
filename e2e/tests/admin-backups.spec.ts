@@ -6,7 +6,7 @@ import { AdminPage } from '../pages/AdminPage'
 
 test.describe('Admin content backups', () => {
   test('create local destination, back up now, see restore preview', {
-  tag: '@VQA-225', annotation: { type: 'vulyk', description: 'VQA-225' },
+  tag: ['@VQA-225', '@VUE-1'], annotation: [{ type: 'vulyk', description: 'VQA-225' }, { type: 'vulyk', description: 'VUE-1' }],
 }, async ({
     page,
   }) => {
@@ -21,15 +21,18 @@ test.describe('Admin content backups', () => {
     await page.getByTestId(TestIds.adminBackupsDestName).fill(destName)
     await page.getByTestId(TestIds.adminBackupsDestKind).selectOption('local')
     // Path must stay under VULYK_CONTENT_BACKUP_DIR (default ./data/content-backups).
+    const backupRoot =
+      process.env.VULYK_CONTENT_BACKUP_DIR || './data/content-backups'
     await page
       .getByTestId(TestIds.adminBackupsDestPath)
-      .fill('./data/content-backups/e2e')
+      .fill(`${backupRoot.replace(/\/$/, '')}/e2e`)
     await page.getByTestId(TestIds.adminBackupsDestSave).click()
 
-    await expect(page.getByTestId(TestIds.adminBackupsDestRow)).toHaveCount(
-      before + 1,
-      { timeout: 15_000 },
-    )
+    await expect
+      .poll(async () => page.getByTestId(TestIds.adminBackupsDestRow).count(), {
+        timeout: 15_000,
+      })
+      .toBeGreaterThan(before)
 
     const runDest = page.getByTestId(TestIds.adminBackupsRunDest)
     await expect

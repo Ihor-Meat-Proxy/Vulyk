@@ -21,7 +21,7 @@ async function openUpdates(page: import('@playwright/test').Page) {
 }
 
 test('Updates tab shows version and check control', {
-  tag: '@VQA-227', annotation: { type: 'vulyk', description: 'VQA-227' },
+  tag: ['@VQA-227', '@VUE-5'], annotation: [{ type: 'vulyk', description: 'VQA-227' }, { type: 'vulyk', description: 'VUE-5' }],
 }, async ({ page }) => {
   await openUpdates(page)
   const current = page.getByTestId(TestIds.adminUpdatesCurrentVersion)
@@ -32,7 +32,7 @@ test('Updates tab shows version and check control', {
 })
 
 test('manual install and rollback commands without sidecar', {
-  tag: '@VQA-228', annotation: { type: 'vulyk', description: 'VQA-228' },
+  tag: ['@VQA-228', '@VUE-3'], annotation: [{ type: 'vulyk', description: 'VQA-228' }, { type: 'vulyk', description: 'VUE-3' }],
 }, async ({
   page,
 }) => {
@@ -50,7 +50,7 @@ test('manual install and rollback commands without sidecar', {
 })
 
 test('save update check interval preference', {
-  tag: '@VQA-229', annotation: { type: 'vulyk', description: 'VQA-229' },
+  tag: ['@VQA-229', '@VUE-4'], annotation: [{ type: 'vulyk', description: 'VQA-229' }, { type: 'vulyk', description: 'VUE-4' }],
 }, async ({ page, request }) => {
   await openUpdates(page)
   const input = page.getByTestId(TestIds.adminUpdatesIntervalInput)
@@ -78,7 +78,7 @@ test('save update check interval preference', {
 })
 
 test('version backups list and job history regions render', {
-  tag: '@VQA-230', annotation: { type: 'vulyk', description: 'VQA-230' },
+  tag: ['@VQA-230', '@VUE-6'], annotation: [{ type: 'vulyk', description: 'VQA-230' }, { type: 'vulyk', description: 'VUE-6' }],
 }, async ({
   page,
 }) => {

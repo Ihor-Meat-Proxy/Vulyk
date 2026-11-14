@@ -22,7 +22,7 @@ import { LoginPage } from '../pages/LoginPage'
 test.describe.configure({ mode: 'serial' })
 
 test('registration open flow creates an account', {
-  tag: '@VQA-289', annotation: { type: 'vulyk', description: 'VQA-289' },
+  tag: ['@VQA-303', '@VUE-80'], annotation: [{ type: 'vulyk', description: 'VQA-303' }, { type: 'vulyk', description: 'VUE-80' }],
 }, async ({ page, request }) => {
   await ensureAdminSession(request)
   const status = await authStatus(request)
@@ -45,7 +45,7 @@ test('registration open flow creates an account', {
 })
 
 test('registration disabled hides create-account (when not forced open)', {
-  tag: '@VQA-290', annotation: { type: 'vulyk', description: 'VQA-290' },
+  tag: ['@VQA-304', '@VUE-79'], annotation: [{ type: 'vulyk', description: 'VQA-304' }, { type: 'vulyk', description: 'VUE-79' }],
 }, async ({
   page,
   request,
@@ -82,11 +82,12 @@ test('registration disabled hides create-account (when not forced open)', {
 })
 
 test('SSO via mock OIDC', {
-  tag: '@VQA-291', annotation: { type: 'vulyk', description: 'VQA-291' },
+  tag: ['@VQA-305', '@VUE-81'], annotation: [{ type: 'vulyk', description: 'VQA-305' }, { type: 'vulyk', description: 'VUE-81' }],
 }, async ({ page, request }) => {
   test.skip(
-    process.env.E2E_SKIP_MOCK_OIDC === '1',
-    'mock OIDC disabled',
+    process.env.E2E_SKIP_SSO === '1' ||
+      (!process.env.E2E_OIDC_ISSUER && process.env.E2E_SKIP_MOCK_OIDC === '1'),
+    'mock OIDC / SSO disabled',
   )
 
   const admin = await ensureAdminSession(request)

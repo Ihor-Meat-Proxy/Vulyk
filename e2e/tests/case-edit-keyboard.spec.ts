@@ -50,7 +50,7 @@ async function openCaseEditor(page: import('@playwright/test').Page) {
 }
 
 test('Tab in last Expected with content adds a step and focuses Action', {
-  tag: '@VQA-240', annotation: { type: 'vulyk', description: 'VQA-240' },
+  tag: ['@VQA-240', '@VUE-19'], annotation: [{ type: 'vulyk', description: 'VQA-240' }, { type: 'vulyk', description: 'VUE-19' }],
 }, async ({
   page,
 }) => {
@@ -78,7 +78,7 @@ test('Tab in last Expected with content adds a step and focuses Action', {
 })
 
 test('Ctrl/Cmd+S saves from textarea and shows toast; no changes toast', {
-  tag: '@VQA-241', annotation: { type: 'vulyk', description: 'VQA-241' },
+  tag: ['@VQA-241', '@VUE-17'], annotation: [{ type: 'vulyk', description: 'VQA-241' }, { type: 'vulyk', description: 'VUE-17' }],
 }, async ({
   page,
 }) => {
@@ -117,7 +117,7 @@ test('Ctrl/Cmd+S saves from textarea and shows toast; no changes toast', {
 })
 
 test('sticky Save/Cancel bar remains visible while scrolling', {
-  tag: '@VQA-242', annotation: { type: 'vulyk', description: 'VQA-242' },
+  tag: ['@VQA-242', '@VUE-18'], annotation: [{ type: 'vulyk', description: 'VQA-242' }, { type: 'vulyk', description: 'VUE-18' }],
 }, async ({
   page,
 }) => {
@@ -145,7 +145,7 @@ test('sticky Save/Cancel bar remains visible while scrolling', {
 })
 
 test('Ctrl/Cmd+S does not preventDefault outside the case editor', {
-  tag: '@VQA-243', annotation: { type: 'vulyk', description: 'VQA-243' },
+  tag: ['@VQA-243', '@VUE-16'], annotation: [{ type: 'vulyk', description: 'VQA-243' }, { type: 'vulyk', description: 'VUE-16' }],
 }, async ({
   page,
 }) => {

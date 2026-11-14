@@ -34,7 +34,7 @@ const LOCALES: Array<{
 ]
 
 test('globe menu lists locales and switches via entity keys', {
-  tag: '@VQA-268', annotation: { type: 'vulyk', description: 'VQA-268' },
+  tag: ['@VQA-279', '@VUE-58'], annotation: [{ type: 'vulyk', description: 'VQA-279' }, { type: 'vulyk', description: 'VUE-58' }],
 }, async ({
   page,
 }) => {
@@ -65,7 +65,7 @@ test('globe menu lists locales and switches via entity keys', {
 })
 
 test('locale persists for signed-in user and in localStorage', {
-  tag: '@VQA-269', annotation: { type: 'vulyk', description: 'VQA-269' },
+  tag: ['@VQA-280', '@VUE-59'], annotation: [{ type: 'vulyk', description: 'VQA-280' }, { type: 'vulyk', description: 'VUE-59' }],
 }, async ({
   page,
   request,
@@ -97,7 +97,7 @@ test('locale persists for signed-in user and in localStorage', {
 })
 
 test('anonymous login page keeps locale from localStorage', {
-  tag: '@VQA-270', annotation: { type: 'vulyk', description: 'VQA-270' },
+  tag: ['@VQA-281', '@VUE-55'], annotation: [{ type: 'vulyk', description: 'VQA-281' }, { type: 'vulyk', description: 'VUE-55' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'Deutsch')
@@ -120,7 +120,7 @@ test('anonymous login page keeps locale from localStorage', {
 })
 
 test('Cases nav remains reachable under each locale', {
-  tag: '@VQA-271', annotation: { type: 'vulyk', description: 'VQA-271' },
+  tag: ['@VQA-282', '@VUE-57'], annotation: [{ type: 'vulyk', description: 'VQA-282' }, { type: 'vulyk', description: 'VUE-57' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'English')
@@ -135,7 +135,7 @@ test('Cases nav remains reachable under each locale', {
 })
 
 test('API errors still display under non-English locale', {
-  tag: '@VQA-272', annotation: { type: 'vulyk', description: 'VQA-272' },
+  tag: ['@VQA-283', '@VUE-56'], annotation: [{ type: 'vulyk', description: 'VQA-283' }, { type: 'vulyk', description: 'VUE-56' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await chooseLocale(page, 'Français')

@@ -1,0 +1,97 @@
+{
+  "project": {
+    "key": "VUE",
+    "name": "Vulyk UI E2E",
+    "description": "Automated Playwright UI suite. Cases are synced from e2e/cases/*.json via e2e/scripts/sync-vue-project.mjs.",
+    "case_key_prefix": "VUE"
+  },
+  "folders": [
+    {
+      "name": "Admin",
+      "file": "admin.json",
+      "count": 9
+    },
+    {
+      "name": "Auth",
+      "file": "auth.json",
+      "count": 12
+    },
+    {
+      "name": "Automation & CI",
+      "file": "automation-ci.json",
+      "count": 8
+    },
+    {
+      "name": "Edge cases",
+      "file": "edge-cases.json",
+      "count": 7
+    },
+    {
+      "name": "Executions",
+      "file": "executions.json",
+      "count": 5
+    },
+    {
+      "name": "Imports & reports",
+      "file": "imports-reports.json",
+      "count": 8
+    },
+    {
+      "name": "LLM & chat",
+      "file": "llm-chat.json",
+      "count": 6
+    },
+    {
+      "name": "Meta",
+      "file": "meta.json",
+      "count": 1
+    },
+    {
+      "name": "Plans & runs",
+      "file": "plans-runs.json",
+      "count": 1
+    },
+    {
+      "name": "Projects & cases",
+      "file": "projects-cases.json",
+      "count": 16
+    },
+    {
+      "name": "PWA & a11y",
+      "file": "pwa-a11y.json",
+      "count": 3
+    },
+    {
+      "name": "RBAC",
+      "file": "rbac.json",
+      "count": 5
+    },
+    {
+      "name": "Requirements",
+      "file": "requirements.json",
+      "count": 2
+    },
+    {
+      "name": "Sample data",
+      "file": "sample-data.json",
+      "count": 5
+    },
+    {
+      "name": "Settings",
+      "file": "settings.json",
+      "count": 13
+    },
+    {
+      "name": "Shell",
+      "file": "shell.json",
+      "count": 1
+    },
+    {
+      "name": "Smoke",
+      "file": "smoke.json",
+      "count": 1
+    }
+  ],
+  "generated": "2026-11-14T20:42:12.993Z",
+  "case_count": 103
+}

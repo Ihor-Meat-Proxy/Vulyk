@@ -1,0 +1,29 @@
+{
+  "folder": "Smoke",
+  "cases": [
+    {
+      "id": "smoke-smoke-login-case-run-junit-import-report",
+      "key": "VUE-96",
+      "title": "smoke: login → case → run → junit → import → report",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test smoke.spec.ts -g \"smoke: login → case → run → junit → import → report\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "smoke.spec.ts",
+      "test": "smoke: login → case → run → junit → import → report",
+      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
+      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login → case → run → junit → import → report",
+      "vqa_key": "VQA-320",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

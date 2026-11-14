@@ -16,7 +16,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('login with seeded admin succeeds', {
-  tag: '@VQA-236', annotation: { type: 'vulyk', description: 'VQA-236' },
+  tag: ['@VQA-236', '@VUE-13'], annotation: [{ type: 'vulyk', description: 'VQA-236' }, { type: 'vulyk', description: 'VUE-13' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await expect(page.locator('.app-shell')).toBeVisible()
@@ -26,7 +26,7 @@ test('login with seeded admin succeeds', {
 })
 
 test('bad credentials show an error', {
-  tag: '@VQA-237', annotation: { type: 'vulyk', description: 'VQA-237' },
+  tag: ['@VQA-237', '@VUE-12'], annotation: [{ type: 'vulyk', description: 'VQA-237' }, { type: 'vulyk', description: 'VUE-12' }],
 }, async ({ page }) => {
   const login = new LoginPage(page)
   await login.goto()
@@ -41,7 +41,7 @@ test('bad credentials show an error', {
 })
 
 test('logout returns to login panel', {
-  tag: '@VQA-238', annotation: { type: 'vulyk', description: 'VQA-238' },
+  tag: ['@VQA-238', '@VUE-14'], annotation: [{ type: 'vulyk', description: 'VQA-238' }, { type: 'vulyk', description: 'VUE-14' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await logout(page)

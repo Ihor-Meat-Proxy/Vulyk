@@ -41,7 +41,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('mark Passed→Failed→Blocked→Skipped; timeline and case History tab', {
-  tag: '@VQA-296', annotation: { type: 'vulyk', description: 'VQA-296' },
+  tag: ['@VQA-312', '@VUE-88'], annotation: [{ type: 'vulyk', description: 'VQA-312' }, { type: 'vulyk', description: 'VUE-88' }],
 }, async ({
   page,
 }) => {

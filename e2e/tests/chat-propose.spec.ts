@@ -8,7 +8,7 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 test.describe.configure({ mode: 'serial' })
 
 test('chat propose preview, change folder, confirm create', {
-  tag: '@VQA-250', annotation: { type: 'vulyk', description: 'VQA-250' },
+  tag: ['@VQA-250', '@VUE-27'], annotation: [{ type: 'vulyk', description: 'VQA-250' }, { type: 'vulyk', description: 'VUE-27' }],
 }, async ({
   page,
   request,
@@ -88,7 +88,7 @@ test('chat propose preview, change folder, confirm create', {
 })
 
 test('chat clarify when folder is ambiguous', {
-  tag: '@VQA-251', annotation: { type: 'vulyk', description: 'VQA-251' },
+  tag: ['@VQA-251', '@VUE-26'], annotation: [{ type: 'vulyk', description: 'VQA-251' }, { type: 'vulyk', description: 'VUE-26' }],
 }, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const key = uniqueKey('CL')

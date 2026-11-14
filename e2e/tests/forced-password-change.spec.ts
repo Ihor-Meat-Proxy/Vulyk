@@ -11,7 +11,7 @@ const LEGACY1_HASH =
   '$argon2id$v=19$m=19456,t=2,p=1$XXJTxQ8swVyOTdQcKqkRYg$sisW5ppIbTWToTQHB7r7lj46xWz4rKFNOTC0GfWrcnQ'
 
 test('short legacy password signs in then forces 16+ change', {
-  tag: '@VQA-255', annotation: { type: 'vulyk', description: 'VQA-255' },
+  tag: ['@VQA-266', '@VUE-42'], annotation: [{ type: 'vulyk', description: 'VQA-266' }, { type: 'vulyk', description: 'VUE-42' }],
 }, async ({
   page,
   request,
@@ -60,7 +60,7 @@ test('short legacy password signs in then forces 16+ change', {
     timeout: 30_000,
   })
   await expect(page.getByTestId(TestIds.changePasswordSubtitle)).toContainText(
-    /no longer meets|security policy|політик|politique|política|Richtlinie/i,
+    /no longer meets|security policy|політиц|безпек|politique|política|Richtlinie/i,
   )
 
   const token = await page.evaluate(() => localStorage.getItem('vulyk.authToken'))

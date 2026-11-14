@@ -1606,6 +1606,537 @@
         },
         {
           "title": {
+            "en": "empty project shows empty folder tree state",
+            "uk": "empty project shows empty folder tree state",
+            "fr": "empty project shows empty folder tree state",
+            "es": "empty project shows empty folder tree state",
+            "de": "empty project shows empty folder tree state"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: edge-cases.spec.ts — empty project shows empty folder tree state",
+            "uk": "Покриття Playwright e2e: edge-cases.spec.ts — empty project shows empty folder tree state",
+            "fr": "Playwright e2e coverage: edge-cases.spec.ts — empty project shows empty folder tree state",
+            "es": "Playwright e2e coverage: edge-cases.spec.ts — empty project shows empty folder tree state",
+            "de": "Playwright e2e coverage: edge-cases.spec.ts — empty project shows empty folder tree state"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:edge-cases.spec.ts empty project shows empty folder tree state",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\"",
+                "uk": "Run npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\"",
+                "fr": "Run npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\"",
+                "es": "Run npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\"",
+                "de": "Run npx playwright test edge-cases.spec.ts -g \"empty project shows empty folder tree state\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-252"
+        },
+        {
+          "title": {
+            "en": "unicode and special characters in case title",
+            "uk": "unicode and special characters in case title",
+            "fr": "unicode and special characters in case title",
+            "es": "unicode and special characters in case title",
+            "de": "unicode and special characters in case title"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: edge-cases.spec.ts — unicode and special characters in case title",
+            "uk": "Покриття Playwright e2e: edge-cases.spec.ts — unicode and special characters in case title",
+            "fr": "Playwright e2e coverage: edge-cases.spec.ts — unicode and special characters in case title",
+            "es": "Playwright e2e coverage: edge-cases.spec.ts — unicode and special characters in case title",
+            "de": "Playwright e2e coverage: edge-cases.spec.ts — unicode and special characters in case title"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:edge-cases.spec.ts unicode and special characters in case title",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\"",
+                "uk": "Run npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\"",
+                "fr": "Run npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\"",
+                "es": "Run npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\"",
+                "de": "Run npx playwright test edge-cases.spec.ts -g \"unicode and special characters in case title\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-253"
+        },
+        {
+          "title": {
+            "en": "long case title truncates in list but full in detail",
+            "uk": "long case title truncates in list but full in detail",
+            "fr": "long case title truncates in list but full in detail",
+            "es": "long case title truncates in list but full in detail",
+            "de": "long case title truncates in list but full in detail"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: edge-cases.spec.ts — long case title truncates in list but full in detail",
+            "uk": "Покриття Playwright e2e: edge-cases.spec.ts — long case title truncates in list but full in detail",
+            "fr": "Playwright e2e coverage: edge-cases.spec.ts — long case title truncates in list but full in detail",
+            "es": "Playwright e2e coverage: edge-cases.spec.ts — long case title truncates in list but full in detail",
+            "de": "Playwright e2e coverage: edge-cases.spec.ts — long case title truncates in list but full in detail"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:edge-cases.spec.ts long case title truncates in list but full in detail",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\"",
+                "uk": "Run npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\"",
+                "fr": "Run npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\"",
+                "es": "Run npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\"",
+                "de": "Run npx playwright test edge-cases.spec.ts -g \"long case title truncates in list but full in detail\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-254"
+        },
+        {
+          "title": {
+            "en": "unknown case key shows not-found state",
+            "uk": "unknown case key shows not-found state",
+            "fr": "unknown case key shows not-found state",
+            "es": "unknown case key shows not-found state",
+            "de": "unknown case key shows not-found state"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: error-pages.spec.ts — unknown case key shows not-found state",
+            "uk": "Покриття Playwright e2e: error-pages.spec.ts — unknown case key shows not-found state",
+            "fr": "Playwright e2e coverage: error-pages.spec.ts — unknown case key shows not-found state",
+            "es": "Playwright e2e coverage: error-pages.spec.ts — unknown case key shows not-found state",
+            "de": "Playwright e2e coverage: error-pages.spec.ts — unknown case key shows not-found state"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:error-pages.spec.ts unknown case key shows not-found state",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\"",
+                "uk": "Run npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\"",
+                "fr": "Run npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\"",
+                "es": "Run npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\"",
+                "de": "Run npx playwright test error-pages.spec.ts -g \"unknown case key shows not-found state\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-255"
+        },
+        {
+          "title": {
+            "en": "expired session redirects to login on next navigation",
+            "uk": "expired session redirects to login on next navigation",
+            "fr": "expired session redirects to login on next navigation",
+            "es": "expired session redirects to login on next navigation",
+            "de": "expired session redirects to login on next navigation"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: error-pages.spec.ts — expired session redirects to login on next navigation",
+            "uk": "Покриття Playwright e2e: error-pages.spec.ts — expired session redirects to login on next navigation",
+            "fr": "Playwright e2e coverage: error-pages.spec.ts — expired session redirects to login on next navigation",
+            "es": "Playwright e2e coverage: error-pages.spec.ts — expired session redirects to login on next navigation",
+            "de": "Playwright e2e coverage: error-pages.spec.ts — expired session redirects to login on next navigation"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:error-pages.spec.ts expired session redirects to login on next navigation",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\"",
+                "uk": "Run npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\"",
+                "fr": "Run npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\"",
+                "es": "Run npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\"",
+                "de": "Run npx playwright test error-pages.spec.ts -g \"expired session redirects to login on next navigation\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-256"
+        },
+        {
+          "title": {
+            "en": "bad password login stays on login with error (401 path)",
+            "uk": "bad password login stays on login with error (401 path)",
+            "fr": "bad password login stays on login with error (401 path)",
+            "es": "bad password login stays on login with error (401 path)",
+            "de": "bad password login stays on login with error (401 path)"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: error-pages.spec.ts — bad password login stays on login with error (401 path)",
+            "uk": "Покриття Playwright e2e: error-pages.spec.ts — bad password login stays on login with error (401 path)",
+            "fr": "Playwright e2e coverage: error-pages.spec.ts — bad password login stays on login with error (401 path)",
+            "es": "Playwright e2e coverage: error-pages.spec.ts — bad password login stays on login with error (401 path)",
+            "de": "Playwright e2e coverage: error-pages.spec.ts — bad password login stays on login with error (401 path)"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:error-pages.spec.ts bad password login stays on login with error (401 path)",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\"",
+                "uk": "Run npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\"",
+                "fr": "Run npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\"",
+                "es": "Run npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\"",
+                "de": "Run npx playwright test error-pages.spec.ts -g \"bad password login stays on login with error (401 path)\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-257"
+        },
+        {
+          "title": {
+            "en": "API health is reachable for the e2e stack",
+            "uk": "API health is reachable for the e2e stack",
+            "fr": "API health is reachable for the e2e stack",
+            "es": "API health is reachable for the e2e stack",
+            "de": "API health is reachable for the e2e stack"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: error-pages.spec.ts — API health is reachable for the e2e stack",
+            "uk": "Покриття Playwright e2e: error-pages.spec.ts — API health is reachable for the e2e stack",
+            "fr": "Playwright e2e coverage: error-pages.spec.ts — API health is reachable for the e2e stack",
+            "es": "Playwright e2e coverage: error-pages.spec.ts — API health is reachable for the e2e stack",
+            "de": "Playwright e2e coverage: error-pages.spec.ts — API health is reachable for the e2e stack"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:error-pages.spec.ts API health is reachable for the e2e stack",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\"",
+                "uk": "Run npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\"",
+                "fr": "Run npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\"",
+                "es": "Run npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\"",
+                "de": "Run npx playwright test error-pages.spec.ts -g \"API health is reachable for the e2e stack\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-258"
+        },
+        {
+          "title": {
+            "en": "execution page records step results and status colours",
+            "uk": "execution page records step results and status colours",
+            "fr": "execution page records step results and status colours",
+            "es": "execution page records step results and status colours",
+            "de": "execution page records step results and status colours"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: execution-steps.spec.ts — execution page records step results and status colours",
+            "uk": "Покриття Playwright e2e: execution-steps.spec.ts — execution page records step results and status colours",
+            "fr": "Playwright e2e coverage: execution-steps.spec.ts — execution page records step results and status colours",
+            "es": "Playwright e2e coverage: execution-steps.spec.ts — execution page records step results and status colours",
+            "de": "Playwright e2e coverage: execution-steps.spec.ts — execution page records step results and status colours"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:execution-steps.spec.ts execution page records step results and status colours",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\"",
+                "uk": "Run npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\"",
+                "fr": "Run npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\"",
+                "es": "Run npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\"",
+                "de": "Run npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-259"
+        },
+        {
+          "title": {
+            "en": "runs list shows status badges for open run",
+            "uk": "runs list shows status badges for open run",
+            "fr": "runs list shows status badges for open run",
+            "es": "runs list shows status badges for open run",
+            "de": "runs list shows status badges for open run"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: execution-steps.spec.ts — runs list shows status badges for open run",
+            "uk": "Покриття Playwright e2e: execution-steps.spec.ts — runs list shows status badges for open run",
+            "fr": "Playwright e2e coverage: execution-steps.spec.ts — runs list shows status badges for open run",
+            "es": "Playwright e2e coverage: execution-steps.spec.ts — runs list shows status badges for open run",
+            "de": "Playwright e2e coverage: execution-steps.spec.ts — runs list shows status badges for open run"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:execution-steps.spec.ts runs list shows status badges for open run",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\"",
+                "uk": "Run npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\"",
+                "fr": "Run npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\"",
+                "es": "Run npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\"",
+                "de": "Run npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-260"
+        },
+        {
+          "title": {
             "en": "executions tree, dashboard, suites drawer",
             "uk": "executions tree, dashboard, suites drawer",
             "fr": "executions tree, dashboard, suites drawer",
@@ -1661,7 +2192,7 @@
               }
             }
           ],
-          "key": "VQA-252"
+          "key": "VQA-261"
         },
         {
           "title": {
@@ -1720,7 +2251,125 @@
               }
             }
           ],
-          "key": "VQA-253"
+          "key": "VQA-262"
+        },
+        {
+          "title": {
+            "en": "folder tree create nested rename delete",
+            "uk": "folder tree create nested rename delete",
+            "fr": "folder tree create nested rename delete",
+            "es": "folder tree create nested rename delete",
+            "de": "folder tree create nested rename delete"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: folder-tree-dnd.spec.ts — folder tree create nested rename delete",
+            "uk": "Покриття Playwright e2e: folder-tree-dnd.spec.ts — folder tree create nested rename delete",
+            "fr": "Playwright e2e coverage: folder-tree-dnd.spec.ts — folder tree create nested rename delete",
+            "es": "Playwright e2e coverage: folder-tree-dnd.spec.ts — folder tree create nested rename delete",
+            "de": "Playwright e2e coverage: folder-tree-dnd.spec.ts — folder tree create nested rename delete"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:folder-tree-dnd.spec.ts folder tree create nested rename delete",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\"",
+                "uk": "Run npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\"",
+                "fr": "Run npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\"",
+                "es": "Run npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\"",
+                "de": "Run npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-263"
+        },
+        {
+          "title": {
+            "en": "drag case onto folder moves it",
+            "uk": "drag case onto folder moves it",
+            "fr": "drag case onto folder moves it",
+            "es": "drag case onto folder moves it",
+            "de": "drag case onto folder moves it"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: folder-tree-dnd.spec.ts — drag case onto folder moves it",
+            "uk": "Покриття Playwright e2e: folder-tree-dnd.spec.ts — drag case onto folder moves it",
+            "fr": "Playwright e2e coverage: folder-tree-dnd.spec.ts — drag case onto folder moves it",
+            "es": "Playwright e2e coverage: folder-tree-dnd.spec.ts — drag case onto folder moves it",
+            "de": "Playwright e2e coverage: folder-tree-dnd.spec.ts — drag case onto folder moves it"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:folder-tree-dnd.spec.ts drag case onto folder moves it",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\"",
+                "uk": "Run npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\"",
+                "fr": "Run npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\"",
+                "es": "Run npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\"",
+                "de": "Run npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-264"
         },
         {
           "title": {
@@ -1779,7 +2428,7 @@
               }
             }
           ],
-          "key": "VQA-254"
+          "key": "VQA-265"
         },
         {
           "title": {
@@ -1838,7 +2487,7 @@
               }
             }
           ],
-          "key": "VQA-255"
+          "key": "VQA-266"
         },
         {
           "title": {
@@ -1897,7 +2546,7 @@
               }
             }
           ],
-          "key": "VQA-256"
+          "key": "VQA-267"
         },
         {
           "title": {
@@ -1956,7 +2605,7 @@
               }
             }
           ],
-          "key": "VQA-257"
+          "key": "VQA-268"
         },
         {
           "title": {
@@ -2015,7 +2664,7 @@
               }
             }
           ],
-          "key": "VQA-258"
+          "key": "VQA-269"
         },
         {
           "title": {
@@ -2074,7 +2723,7 @@
               }
             }
           ],
-          "key": "VQA-259"
+          "key": "VQA-270"
         },
         {
           "title": {
@@ -2133,7 +2782,7 @@
               }
             }
           ],
-          "key": "VQA-260"
+          "key": "VQA-271"
         },
         {
           "title": {
@@ -2192,7 +2841,7 @@
               }
             }
           ],
-          "key": "VQA-261"
+          "key": "VQA-272"
         },
         {
           "title": {
@@ -2251,7 +2900,7 @@
               }
             }
           ],
-          "key": "VQA-262"
+          "key": "VQA-273"
         },
         {
           "title": {
@@ -2310,7 +2959,7 @@
               }
             }
           ],
-          "key": "VQA-263"
+          "key": "VQA-274"
         },
         {
           "title": {
@@ -2369,7 +3018,7 @@
               }
             }
           ],
-          "key": "VQA-264"
+          "key": "VQA-275"
         },
         {
           "title": {
@@ -2428,7 +3077,7 @@
               }
             }
           ],
-          "key": "VQA-265"
+          "key": "VQA-276"
         },
         {
           "title": {
@@ -2487,7 +3136,7 @@
               }
             }
           ],
-          "key": "VQA-266"
+          "key": "VQA-277"
         },
         {
           "title": {
@@ -2546,7 +3195,7 @@
               }
             }
           ],
-          "key": "VQA-267"
+          "key": "VQA-278"
         },
         {
           "title": {
@@ -2605,7 +3254,7 @@
               }
             }
           ],
-          "key": "VQA-268"
+          "key": "VQA-279"
         },
         {
           "title": {
@@ -2664,7 +3313,7 @@
               }
             }
           ],
-          "key": "VQA-269"
+          "key": "VQA-280"
         },
         {
           "title": {
@@ -2723,7 +3372,7 @@
               }
             }
           ],
-          "key": "VQA-270"
+          "key": "VQA-281"
         },
         {
           "title": {
@@ -2782,7 +3431,7 @@
               }
             }
           ],
-          "key": "VQA-271"
+          "key": "VQA-282"
         },
         {
           "title": {
@@ -2841,7 +3490,7 @@
               }
             }
           ],
-          "key": "VQA-272"
+          "key": "VQA-283"
         },
         {
           "title": {
@@ -2900,7 +3549,7 @@
               }
             }
           ],
-          "key": "VQA-273"
+          "key": "VQA-284"
         },
         {
           "title": {
@@ -2959,7 +3608,7 @@
               }
             }
           ],
-          "key": "VQA-274"
+          "key": "VQA-285"
         },
         {
           "title": {
@@ -3018,7 +3667,7 @@
               }
             }
           ],
-          "key": "VQA-275"
+          "key": "VQA-286"
         },
         {
           "title": {
@@ -3077,7 +3726,7 @@
               }
             }
           ],
-          "key": "VQA-276"
+          "key": "VQA-287"
         },
         {
           "title": {
@@ -3136,7 +3785,7 @@
               }
             }
           ],
-          "key": "VQA-277"
+          "key": "VQA-288"
         },
         {
           "title": {
@@ -3195,7 +3844,7 @@
               }
             }
           ],
-          "key": "VQA-278"
+          "key": "VQA-289"
         },
         {
           "title": {
@@ -3254,7 +3903,7 @@
               }
             }
           ],
-          "key": "VQA-279"
+          "key": "VQA-290"
         },
         {
           "title": {
@@ -3313,7 +3962,7 @@
               }
             }
           ],
-          "key": "VQA-280"
+          "key": "VQA-291"
         },
         {
           "title": {
@@ -3372,7 +4021,7 @@
               }
             }
           ],
-          "key": "VQA-281"
+          "key": "VQA-292"
         },
         {
           "title": {
@@ -3431,7 +4080,7 @@
               }
             }
           ],
-          "key": "VQA-282"
+          "key": "VQA-293"
         },
         {
           "title": {
@@ -3490,7 +4139,7 @@
               }
             }
           ],
-          "key": "VQA-283"
+          "key": "VQA-294"
         },
         {
           "title": {
@@ -3549,7 +4198,7 @@
               }
             }
           ],
-          "key": "VQA-284"
+          "key": "VQA-295"
         },
         {
           "title": {
@@ -3608,7 +4257,7 @@
               }
             }
           ],
-          "key": "VQA-285"
+          "key": "VQA-296"
         },
         {
           "title": {
@@ -3667,7 +4316,184 @@
               }
             }
           ],
-          "key": "VQA-286"
+          "key": "VQA-297"
+        },
+        {
+          "title": {
+            "en": "role matrix: mutate case allowed or denied per role",
+            "uk": "role matrix: mutate case allowed or denied per role",
+            "fr": "role matrix: mutate case allowed or denied per role",
+            "es": "role matrix: mutate case allowed or denied per role",
+            "de": "role matrix: mutate case allowed or denied per role"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — role matrix: mutate case allowed or denied per role",
+            "uk": "Покриття Playwright e2e: rbac-roles-matrix.spec.ts — role matrix: mutate case allowed or denied per role",
+            "fr": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — role matrix: mutate case allowed or denied per role",
+            "es": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — role matrix: mutate case allowed or denied per role",
+            "de": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — role matrix: mutate case allowed or denied per role"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:rbac-roles-matrix.spec.ts role matrix: mutate case allowed or denied per role",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\"",
+                "uk": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\"",
+                "fr": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\"",
+                "es": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\"",
+                "de": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-298"
+        },
+        {
+          "title": {
+            "en": "developer can open cases UI but not admin",
+            "uk": "developer can open cases UI but not admin",
+            "fr": "developer can open cases UI but not admin",
+            "es": "developer can open cases UI but not admin",
+            "de": "developer can open cases UI but not admin"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — developer can open cases UI but not admin",
+            "uk": "Покриття Playwright e2e: rbac-roles-matrix.spec.ts — developer can open cases UI but not admin",
+            "fr": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — developer can open cases UI but not admin",
+            "es": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — developer can open cases UI but not admin",
+            "de": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — developer can open cases UI but not admin"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:rbac-roles-matrix.spec.ts developer can open cases UI but not admin",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\"",
+                "uk": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\"",
+                "fr": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\"",
+                "es": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\"",
+                "de": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-299"
+        },
+        {
+          "title": {
+            "en": "viewer cannot open import page",
+            "uk": "viewer cannot open import page",
+            "fr": "viewer cannot open import page",
+            "es": "viewer cannot open import page",
+            "de": "viewer cannot open import page"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — viewer cannot open import page",
+            "uk": "Покриття Playwright e2e: rbac-roles-matrix.spec.ts — viewer cannot open import page",
+            "fr": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — viewer cannot open import page",
+            "es": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — viewer cannot open import page",
+            "de": "Playwright e2e coverage: rbac-roles-matrix.spec.ts — viewer cannot open import page"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:rbac-roles-matrix.spec.ts viewer cannot open import page",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\"",
+                "uk": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\"",
+                "fr": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\"",
+                "es": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\"",
+                "de": "Run npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-300"
         },
         {
           "title": {
@@ -3726,7 +4552,7 @@
               }
             }
           ],
-          "key": "VQA-287"
+          "key": "VQA-301"
         },
         {
           "title": {
@@ -3785,7 +4611,7 @@
               }
             }
           ],
-          "key": "VQA-288"
+          "key": "VQA-302"
         },
         {
           "title": {
@@ -3844,7 +4670,7 @@
               }
             }
           ],
-          "key": "VQA-289"
+          "key": "VQA-303"
         },
         {
           "title": {
@@ -3903,7 +4729,7 @@
               }
             }
           ],
-          "key": "VQA-290"
+          "key": "VQA-304"
         },
         {
           "title": {
@@ -3962,7 +4788,7 @@
               }
             }
           ],
-          "key": "VQA-291"
+          "key": "VQA-305"
         },
         {
           "title": {
@@ -4021,7 +4847,7 @@
               }
             }
           ],
-          "key": "VQA-292"
+          "key": "VQA-306"
         },
         {
           "title": {
@@ -4080,7 +4906,7 @@
               }
             }
           ],
-          "key": "VQA-293"
+          "key": "VQA-307"
         },
         {
           "title": {
@@ -4139,7 +4965,7 @@
               }
             }
           ],
-          "key": "VQA-294"
+          "key": "VQA-308"
         },
         {
           "title": {
@@ -4198,7 +5024,125 @@
               }
             }
           ],
-          "key": "VQA-295"
+          "key": "VQA-309"
+        },
+        {
+          "title": {
+            "en": "create requirement and link from case detail",
+            "uk": "create requirement and link from case detail",
+            "fr": "create requirement and link from case detail",
+            "es": "create requirement and link from case detail",
+            "de": "create requirement and link from case detail"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: requirements-coverage.spec.ts — create requirement and link from case detail",
+            "uk": "Покриття Playwright e2e: requirements-coverage.spec.ts — create requirement and link from case detail",
+            "fr": "Playwright e2e coverage: requirements-coverage.spec.ts — create requirement and link from case detail",
+            "es": "Playwright e2e coverage: requirements-coverage.spec.ts — create requirement and link from case detail",
+            "de": "Playwright e2e coverage: requirements-coverage.spec.ts — create requirement and link from case detail"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:requirements-coverage.spec.ts create requirement and link from case detail",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\"",
+                "uk": "Run npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\"",
+                "fr": "Run npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\"",
+                "es": "Run npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\"",
+                "de": "Run npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-310"
+        },
+        {
+          "title": {
+            "en": "coverage page lists covered and uncovered",
+            "uk": "coverage page lists covered and uncovered",
+            "fr": "coverage page lists covered and uncovered",
+            "es": "coverage page lists covered and uncovered",
+            "de": "coverage page lists covered and uncovered"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: requirements-coverage.spec.ts — coverage page lists covered and uncovered",
+            "uk": "Покриття Playwright e2e: requirements-coverage.spec.ts — coverage page lists covered and uncovered",
+            "fr": "Playwright e2e coverage: requirements-coverage.spec.ts — coverage page lists covered and uncovered",
+            "es": "Playwright e2e coverage: requirements-coverage.spec.ts — coverage page lists covered and uncovered",
+            "de": "Playwright e2e coverage: requirements-coverage.spec.ts — coverage page lists covered and uncovered"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:requirements-coverage.spec.ts coverage page lists covered and uncovered",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\"",
+                "uk": "Run npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\"",
+                "fr": "Run npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\"",
+                "es": "Run npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\"",
+                "de": "Run npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-311"
         },
         {
           "title": {
@@ -4257,7 +5201,7 @@
               }
             }
           ],
-          "key": "VQA-296"
+          "key": "VQA-312"
         },
         {
           "title": {
@@ -4316,7 +5260,7 @@
               }
             }
           ],
-          "key": "VQA-297"
+          "key": "VQA-313"
         },
         {
           "title": {
@@ -4375,7 +5319,184 @@
               }
             }
           ],
-          "key": "VQA-298"
+          "key": "VQA-314"
+        },
+        {
+          "title": {
+            "en": "settings profile save + personal API token create",
+            "uk": "settings profile save + personal API token create",
+            "fr": "settings profile save + personal API token create",
+            "es": "settings profile save + personal API token create",
+            "de": "settings profile save + personal API token create"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings profile save + personal API token create",
+            "uk": "Покриття Playwright e2e: settings-profile-tokens.spec.ts — settings profile save + personal API token create",
+            "fr": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings profile save + personal API token create",
+            "es": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings profile save + personal API token create",
+            "de": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings profile save + personal API token create"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:settings-profile-tokens.spec.ts settings profile save + personal API token create",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\"",
+                "uk": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\"",
+                "fr": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\"",
+                "es": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\"",
+                "de": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-315"
+        },
+        {
+          "title": {
+            "en": "settings change-password rejects short password",
+            "uk": "settings change-password rejects short password",
+            "fr": "settings change-password rejects short password",
+            "es": "settings change-password rejects short password",
+            "de": "settings change-password rejects short password"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings change-password rejects short password",
+            "uk": "Покриття Playwright e2e: settings-profile-tokens.spec.ts — settings change-password rejects short password",
+            "fr": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings change-password rejects short password",
+            "es": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings change-password rejects short password",
+            "de": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings change-password rejects short password"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:settings-profile-tokens.spec.ts settings change-password rejects short password",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\"",
+                "uk": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\"",
+                "fr": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\"",
+                "es": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\"",
+                "de": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-316"
+        },
+        {
+          "title": {
+            "en": "settings notify prefs toggles persist after reload",
+            "uk": "settings notify prefs toggles persist after reload",
+            "fr": "settings notify prefs toggles persist after reload",
+            "es": "settings notify prefs toggles persist after reload",
+            "de": "settings notify prefs toggles persist after reload"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings notify prefs toggles persist after reload",
+            "uk": "Покриття Playwright e2e: settings-profile-tokens.spec.ts — settings notify prefs toggles persist after reload",
+            "fr": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings notify prefs toggles persist after reload",
+            "es": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings notify prefs toggles persist after reload",
+            "de": "Playwright e2e coverage: settings-profile-tokens.spec.ts — settings notify prefs toggles persist after reload"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:settings-profile-tokens.spec.ts settings notify prefs toggles persist after reload",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\"",
+                "uk": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\"",
+                "fr": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\"",
+                "es": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\"",
+                "de": "Run npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-317"
         },
         {
           "title": {
@@ -4434,7 +5555,7 @@
               }
             }
           ],
-          "key": "VQA-299"
+          "key": "VQA-318"
         },
         {
           "title": {
@@ -4493,7 +5614,7 @@
               }
             }
           ],
-          "key": "VQA-300"
+          "key": "VQA-319"
         },
         {
           "title": {
@@ -4552,7 +5673,7 @@
               }
             }
           ],
-          "key": "VQA-301"
+          "key": "VQA-320"
         },
         {
           "title": {
@@ -4611,7 +5732,7 @@
               }
             }
           ],
-          "key": "VQA-302"
+          "key": "VQA-321"
         },
         {
           "title": {
@@ -4670,7 +5791,7 @@
               }
             }
           ],
-          "key": "VQA-303"
+          "key": "VQA-322"
         },
         {
           "title": {
@@ -4729,7 +5850,7 @@
               }
             }
           ],
-          "key": "VQA-304"
+          "key": "VQA-323"
         },
         {
           "title": {
@@ -4788,7 +5909,184 @@
               }
             }
           ],
-          "key": "VQA-305"
+          "key": "VQA-324"
+        },
+        {
+          "title": {
+            "en": "admin creates user and assigns project role",
+            "uk": "admin creates user and assigns project role",
+            "fr": "admin creates user and assigns project role",
+            "es": "admin creates user and assigns project role",
+            "de": "admin creates user and assigns project role"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: users-admin.spec.ts — admin creates user and assigns project role",
+            "uk": "Покриття Playwright e2e: users-admin.spec.ts — admin creates user and assigns project role",
+            "fr": "Playwright e2e coverage: users-admin.spec.ts — admin creates user and assigns project role",
+            "es": "Playwright e2e coverage: users-admin.spec.ts — admin creates user and assigns project role",
+            "de": "Playwright e2e coverage: users-admin.spec.ts — admin creates user and assigns project role"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:users-admin.spec.ts admin creates user and assigns project role",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\"",
+                "uk": "Run npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\"",
+                "fr": "Run npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\"",
+                "es": "Run npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\"",
+                "de": "Run npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-325"
+        },
+        {
+          "title": {
+            "en": "admin sample data section is visible",
+            "uk": "admin sample data section is visible",
+            "fr": "admin sample data section is visible",
+            "es": "admin sample data section is visible",
+            "de": "admin sample data section is visible"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: users-admin.spec.ts — admin sample data section is visible",
+            "uk": "Покриття Playwright e2e: users-admin.spec.ts — admin sample data section is visible",
+            "fr": "Playwright e2e coverage: users-admin.spec.ts — admin sample data section is visible",
+            "es": "Playwright e2e coverage: users-admin.spec.ts — admin sample data section is visible",
+            "de": "Playwright e2e coverage: users-admin.spec.ts — admin sample data section is visible"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:users-admin.spec.ts admin sample data section is visible",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\"",
+                "uk": "Run npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\"",
+                "fr": "Run npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\"",
+                "es": "Run npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\"",
+                "de": "Run npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-326"
+        },
+        {
+          "title": {
+            "en": "admin SSO tab lists providers panel",
+            "uk": "admin SSO tab lists providers panel",
+            "fr": "admin SSO tab lists providers panel",
+            "es": "admin SSO tab lists providers panel",
+            "de": "admin SSO tab lists providers panel"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: users-admin.spec.ts — admin SSO tab lists providers panel",
+            "uk": "Покриття Playwright e2e: users-admin.spec.ts — admin SSO tab lists providers panel",
+            "fr": "Playwright e2e coverage: users-admin.spec.ts — admin SSO tab lists providers panel",
+            "es": "Playwright e2e coverage: users-admin.spec.ts — admin SSO tab lists providers panel",
+            "de": "Playwright e2e coverage: users-admin.spec.ts — admin SSO tab lists providers panel"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:users-admin.spec.ts admin SSO tab lists providers panel",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\"",
+                "uk": "Run npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\"",
+                "fr": "Run npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\"",
+                "es": "Run npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\"",
+                "de": "Run npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-327"
         }
       ]
     }

@@ -1,0 +1,125 @@
+{
+  "folder": "RBAC",
+  "cases": [
+    {
+      "id": "rbac-roles-matrix-developer-can-open-cases-ui-but-not-admin",
+      "key": "VUE-74",
+      "title": "developer can open cases UI but not admin",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test rbac-roles-matrix.spec.ts -g \"developer can open cases UI but not admin\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "rbac-roles-matrix.spec.ts",
+      "test": "developer can open cases UI but not admin",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts developer can open cases UI but not admin",
+      "automation_link": "e2e/tests/rbac-roles-matrix.spec.ts :: developer can open cases UI but not admin",
+      "vqa_key": "VQA-299",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "rbac-roles-matrix-role-matrix-mutate-case-allowed-or-denied-per-role",
+      "key": "VUE-75",
+      "title": "role matrix: mutate case allowed or denied per role",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test rbac-roles-matrix.spec.ts -g \"role matrix: mutate case allowed or denied per role\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "rbac-roles-matrix.spec.ts",
+      "test": "role matrix: mutate case allowed or denied per role",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts role matrix: mutate case allowed or denied per role",
+      "automation_link": "e2e/tests/rbac-roles-matrix.spec.ts :: role matrix: mutate case allowed or denied per role",
+      "vqa_key": "VQA-298",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:negative"
+      ]
+    },
+    {
+      "id": "rbac-roles-matrix-viewer-cannot-open-import-page",
+      "key": "VUE-76",
+      "title": "viewer cannot open import page",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test rbac-roles-matrix.spec.ts -g \"viewer cannot open import page\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "rbac-roles-matrix.spec.ts",
+      "test": "viewer cannot open import page",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts viewer cannot open import page",
+      "automation_link": "e2e/tests/rbac-roles-matrix.spec.ts :: viewer cannot open import page",
+      "vqa_key": "VQA-300",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "rbac-admin-sees-admin-nav-and-can-list-users",
+      "key": "VUE-77",
+      "title": "admin sees admin nav and can list users",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test rbac.spec.ts -g \"admin sees admin nav and can list users\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "rbac.spec.ts",
+      "test": "admin sees admin nav and can list users",
+      "external_key": "e2e:rbac.spec.ts admin sees admin nav and can list users",
+      "automation_link": "e2e/tests/rbac.spec.ts :: admin sees admin nav and can list users",
+      "vqa_key": "VQA-302",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "rbac-viewer-is-denied-mutating-apis-and-hides-write-ui",
+      "key": "VUE-78",
+      "title": "viewer is denied mutating APIs and hides write UI",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test rbac.spec.ts -g \"viewer is denied mutating APIs and hides write UI\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "rbac.spec.ts",
+      "test": "viewer is denied mutating APIs and hides write UI",
+      "external_key": "e2e:rbac.spec.ts viewer is denied mutating APIs and hides write UI",
+      "automation_link": "e2e/tests/rbac.spec.ts :: viewer is denied mutating APIs and hides write UI",
+      "vqa_key": "VQA-301",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:negative"
+      ]
+    }
+  ]
+}

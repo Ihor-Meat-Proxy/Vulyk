@@ -53,7 +53,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('JUnit upload via API token', {
-  tag: '@VQA-260', annotation: { type: 'vulyk', description: 'VQA-260' },
+  tag: ['@VQA-271', '@VUE-48'], annotation: [{ type: 'vulyk', description: 'VQA-271' }, { type: 'vulyk', description: 'VUE-48' }],
 }, async ({ request }) => {
   const token = await createApiToken(
     request,
@@ -74,7 +74,7 @@ test('JUnit upload via API token', {
 })
 
 test('import TestLink, Xray, Squash TM samples', {
-  tag: '@VQA-261', annotation: { type: 'vulyk', description: 'VQA-261' },
+  tag: ['@VQA-272', '@VUE-47'], annotation: [{ type: 'vulyk', description: 'VQA-272' }, { type: 'vulyk', description: 'VUE-47' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
@@ -119,7 +119,7 @@ test('import TestLink, Xray, Squash TM samples', {
 })
 
 test('requirements can be created', {
-  tag: '@VQA-262', annotation: { type: 'vulyk', description: 'VQA-262' },
+  tag: ['@VQA-273', '@VUE-50'], annotation: [{ type: 'vulyk', description: 'VQA-273' }, { type: 'vulyk', description: 'VUE-50' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.locator('.project-select')
@@ -139,7 +139,7 @@ test('requirements can be created', {
 })
 
 test('reports page and CSV export', {
-  tag: '@VQA-263', annotation: { type: 'vulyk', description: 'VQA-263' },
+  tag: ['@VQA-274', '@VUE-49'], annotation: [{ type: 'vulyk', description: 'VQA-274' }, { type: 'vulyk', description: 'VUE-49' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const select = page.getByTestId(TestIds.headerProjectSelect)

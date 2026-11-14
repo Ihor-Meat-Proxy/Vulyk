@@ -40,7 +40,7 @@ test.describe('Appearance & theming', () => {
   })
 
   test('switches each theme and persists after reload', {
-  tag: '@VQA-231', annotation: { type: 'vulyk', description: 'VQA-231' },
+  tag: ['@VQA-231', '@VUE-11'], annotation: [{ type: 'vulyk', description: 'VQA-231' }, { type: 'vulyk', description: 'VUE-11' }],
 }, async ({ page }) => {
     await openAppearance(page)
 
@@ -63,7 +63,7 @@ test.describe('Appearance & theming', () => {
   })
 
   test('persists theme after logout and login', {
-  tag: '@VQA-232', annotation: { type: 'vulyk', description: 'VQA-232' },
+  tag: ['@VQA-232', '@VUE-9'], annotation: [{ type: 'vulyk', description: 'VQA-232' }, { type: 'vulyk', description: 'VUE-9' }],
 }, async ({ page }) => {
     await openAppearance(page)
     await selectTheme(page, 'dark')
@@ -79,7 +79,7 @@ test.describe('Appearance & theming', () => {
   })
 
   test('status badges show icon and label', {
-  tag: '@VQA-233', annotation: { type: 'vulyk', description: 'VQA-233' },
+  tag: ['@VQA-233', '@VUE-10'], annotation: [{ type: 'vulyk', description: 'VQA-233' }, { type: 'vulyk', description: 'VUE-10' }],
 }, async ({ page }) => {
     await openAppearance(page)
     const preview = page.locator('.appearance-preview')
@@ -102,7 +102,7 @@ test.describe('Appearance & theming', () => {
   })
 
   test('axe accessibility scan per theme', {
-  tag: '@VQA-234', annotation: { type: 'vulyk', description: 'VQA-234' },
+  tag: ['@VQA-234', '@VUE-7'], annotation: [{ type: 'vulyk', description: 'VQA-234' }, { type: 'vulyk', description: 'VUE-7' }],
 }, async ({ page }) => {
     await openAppearance(page)
 
@@ -125,7 +125,7 @@ test.describe('Appearance & theming', () => {
   })
 
   test('font size and density apply to document', {
-  tag: '@VQA-235', annotation: { type: 'vulyk', description: 'VQA-235' },
+  tag: ['@VQA-235', '@VUE-8'], annotation: [{ type: 'vulyk', description: 'VQA-235' }, { type: 'vulyk', description: 'VUE-8' }],
 }, async ({ page }) => {
     await openAppearance(page)
     await page.getByRole('button', { name: '125%' }).click()

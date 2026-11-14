@@ -1,0 +1,29 @@
+{
+  "folder": "Plans & runs",
+  "cases": [
+    {
+      "id": "plans-runs-create-plan-and-run-execute-pass-fail-blocked-attach-close",
+      "key": "VUE-67",
+      "title": "create plan and run, execute pass/fail/blocked, attach, close",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test plans-runs.spec.ts -g \"create plan and run, execute pass/fail/blocked, attach, close\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "plans-runs.spec.ts",
+      "test": "create plan and run, execute pass/fail/blocked, attach, close",
+      "external_key": "e2e:plans-runs.spec.ts create plan and run, execute pass/fail/blocked, attach, close",
+      "automation_link": "e2e/tests/plans-runs.spec.ts :: create plan and run, execute pass/fail/blocked, attach, close",
+      "vqa_key": "VQA-291",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:negative"
+      ]
+    }
+  ]
+}

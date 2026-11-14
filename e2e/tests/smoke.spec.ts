@@ -19,7 +19,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('smoke: login → case → run → junit → import → report', {
-  tag: '@VQA-301', annotation: { type: 'vulyk', description: 'VQA-301' },
+  tag: ['@VQA-320', '@VUE-96'], annotation: [{ type: 'vulyk', description: 'VQA-320' }, { type: 'vulyk', description: 'VUE-96' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await expect(page.getByTestId(TestIds.appShell)).toBeVisible()

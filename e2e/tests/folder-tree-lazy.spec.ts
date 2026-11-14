@@ -16,7 +16,7 @@ import { CasesPage } from '../pages/CasesPage'
  */
 test.describe('folder tree lazy load + numeric sort', () => {
   test('recursive counts, expand loads 100, numeric key order', {
-  tag: '@VQA-254', annotation: { type: 'vulyk', description: 'VQA-254' },
+  tag: ['@VQA-265', '@VUE-41'], annotation: [{ type: 'vulyk', description: 'VQA-265' }, { type: 'vulyk', description: 'VUE-41' }],
 }, async ({
     page,
     request,

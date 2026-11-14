@@ -12,7 +12,7 @@ import { GeneratePage } from '../pages/GeneratePage'
 test.describe.configure({ mode: 'serial' })
 
 test('Generate page: model dropdown, case picker, stubbed LLM code', {
-  tag: '@VQA-256', annotation: { type: 'vulyk', description: 'VQA-256' },
+  tag: ['@VQA-267', '@VUE-45'], annotation: [{ type: 'vulyk', description: 'VQA-267' }, { type: 'vulyk', description: 'VUE-45' }],
 }, async ({
   page,
   request,
@@ -91,7 +91,7 @@ test('Generate page: model dropdown, case picker, stubbed LLM code', {
 })
 
 test('Cases page bulk action opens Generate with selection', {
-  tag: '@VQA-257', annotation: { type: 'vulyk', description: 'VQA-257' },
+  tag: ['@VQA-268', '@VUE-44'], annotation: [{ type: 'vulyk', description: 'VQA-268' }, { type: 'vulyk', description: 'VUE-44' }],
 }, async ({
   page,
   request,
@@ -135,7 +135,7 @@ test('Cases page bulk action opens Generate with selection', {
 })
 
 test('Admin Integrations shows Automation repo controls', {
-  tag: '@VQA-258', annotation: { type: 'vulyk', description: 'VQA-258' },
+  tag: ['@VQA-269', '@VUE-43'], annotation: [{ type: 'vulyk', description: 'VQA-269' }, { type: 'vulyk', description: 'VUE-43' }],
 }, async ({
   page,
   request,

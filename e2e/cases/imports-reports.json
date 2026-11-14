@@ -1,0 +1,197 @@
+{
+  "folder": "Imports & reports",
+  "cases": [
+    {
+      "id": "imports-reports-import-testlink-xray-squash-tm-samples",
+      "key": "VUE-47",
+      "title": "import TestLink, Xray, Squash TM samples",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test imports-reports.spec.ts -g \"import TestLink, Xray, Squash TM samples\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "imports-reports.spec.ts",
+      "test": "import TestLink, Xray, Squash TM samples",
+      "external_key": "e2e:imports-reports.spec.ts import TestLink, Xray, Squash TM samples",
+      "automation_link": "e2e/tests/imports-reports.spec.ts :: import TestLink, Xray, Squash TM samples",
+      "vqa_key": "VQA-272",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "imports-reports-junit-upload-via-api-token",
+      "key": "VUE-48",
+      "title": "JUnit upload via API token",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test imports-reports.spec.ts -g \"JUnit upload via API token\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "imports-reports.spec.ts",
+      "test": "JUnit upload via API token",
+      "external_key": "e2e:imports-reports.spec.ts JUnit upload via API token",
+      "automation_link": "e2e/tests/imports-reports.spec.ts :: JUnit upload via API token",
+      "vqa_key": "VQA-271",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "imports-reports-reports-page-and-csv-export",
+      "key": "VUE-49",
+      "title": "reports page and CSV export",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test imports-reports.spec.ts -g \"reports page and CSV export\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "imports-reports.spec.ts",
+      "test": "reports page and CSV export",
+      "external_key": "e2e:imports-reports.spec.ts reports page and CSV export",
+      "automation_link": "e2e/tests/imports-reports.spec.ts :: reports page and CSV export",
+      "vqa_key": "VQA-274",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "imports-reports-requirements-can-be-created",
+      "key": "VUE-50",
+      "title": "requirements can be created",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test imports-reports.spec.ts -g \"requirements can be created\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "imports-reports.spec.ts",
+      "test": "requirements can be created",
+      "external_key": "e2e:imports-reports.spec.ts requirements can be created",
+      "automation_link": "e2e/tests/imports-reports.spec.ts :: requirements can be created",
+      "vqa_key": "VQA-273",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "reports-drilldown-expand-row-shows-steps-export-filtered-csv-backspace-returns",
+      "key": "VUE-82",
+      "title": "expand row shows steps; export filtered CSV; Backspace returns",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test reports-drilldown.spec.ts -g \"expand row shows steps; export filtered CSV; Backspace returns\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "reports-drilldown.spec.ts",
+      "test": "expand row shows steps; export filtered CSV; Backspace returns",
+      "external_key": "e2e:reports-drilldown.spec.ts expand row shows steps; export filtered CSV; Backspace returns",
+      "automation_link": "e2e/tests/reports-drilldown.spec.ts :: expand row shows steps; export filtered CSV; Backspace returns",
+      "vqa_key": "VQA-308",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "reports-drilldown-failed-bar-segment-pre-filters-results",
+      "key": "VUE-83",
+      "title": "failed bar segment pre-filters results",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test reports-drilldown.spec.ts -g \"failed bar segment pre-filters results\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "reports-drilldown.spec.ts",
+      "test": "failed bar segment pre-filters results",
+      "external_key": "e2e:reports-drilldown.spec.ts failed bar segment pre-filters results",
+      "automation_link": "e2e/tests/reports-drilldown.spec.ts :: failed bar segment pre-filters results",
+      "vqa_key": "VQA-307",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "reports-drilldown-kpi-cards-drill-to-cases-runs-and-coverage",
+      "key": "VUE-84",
+      "title": "KPI cards drill to cases, runs, and coverage",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test reports-drilldown.spec.ts -g \"KPI cards drill to cases, runs, and coverage\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "reports-drilldown.spec.ts",
+      "test": "KPI cards drill to cases, runs, and coverage",
+      "external_key": "e2e:reports-drilldown.spec.ts KPI cards drill to cases, runs, and coverage",
+      "automation_link": "e2e/tests/reports-drilldown.spec.ts :: KPI cards drill to cases, runs, and coverage",
+      "vqa_key": "VQA-309",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "reports-drilldown-summary-card-opens-run-report-with-breadcrumbs",
+      "key": "VUE-85",
+      "title": "summary card opens run report with breadcrumbs",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test reports-drilldown.spec.ts -g \"summary card opens run report with breadcrumbs\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "reports-drilldown.spec.ts",
+      "test": "summary card opens run report with breadcrumbs",
+      "external_key": "e2e:reports-drilldown.spec.ts summary card opens run report with breadcrumbs",
+      "automation_link": "e2e/tests/reports-drilldown.spec.ts :: summary card opens run report with breadcrumbs",
+      "vqa_key": "VQA-306",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

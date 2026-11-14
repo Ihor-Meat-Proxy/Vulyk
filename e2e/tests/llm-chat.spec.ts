@@ -8,7 +8,7 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 test.describe.configure({ mode: 'serial' })
 
 test('chat shows provider/model; project key optional; global default resolves', {
-  tag: '@VQA-266', annotation: { type: 'vulyk', description: 'VQA-266' },
+  tag: ['@VQA-277', '@VUE-53'], annotation: [{ type: 'vulyk', description: 'VQA-277' }, { type: 'vulyk', description: 'VUE-53' }],
 }, async ({
   page,
   request,
@@ -78,7 +78,7 @@ test('chat shows provider/model; project key optional; global default resolves',
 })
 
 test('chat surfaces provider errors instead of silent mock', {
-  tag: '@VQA-267', annotation: { type: 'vulyk', description: 'VQA-267' },
+  tag: ['@VQA-278', '@VUE-54'], annotation: [{ type: 'vulyk', description: 'VQA-278' }, { type: 'vulyk', description: 'VUE-54' }],
 }, async ({
   request,
 }) => {

@@ -31,9 +31,10 @@ const DO_CHECK = args.has('--check')
 const TEST_RE =
   /\btest(?:\.(?:only|skip|fix|fix\.only|fix\.skip))?\(\s*(?:\/\*[\s\S]*?\*\/\s*)?(['"`])([^'"`]+)\1/g
 
+// Accept VQA (sample seed) and/or VUE (dedicated UI e2e project) keys.
 const VULYK_ANN_RE =
-  /annotation\s*:\s*\{\s*type\s*:\s*['"]vulyk['"]\s*,\s*description\s*:\s*['"](VQA-\d+)['"]\s*\}/
-const VULYK_TAG_RE = /tag\s*:\s*['"]@(VQA-\d+)['"]/
+  /description\s*:\s*['"]((?:VQA|VUE)-\d+)['"]/
+const VULYK_TAG_RE = /@((?:VQA|VUE)-\d+)/
 
 function walkCases(suite, out) {
   for (const c of suite.cases || []) out.push(c)
@@ -244,7 +245,7 @@ function checkAnnotations(tests) {
     console.error(`error: ${missing.length} Playwright test(s) missing Vulyk case-key tag/annotation:`)
     for (const m of missing) console.error(`  - ${m}`)
     console.error(
-      'Add: test(\'…\', { tag: \'@VQA-N\', annotation: { type: \'vulyk\', description: \'VQA-N\' } }, …)',
+      'Add: test(\'…\', { tag: [\'@VQA-N\', \'@VUE-N\'], annotation: [{ type: \'vulyk\', description: \'VQA-N\' }, { type: \'vulyk\', description: \'VUE-N\' }] }, …)',
     )
     process.exit(1)
   }
