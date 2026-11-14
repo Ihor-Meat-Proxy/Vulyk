@@ -1,0 +1,39 @@
+# Enable squash auto-merge for Dependabot patch/minor PRs once required checks pass.
+# Uses pull_request_target so GITHUB_TOKEN can merge; does NOT check out PR code.
+# Majors are left for manual review.
+
+name: Dependabot auto-merge
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: dependabot-auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  dependabot:
+    name: Enable auto-merge (patch/minor)
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - name: Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Enable squash auto-merge for patch/minor
+        # Covers single-dep and grouped updates (e.g. github-actions): fetch-metadata
+        # reports the highest update-type in the group.
+        if: >-
+          contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'),
+                   steps.metadata.outputs.update-type)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --auto --squash "$PR_URL"
