@@ -88,11 +88,27 @@ High-churn paths (rebase carefully, re-run checks):
 - `e2e/pages/*`, `e2e/tests/*`
 - `.github/workflows/ci.yml`
 
+## Security scanning
+
+PRs and `main` also run [`.github/workflows/security.yml`](.github/workflows/security.yml)
+(weekly cron as well): `cargo audit` / `cargo deny`, `npm audit`, OSV, Trivy (FS +
+images), CodeQL, Semgrep, gitleaks. Dependabot: [`.github/dependabot.yml`](.github/dependabot.yml).
+
+```bash
+./scripts/check-security.sh          # local mirror (audit + deny + npm audit)
+./scripts/check-security.sh --quick  # Rust only
+```
+
+Justified RustSec ignores live in `deny.toml` and `.cargo/audit.toml` with review-by
+dates — prefer upgrades; do not extend ignores without a reason + expiry.
+Details: [`docs/ci-checks.md`](docs/ci-checks.md).
+
 ## Quick commands
 
 ```bash
 ./scripts/check.sh          # default local gate
 ./scripts/check.sh --full   # closer to CI
+./scripts/check-security.sh # CVE / license / npm audit
 ./scripts/check-seed-keys.sh
 ./scripts/check-migrations.sh
 cargo fmt --all -- --check
@@ -104,6 +120,7 @@ cd e2e && npm run typecheck
 ## More docs
 
 - Doc index: [`docs/README.md`](docs/README.md)
+- CI checks index (security + quality): [`docs/ci-checks.md`](docs/ci-checks.md)
 - CI failure catalog + pipeline diagram: [`docs/ci-failures.md`](docs/ci-failures.md)
 - Architecture: [`docs/architecture.md`](docs/architecture.md)
 - Playwright test ids: [`docs/testing/test-ids.md`](docs/testing/test-ids.md)

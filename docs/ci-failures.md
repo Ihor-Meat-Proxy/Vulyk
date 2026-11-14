@@ -34,6 +34,10 @@ flowchart TD
 **Required for merge health:** backend, migrations, upgrade-test, frontend,
 docker, dogfood, install scripts, helm, playwright-e2e.
 
+**Security (separate workflow):** `.github/workflows/security.yml` runs on PRs,
+push to `main`, and weekly — see [ci-checks.md](ci-checks.md). Treat red security
+jobs as merge blockers unless a job is explicitly soft (SARIF upload / GHAS).
+
 **Advisory:** Lighthouse PWA/a11y — uses `browser-actions/setup-chrome`, retries
 once, and sets `continue-on-error: true` so Chrome CDN / launcher flakes do not
 block merges. Investigate red advisory checks before a release cut.
