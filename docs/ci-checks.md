@@ -20,8 +20,8 @@ Lighthouse remains **advisory** (`continue-on-error`) inside `ci.yml` — see [c
 | `rust-audit` | `cargo audit`, `cargo deny check` | Advisories + AGPL-compatible licenses + bans + sources. Config: `deny.toml`, `.cargo/audit.toml` |
 | `npm-audit` | `npm audit --audit-level=high` | `frontend/` and `e2e/`. Low/moderate without fixes (e.g. `deepmerge` via `vite-plugin-pwa`) do not fail |
 | `osv` | OSV-Scanner | Lockfiles → SARIF (Code Scanning). Soft on upload if GHAS unavailable |
-| `trivy-fs` | Trivy filesystem | CRITICAL/HIGH, unfixed ignored; SARIF upload |
-| `trivy-images` | Trivy on built API/web/updater images | Same severity policy; SARIF per image |
+| `trivy-fs` | Trivy filesystem | CRITICAL/HIGH vuln scanner (secrets via gitleaks); `.trivyignore`; SARIF |
+| `trivy-images` | Trivy on built API/web/updater images | SARIF reports HIGH+CRITICAL; **gate fails on CRITICAL** (day-one ratchet) |
 | `codeql` | GitHub CodeQL | `javascript-typescript` + `rust`, `security-extended` |
 | `semgrep` | Semgrep community packs + `.semgrep.yml` | CI / Rust / JS / TS / OWASP |
 | `gitleaks` | gitleaks-action | Config: `.gitleaks.toml` |
