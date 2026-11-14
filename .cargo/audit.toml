@@ -1,0 +1,15 @@
+# cargo-audit config (RustSec). Kept in sync with deny.toml [advisories].ignore.
+# Local: cargo audit
+# CI: .github/workflows/security.yml
+
+[advisories]
+ignore = [
+    # Transitive via jsonwebtoken 11. Review by 2027-05-01.
+    "RUSTSEC-2026-0387",
+    # rsa Marvin attack via jsonwebtoken. Review by 2027-05-01.
+    "RUSTSEC-2023-0071",
+    # lopdf via genpdf PDF export. Migrate PDF stack by 2027-02-01.
+    "RUSTSEC-2026-0187",
+    # libsqlite3-sys unused (Postgres-only). Review by 2027-02-01.
+    "RUSTSEC-2026-0459",
+]

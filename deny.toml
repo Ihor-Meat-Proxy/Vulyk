@@ -1,0 +1,74 @@
+# cargo-deny — advisories, AGPL-compatible licenses, bans, sources.
+# Docs: https://embarkstudios.github.io/cargo-deny/
+# Local: cargo deny check
+# CI: .github/workflows/security.yml
+
+[graph]
+targets = [
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "aarch64-unknown-linux-gnu" },
+]
+all-features = false
+
+[advisories]
+# Unmaintained crates in the genpdf/PDF stack are tracked; do not fail CI on them.
+# Scope: all | workspace | transitive | none (cargo-deny ≥0.17).
+unmaintained = "none"
+unsound = "workspace"
+yanked = "deny"
+# Justified ignores — revisit on/before the notes below. Prefer upgrades over ignores.
+ignore = [
+    # Transitive via jsonwebtoken 11 (p256/p384). No patched jwt release yet.
+    # Expiry: 2027-05-01 — re-check jsonwebtoken / rust_crypto stack.
+    { id = "RUSTSEC-2026-0387", reason = "crypto-bigint via jsonwebtoken; no API-compatible bump yet (review by 2027-05-01)" },
+    # Marvin attack; rsa 0.10 not selected by jsonwebtoken 11.
+    # Expiry: 2027-05-01
+    { id = "RUSTSEC-2023-0071", reason = "rsa via jsonwebtoken; no fixed upgrade path in jwt 11 (review by 2027-05-01)" },
+    # lopdf via genpdf 0.2 (unmaintained PDF export). We generate PDFs; we do not parse untrusted nested PDFs as primary input.
+    # Expiry: 2027-02-01 — migrate off genpdf or vendor a patched lopdf.
+    { id = "RUSTSEC-2026-0187", reason = "lopdf via genpdf; PDF export only; migrate PDF stack by 2027-02-01" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+# AGPL-3.0-only project: only SPDX ids currently present in Cargo.lock.
+# When adding a dep with a new license, extend this list (AGPL-compatible only).
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "0BSD",
+    "Zlib",
+    "CC0-1.0",
+    "Unlicense",
+    "Unicode-3.0",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "AGPL-3.0-only",
+]
+
+exceptions = []
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+workspace-default-features = "allow"
+external-default-features = "allow"
+deny = []
+# Prefer a single TLS stack (rustls) — warn if native-tls sneaks in.
+[[bans.features]]
+crate = "reqwest"
+deny = ["default-tls", "native-tls", "native-tls-alpn", "native-tls-vendored"]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

@@ -1,0 +1,25 @@
+# gitleaks — secret scanning. Extends the default ruleset.
+# Local: gitleaks detect --source . --verbose
+# CI: .github/workflows/security.yml
+
+title = "Vulyk"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Benign fixtures and placeholders"
+paths = [
+    '''e2e/.*\.env\.example''',
+    '''\.env\.example''',
+    '''frontend/licenses/.*''',
+    '''docs/security/audit-2026-10\.md''',
+]
+regexes = [
+    # Documented example secrets in install/CI docs (not real credentials).
+    '''e2e-ci-jwt-secret''',
+    '''e2e-ci-secrets-key''',
+    '''admin12345678901''',
+    '''user123456789012''',
+    '''changeme''',
+]
