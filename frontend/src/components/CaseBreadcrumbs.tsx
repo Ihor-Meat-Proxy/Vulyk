@@ -21,10 +21,7 @@ type Props = {
   onSelectFolder: (suiteId: string | null) => void
 }
 
-function buildFolderChain(
-  suites: Suite[],
-  suiteId: string | null,
-): Suite[] {
+function buildFolderChain(suites: Suite[], suiteId: string | null): Suite[] {
   if (!suiteId) return []
   const byId = new Map(suites.map((s) => [s.id, s]))
   const chain: Suite[] = []

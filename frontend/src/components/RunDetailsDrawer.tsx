@@ -124,7 +124,10 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
               {suite.suite_name || suite.name}
             </h2>
             <div className="meta-row">
-              <StatusBadge status={suite.status} testId="run-drawer-status-badge" />
+              <StatusBadge
+                status={suite.status}
+                testId="run-drawer-status-badge"
+              />
               {suite.is_sample ? (
                 <SampleBadge testId="run-drawer-sample-badge" />
               ) : null}

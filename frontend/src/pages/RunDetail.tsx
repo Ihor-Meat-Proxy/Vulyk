@@ -24,7 +24,6 @@ type Props = {
 
 const STEP_STATUSES = RESULT_STATUSES.filter((s) => s !== 'Retest')
 
-
 function statusLabel(
   t: (key: string, vars?: Record<string, string | number>) => string,
   status: string,
@@ -33,7 +32,6 @@ function statusLabel(
   const translated = t(key)
   return translated === key ? status : translated
 }
-
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -77,7 +75,10 @@ export function RunDetail({ projectId }: Props) {
       }
     } catch (err) {
       if (isAbortError(err) || guard?.isCancelled()) return
-      const cached = (await getCachedRun(projectId, runId)) as TestRunDetail | null
+      const cached = (await getCachedRun(
+        projectId,
+        runId,
+      )) as TestRunDetail | null
       if (cached) {
         applyUnlessCancelled(guard, () => {
           setDetail(cached)
@@ -140,7 +141,10 @@ export function RunDetail({ projectId }: Props) {
         position: step.position,
         action: step.action,
         expected_result: step.expected_result,
-        status: stepStatuses[idx]?.toLowerCase() === 'untested' ? status : stepStatuses[idx],
+        status:
+          stepStatuses[idx]?.toLowerCase() === 'untested'
+            ? status
+            : stepStatuses[idx],
       })),
     }
   }
@@ -153,7 +157,8 @@ export function RunDetail({ projectId }: Props) {
     void cacheRun(projectId, runId, data)
     const next = data.items.find(
       (i) =>
-        i.item.status.toLowerCase() === 'untested' && i.item.id !== currentItemId,
+        i.item.status.toLowerCase() === 'untested' &&
+        i.item.id !== currentItemId,
     )
     if (next) {
       await openItem(next.item.id)
@@ -298,11 +303,26 @@ export function RunDetail({ projectId }: Props) {
           {fromCache && <span className="badge">{t('runs.cachedBadge')}</span>}
         </div>
         <div className="progress-track" aria-label={t('a11y.runProgress')}>
-          <div className="progress-seg passed" style={{ flex: progress.passed || 0.0001 }} />
-          <div className="progress-seg failed" style={{ flex: progress.failed || 0.0001 }} />
-          <div className="progress-seg blocked" style={{ flex: progress.blocked || 0.0001 }} />
-          <div className="progress-seg skipped" style={{ flex: progress.skipped || 0.0001 }} />
-          <div className="progress-seg untested" style={{ flex: progress.untested || 0.0001 }} />
+          <div
+            className="progress-seg passed"
+            style={{ flex: progress.passed || 0.0001 }}
+          />
+          <div
+            className="progress-seg failed"
+            style={{ flex: progress.failed || 0.0001 }}
+          />
+          <div
+            className="progress-seg blocked"
+            style={{ flex: progress.blocked || 0.0001 }}
+          />
+          <div
+            className="progress-seg skipped"
+            style={{ flex: progress.skipped || 0.0001 }}
+          />
+          <div
+            className="progress-seg untested"
+            style={{ flex: progress.untested || 0.0001 }}
+          />
         </div>
         <div className="progress-legend" aria-label={t('a11y.progressLegend')}>
           {(
@@ -370,7 +390,11 @@ export function RunDetail({ projectId }: Props) {
               {items.map((row, index) => (
                 <tr
                   key={row.item.id}
-                  className={active?.item.item.id === row.item.id ? 'row-active' : undefined}
+                  className={
+                    active?.item.item.id === row.item.id
+                      ? 'row-active'
+                      : undefined
+                  }
                   onClick={() => void openItem(row.item.id)}
                   {...listItemProps(TestIds.runDetailCaseRow, {
                     entityId: row.item.id,
@@ -379,7 +403,8 @@ export function RunDetail({ projectId }: Props) {
                   })}
                 >
                   <td>
-                    <span className="badge">{row.case_key}</span> {row.case_title}
+                    <span className="badge">{row.case_key}</span>{' '}
+                    {row.case_title}
                   </td>
                   <td>{row.case_priority}</td>
                   <td>{row.item.assignee || '—'}</td>
@@ -446,7 +471,9 @@ export function RunDetail({ projectId }: Props) {
                     <div className="muted" style={{ fontSize: '0.78rem' }}>
                       {t('cases.stepExpected')}
                     </div>
-                    <div style={{ whiteSpace: 'pre-wrap' }}>{step.expected_result}</div>
+                    <div style={{ whiteSpace: 'pre-wrap' }}>
+                      {step.expected_result}
+                    </div>
                     <select
                       className="filter-input"
                       style={{ marginTop: '0.35rem' }}
@@ -474,13 +501,18 @@ export function RunDetail({ projectId }: Props) {
             {currentStep && (
               <div className="mobile-step-card">
                 <div className="mobile-step-meta muted">
-                  {t('runs.stepOf', { n: mobileStep + 1, total: active.steps.length })}
+                  {t('runs.stepOf', {
+                    n: mobileStep + 1,
+                    total: active.steps.length,
+                  })}
                 </div>
                 <div className="mobile-step-block">
                   <div className="muted" style={{ fontSize: '0.78rem' }}>
                     {t('cases.stepAction')}
                   </div>
-                  <div style={{ whiteSpace: 'pre-wrap' }}>{currentStep.action}</div>
+                  <div style={{ whiteSpace: 'pre-wrap' }}>
+                    {currentStep.action}
+                  </div>
                 </div>
                 <div className="mobile-step-block">
                   <div className="muted" style={{ fontSize: '0.78rem' }}>
@@ -534,22 +566,33 @@ export function RunDetail({ projectId }: Props) {
               </div>
             )}
 
-            <div className="exec-actions exec-actions-thumb" role="group" aria-label={t('a11y.resultStatus')}>
-              {(['Passed', 'Failed', 'Blocked', 'Skipped'] as const).map((s) => (
-                <StatusActionButton
-                  key={s}
-                  status={s}
-                  className="thumb-btn"
-                  disabled={saving}
-                  onClick={() => void submitStatus(s)}
-                  {...testIdProps(STATUS_ACTION_IDS[s])}
-                />
-              ))}
+            <div
+              className="exec-actions exec-actions-thumb"
+              role="group"
+              aria-label={t('a11y.resultStatus')}
+            >
+              {(['Passed', 'Failed', 'Blocked', 'Skipped'] as const).map(
+                (s) => (
+                  <StatusActionButton
+                    key={s}
+                    status={s}
+                    className="thumb-btn"
+                    disabled={saving}
+                    onClick={() => void submitStatus(s)}
+                    {...testIdProps(STATUS_ACTION_IDS[s])}
+                  />
+                ),
+              )}
             </div>
 
             {active.history && active.history.length > 0 && (
-              <section className="result-timeline" aria-label={t('a11y.resultHistory')}>
-                <h4 style={{ marginBottom: '0.35rem' }}>{t('runs.resultHistory')}</h4>
+              <section
+                className="result-timeline"
+                aria-label={t('a11y.resultHistory')}
+              >
+                <h4 style={{ marginBottom: '0.35rem' }}>
+                  {t('runs.resultHistory')}
+                </h4>
                 <ol className="timeline-list">
                   {active.history.map((h) => (
                     <li key={h.result.id}>

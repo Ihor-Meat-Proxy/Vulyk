@@ -148,13 +148,18 @@ export function applyAppearance(prefs: AppearancePrefs): ThemeId {
   return resolved
 }
 
-export function prefsFromApi(userPrefs: {
-  theme?: string
-  font_size?: number
-  font_family?: string
-  density?: string
-  reduced_motion?: boolean | null
-} | null | undefined): AppearancePrefs {
+export function prefsFromApi(
+  userPrefs:
+    | {
+        theme?: string
+        font_size?: number
+        font_family?: string
+        density?: string
+        reduced_motion?: boolean | null
+      }
+    | null
+    | undefined,
+): AppearancePrefs {
   if (!userPrefs) return { ...DEFAULT_APPEARANCE }
   return normalizePrefs({
     theme: userPrefs.theme as ThemeChoice | undefined,

@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { api, isAbortError, type Suite, type TestPlan, type TestRun } from '../api'
+import {
+  api,
+  isAbortError,
+  type Suite,
+  type TestPlan,
+  type TestRun,
+} from '../api'
 import { useAuth } from '../auth'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -46,7 +52,10 @@ export function RunsPage({ projectId, suites }: Props) {
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
-  const applyRunsPage = (runPage: { items: TestRun[]; total: number }, append: boolean) => {
+  const applyRunsPage = (
+    runPage: { items: TestRun[]; total: number },
+    append: boolean,
+  ) => {
     setRuns((prev) => (append ? [...prev, ...runPage.items] : runPage.items))
     setRunsTotal(runPage.total)
   }
@@ -86,11 +95,7 @@ export function RunsPage({ projectId, suites }: Props) {
     if (!projectId || loadingMore || runs.length >= runsTotal) return
     setLoadingMore(true)
     try {
-      const runPage = await api.listRuns(
-        projectId,
-        RUNS_PAGE_SIZE,
-        runs.length,
-      )
+      const runPage = await api.listRuns(projectId, RUNS_PAGE_SIZE, runs.length)
       applyRunsPage(runPage, true)
       setError(null)
     } catch (err) {
@@ -172,116 +177,116 @@ export function RunsPage({ projectId, suites }: Props) {
   return (
     <div className="runs-page" {...testIdProps(TestIds.runsPage)}>
       {canExecute && (
-      <section className="panel" style={{ marginBottom: '1rem' }}>
-        <h2 style={{ marginTop: 0 }}>{t('runs.startTitle')}</h2>
-        <p className="muted" style={{ marginTop: 0 }}>
-          {t('runs.startHelp')}
-        </p>
-        <div className="form-row">
-          <input
-            className="search-input"
-            placeholder={t('runs.namePlaceholder')}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            {...testIdProps(TestIds.runsCreateNameInput)}
-          />
-          <select
-            className="filter-input"
-            value={planId}
-            onChange={(e) => setPlanId(e.target.value)}
-            {...testIdProps(TestIds.runsPlanSelect)}
-          >
-            <option value="">{t('runs.noPlan')}</option>
-            {plans.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <select
-            className="filter-input"
-            value={suiteId}
-            onChange={(e) => setSuiteId(e.target.value)}
-            {...testIdProps(TestIds.runsSuiteSelect)}
-          >
-            <option value="">{t('runs.allSuites')}</option>
-            {suites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
-            className="btn"
-            disabled={creating || !name.trim()}
-            onClick={() => void createRun()}
-            {...testIdProps(TestIds.runsCreateButton)}
-          >
-            {creating ? t('runs.creating') : t('runs.create')}
-          </button>
-        </div>
-      </section>
+        <section className="panel" style={{ marginBottom: '1rem' }}>
+          <h2 style={{ marginTop: 0 }}>{t('runs.startTitle')}</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {t('runs.startHelp')}
+          </p>
+          <div className="form-row">
+            <input
+              className="search-input"
+              placeholder={t('runs.namePlaceholder')}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              {...testIdProps(TestIds.runsCreateNameInput)}
+            />
+            <select
+              className="filter-input"
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              {...testIdProps(TestIds.runsPlanSelect)}
+            >
+              <option value="">{t('runs.noPlan')}</option>
+              {plans.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <select
+              className="filter-input"
+              value={suiteId}
+              onChange={(e) => setSuiteId(e.target.value)}
+              {...testIdProps(TestIds.runsSuiteSelect)}
+            >
+              <option value="">{t('runs.allSuites')}</option>
+              {suites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn"
+              disabled={creating || !name.trim()}
+              onClick={() => void createRun()}
+              {...testIdProps(TestIds.runsCreateButton)}
+            >
+              {creating ? t('runs.creating') : t('runs.create')}
+            </button>
+          </div>
+        </section>
       )}
 
       {canUpload && (
-      <section className="panel" style={{ marginBottom: '1rem' }}>
-        <h3 style={{ marginTop: 0 }}>{t('runs.uploadJunit')}</h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          {t('runs.uploadHelp')}
-        </p>
-        <div className="form-row">
-          <select
-            className="filter-input"
-            value={uploadRunId}
-            onChange={(e) => setUploadRunId(e.target.value)}
-            aria-label={t('a11y.uploadTargetRun')}
-            {...testIdProps(TestIds.runsUploadRunSelect)}
-          >
-            <option value="">{t('runs.selectRun')}</option>
-            {runs.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="file"
-            accept=".xml,text/xml,application/xml"
-            aria-label={t('a11y.junitXmlFile')}
-            disabled={!uploadRunId || uploading}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void uploadJunit(file)
-              e.target.value = ''
-            }}
-            {...testIdProps(TestIds.runsUploadFileInput)}
-          />
-        </div>
-        {uploadMessage && <p className="muted">{uploadMessage}</p>}
-      </section>
+        <section className="panel" style={{ marginBottom: '1rem' }}>
+          <h3 style={{ marginTop: 0 }}>{t('runs.uploadJunit')}</h3>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {t('runs.uploadHelp')}
+          </p>
+          <div className="form-row">
+            <select
+              className="filter-input"
+              value={uploadRunId}
+              onChange={(e) => setUploadRunId(e.target.value)}
+              aria-label={t('a11y.uploadTargetRun')}
+              {...testIdProps(TestIds.runsUploadRunSelect)}
+            >
+              <option value="">{t('runs.selectRun')}</option>
+              {runs.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+            <input
+              type="file"
+              accept=".xml,text/xml,application/xml"
+              aria-label={t('a11y.junitXmlFile')}
+              disabled={!uploadRunId || uploading}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void uploadJunit(file)
+                e.target.value = ''
+              }}
+              {...testIdProps(TestIds.runsUploadFileInput)}
+            />
+          </div>
+          {uploadMessage && <p className="muted">{uploadMessage}</p>}
+        </section>
       )}
 
       <section className="panel" style={{ marginBottom: '1rem' }}>
         <h3 style={{ marginTop: 0 }}>{t('runs.plans')}</h3>
         {canPlans && (
-        <div className="form-row">
-          <input
-            className="search-input"
-            placeholder={t('runs.planNamePlaceholder')}
-            value={planName}
-            onChange={(e) => setPlanName(e.target.value)}
-            {...testIdProps(TestIds.runsPlanNameInput)}
-          />
-          <button
-            type="button"
-            className="btn secondary"
-            onClick={() => void createPlan()}
-            {...testIdProps(TestIds.runsPlanAddButton)}
-          >
-            {t('runs.addPlan')}
-          </button>
-        </div>
+          <div className="form-row">
+            <input
+              className="search-input"
+              placeholder={t('runs.planNamePlaceholder')}
+              value={planName}
+              onChange={(e) => setPlanName(e.target.value)}
+              {...testIdProps(TestIds.runsPlanNameInput)}
+            />
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => void createPlan()}
+              {...testIdProps(TestIds.runsPlanAddButton)}
+            >
+              {t('runs.addPlan')}
+            </button>
+          </div>
         )}
         {plans.length === 0 ? (
           <p className="muted">{t('runs.noPlans')}</p>
@@ -343,7 +348,10 @@ export function RunsPage({ projectId, suites }: Props) {
                       </Link>
                     </td>
                     <td {...testIdProps(TestIds.runRowStatus)}>
-                      <StatusBadge status={r.status} testId="runs-page-status-badge" />
+                      <StatusBadge
+                        status={r.status}
+                        testId="runs-page-status-badge"
+                      />
                     </td>
                     <td className="muted">{fmt(r.started_at)}</td>
                   </tr>

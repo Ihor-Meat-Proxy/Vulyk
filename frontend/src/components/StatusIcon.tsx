@@ -61,7 +61,8 @@ export function statusVisualKind(status: string): StatusVisualKind {
 export function StatusIcon({ status, className }: Props) {
   const kind = statusVisualKind(status)
   const common = {
-    className: `status-icon${kind === 'running' ? ' status-icon-spin' : ''}${className ? ` ${className}` : ''}`.trim(),
+    className:
+      `status-icon${kind === 'running' ? ' status-icon-spin' : ''}${className ? ` ${className}` : ''}`.trim(),
     width: 14,
     height: 14,
     viewBox: '0 0 16 16',

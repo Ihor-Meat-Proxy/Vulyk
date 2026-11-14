@@ -78,9 +78,8 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
 
   useEffect(() => {
     if (!open) return
-    const first = listRef.current?.querySelector<HTMLElement>(
-      '[role="menuitem"]',
-    )
+    const first =
+      listRef.current?.querySelector<HTMLElement>('[role="menuitem"]')
     first?.focus()
   }, [open])
 
@@ -131,6 +130,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
           id={menuId}
           className="icon-menu-panel user-menu-panel"
           role="menu"
+          tabIndex={-1}
           aria-label={label}
           ref={listRef}
           onKeyDown={onMenuKeyDown}
@@ -138,17 +138,13 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
         >
           <div className="user-menu-header" role="presentation">
             <span className="user-avatar" aria-hidden="true">
-              {user
-                ? initials(user.display_name, user.email)
-                : '?'}
+              {user ? initials(user.display_name, user.email) : '?'}
             </span>
             <div className="user-menu-identity">
               <strong>
                 {user?.display_name ?? status?.instance_name ?? 'Vulyk'}
               </strong>
-              <span className="muted">
-                {user?.email ?? t('nav.modeInfo')}
-              </span>
+              <span className="muted">{user?.email ?? t('nav.modeInfo')}</span>
             </div>
           </div>
 

@@ -4,6 +4,7 @@
 #   ./scripts/check.sh           # fmt, clippy, seed keys, migrations, frontend lint/tsc/test-ids, e2e tsc
 #   ./scripts/check.sh --quick   # skip clippy and frontend vitest (pre-commit)
 #   ./scripts/check.sh --full    # also cargo test + frontend vitest (pre-push / CI parity)
+# Quality extras (coverage / knip / prettier / machete): see ./scripts/check-quality.sh
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

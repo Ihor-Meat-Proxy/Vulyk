@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
-import { getPwaState, subscribePwa, type PwaUpdateApi } from '../pwa/registerPwa'
+import {
+  getPwaState,
+  subscribePwa,
+  type PwaUpdateApi,
+} from '../pwa/registerPwa'
 import {
   getSyncState,
   subscribeSync,
@@ -76,7 +80,11 @@ export function PwaToasts() {
         <div className="pwa-toast" {...testIdProps(TestIds.pwaToastPending)}>
           <span>
             {sync.pending} result{sync.pending === 1 ? '' : 's'} queued
-            {sync.syncing ? ' — syncing…' : sync.online ? '' : ' (waiting for network)'}
+            {sync.syncing
+              ? ' — syncing…'
+              : sync.online
+                ? ''
+                : ' (waiting for network)'}
           </span>
           {sync.online && !sync.syncing && (
             <button

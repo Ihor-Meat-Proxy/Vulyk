@@ -197,8 +197,7 @@ export function ExecutionPage({ projectId }: Props) {
   // Case execution detail
   if (caseId && active) {
     const latest = active.latest_result
-    const execNumber =
-      results.findIndex((r) => r.case_id === caseId) + 1 || 1
+    const execNumber = results.findIndex((r) => r.case_id === caseId) + 1 || 1
     return (
       <div
         className="panel execution-case-page"
@@ -254,8 +253,7 @@ export function ExecutionPage({ projectId }: Props) {
                 (step, idx) => {
                   const status =
                     'status' in step ? String(step.status) : 'Untested'
-                  const action =
-                    'action' in step ? String(step.action) : ''
+                  const action = 'action' in step ? String(step.action) : ''
                   const expected =
                     'expected_result' in step
                       ? String(step.expected_result)
@@ -265,7 +263,10 @@ export function ExecutionPage({ projectId }: Props) {
                       ? String(step.actual_result || '')
                       : ''
                   return (
-                    <div className="step" key={'id' in step ? String(step.id) : idx}>
+                    <div
+                      className="step"
+                      key={'id' in step ? String(step.id) : idx}
+                    >
                       <div className="step-num">{idx + 1}</div>
                       <div>
                         <div className="muted" style={{ fontSize: '0.78rem' }}>
@@ -282,7 +283,10 @@ export function ExecutionPage({ projectId }: Props) {
                           <StatusBadge status={status} />
                         </div>
                         {actual ? (
-                          <pre className="exec-pre" style={{ marginTop: '0.35rem' }}>
+                          <pre
+                            className="exec-pre"
+                            style={{ marginTop: '0.35rem' }}
+                          >
                             {actual}
                           </pre>
                         ) : null}

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react'
 import {
   api,
   type ApiTokenPublic,
@@ -214,10 +220,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
             onError={setError}
           />
           {canAutomationRepo && (
-            <AutomationRepoPanel
-              projectId={projectId}
-              onError={setError}
-            />
+            <AutomationRepoPanel projectId={projectId} onError={setError} />
           )}
         </>
       )}
@@ -259,9 +262,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
       {tab === 'backups' && isSystemAdmin && (
         <BackupsPanel projects={projects} onError={setError} />
       )}
-      {tab === 'lists' && isSystemAdmin && (
-        <ListsPanel onError={setError} />
-      )}
+      {tab === 'lists' && isSystemAdmin && <ListsPanel onError={setError} />}
       {tab === 'customFields' && isSystemAdmin && (
         <CustomFieldsPanel projects={projects} onError={setError} />
       )}
@@ -589,7 +590,9 @@ function ProjectsPanel({
               >
                 <td>
                   <span className="badge">{p.key}</span>
-                  {p.is_sample ? <SampleBadge testId="admin-project-sample-badge" /> : null}
+                  {p.is_sample ? (
+                    <SampleBadge testId="admin-project-sample-badge" />
+                  ) : null}
                 </td>
                 <td>{p.name}</td>
               </tr>
@@ -1127,7 +1130,9 @@ function LlmPanel({
             onChange={(e) => setIsDefault(e.target.checked)}
             {...testIdProps(TestIds.adminLlmDefaultCheckbox)}
           />
-          {isGlobal ? t('admin.llmGlobalDefault') : t('admin.llmProjectDefault')}
+          {isGlobal
+            ? t('admin.llmGlobalDefault')
+            : t('admin.llmProjectDefault')}
         </label>
         <label className="check">
           <input
@@ -1183,7 +1188,10 @@ function TokensPanel({
         <h3>{t('admin.tokensTitle')}</h3>
         <p className="muted">{t('admin.tokensHelp')}</p>
         {secretOnce && (
-          <p className="token-secret" {...testIdProps(TestIds.adminTokenSecret)}>
+          <p
+            className="token-secret"
+            {...testIdProps(TestIds.adminTokenSecret)}
+          >
             {t('admin.tokensCopyNow')} <code>{secretOnce}</code>
           </p>
         )}
@@ -1267,12 +1275,9 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   // Periodic check when interval > 0 and last check is stale
   useEffect(() => {
     if (!status || status.check_interval_hours <= 0) return
-    const last = status.last_checked_at
-      ? Date.parse(status.last_checked_at)
-      : 0
+    const last = status.last_checked_at ? Date.parse(status.last_checked_at) : 0
     const due =
-      !last ||
-      Date.now() - last > status.check_interval_hours * 3600 * 1000
+      !last || Date.now() - last > status.check_interval_hours * 3600 * 1000
     if (!due) return
     void (async () => {
       try {
@@ -1321,7 +1326,9 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const onApply = async () => {
     if (!status?.latest_version) return
     const version = status.latest_version
-    if (!window.confirm(t('admin.updates.confirm').replace('{version}', version))) {
+    if (
+      !window.confirm(t('admin.updates.confirm').replace('{version}', version))
+    ) {
       return
     }
     setApplying(true)
@@ -1595,10 +1602,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           .replace('{count}', String(status.retention.version_count))
           .replace('{days}', String(status.retention.rollback_days))}
       </p>
-      <table
-        className="table"
-        {...testIdProps(TestIds.adminUpdatesBackupList)}
-      >
+      <table className="table" {...testIdProps(TestIds.adminUpdatesBackupList)}>
         <thead>
           <tr>
             <th>{t('admin.updates.backupVersion')}</th>
@@ -1892,7 +1896,11 @@ function SampleDataPanel({
   return (
     <section
       className="stack-form"
-      style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--line)' }}
+      style={{
+        marginTop: '1.5rem',
+        paddingTop: '1.25rem',
+        borderTop: '1px solid var(--line)',
+      }}
       data-testid="admin-sample-data-section"
     >
       <h3 style={{ marginTop: 0 }}>{t('admin.sampleSection')}</h3>
@@ -1901,7 +1909,9 @@ function SampleDataPanel({
       </p>
       {status?.present ? (
         <>
-          <p data-testid="admin-sample-data-present">{t('admin.samplePresent')}</p>
+          <p data-testid="admin-sample-data-present">
+            {t('admin.samplePresent')}
+          </p>
           <ul data-testid="admin-sample-data-list">
             {status.projects.map((p) => (
               <li key={p.id}>

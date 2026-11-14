@@ -3,7 +3,11 @@ import { useI18n } from '../i18n'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { useAppearance } from '../theme/appearance'
 import { UI_FONT_FAMILIES, type UiFontFamily } from '../theme/fonts'
-import { FONT_SIZE_STEPS, type Density, type ThemeChoice } from '../theme/tokens'
+import {
+  FONT_SIZE_STEPS,
+  type Density,
+  type ThemeChoice,
+} from '../theme/tokens'
 
 const THEMES: ThemeChoice[] = [
   'system',
@@ -52,7 +56,10 @@ export function Appearance() {
 
       <section className="panel">
         <h3 id="appearance-font-family-label">{t('appearance.fontFamily')}</h3>
-        <p className="muted" style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}>
+        <p
+          className="muted"
+          style={{ marginTop: '0.25rem', fontSize: '0.85rem' }}
+        >
           {t('appearance.fontFamily.hint')}
         </p>
         <div
@@ -151,12 +158,17 @@ export function Appearance() {
             }}
             {...testIdProps(TestIds.appearanceReducedMotionCheckbox)}
           >
-            <option value="system">{t('appearance.reducedMotion.system')}</option>
+            <option value="system">
+              {t('appearance.reducedMotion.system')}
+            </option>
             <option value="on">{t('appearance.reducedMotion.on')}</option>
             <option value="off">{t('appearance.reducedMotion.off')}</option>
           </select>
         </label>
-        <p className="muted" style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+        <p
+          className="muted"
+          style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}
+        >
           {t('appearance.reducedMotion.hint')}
         </p>
       </section>
@@ -182,7 +194,11 @@ export function Appearance() {
               'Closed',
             ] as const
           ).map((s) => (
-            <StatusBadge key={s} status={s} testId="appearance-status-preview" />
+            <StatusBadge
+              key={s}
+              status={s}
+              testId="appearance-status-preview"
+            />
           ))}
         </div>
       </section>

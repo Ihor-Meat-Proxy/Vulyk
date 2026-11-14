@@ -1,0 +1,8 @@
+# Clippy configuration for Vulyk.
+# CI: cargo clippy --workspace --all-targets -- -D warnings
+# Pedantic: enabled selectively below via Cargo.toml [lints] / CI -W flags.
+# Documented allows live next to the lint site or in this file's comments.
+
+cognitive-complexity-threshold = 40
+too-many-arguments-threshold = 8
+type-complexity-threshold = 250

@@ -17,7 +17,11 @@ export function PasswordRequirements({
   return (
     <ul
       className="muted"
-      style={{ fontSize: '0.85rem', margin: '0.25rem 0 0', paddingLeft: '1.1rem' }}
+      style={{
+        fontSize: '0.85rem',
+        margin: '0.25rem 0 0',
+        paddingLeft: '1.1rem',
+      }}
       aria-live="polite"
       {...testIdProps(TestIds.passwordRequirements)}
     >

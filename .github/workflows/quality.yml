@@ -1,0 +1,182 @@
+# Code quality — coverage, unused deps, prettier, knip, ESLint.
+# See docs/ci-checks.md. Complements ci.yml (fmt/clippy/oxlint/tsc) and security.yml.
+
+name: Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "27 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+
+jobs:
+  rust-quality:
+    name: Rust (machete, llvm-cov, clippy pedantic)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-machete + cargo-llvm-cov
+        run: cargo install cargo-machete cargo-llvm-cov --locked
+      - name: cargo machete
+        run: cargo machete
+      - name: cargo clippy (pedantic, advisory)
+        # Strict -D warnings lives in ci.yml. Pedantic is advisory here: report
+        # findings for ratchet, documented allows for the noisiest lints.
+        continue-on-error: true
+        run: |
+          cargo clippy --workspace --all-targets --message-format=short -- \
+            -W clippy::pedantic \
+            -A clippy::module_name_repetitions \
+            -A clippy::must_use_candidate \
+            -A clippy::missing_errors_doc \
+            -A clippy::missing_panics_doc \
+            -A clippy::doc_markdown \
+            -A clippy::wildcard_imports \
+            -A clippy::too_many_lines \
+            -A clippy::similar_names \
+            -A clippy::struct_excessive_bools \
+            -A clippy::items_after_statements \
+            -A clippy::cast_possible_truncation \
+            -A clippy::cast_sign_loss \
+            -A clippy::cast_possible_wrap \
+            -A clippy::cast_precision_loss \
+            2>&1 | tee clippy-pedantic.log
+          {
+            echo "### Clippy pedantic (advisory)"
+            echo '```'
+            tail -n 40 clippy-pedantic.log || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: cargo llvm-cov (lib floors)
+        run: |
+          cargo llvm-cov --workspace --lib --json --summary-only \
+            --output-path rust-coverage.json
+          python3 <<'PY'
+          import json, os, pathlib
+          from pathlib import Path
+          data = json.load(open("rust-coverage.json"))["data"][0]["totals"]
+          lines = data["lines"]["percent"]
+          funcs = data["functions"]["percent"]
+          # floors from coverage-thresholds.toml (parsed lightly)
+          thr_lines, thr_funcs = 12.0, 14.0
+          text = Path("coverage-thresholds.toml").read_text()
+          for line in text.splitlines():
+              if line.strip().startswith("lines"):
+                  thr_lines = float(line.split("=")[1].strip())
+              if line.strip().startswith("functions"):
+                  thr_funcs = float(line.split("=")[1].strip())
+          summary = (
+              f"### Rust coverage (lib)\n"
+              f"| Metric | Actual | Floor |\n| --- | ---: | ---: |\n"
+              f"| Lines | {lines:.2f}% | {thr_lines:.0f}% |\n"
+              f"| Functions | {funcs:.2f}% | {thr_funcs:.0f}% |\n"
+          )
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write(summary + "\n")
+          if lines + 1e-6 < thr_lines or funcs + 1e-6 < thr_funcs:
+              raise SystemExit(
+                  f"coverage below floor: lines={lines:.2f}% (need {thr_lines}), "
+                  f"functions={funcs:.2f}% (need {thr_funcs})"
+              )
+          PY
+      - name: Upload Rust lcov (full suite, report only)
+        if: always()
+        run: |
+          cargo llvm-cov --workspace --lcov --output-path rust-lcov.info || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rust-coverage
+          path: |
+            rust-coverage.json
+            rust-lcov.info
+          if-no-files-found: ignore
+
+  frontend-quality:
+    name: Frontend (eslint, prettier, knip, coverage)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: oxlint (parity with ci.yml)
+        run: npm run lint
+      - name: ESLint (typescript-eslint, react-hooks, jsx-a11y)
+        run: npm run lint:eslint -- --max-warnings 50
+      - name: Prettier check
+        run: npm run format:check
+      - name: knip (unused files/deps)
+        run: npm run knip
+      - name: Vitest coverage
+        run: npm run test:coverage
+      - name: Coverage summary
+        if: always()
+        run: |
+          python3 <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path("coverage/coverage-summary.json")
+          if not p.exists():
+              print("no coverage-summary.json")
+              raise SystemExit(0)
+          total = json.load(p.open())["total"]
+          rows = []
+          for key in ("lines", "statements", "branches", "functions"):
+              m = total[key]
+              rows.append(f"| {key} | {m['pct']:.2f}% |")
+          summary = (
+              "### Frontend Vitest coverage\n"
+              "| Metric | Actual |\n| --- | ---: |\n"
+              + "\n".join(rows)
+              + "\n\nThresholds: lines≥35, statements≥34, branches≥37, functions≥24 "
+              "(suite-imported files; ratchet in `vite.config.ts`).\n"
+          )
+          print(summary)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fh:
+              fh.write(summary + "\n")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore

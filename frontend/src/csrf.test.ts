@@ -9,8 +9,8 @@ describe('csrfTokenFromCookieHeader', () => {
   })
 
   it('reads vulyk_csrf cookie among others', () => {
-    expect(
-      csrfTokenFromCookieHeader('a=1; vulyk_csrf=abc%2F123; b=2'),
-    ).toBe('abc/123')
+    expect(csrfTokenFromCookieHeader('a=1; vulyk_csrf=abc%2F123; b=2')).toBe(
+      'abc/123',
+    )
   })
 })

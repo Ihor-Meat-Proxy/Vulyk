@@ -2,10 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
 import { useI18n } from '../i18n'
-import {
-  DEFAULT_PASSWORD_POLICY,
-  passwordMeetsPolicy,
-} from '../passwordPolicy'
+import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
 
 export function ChangePassword() {
@@ -44,10 +41,7 @@ export function ChangePassword() {
   }
 
   return (
-    <div
-      className="login-shell"
-      {...testIdProps(TestIds.changePasswordShell)}
-    >
+    <div className="login-shell" {...testIdProps(TestIds.changePasswordShell)}>
       <form
         className="login-panel"
         onSubmit={(e) => void onSubmit(e)}
@@ -57,10 +51,7 @@ export function ChangePassword() {
           <span className="brand-mark">Vulyk</span>
           <span className="brand-tag">{t('password.title')}</span>
         </div>
-        <p
-          className="muted"
-          {...testIdProps(TestIds.changePasswordSubtitle)}
-        >
+        <p className="muted" {...testIdProps(TestIds.changePasswordSubtitle)}>
           {forced ? t('password.forcedSubtitle') : t('password.subtitle')}
         </p>
         {(requireCurrent || forced) && (

@@ -13,7 +13,10 @@ export type ApiStepInput = {
 }
 
 function newClientKey(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+  if (
+    typeof crypto !== 'undefined' &&
+    typeof crypto.randomUUID === 'function'
+  ) {
     return crypto.randomUUID()
   }
   return `step-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`

@@ -272,7 +272,11 @@ export const CONTRAST_PAIRS: Array<{
   { fg: 'statusUntestedFg', bg: 'bg', label: 'untested label' },
   { fg: 'statusReadyFg', bg: 'statusReadyBg', label: 'ready badge' },
   { fg: 'statusRunningFg', bg: 'statusRunningBg', label: 'running badge' },
-  { fg: 'statusUntestableFg', bg: 'statusUntestableBg', label: 'untestable badge' },
+  {
+    fg: 'statusUntestableFg',
+    bg: 'statusUntestableBg',
+    label: 'untestable badge',
+  },
   { fg: 'codeInk', bg: 'codeBg', label: 'code block' },
 ]
 

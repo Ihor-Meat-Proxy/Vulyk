@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  casePath,
-  isCaseKey,
-  isCaseUuid,
-  normalizeCaseKey,
-} from './caseUrls'
+import { casePath, isCaseKey, isCaseUuid, normalizeCaseKey } from './caseUrls'
 
 describe('caseUrls', () => {
   it('detects UUIDs', () => {

@@ -12,10 +12,7 @@ import {
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
 import { LOCALES, useI18n, type Locale } from '../i18n'
-import {
-  DEFAULT_PASSWORD_POLICY,
-  passwordMeetsPolicy,
-} from '../passwordPolicy'
+import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { can } from '../permissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
@@ -29,11 +26,16 @@ type NotifyPrefs = {
   notify_run_updates: boolean
 }
 
-function readNotify(prefs: {
-  notify_email?: boolean
-  notify_in_app?: boolean
-  notify_run_updates?: boolean
-} | null | undefined): NotifyPrefs {
+function readNotify(
+  prefs:
+    | {
+        notify_email?: boolean
+        notify_in_app?: boolean
+        notify_run_updates?: boolean
+      }
+    | null
+    | undefined,
+): NotifyPrefs {
   return {
     notify_email: prefs?.notify_email ?? true,
     notify_in_app: prefs?.notify_in_app ?? true,
@@ -96,7 +98,9 @@ function formatRepoStatus(
     : ''
   const sha = repo.commit_sha ? repo.commit_sha.slice(0, 8) : ''
   const trigger = repo.last_index_trigger
-    ? t(`settings.automationTrigger.${repo.last_index_trigger}` as 'settings.automationTrigger.manual')
+    ? t(
+        `settings.automationTrigger.${repo.last_index_trigger}` as 'settings.automationTrigger.manual',
+      )
     : ''
   return [
     repo.index_status,
@@ -114,14 +118,16 @@ function formatRepoStatus(
 }
 
 export function Settings() {
-  const { user, status, refreshStatus, changePassword: changePasswordAuth } =
-    useAuth()
+  const {
+    user,
+    status,
+    refreshStatus,
+    changePassword: changePasswordAuth,
+  } = useAuth()
   const { t, locale, setLocale } = useI18n()
   const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [displayName, setDisplayName] = useState(user?.display_name ?? '')
-  const [timezone, setTimezone] = useState(
-    user?.timezone || browserTimeZone(),
-  )
+  const [timezone, setTimezone] = useState(user?.timezone || browserTimeZone())
   const [notify, setNotify] = useState<NotifyPrefs>(() =>
     readNotify(user?.preferences),
   )
@@ -605,7 +611,10 @@ export function Settings() {
         </p>
       )}
 
-      <form className="panel stack-form" onSubmit={(e) => void onSaveProfile(e)}>
+      <form
+        className="panel stack-form"
+        onSubmit={(e) => void onSaveProfile(e)}
+      >
         <h3>{t('settings.profile')}</h3>
         <label className="field">
           <span>{t('login.displayName')}</span>
@@ -765,8 +774,7 @@ export function Settings() {
                 className="token-secret"
                 {...testIdProps(TestIds.settingsTokenSecret)}
               >
-                {t('settings.tokenCreated')}{' '}
-                <code>{secretOnce}</code>
+                {t('settings.tokenCreated')} <code>{secretOnce}</code>
               </p>
             )}
             {tokens.length === 0 ? (
@@ -977,7 +985,9 @@ export function Settings() {
                     {repoBranches.map((b) => (
                       <option key={b.name} value={b.name}>
                         {b.name}
-                        {b.is_new ? ` (${t('settings.automationBranchNew')})` : ''}
+                        {b.is_new
+                          ? ` (${t('settings.automationBranchNew')})`
+                          : ''}
                       </option>
                     ))}
                   </select>
@@ -1123,7 +1133,9 @@ export function Settings() {
                   className="btn secondary"
                   disabled={repoBusy}
                   onClick={() => void onRotateWebhook()}
-                  {...testIdProps(TestIds.settingsAutomationRotateWebhookButton)}
+                  {...testIdProps(
+                    TestIds.settingsAutomationRotateWebhookButton,
+                  )}
                 >
                   {t('settings.automationRotateWebhook')}
                 </button>
@@ -1275,10 +1287,7 @@ export function Settings() {
                             void refreshCiTokens(ciProjectId)
                           })
                       }
-                      {...listChildProps(
-                        TestIds.settingsCiTokenRow,
-                        'revoke',
-                      )}
+                      {...listChildProps(TestIds.settingsCiTokenRow, 'revoke')}
                     >
                       {t('settings.ciTokenRevoke')}
                     </button>

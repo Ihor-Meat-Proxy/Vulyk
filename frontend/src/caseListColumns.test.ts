@@ -26,12 +26,7 @@ describe('caseListColumns registry', () => {
 
   it('never allows hiding title', () => {
     const registry = extendWithCustomFields([])
-    const next = setColumnVisible(
-      defaultConfig(),
-      'title',
-      false,
-      registry,
-    )
+    const next = setColumnVisible(defaultConfig(), 'title', false, registry)
     expect(next.columns.find((c) => c.id === 'title')?.visible).toBe(true)
   })
 

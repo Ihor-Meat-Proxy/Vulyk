@@ -15,13 +15,18 @@ describe('api client', () => {
 
   it('passes AbortSignal through listCases / getCase / getRun', async () => {
     const ac = new AbortController()
-    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
-      expect(init?.signal).toBe(ac.signal)
-      return new Response(JSON.stringify({ items: [], total: 0, limit: 1, offset: 0 }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    })
+    const fetchMock = vi.fn(
+      async (_url: RequestInfo | URL, init?: RequestInit) => {
+        expect(init?.signal).toBe(ac.signal)
+        return new Response(
+          JSON.stringify({ items: [], total: 0, limit: 1, offset: 0 }),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        )
+      },
+    )
     globalThis.fetch = fetchMock as typeof fetch
 
     await api.listCases('p1', { limit: 1, signal: ac.signal })

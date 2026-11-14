@@ -302,8 +302,7 @@ export const TestIds = {
   requirementsError: 'requirements-error',
   requirementsTitleInput: 'requirements-title-input',
   requirementsAddButton: 'requirements-add-button',
-  requirementsCustomFieldsSaveButton:
-    'requirements-custom-fields-save-button',
+  requirementsCustomFieldsSaveButton: 'requirements-custom-fields-save-button',
   requirementRow: 'requirement-row',
   requirementRowKey: 'requirement-row-key',
   requirementRowTitle: 'requirement-row-title',
@@ -483,20 +482,25 @@ export const TestIds = {
   settingsAutomationBranchSelect: 'settings-automation-branch-select',
   settingsAutomationSubpathInput: 'settings-automation-subpath-input',
   settingsAutomationTokenInput: 'settings-automation-token-input',
-  settingsAutomationActionsTokenInput: 'settings-automation-actions-token-input',
-  settingsAutomationWorkflowFileInput: 'settings-automation-workflow-file-input',
+  settingsAutomationActionsTokenInput:
+    'settings-automation-actions-token-input',
+  settingsAutomationWorkflowFileInput:
+    'settings-automation-workflow-file-input',
   settingsAutomationWorkflowRefInput: 'settings-automation-workflow-ref-input',
-  settingsAutomationPollIntervalInput: 'settings-automation-poll-interval-input',
+  settingsAutomationPollIntervalInput:
+    'settings-automation-poll-interval-input',
   settingsAutomationWebhookUrl: 'settings-automation-webhook-url',
   settingsAutomationWebhookSecret: 'settings-automation-webhook-secret',
-  settingsAutomationRotateWebhookButton: 'settings-automation-rotate-webhook-button',
+  settingsAutomationRotateWebhookButton:
+    'settings-automation-rotate-webhook-button',
   settingsAutomationStatus: 'settings-automation-status',
   settingsAutomationProjectCheckbox: 'settings-automation-project-checkbox',
   settingsAutomationSaveButton: 'settings-automation-save-button',
   settingsAutomationTestButton: 'settings-automation-test-button',
   settingsAutomationReindexButton: 'settings-automation-reindex-button',
   settingsAutomationCancelButton: 'settings-automation-cancel-button',
-  settingsAutomationRefreshBranchesButton: 'settings-automation-refresh-branches-button',
+  settingsAutomationRefreshBranchesButton:
+    'settings-automation-refresh-branches-button',
   settingsCiPanel: 'settings-ci-panel',
   settingsCiProjectSelect: 'settings-ci-project-select',
   settingsCiTokenSecret: 'settings-ci-token-secret',
@@ -559,17 +563,13 @@ export const TestIds = {
   adminCustomFieldsNameInput: 'admin-custom-fields-name-input',
   adminCustomFieldsTypeSelect: 'admin-custom-fields-type-select',
   adminCustomFieldsEntitySelect: 'admin-custom-fields-entity-select',
-  adminCustomFieldsOptionListSelect:
-    'admin-custom-fields-option-list-select',
-  adminCustomFieldsDefaultValueInput:
-    'admin-custom-fields-default-value-input',
+  adminCustomFieldsOptionListSelect: 'admin-custom-fields-option-list-select',
+  adminCustomFieldsDefaultValueInput: 'admin-custom-fields-default-value-input',
   adminCustomFieldsHelpTextInput: 'admin-custom-fields-help-text-input',
   adminCustomFieldsSortOrderInput: 'admin-custom-fields-sort-order-input',
   adminCustomFieldsScopeSelect: 'admin-custom-fields-scope-select',
-  adminCustomFieldsProjectCheckbox:
-    'admin-custom-fields-project-checkbox',
-  adminCustomFieldsRequiredCheckbox:
-    'admin-custom-fields-required-checkbox',
+  adminCustomFieldsProjectCheckbox: 'admin-custom-fields-project-checkbox',
+  adminCustomFieldsRequiredCheckbox: 'admin-custom-fields-required-checkbox',
   adminCustomFieldsShowInListCheckbox:
     'admin-custom-fields-show-in-list-checkbox',
   adminCustomFieldsShowInFiltersCheckbox:

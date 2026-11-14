@@ -220,7 +220,12 @@ export function sanitizeConfig(
 
   let sort = raw.sort ?? null
   let order = raw.order ?? null
-  if (sort && !allowed.has(sort) && sort !== 'default' && sort !== 'sort_order') {
+  if (
+    sort &&
+    !allowed.has(sort) &&
+    sort !== 'default' &&
+    sort !== 'sort_order'
+  ) {
     sort = null
     order = null
   }
@@ -279,9 +284,7 @@ export function setColumnVisible(
   if (def && !def.hideable) return config
   return {
     ...config,
-    columns: config.columns.map((c) =>
-      c.id === id ? { ...c, visible } : c,
-    ),
+    columns: config.columns.map((c) => (c.id === id ? { ...c, visible } : c)),
   }
 }
 
@@ -297,7 +300,9 @@ export function storageKey(projectId: string): string {
   return `vulyk.caseList.columns.${projectId}`
 }
 
-export function readLocalConfig(projectId: string): CaseListColumnsConfig | null {
+export function readLocalConfig(
+  projectId: string,
+): CaseListColumnsConfig | null {
   try {
     const raw = localStorage.getItem(storageKey(projectId))
     if (!raw) return null

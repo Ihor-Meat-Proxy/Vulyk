@@ -136,7 +136,8 @@ function PassRateChart({ points }: { points: Dashboard['pass_rate_trend'] }) {
       : pad + (i / (points.length - 1)) * (w - pad * 2),
   )
   const ys = points.map(
-    (p) => pad + (1 - Math.min(100, Math.max(0, p.pass_rate)) / max) * (h - pad * 2),
+    (p) =>
+      pad + (1 - Math.min(100, Math.max(0, p.pass_rate)) / max) * (h - pad * 2),
   )
   const line = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ')
   const bars =
@@ -223,7 +224,12 @@ export function IterationDashboard({
     setCadence(iteration.cadence)
     setStart(toLocalInput(iteration.scheduled_start))
     setEnd(toLocalInput(iteration.scheduled_end))
-  }, [iteration.id, iteration.cadence, iteration.scheduled_start, iteration.scheduled_end])
+  }, [
+    iteration.id,
+    iteration.cadence,
+    iteration.scheduled_start,
+    iteration.scheduled_end,
+  ])
 
   const save = async () => {
     if (!onSaveSchedule) return
@@ -247,9 +253,7 @@ export function IterationDashboard({
     >
       <header className="exec-dashboard-header">
         <div>
-          <p className="muted exec-breadcrumb">
-            {campaign_path.join(' / ')}
-          </p>
+          <p className="muted exec-breadcrumb">{campaign_path.join(' / ')}</p>
           <h2 style={{ margin: '0.15rem 0' }}>
             {iteration.name}
             {iteration.reference ? (
@@ -350,7 +354,8 @@ export function IterationDashboard({
                     to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
                     {...listChildProps(TestIds.iterationFlakyItem, 'link')}
                   >
-                    <span className="badge">{row.case_key}</span> {row.case_title}
+                    <span className="badge">{row.case_key}</span>{' '}
+                    {row.case_title}
                   </Link>
                   <span className="muted">flips {row.flips}</span>
                   <StatusBadge status={row.latest_status} />
@@ -383,7 +388,8 @@ export function IterationDashboard({
                     to={`/cases/${encodeURIComponent(row.case_key || row.case_id)}`}
                     {...listChildProps(TestIds.iterationSlowItem, 'link')}
                   >
-                    <span className="badge">{row.case_key}</span> {row.case_title}
+                    <span className="badge">{row.case_key}</span>{' '}
+                    {row.case_title}
                   </Link>
                   <span className="muted">
                     {(row.duration_ms / 1000).toFixed(1)}s

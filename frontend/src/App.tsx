@@ -40,18 +40,18 @@ export default function App() {
   const { status, loading: authLoading, user } = useAuth()
   const { t } = useI18n()
   const [projects, setProjects] = useState<Project[]>([])
-  const [projectId, setProjectId] = useState<string | null>(
-    () => localStorage.getItem(PROJECT_KEY),
+  const [projectId, setProjectId] = useState<string | null>(() =>
+    localStorage.getItem(PROJECT_KEY),
   )
   const [suites, setSuites] = useState<Suite[]>([])
   const [selectedSuiteId, setSelectedSuiteId] = useState<string | null>(null)
   const [bootError, setBootError] = useState<string | null>(null)
 
-  const project = projects.find((p) => p.id === projectId) ?? projects[0] ?? null
+  const project =
+    projects.find((p) => p.id === projectId) ?? projects[0] ?? null
   const activeProjectId = project?.id ?? null
 
-  const needsSetup =
-    Boolean(status?.setup_required) && !status?.authenticated
+  const needsSetup = Boolean(status?.setup_required) && !status?.authenticated
 
   const wantsLoginPage = location.pathname === '/login'
 
@@ -61,8 +61,9 @@ export default function App() {
       (Boolean(status?.auth_required) && !status?.authenticated) ||
       (wantsLoginPage && !status?.authenticated))
 
-  const needsPasswordChange =
-    Boolean(status?.authenticated && user?.must_change_password)
+  const needsPasswordChange = Boolean(
+    status?.authenticated && user?.must_change_password,
+  )
 
   const authHeaders = (): Record<string, string> => {
     const token = getStoredToken()
@@ -105,8 +106,7 @@ export default function App() {
     }
     setProjects(list)
     const stored = localStorage.getItem(PROJECT_KEY)
-    const initial =
-      list.find((p) => p.id === stored)?.id ?? list[0]?.id ?? null
+    const initial = list.find((p) => p.id === stored)?.id ?? list[0]?.id ?? null
     setProjectId(initial)
   }, [status?.auth_required, status?.authenticated])
 

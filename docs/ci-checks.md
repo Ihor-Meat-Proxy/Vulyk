@@ -49,14 +49,23 @@ cargo install cargo-audit cargo-deny --locked
 ./scripts/check-security.sh --quick  # Rust only
 ```
 
-## Code quality & API coverage
+## Quality workflow
 
-Additional gates (coverage thresholds, knip, API route coverage) are documented as they land in follow-up PRs. Existing quality bar today:
+| Job | Tool | Notes |
+| --- | --- | --- |
+| `rust-quality` | `cargo machete`, `cargo llvm-cov`, clippy pedantic (advisory) | Lib coverage floors in `coverage-thresholds.toml` (lines≥12, functions≥14). Pedantic is `continue-on-error` with documented `-A` allows |
+| `frontend-quality` | oxlint + ESLint + Prettier + knip + Vitest coverage | ESLint: typescript-eslint, react-hooks, jsx-a11y. Coverage floors in `frontend/vite.config.ts` (lines≥35, statements≥34, branches≥37, functions≥24) |
 
 ```bash
-./scripts/check.sh        # fmt, clippy, seeds, migrations, lint, tsc, test-ids
-./scripts/check.sh --full # + cargo test + vitest
+./scripts/check.sh            # fmt, clippy, seeds, migrations, lint, tsc, test-ids
+./scripts/check.sh --full     # + cargo test + vitest
+./scripts/check-quality.sh    # machete, eslint, prettier, knip, coverage
+./scripts/check-quality.sh --quick
 ```
+
+## API coverage
+
+Route↔OpenAPI drift and endpoint integration-test matrix land in a follow-up PR.
 
 ## Upgrade path
 

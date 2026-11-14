@@ -57,10 +57,7 @@ describe('test attr security', () => {
       )?.reason,
     ).toMatch(/Authorization|JWT|@|secret|Bearer/i)
     expect(
-      findSuspiciousTestAttrValue(
-        'data-entity-key',
-        'a'.repeat(48),
-      )?.reason,
+      findSuspiciousTestAttrValue('data-entity-key', 'a'.repeat(48))?.reason,
     ).toMatch(/entropy|token|secret/i)
   })
 

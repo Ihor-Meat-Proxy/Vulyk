@@ -106,14 +106,15 @@ Details: [`docs/ci-checks.md`](docs/ci-checks.md).
 ## Quick commands
 
 ```bash
-./scripts/check.sh          # default local gate
-./scripts/check.sh --full   # closer to CI
-./scripts/check-security.sh # CVE / license / npm audit
+./scripts/check.sh           # default local gate
+./scripts/check.sh --full    # closer to CI
+./scripts/check-security.sh  # CVE / license / npm audit
+./scripts/check-quality.sh   # machete, eslint, prettier, knip, coverage
 ./scripts/check-seed-keys.sh
 ./scripts/check-migrations.sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
-cd frontend && npm run lint && npm run typecheck && npm run check:test-ids
+cd frontend && npm run lint && npm run lint:eslint && npm run format:check && npm run typecheck && npm run check:test-ids
 cd e2e && npm run typecheck
 ```
 

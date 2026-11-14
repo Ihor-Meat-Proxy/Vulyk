@@ -42,3 +42,8 @@ e2e/.mock-oidc.pid
 # Lighthouse
 frontend/lighthouse-report.json
 __pycache__/
+
+# Coverage
+frontend/coverage/
+**/coverage/
+*.lcov

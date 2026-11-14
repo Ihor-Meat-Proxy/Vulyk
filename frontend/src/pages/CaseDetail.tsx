@@ -20,10 +20,7 @@ import {
   type TestCaseDetail,
 } from '../api'
 import { useAuth } from '../auth'
-import {
-  shouldModEnterAddStep,
-  shouldTabAddStep,
-} from '../caseEditShortcuts'
+import { shouldModEnterAddStep, shouldTabAddStep } from '../caseEditShortcuts'
 import { CaseBreadcrumbs } from '../components/CaseBreadcrumbs'
 import { CaseKeyBadge } from '../components/CaseKeyBadge'
 import { CustomFieldInput } from '../components/CustomFieldInput'
@@ -140,7 +137,8 @@ export function CaseDetail({
   const [deleted, setDeleted] = useState(false)
   const [offlineNotice, setOfflineNotice] = useState(false)
   const [loading, setLoading] = useState(true)
-  const caseId = detail?.case.id ?? (caseRef && isCaseUuid(caseRef) ? caseRef : null)
+  const caseId =
+    detail?.case.id ?? (caseRef && isCaseUuid(caseRef) ? caseRef : null)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [title, setTitle] = useState('')
@@ -158,7 +156,9 @@ export function CaseDetail({
   const [filterRunId, setFilterRunId] = useState('')
   const [resultsOffset, setResultsOffset] = useState(0)
   const resultsLimit = 25
-  const [execPage, setExecPage] = useState<CaseExecutionHistoryPage | null>(null)
+  const [execPage, setExecPage] = useState<CaseExecutionHistoryPage | null>(
+    null,
+  )
   const [execLoading, setExecLoading] = useState(false)
   const [execOffset, setExecOffset] = useState(0)
   const execLimit = 25
@@ -172,7 +172,6 @@ export function CaseDetail({
   const saveShortcutLabel = apple ? '⌘S' : 'Ctrl+S'
   const addStepShortcutLabel = apple ? '⌘Enter' : 'Ctrl+Enter'
 
-
   const currentSnapshot = (): EditSnapshot => ({
     title,
     description,
@@ -185,7 +184,9 @@ export function CaseDetail({
   })
 
   const dirty =
-    editing && baseline !== '' && snapshotFromState(currentSnapshot()) !== baseline
+    editing &&
+    baseline !== '' &&
+    snapshotFromState(currentSnapshot()) !== baseline
 
   const captureBaseline = (snap: EditSnapshot) => {
     setBaseline(snapshotFromState(snap))
@@ -319,7 +320,10 @@ export function CaseDetail({
         data = await api.getCaseByKey(caseRef, { signal: guard?.signal })
         if (guard?.isCancelled()) return
         onEnsureProject(data.case.project_id)
-        if (data.case.key && data.case.key.toUpperCase() !== caseRef.toUpperCase()) {
+        if (
+          data.case.key &&
+          data.case.key.toUpperCase() !== caseRef.toUpperCase()
+        ) {
           navigate(casePath(data.case.key), { replace: true })
         }
       }
@@ -332,7 +336,10 @@ export function CaseDetail({
       }
     } catch (err) {
       if (isAbortError(err) || guard?.isCancelled()) return
-      if (err instanceof ApiError && (err.status === 410 || err.code === 'case_deleted')) {
+      if (
+        err instanceof ApiError &&
+        (err.status === 410 || err.code === 'case_deleted')
+      ) {
         applyUnlessCancelled(guard, () => {
           setDeleted(true)
           setDetail(null)
@@ -521,7 +528,10 @@ export function CaseDetail({
       if (!anchor) return
       const href = anchor.getAttribute('href')
       if (!href || href.startsWith('#') || href.startsWith('mailto:')) return
-      if (/^https?:\/\//i.test(href) && !href.startsWith(window.location.origin)) {
+      if (
+        /^https?:\/\//i.test(href) &&
+        !href.startsWith(window.location.origin)
+      ) {
         return
       }
       if (!window.confirm(t('cases.unsavedConfirm'))) {
@@ -610,7 +620,9 @@ export function CaseDetail({
   const { case: c, tags } = detail
   const summary = resultsPage?.summary
   const activeProjectId = c.project_id
-  const saveBtnTitle = t('cases.saveShortcutHint', { shortcut: saveShortcutLabel })
+  const saveBtnTitle = t('cases.saveShortcutHint', {
+    shortcut: saveShortcutLabel,
+  })
 
   return (
     <div
@@ -638,9 +650,7 @@ export function CaseDetail({
           <kbd className="shortcut-hint">{t('cases.backspaceKey')}</kbd>
         </button>
       </p>
-      {offlineNotice && (
-        <p className="notice">{t('cases.offlineCached')}</p>
-      )}
+      {offlineNotice && <p className="notice">{t('cases.offlineCached')}</p>}
       {error && (
         <p className="error" {...testIdProps(TestIds.caseDetailError)}>
           {error}
@@ -660,7 +670,10 @@ export function CaseDetail({
             <span {...testIdProps(TestIds.caseDetailTitleText)}>{c.title}</span>
           )}
         </h2>
-        <div className="detail-actions" {...testIdProps(TestIds.caseDetailActions)}>
+        <div
+          className="detail-actions"
+          {...testIdProps(TestIds.caseDetailActions)}
+        >
           {canExport ? (
             <button
               type="button"
@@ -695,14 +708,21 @@ export function CaseDetail({
             </button>
           ) : null}
           {canEdit && editing ? (
-            <span className="sr-only" {...testIdProps(TestIds.caseDetailEditing)}>
+            <span
+              className="sr-only"
+              {...testIdProps(TestIds.caseDetailEditing)}
+            >
               {dirty ? t('cases.unsavedChanges') : t('cases.noUnsavedChanges')}
             </span>
           ) : null}
         </div>
       </div>
 
-      <div className="case-tabs" role="tablist" aria-label={t('a11y.caseSections')}>
+      <div
+        className="case-tabs"
+        role="tablist"
+        aria-label={t('a11y.caseSections')}
+      >
         <button
           type="button"
           role="tab"
@@ -779,7 +799,9 @@ export function CaseDetail({
                 })()
               )}
             </span>
-            <span>{t('cases.version')}: {c.version}</span>
+            <span>
+              {t('cases.version')}: {c.version}
+            </span>
           </div>
 
           <section className="tag-row">
@@ -796,7 +818,11 @@ export function CaseDetail({
               <span className="muted">{t('common.none')}</span>
             ) : (
               tags.map((tag) => (
-                <span key={tag.id} className="tag-chip" style={{ borderColor: tag.color }}>
+                <span
+                  key={tag.id}
+                  className="tag-chip"
+                  style={{ borderColor: tag.color }}
+                >
                   {tag.name}
                 </span>
               ))
@@ -804,7 +830,9 @@ export function CaseDetail({
           </section>
 
           <section style={{ marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.35rem' }}>{t('cases.preconditions')}</h3>
+            <h3 style={{ marginBottom: '0.35rem' }}>
+              {t('cases.preconditions')}
+            </h3>
             {editing ? (
               <textarea
                 className="area"
@@ -814,14 +842,19 @@ export function CaseDetail({
                 {...testIdProps(TestIds.caseDetailPreconditionInput)}
               />
             ) : (
-              <p className="muted" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+              <p
+                className="muted"
+                style={{ margin: 0, whiteSpace: 'pre-wrap' }}
+              >
                 {c.precondition || '—'}
               </p>
             )}
           </section>
 
           <section style={{ marginBottom: '1rem' }}>
-            <h3 style={{ marginBottom: '0.35rem' }}>{t('cases.description')}</h3>
+            <h3 style={{ marginBottom: '0.35rem' }}>
+              {t('cases.description')}
+            </h3>
             {editing ? (
               <textarea
                 className="area"
@@ -831,7 +864,9 @@ export function CaseDetail({
                 {...testIdProps(TestIds.caseDetailDescriptionInput)}
               />
             ) : (
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{c.description || '—'}</p>
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                {c.description || '—'}
+              </p>
             )}
           </section>
 
@@ -971,7 +1006,9 @@ export function CaseDetail({
                             {...testIdProps(TestIds.caseDetailStepAction)}
                           />
                         ) : (
-                          <div style={{ whiteSpace: 'pre-wrap' }}>{step.action}</div>
+                          <div style={{ whiteSpace: 'pre-wrap' }}>
+                            {step.action}
+                          </div>
                         )}
                       </div>
                       <div>
@@ -994,7 +1031,9 @@ export function CaseDetail({
                             onKeyDown={(e) => onStepKeyDown(e, idx, 'expected')}
                             onFocus={() => setStepHintVisible(isLast)}
                             onBlur={() => setStepHintVisible(false)}
-                            aria-label={t('cases.stepExpectedN', { n: idx + 1 })}
+                            aria-label={t('cases.stepExpectedN', {
+                              n: idx + 1,
+                            })}
                             aria-describedby={
                               isLast && stepHintVisible
                                 ? 'case-detail-step-hint'
@@ -1013,7 +1052,9 @@ export function CaseDetail({
                             className="btn secondary"
                             style={{ marginTop: '0.35rem' }}
                             onClick={() =>
-                              setSteps((prev) => prev.filter((_, i) => i !== idx))
+                              setSteps((prev) =>
+                                prev.filter((_, i) => i !== idx),
+                              )
                             }
                             {...testIdProps(TestIds.caseDetailStepRemove)}
                           >
@@ -1065,7 +1106,9 @@ export function CaseDetail({
                   aria-label={t('a11y.requirementToLink')}
                   {...testIdProps(TestIds.caseDetailLinkRequirementSelect)}
                 >
-                  <option value="">{t('cases.linkRequirementPlaceholder')}</option>
+                  <option value="">
+                    {t('cases.linkRequirementPlaceholder')}
+                  </option>
                   {allReqs
                     .filter((r) => !linked.some((l) => l.id === r.id))
                     .map((r) => (
@@ -1130,7 +1173,10 @@ export function CaseDetail({
       )}
 
       {tab === 'executions' && (
-        <section className="case-executions-tab" aria-label={t('a11y.caseExecutions')}>
+        <section
+          className="case-executions-tab"
+          aria-label={t('a11y.caseExecutions')}
+        >
           {execLoading && !execPage ? (
             <p className="muted">{t('cases.loadingExecutions')}</p>
           ) : !execPage ? (
@@ -1139,9 +1185,12 @@ export function CaseDetail({
             <>
               <div className="meta-row results-summary">
                 <span>
-                  {t('executions.passRate')}: <strong>{execPage.pass_rate.toFixed(0)}%</strong>
+                  {t('executions.passRate')}:{' '}
+                  <strong>{execPage.pass_rate.toFixed(0)}%</strong>
                 </span>
-                <span>{t('common.total')}: {execPage.total}</span>
+                <span>
+                  {t('common.total')}: {execPage.total}
+                </span>
                 <Sparkline statuses={execPage.sparkline} />
               </div>
               {execPage.items.length === 0 ? (
@@ -1209,8 +1258,7 @@ export function CaseDetail({
                 <span className="muted">
                   {execOffset + 1}–
                   {Math.min(execOffset + execLimit, execPage.total)}{' '}
-                  {t('common.of')}{' '}
-                  {execPage.total}
+                  {t('common.of')} {execPage.total}
                 </span>
                 <button
                   type="button"
@@ -1245,8 +1293,12 @@ export function CaseDetail({
                   '—'
                 )}
               </span>
-              <span>{t('cases.totalResults')}: {summary.total_results}</span>
-              <span>{t('executions.passRate')}: {summary.pass_rate.toFixed(0)}%</span>
+              <span>
+                {t('cases.totalResults')}: {summary.total_results}
+              </span>
+              <span>
+                {t('executions.passRate')}: {summary.pass_rate.toFixed(0)}%
+              </span>
               <span className="muted">
                 P{summary.passed} / F{summary.failed} / B{summary.blocked} / S
                 {summary.skipped}
@@ -1295,7 +1347,10 @@ export function CaseDetail({
             <p className="muted">{t('cases.noResults')}</p>
           ) : (
             <>
-              <ol className="timeline-list" aria-label={t('a11y.caseResultsAcrossRuns')}>
+              <ol
+                className="timeline-list"
+                aria-label={t('a11y.caseResultsAcrossRuns')}
+              >
                 {resultsPage.items.map((h) => (
                   <li key={h.result.id}>
                     <StatusBadge status={h.result.status} />{' '}
@@ -1322,7 +1377,9 @@ export function CaseDetail({
                   type="button"
                   className="btn secondary"
                   disabled={resultsOffset <= 0 || resultsLoading}
-                  onClick={() => void loadResults(Math.max(0, resultsOffset - resultsLimit))}
+                  onClick={() =>
+                    void loadResults(Math.max(0, resultsOffset - resultsLimit))
+                  }
                   {...testIdProps(TestIds.caseDetailResultsPrevButton)}
                 >
                   Previous

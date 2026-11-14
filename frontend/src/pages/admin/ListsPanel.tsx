@@ -251,8 +251,7 @@ export function ListsPanel({ onError }: Props) {
           <>
             <hr />
             <h3>
-              {detail.name}{' '}
-              <span className="muted badge">{detail.key}</span>
+              {detail.name} <span className="muted badge">{detail.key}</span>
             </h3>
             <form onSubmit={(e) => void onRename(e)}>
               <label className="field">
@@ -311,9 +310,7 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy || idx === 0}
                         onClick={() => void moveItem(item, -1)}
-                        {...testIdProps(
-                          TestIds.adminListsItemMoveUpButton,
-                        )}
+                        {...testIdProps(TestIds.adminListsItemMoveUpButton)}
                       >
                         ↑
                       </button>
@@ -322,9 +319,7 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy || idx === detail.items.length - 1}
                         onClick={() => void moveItem(item, 1)}
-                        {...testIdProps(
-                          TestIds.adminListsItemMoveDownButton,
-                        )}
+                        {...testIdProps(TestIds.adminListsItemMoveDownButton)}
                       >
                         ↓
                       </button>
@@ -333,9 +328,7 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy}
                         onClick={() => void deprecateItem(item)}
-                        {...testIdProps(
-                          TestIds.adminListsItemDeprecateButton,
-                        )}
+                        {...testIdProps(TestIds.adminListsItemDeprecateButton)}
                       >
                         {item.deprecated
                           ? t('admin.lists.undeprecate')
@@ -346,9 +339,7 @@ export function ListsPanel({ onError }: Props) {
                         className="btn secondary"
                         disabled={busy}
                         onClick={() => void deleteItem(item)}
-                        {...testIdProps(
-                          TestIds.adminListsItemDeleteButton,
-                        )}
+                        {...testIdProps(TestIds.adminListsItemDeleteButton)}
                       >
                         {t('common.delete')}
                       </button>

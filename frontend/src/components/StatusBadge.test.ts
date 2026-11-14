@@ -49,10 +49,12 @@ describe('StatusBadge shared status mapping', () => {
     expect(statusClass('in_progress')).toBe('status-in_progress')
     expect(statusClass('completed')).toBe('status-completed')
     expect(statusClass('Passed')).toBe('status-passed')
-    expect(new Set([
-      statusClass('failed'),
-      statusClass('in_progress'),
-      statusClass('completed'),
-    ]).size).toBe(3)
+    expect(
+      new Set([
+        statusClass('failed'),
+        statusClass('in_progress'),
+        statusClass('completed'),
+      ]).size,
+    ).toBe(3)
   })
 })

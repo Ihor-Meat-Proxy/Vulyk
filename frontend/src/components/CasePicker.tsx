@@ -92,10 +92,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     if (selectedIds.has(c.id)) {
       onChange(selected.filter((x) => x.id !== c.id))
     } else {
-      onChange([
-        ...selected,
-        { id: c.id, key: c.key, title: c.title },
-      ])
+      onChange([...selected, { id: c.id, key: c.key, title: c.title }])
     }
   }
 
@@ -117,9 +114,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
       <div className="picker-folder-row">
         <button
           type="button"
-          className={
-            activeSuite === node.id ? 'linkish active' : 'linkish'
-          }
+          className={activeSuite === node.id ? 'linkish active' : 'linkish'}
           onClick={() =>
             setActiveSuite((cur) => (cur === node.id ? null : node.id))
           }
@@ -245,10 +240,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
               </li>
             ))}
             {visibleCases.length === 0 && (
-              <li
-                className="muted"
-                {...testIdProps(TestIds.casePickerEmpty)}
-              >
+              <li className="muted" {...testIdProps(TestIds.casePickerEmpty)}>
                 {t('cases.empty')}
               </li>
             )}
