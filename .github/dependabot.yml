@@ -60,6 +60,10 @@ updates:
     labels:
       - dependencies
       - docker
+    ignore:
+      # Stay on Node LTS (even majors: 22, 24, …). Ignore odd/non-LTS majors.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /deploy/updater
@@ -69,6 +73,10 @@ updates:
     labels:
       - dependencies
       - docker
+    ignore:
+      # Stay on Python 3.12 LTS line for the updater image; skip non-LTS majors.
+      - dependency-name: python
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /
