@@ -1,6 +1,10 @@
 # Enable squash auto-merge for Dependabot patch/minor PRs once required checks pass.
 # Uses pull_request_target so GITHUB_TOKEN can merge; does NOT check out PR code.
 # Majors are left for manual review.
+#
+# SemVer caveat: for 0.x versions, a "minor" bump is treated as breaking (same as
+# major) — only 0.x patch bumps auto-merge. Dependabot still labels 0.y→0.z as
+# semver-minor.
 
 name: Dependabot auto-merge
 
@@ -17,7 +21,7 @@ concurrency:
 
 jobs:
   dependabot:
-    name: Enable auto-merge (patch/minor)
+    name: Enable auto-merge (safe bumps only)
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     steps:
@@ -27,12 +31,39 @@ jobs:
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
-      - name: Enable squash auto-merge for patch/minor
-        # Covers single-dep and grouped updates (e.g. github-actions): fetch-metadata
-        # reports the highest update-type in the group.
-        if: >-
-          contains(fromJSON('["version-update:semver-patch","version-update:semver-minor"]'),
-                   steps.metadata.outputs.update-type)
+      - name: Decide whether bump is auto-merge safe
+        id: gate
+        env:
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          PREVIOUS_VERSION: ${{ steps.metadata.outputs.previous-version }}
+          NEW_VERSION: ${{ steps.metadata.outputs.new-version }}
+        run: |
+          set -euo pipefail
+          # Default deny.
+          echo "safe=false" >> "$GITHUB_OUTPUT"
+
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch)
+              echo "safe=true" >> "$GITHUB_OUTPUT"
+              echo "Allowing semver-patch ($PREVIOUS_VERSION -> $NEW_VERSION)"
+              ;;
+            version-update:semver-minor)
+              # 0.x minor bumps are breaking; only auto-merge minors when major >= 1.
+              prev_major="${PREVIOUS_VERSION%%.*}"
+              if [[ -n "$prev_major" && "$prev_major" != "0" && "$prev_major" =~ ^[0-9]+$ ]]; then
+                echo "safe=true" >> "$GITHUB_OUTPUT"
+                echo "Allowing semver-minor for >=1.x ($PREVIOUS_VERSION -> $NEW_VERSION)"
+              else
+                echo "Skipping 0.x semver-minor (treated as breaking): $PREVIOUS_VERSION -> $NEW_VERSION"
+              fi
+              ;;
+            *)
+              echo "Skipping update-type=$UPDATE_TYPE ($PREVIOUS_VERSION -> $NEW_VERSION)"
+              ;;
+          esac
+
+      - name: Enable squash auto-merge for safe bumps
+        if: steps.gate.outputs.safe == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
