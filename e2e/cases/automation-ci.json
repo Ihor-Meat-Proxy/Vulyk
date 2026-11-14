@@ -1,0 +1,197 @@
+{
+  "folder": "Automation & CI",
+  "cases": [
+    {
+      "id": "automation-repos-ci-settings-settings-automation-repo-project-ci-token-crud",
+      "key": "VUE-15",
+      "title": "settings: automation repo + project CI token CRUD",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test automation-repos-ci.settings.spec.ts -g \"settings: automation repo + project CI token CRUD\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "automation-repos-ci.settings.spec.ts",
+      "test": "settings: automation repo + project CI token CRUD",
+      "external_key": "e2e:automation-repos-ci.settings.spec.ts settings: automation repo + project CI token CRUD",
+      "automation_link": "e2e/tests/automation-repos-ci.settings.spec.ts :: settings: automation repo + project CI token CRUD",
+      "vqa_key": "VQA-239",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "generate-automation-admin-integrations-shows-automation-repo-controls",
+      "key": "VUE-43",
+      "title": "Admin Integrations shows Automation repo controls",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test generate-automation.spec.ts -g \"Admin Integrations shows Automation repo controls\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "generate-automation.spec.ts",
+      "test": "Admin Integrations shows Automation repo controls",
+      "external_key": "e2e:generate-automation.spec.ts Admin Integrations shows Automation repo controls",
+      "automation_link": "e2e/tests/generate-automation.spec.ts :: Admin Integrations shows Automation repo controls",
+      "vqa_key": "VQA-269",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "generate-automation-cases-page-bulk-action-opens-generate-with-selection",
+      "key": "VUE-44",
+      "title": "Cases page bulk action opens Generate with selection",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test generate-automation.spec.ts -g \"Cases page bulk action opens Generate with selection\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "generate-automation.spec.ts",
+      "test": "Cases page bulk action opens Generate with selection",
+      "external_key": "e2e:generate-automation.spec.ts Cases page bulk action opens Generate with selection",
+      "automation_link": "e2e/tests/generate-automation.spec.ts :: Cases page bulk action opens Generate with selection",
+      "vqa_key": "VQA-268",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "generate-automation-generate-page-model-dropdown-case-picker-stubbed-llm-code",
+      "key": "VUE-45",
+      "title": "Generate page: model dropdown, case picker, stubbed LLM code",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test generate-automation.spec.ts -g \"Generate page: model dropdown, case picker, stubbed LLM code\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "generate-automation.spec.ts",
+      "test": "Generate page: model dropdown, case picker, stubbed LLM code",
+      "external_key": "e2e:generate-automation.spec.ts Generate page: model dropdown, case picker, stubbed LLM code",
+      "automation_link": "e2e/tests/generate-automation.spec.ts :: Generate page: model dropdown, case picker, stubbed LLM code",
+      "vqa_key": "VQA-267",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "multi-repo-ci-ingest-add-two-automation-repos-linked-to-one-project",
+      "key": "VUE-60",
+      "title": "add two automation repos linked to one project",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test multi-repo-ci-ingest.spec.ts -g \"add two automation repos linked to one project\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "multi-repo-ci-ingest.spec.ts",
+      "test": "add two automation repos linked to one project",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts add two automation repos linked to one project",
+      "automation_link": "e2e/tests/multi-repo-ci-ingest.spec.ts :: add two automation repos linked to one project",
+      "vqa_key": "VQA-284",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "multi-repo-ci-ingest-ci-open-results-close-for-two-repo-pipelines",
+      "key": "VUE-61",
+      "title": "CI open results close for two repo pipelines",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI open results close for two repo pipelines\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "multi-repo-ci-ingest.spec.ts",
+      "test": "CI open results close for two repo pipelines",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts CI open results close for two repo pipelines",
+      "automation_link": "e2e/tests/multi-repo-ci-ingest.spec.ts :: CI open results close for two repo pipelines",
+      "vqa_key": "VQA-286",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "multi-repo-ci-ingest-create-project-ci-token-and-reveal-secret-once",
+      "key": "VUE-62",
+      "title": "create project CI token and reveal secret once",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test multi-repo-ci-ingest.spec.ts -g \"create project CI token and reveal secret once\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "multi-repo-ci-ingest.spec.ts",
+      "test": "create project CI token and reveal secret once",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts create project CI token and reveal secret once",
+      "automation_link": "e2e/tests/multi-repo-ci-ingest.spec.ts :: create project CI token and reveal secret once",
+      "vqa_key": "VQA-285",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "multi-repo-ci-ingest-junit-ingest-maps-test-key-property-to-case",
+      "key": "VUE-63",
+      "title": "JUnit ingest maps test_key property to case",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test multi-repo-ci-ingest.spec.ts -g \"JUnit ingest maps test_key property to case\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "multi-repo-ci-ingest.spec.ts",
+      "test": "JUnit ingest maps test_key property to case",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts JUnit ingest maps test_key property to case",
+      "automation_link": "e2e/tests/multi-repo-ci-ingest.spec.ts :: JUnit ingest maps test_key property to case",
+      "vqa_key": "VQA-287",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

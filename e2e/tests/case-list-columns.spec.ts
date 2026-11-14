@@ -42,7 +42,7 @@ async function selectProject(page: import('@playwright/test').Page) {
 }
 
 test('customize columns: hide priority, show automated, keyboard reorder, sort, reset', {
-  tag: '@VQA-248', annotation: { type: 'vulyk', description: 'VQA-248' },
+  tag: ['@VQA-248', '@VUE-25'], annotation: [{ type: 'vulyk', description: 'VQA-248' }, { type: 'vulyk', description: 'VUE-25' }],
 }, async ({
   page,
 }) => {
@@ -104,7 +104,7 @@ test('customize columns: hide priority, show automated, keyboard reorder, sort, 
 })
 
 test('column preferences API persists per project', {
-  tag: '@VQA-249', annotation: { type: 'vulyk', description: 'VQA-249' },
+  tag: ['@VQA-249', '@VUE-24'], annotation: [{ type: 'vulyk', description: 'VQA-249' }, { type: 'vulyk', description: 'VUE-24' }],
 }, async ({ request }) => {
   const body = {
     columns: [

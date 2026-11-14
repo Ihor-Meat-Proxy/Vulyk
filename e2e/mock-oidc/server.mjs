@@ -9,7 +9,11 @@ import http from 'node:http'
 import { URL } from 'node:url'
 
 const PORT = Number(process.env.OIDC_PORT ?? 9090)
-const ISSUER = `http://127.0.0.1:${PORT}`
+// Bind on all interfaces so Compose siblings (api / playwright) can reach us.
+// ISSUER must match the URL clients use (override with OIDC_ISSUER in Compose).
+const ISSUER =
+  process.env.OIDC_ISSUER?.replace(/\/$/, '') ||
+  `http://127.0.0.1:${PORT}`
 const CLIENT_ID = process.env.OIDC_CLIENT_ID ?? 'vulyk-e2e'
 const KID = 'mock-oidc-key-1'
 
@@ -127,6 +131,6 @@ const server = http.createServer((req, res) => {
   res.end('not found')
 })
 
-server.listen(PORT, '127.0.0.1', () => {
-  console.log(`[mock-oidc] listening on ${ISSUER} (RS256 JWKS)`)
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`[mock-oidc] listening on 0.0.0.0:${PORT} issuer=${ISSUER} (RS256 JWKS)`)
 })

@@ -8,7 +8,7 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 test.describe.configure({ mode: 'serial' })
 
 test('integrations + LLM settings pages (mock LLM)', {
-  tag: '@VQA-264', annotation: { type: 'vulyk', description: 'VQA-264' },
+  tag: ['@VQA-275', '@VUE-52'], annotation: [{ type: 'vulyk', description: 'VQA-275' }, { type: 'vulyk', description: 'VUE-52' }],
 }, async ({
   page,
   request,
@@ -63,7 +63,7 @@ test('integrations + LLM settings pages (mock LLM)', {
 })
 
 test('CI trigger config page', {
-  tag: '@VQA-265', annotation: { type: 'vulyk', description: 'VQA-265' },
+  tag: ['@VQA-276', '@VUE-51'], annotation: [{ type: 'vulyk', description: 'VQA-276' }, { type: 'vulyk', description: 'VUE-51' }],
 }, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
   const key = uniqueKey('CI')

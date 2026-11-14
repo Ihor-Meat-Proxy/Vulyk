@@ -118,7 +118,7 @@ function rowByKey(page: import('@playwright/test').Page, caseKey: string) {
 }
 
 test('summary card opens run report with breadcrumbs', {
-  tag: '@VQA-292', annotation: { type: 'vulyk', description: 'VQA-292' },
+  tag: ['@VQA-306', '@VUE-85'], annotation: [{ type: 'vulyk', description: 'VQA-306' }, { type: 'vulyk', description: 'VUE-85' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)
@@ -134,7 +134,7 @@ test('summary card opens run report with breadcrumbs', {
 })
 
 test('failed bar segment pre-filters results', {
-  tag: '@VQA-293', annotation: { type: 'vulyk', description: 'VQA-293' },
+  tag: ['@VQA-307', '@VUE-83'], annotation: [{ type: 'vulyk', description: 'VQA-307' }, { type: 'vulyk', description: 'VUE-83' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)
@@ -157,7 +157,7 @@ test('failed bar segment pre-filters results', {
 })
 
 test('expand row shows steps; export filtered CSV; Backspace returns', {
-  tag: '@VQA-294', annotation: { type: 'vulyk', description: 'VQA-294' },
+  tag: ['@VQA-308', '@VUE-82'], annotation: [{ type: 'vulyk', description: 'VQA-308' }, { type: 'vulyk', description: 'VUE-82' }],
 }, async ({
   page,
 }) => {
@@ -190,7 +190,7 @@ test('expand row shows steps; export filtered CSV; Backspace returns', {
 })
 
 test('KPI cards drill to cases, runs, and coverage', {
-  tag: '@VQA-295', annotation: { type: 'vulyk', description: 'VQA-295' },
+  tag: ['@VQA-309', '@VUE-84'], annotation: [{ type: 'vulyk', description: 'VQA-309' }, { type: 'vulyk', description: 'VUE-84' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await selectProject(page)

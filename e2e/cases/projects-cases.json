@@ -1,0 +1,389 @@
+{
+  "folder": "Projects & cases",
+  "cases": [
+    {
+      "id": "case-edit-keyboard-ctrl-cmd-s-does-not-preventdefault-outside-the-case-editor",
+      "key": "VUE-16",
+      "title": "Ctrl/Cmd+S does not preventDefault outside the case editor",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-edit-keyboard.spec.ts -g \"Ctrl/Cmd+S does not preventDefault outside the case editor\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-edit-keyboard.spec.ts",
+      "test": "Ctrl/Cmd+S does not preventDefault outside the case editor",
+      "external_key": "e2e:case-edit-keyboard.spec.ts Ctrl/Cmd+S does not preventDefault outside the case editor",
+      "automation_link": "e2e/tests/case-edit-keyboard.spec.ts :: Ctrl/Cmd+S does not preventDefault outside the case editor",
+      "vqa_key": "VQA-243",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-edit-keyboard-ctrl-cmd-s-saves-from-textarea-and-shows-toast-no-changes-toa",
+      "key": "VUE-17",
+      "title": "Ctrl/Cmd+S saves from textarea and shows toast; no changes toast",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-edit-keyboard.spec.ts -g \"Ctrl/Cmd+S saves from textarea and shows toast; no changes toast\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-edit-keyboard.spec.ts",
+      "test": "Ctrl/Cmd+S saves from textarea and shows toast; no changes toast",
+      "external_key": "e2e:case-edit-keyboard.spec.ts Ctrl/Cmd+S saves from textarea and shows toast; no changes toast",
+      "automation_link": "e2e/tests/case-edit-keyboard.spec.ts :: Ctrl/Cmd+S saves from textarea and shows toast; no changes toast",
+      "vqa_key": "VQA-241",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-edit-keyboard-sticky-save-cancel-bar-remains-visible-while-scrolling",
+      "key": "VUE-18",
+      "title": "sticky Save/Cancel bar remains visible while scrolling",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-edit-keyboard.spec.ts -g \"sticky Save/Cancel bar remains visible while scrolling\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-edit-keyboard.spec.ts",
+      "test": "sticky Save/Cancel bar remains visible while scrolling",
+      "external_key": "e2e:case-edit-keyboard.spec.ts sticky Save/Cancel bar remains visible while scrolling",
+      "automation_link": "e2e/tests/case-edit-keyboard.spec.ts :: sticky Save/Cancel bar remains visible while scrolling",
+      "vqa_key": "VQA-242",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-edit-keyboard-tab-in-last-expected-with-content-adds-a-step-and-focuses-act",
+      "key": "VUE-19",
+      "title": "Tab in last Expected with content adds a step and focuses Action",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-edit-keyboard.spec.ts -g \"Tab in last Expected with content adds a step and focuses Action\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-edit-keyboard.spec.ts",
+      "test": "Tab in last Expected with content adds a step and focuses Action",
+      "external_key": "e2e:case-edit-keyboard.spec.ts Tab in last Expected with content adds a step and focuses Action",
+      "automation_link": "e2e/tests/case-edit-keyboard.spec.ts :: Tab in last Expected with content adds a step and focuses Action",
+      "vqa_key": "VQA-240",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-export-pdf-case-detail-export-as-pdf-downloads-a-pdf",
+      "key": "VUE-20",
+      "title": "case detail Export as PDF downloads a PDF",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-export-pdf.spec.ts -g \"case detail Export as PDF downloads a PDF\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-export-pdf.spec.ts",
+      "test": "case detail Export as PDF downloads a PDF",
+      "external_key": "e2e:case-export-pdf.spec.ts case detail Export as PDF downloads a PDF",
+      "automation_link": "e2e/tests/case-export-pdf.spec.ts :: case detail Export as PDF downloads a PDF",
+      "vqa_key": "VQA-244",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-export-pdf-cases-list-row-and-bulk-export-download-pdf",
+      "key": "VUE-21",
+      "title": "cases list row and bulk export download PDF",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-export-pdf.spec.ts -g \"cases list row and bulk export download PDF\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-export-pdf.spec.ts",
+      "test": "cases list row and bulk export download PDF",
+      "external_key": "e2e:case-export-pdf.spec.ts cases list row and bulk export download PDF",
+      "automation_link": "e2e/tests/case-export-pdf.spec.ts :: cases list row and bulk export download PDF",
+      "vqa_key": "VQA-245",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-key-urls-case-detail-uses-key-url-uuid-redirects-copy-breadcrumbs-backspace",
+      "key": "VUE-22",
+      "title": "case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-key-urls.spec.ts -g \"case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-key-urls.spec.ts",
+      "test": "case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace",
+      "external_key": "e2e:case-key-urls.spec.ts case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace",
+      "automation_link": "e2e/tests/case-key-urls.spec.ts :: case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace",
+      "vqa_key": "VQA-246",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-key-urls-deleted-case-key-shows-case-deleted-page",
+      "key": "VUE-23",
+      "title": "deleted case key shows case deleted page",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-key-urls.spec.ts -g \"deleted case key shows case deleted page\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-key-urls.spec.ts",
+      "test": "deleted case key shows case deleted page",
+      "external_key": "e2e:case-key-urls.spec.ts deleted case key shows case deleted page",
+      "automation_link": "e2e/tests/case-key-urls.spec.ts :: deleted case key shows case deleted page",
+      "vqa_key": "VQA-247",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-list-columns-column-preferences-api-persists-per-project",
+      "key": "VUE-24",
+      "title": "column preferences API persists per project",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-list-columns.spec.ts -g \"column preferences API persists per project\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-list-columns.spec.ts",
+      "test": "column preferences API persists per project",
+      "external_key": "e2e:case-list-columns.spec.ts column preferences API persists per project",
+      "automation_link": "e2e/tests/case-list-columns.spec.ts :: column preferences API persists per project",
+      "vqa_key": "VQA-249",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-list-columns-customize-columns-hide-priority-show-automated-keyboard-reorde",
+      "key": "VUE-25",
+      "title": "customize columns: hide priority, show automated, keyboard reorder, sort, reset",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-list-columns.spec.ts -g \"customize columns: hide priority, show automated, keyboard reorder, sort, reset\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-list-columns.spec.ts",
+      "test": "customize columns: hide priority, show automated, keyboard reorder, sort, reset",
+      "external_key": "e2e:case-list-columns.spec.ts customize columns: hide priority, show automated, keyboard reorder, sort, reset",
+      "automation_link": "e2e/tests/case-list-columns.spec.ts :: customize columns: hide priority, show automated, keyboard reorder, sort, reset",
+      "vqa_key": "VQA-248",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "folder-tree-dnd-drag-case-onto-folder-moves-it",
+      "key": "VUE-39",
+      "title": "drag case onto folder moves it",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test folder-tree-dnd.spec.ts -g \"drag case onto folder moves it\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "folder-tree-dnd.spec.ts",
+      "test": "drag case onto folder moves it",
+      "external_key": "e2e:folder-tree-dnd.spec.ts drag case onto folder moves it",
+      "automation_link": "e2e/tests/folder-tree-dnd.spec.ts :: drag case onto folder moves it",
+      "vqa_key": "VQA-264",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "folder-tree-dnd-folder-tree-create-nested-rename-delete",
+      "key": "VUE-40",
+      "title": "folder tree create nested rename delete",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test folder-tree-dnd.spec.ts -g \"folder tree create nested rename delete\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "folder-tree-dnd.spec.ts",
+      "test": "folder tree create nested rename delete",
+      "external_key": "e2e:folder-tree-dnd.spec.ts folder tree create nested rename delete",
+      "automation_link": "e2e/tests/folder-tree-dnd.spec.ts :: folder tree create nested rename delete",
+      "vqa_key": "VQA-263",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "folder-tree-lazy-recursive-counts-expand-loads-100-numeric-key-order",
+      "key": "VUE-41",
+      "title": "recursive counts, expand loads 100, numeric key order",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test folder-tree-lazy.spec.ts -g \"recursive counts, expand loads 100, numeric key order\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "folder-tree-lazy.spec.ts",
+      "test": "recursive counts, expand loads 100, numeric key order",
+      "external_key": "e2e:folder-tree-lazy.spec.ts recursive counts, expand loads 100, numeric key order",
+      "automation_link": "e2e/tests/folder-tree-lazy.spec.ts :: recursive counts, expand loads 100, numeric key order",
+      "vqa_key": "VQA-265",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "projects-cases-admin-can-create-a-project-via-ui",
+      "key": "VUE-68",
+      "title": "admin can create a project via UI",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test projects-cases.spec.ts -g \"admin can create a project via UI\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "projects-cases.spec.ts",
+      "test": "admin can create a project via UI",
+      "external_key": "e2e:projects-cases.spec.ts admin can create a project via UI",
+      "automation_link": "e2e/tests/projects-cases.spec.ts :: admin can create a project via UI",
+      "vqa_key": "VQA-292",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "projects-cases-admin-can-create-a-project-with-name-only-auto-key",
+      "key": "VUE-69",
+      "title": "admin can create a project with name only (auto key)",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test projects-cases.spec.ts -g \"admin can create a project with name only (auto key)\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "projects-cases.spec.ts",
+      "test": "admin can create a project with name only (auto key)",
+      "external_key": "e2e:projects-cases.spec.ts admin can create a project with name only (auto key)",
+      "automation_link": "e2e/tests/projects-cases.spec.ts :: admin can create a project with name only (auto key)",
+      "vqa_key": "VQA-293",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "projects-cases-suite-tree-case-crud-with-steps-search-filter-bulk",
+      "key": "VUE-70",
+      "title": "suite tree, case CRUD with steps, search, filter, bulk",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test projects-cases.spec.ts -g \"suite tree, case CRUD with steps, search, filter, bulk\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "projects-cases.spec.ts",
+      "test": "suite tree, case CRUD with steps, search, filter, bulk",
+      "external_key": "e2e:projects-cases.spec.ts suite tree, case CRUD with steps, search, filter, bulk",
+      "automation_link": "e2e/tests/projects-cases.spec.ts :: suite tree, case CRUD with steps, search, filter, bulk",
+      "vqa_key": "VQA-294",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

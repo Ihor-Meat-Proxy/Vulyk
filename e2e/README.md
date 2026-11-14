@@ -75,7 +75,16 @@ export VULYK_BASE_URL=http://127.0.0.1:5173   # required for SSO callback via UI
 export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
 ```
 
-## Run
+## Run (recommended: isolated Docker)
+
+```bash
+./scripts/e2e-local.sh
+```
+
+See [`docs/guides/e2e-local.md`](../docs/guides/e2e-local.md) for `--sync` /
+`--report` / `--repeat 3`, the **VUE** project, and the coverage matrix.
+
+## Run (host API + Vite preview)
 
 ```bash
 cd e2e

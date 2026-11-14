@@ -1,0 +1,29 @@
+{
+  "folder": "Shell",
+  "cases": [
+    {
+      "id": "header-menu-gear-menu-appearance-admin-for-admin-only-logout",
+      "key": "VUE-46",
+      "title": "gear menu: appearance, admin for admin only, logout",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test header-menu.spec.ts -g \"gear menu: appearance, admin for admin only, logout\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "header-menu.spec.ts",
+      "test": "gear menu: appearance, admin for admin only, logout",
+      "external_key": "e2e:header-menu.spec.ts gear menu: appearance, admin for admin only, logout",
+      "automation_link": "e2e/tests/header-menu.spec.ts :: gear menu: appearance, admin for admin only, logout",
+      "vqa_key": "VQA-270",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

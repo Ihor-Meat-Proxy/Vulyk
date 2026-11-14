@@ -25,7 +25,7 @@ test.afterAll(() => {
 })
 
 test('setup token protection + wizard locale/timezone', {
-  tag: '@VQA-299', annotation: { type: 'vulyk', description: 'VQA-299' },
+  tag: ['@VQA-318', '@VUE-95'], annotation: [{ type: 'vulyk', description: 'VQA-318' }, { type: 'vulyk', description: 'VUE-95' }],
 }, async ({
   page,
   request,
@@ -131,9 +131,9 @@ test('setup token protection + wizard locale/timezone', {
 })
 
 test('setup CLI --help is available', {
-  tag: '@VQA-300', annotation: { type: 'vulyk', description: 'VQA-300' },
+  tag: ['@VQA-319', '@VUE-94'], annotation: [{ type: 'vulyk', description: 'VQA-319' }, { type: 'vulyk', description: 'VUE-94' }],
 }, async () => {
-  const { execFileSync } = await import('node:child_process')
+  const { execFileSync, execSync } = await import('node:child_process')
   const fs = await import('node:fs')
   const path = await import('node:path')
   const { fileURLToPath } = await import('node:url')
@@ -143,6 +143,18 @@ test('setup CLI --help is available', {
   )
   const releaseBin = path.join(repoRoot, 'target/release/vulyk-api')
   const debugBin = path.join(repoRoot, 'target/debug/vulyk-api')
+  const hasCargo = (() => {
+    try {
+      execSync('command -v cargo', { stdio: 'ignore' })
+      return true
+    } catch {
+      return false
+    }
+  })()
+  test.skip(
+    !fs.existsSync(releaseBin) && !fs.existsSync(debugBin) && !hasCargo,
+    'no vulyk-api binary or cargo in this environment (e.g. Playwright Docker image)',
+  )
   const out = fs.existsSync(releaseBin)
     ? execFileSync(releaseBin, ['setup', '--help'], {
         cwd: repoRoot,

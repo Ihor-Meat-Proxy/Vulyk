@@ -45,7 +45,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('create plan and run, execute pass/fail/blocked, attach, close', {
-  tag: '@VQA-280', annotation: { type: 'vulyk', description: 'VQA-280' },
+  tag: ['@VQA-291', '@VUE-67'], annotation: [{ type: 'vulyk', description: 'VQA-291' }, { type: 'vulyk', description: 'VUE-67' }],
 }, async ({
   page,
   request,

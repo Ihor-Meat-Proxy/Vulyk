@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-27T11:52:41.589Z",
+  "generated": "2026-11-14T20:42:12.920Z",
   "tests": [
     {
       "file": "admin-backups.spec.ts",
@@ -191,381 +191,535 @@
       "source": "fragment-new"
     },
     {
+      "file": "edge-cases.spec.ts",
+      "title": "empty project shows empty folder tree state",
+      "key": "VQA-252",
+      "external_key": "e2e:edge-cases.spec.ts empty project shows empty folder tree state",
+      "source": "fragment-new"
+    },
+    {
+      "file": "edge-cases.spec.ts",
+      "title": "long case title truncates in list but full in detail",
+      "key": "VQA-254",
+      "external_key": "e2e:edge-cases.spec.ts long case title truncates in list but full in detail",
+      "source": "fragment-new"
+    },
+    {
+      "file": "edge-cases.spec.ts",
+      "title": "unicode and special characters in case title",
+      "key": "VQA-253",
+      "external_key": "e2e:edge-cases.spec.ts unicode and special characters in case title",
+      "source": "fragment-new"
+    },
+    {
+      "file": "error-pages.spec.ts",
+      "title": "API health is reachable for the e2e stack",
+      "key": "VQA-258",
+      "external_key": "e2e:error-pages.spec.ts API health is reachable for the e2e stack",
+      "source": "fragment-new"
+    },
+    {
+      "file": "error-pages.spec.ts",
+      "title": "bad password login stays on login with error (401 path)",
+      "key": "VQA-257",
+      "external_key": "e2e:error-pages.spec.ts bad password login stays on login with error (401 path)",
+      "source": "fragment-new"
+    },
+    {
+      "file": "error-pages.spec.ts",
+      "title": "expired session redirects to login on next navigation",
+      "key": "VQA-256",
+      "external_key": "e2e:error-pages.spec.ts expired session redirects to login on next navigation",
+      "source": "fragment-new"
+    },
+    {
+      "file": "error-pages.spec.ts",
+      "title": "unknown case key shows not-found state",
+      "key": "VQA-255",
+      "external_key": "e2e:error-pages.spec.ts unknown case key shows not-found state",
+      "source": "fragment-new"
+    },
+    {
+      "file": "execution-steps.spec.ts",
+      "title": "execution page records step results and status colours",
+      "key": "VQA-259",
+      "external_key": "e2e:execution-steps.spec.ts execution page records step results and status colours",
+      "source": "fragment-new"
+    },
+    {
+      "file": "execution-steps.spec.ts",
+      "title": "runs list shows status badges for open run",
+      "key": "VQA-260",
+      "external_key": "e2e:execution-steps.spec.ts runs list shows status badges for open run",
+      "source": "fragment-new"
+    },
+    {
       "file": "executions.spec.ts",
       "title": "case executions tab shows history sparkline",
-      "key": "VQA-253",
+      "key": "VQA-262",
       "external_key": "e2e:executions.spec.ts case executions tab shows history sparkline",
       "source": "fragment-new"
     },
     {
       "file": "executions.spec.ts",
       "title": "executions tree, dashboard, suites drawer",
-      "key": "VQA-252",
+      "key": "VQA-261",
       "external_key": "e2e:executions.spec.ts executions tree, dashboard, suites drawer",
+      "source": "fragment-new"
+    },
+    {
+      "file": "folder-tree-dnd.spec.ts",
+      "title": "drag case onto folder moves it",
+      "key": "VQA-264",
+      "external_key": "e2e:folder-tree-dnd.spec.ts drag case onto folder moves it",
+      "source": "fragment-new"
+    },
+    {
+      "file": "folder-tree-dnd.spec.ts",
+      "title": "folder tree create nested rename delete",
+      "key": "VQA-263",
+      "external_key": "e2e:folder-tree-dnd.spec.ts folder tree create nested rename delete",
       "source": "fragment-new"
     },
     {
       "file": "folder-tree-lazy.spec.ts",
       "title": "recursive counts, expand loads 100, numeric key order",
-      "key": "VQA-254",
+      "key": "VQA-265",
       "external_key": "e2e:folder-tree-lazy.spec.ts recursive counts, expand loads 100, numeric key order",
       "source": "fragment-new"
     },
     {
       "file": "forced-password-change.spec.ts",
       "title": "short legacy password signs in then forces 16+ change",
-      "key": "VQA-255",
+      "key": "VQA-266",
       "external_key": "e2e:forced-password-change.spec.ts short legacy password signs in then forces 16+ change",
       "source": "fragment-new"
     },
     {
       "file": "generate-automation.spec.ts",
       "title": "Admin Integrations shows Automation repo controls",
-      "key": "VQA-258",
+      "key": "VQA-269",
       "external_key": "e2e:generate-automation.spec.ts Admin Integrations shows Automation repo controls",
       "source": "fragment-new"
     },
     {
       "file": "generate-automation.spec.ts",
       "title": "Cases page bulk action opens Generate with selection",
-      "key": "VQA-257",
+      "key": "VQA-268",
       "external_key": "e2e:generate-automation.spec.ts Cases page bulk action opens Generate with selection",
       "source": "fragment-new"
     },
     {
       "file": "generate-automation.spec.ts",
       "title": "Generate page: model dropdown, case picker, stubbed LLM code",
-      "key": "VQA-256",
+      "key": "VQA-267",
       "external_key": "e2e:generate-automation.spec.ts Generate page: model dropdown, case picker, stubbed LLM code",
       "source": "fragment-new"
     },
     {
       "file": "header-menu.spec.ts",
       "title": "gear menu: appearance, admin for admin only, logout",
-      "key": "VQA-259",
+      "key": "VQA-270",
       "external_key": "e2e:header-menu.spec.ts gear menu: appearance, admin for admin only, logout",
       "source": "fragment-new"
     },
     {
       "file": "imports-reports.spec.ts",
       "title": "import TestLink, Xray, Squash TM samples",
-      "key": "VQA-261",
+      "key": "VQA-272",
       "external_key": "e2e:imports-reports.spec.ts import TestLink, Xray, Squash TM samples",
       "source": "fragment-new"
     },
     {
       "file": "imports-reports.spec.ts",
       "title": "JUnit upload via API token",
-      "key": "VQA-260",
+      "key": "VQA-271",
       "external_key": "e2e:imports-reports.spec.ts JUnit upload via API token",
       "source": "fragment-new"
     },
     {
       "file": "imports-reports.spec.ts",
       "title": "reports page and CSV export",
-      "key": "VQA-263",
+      "key": "VQA-274",
       "external_key": "e2e:imports-reports.spec.ts reports page and CSV export",
       "source": "fragment-new"
     },
     {
       "file": "imports-reports.spec.ts",
       "title": "requirements can be created",
-      "key": "VQA-262",
+      "key": "VQA-273",
       "external_key": "e2e:imports-reports.spec.ts requirements can be created",
       "source": "fragment-new"
     },
     {
       "file": "integrations-llm.spec.ts",
       "title": "CI trigger config page",
-      "key": "VQA-265",
+      "key": "VQA-276",
       "external_key": "e2e:integrations-llm.spec.ts CI trigger config page",
       "source": "fragment-new"
     },
     {
       "file": "integrations-llm.spec.ts",
       "title": "integrations + LLM settings pages (mock LLM)",
-      "key": "VQA-264",
+      "key": "VQA-275",
       "external_key": "e2e:integrations-llm.spec.ts integrations + LLM settings pages (mock LLM)",
       "source": "fragment-new"
     },
     {
       "file": "llm-chat.spec.ts",
       "title": "chat shows provider/model; project key optional; global default resolves",
-      "key": "VQA-266",
+      "key": "VQA-277",
       "external_key": "e2e:llm-chat.spec.ts chat shows provider/model; project key optional; global default resolves",
       "source": "fragment-new"
     },
     {
       "file": "llm-chat.spec.ts",
       "title": "chat surfaces provider errors instead of silent mock",
-      "key": "VQA-267",
+      "key": "VQA-278",
       "external_key": "e2e:llm-chat.spec.ts chat surfaces provider errors instead of silent mock",
       "source": "fragment-new"
     },
     {
       "file": "locale-switch.spec.ts",
       "title": "anonymous login page keeps locale from localStorage",
-      "key": "VQA-270",
+      "key": "VQA-281",
       "external_key": "e2e:locale-switch.spec.ts anonymous login page keeps locale from localStorage",
       "source": "fragment-new"
     },
     {
       "file": "locale-switch.spec.ts",
       "title": "API errors still display under non-English locale",
-      "key": "VQA-272",
+      "key": "VQA-283",
       "external_key": "e2e:locale-switch.spec.ts API errors still display under non-English locale",
       "source": "fragment-new"
     },
     {
       "file": "locale-switch.spec.ts",
       "title": "Cases nav remains reachable under each locale",
-      "key": "VQA-271",
+      "key": "VQA-282",
       "external_key": "e2e:locale-switch.spec.ts Cases nav remains reachable under each locale",
       "source": "fragment-new"
     },
     {
       "file": "locale-switch.spec.ts",
       "title": "globe menu lists locales and switches via entity keys",
-      "key": "VQA-268",
+      "key": "VQA-279",
       "external_key": "e2e:locale-switch.spec.ts globe menu lists locales and switches via entity keys",
       "source": "fragment-new"
     },
     {
       "file": "locale-switch.spec.ts",
       "title": "locale persists for signed-in user and in localStorage",
-      "key": "VQA-269",
+      "key": "VQA-280",
       "external_key": "e2e:locale-switch.spec.ts locale persists for signed-in user and in localStorage",
       "source": "fragment-new"
     },
     {
       "file": "multi-repo-ci-ingest.spec.ts",
       "title": "add two automation repos linked to one project",
-      "key": "VQA-273",
+      "key": "VQA-284",
       "external_key": "e2e:multi-repo-ci-ingest.spec.ts add two automation repos linked to one project",
       "source": "fragment-new"
     },
     {
       "file": "multi-repo-ci-ingest.spec.ts",
       "title": "CI open results close for two repo pipelines",
-      "key": "VQA-275",
+      "key": "VQA-286",
       "external_key": "e2e:multi-repo-ci-ingest.spec.ts CI open results close for two repo pipelines",
       "source": "fragment-new"
     },
     {
       "file": "multi-repo-ci-ingest.spec.ts",
       "title": "create project CI token and reveal secret once",
-      "key": "VQA-274",
+      "key": "VQA-285",
       "external_key": "e2e:multi-repo-ci-ingest.spec.ts create project CI token and reveal secret once",
       "source": "fragment-new"
     },
     {
       "file": "multi-repo-ci-ingest.spec.ts",
       "title": "JUnit ingest maps test_key property to case",
-      "key": "VQA-276",
+      "key": "VQA-287",
       "external_key": "e2e:multi-repo-ci-ingest.spec.ts JUnit ingest maps test_key property to case",
       "source": "fragment-new"
     },
     {
       "file": "password-policy-lockout.spec.ts",
       "title": "auth status exposes password policy min length",
-      "key": "VQA-277",
+      "key": "VQA-288",
       "external_key": "e2e:password-policy-lockout.spec.ts auth status exposes password policy min length",
       "source": "fragment-new"
     },
     {
       "file": "password-policy-lockout.spec.ts",
       "title": "registration rejects weak password below policy",
-      "key": "VQA-278",
+      "key": "VQA-289",
       "external_key": "e2e:password-policy-lockout.spec.ts registration rejects weak password below policy",
       "source": "fragment-new"
     },
     {
       "file": "password-policy-lockout.spec.ts",
       "title": "repeated failed logins lock out then recover",
-      "key": "VQA-279",
+      "key": "VQA-290",
       "external_key": "e2e:password-policy-lockout.spec.ts repeated failed logins lock out then recover",
       "source": "fragment-new"
     },
     {
       "file": "plans-runs.spec.ts",
       "title": "create plan and run, execute pass/fail/blocked, attach, close",
-      "key": "VQA-280",
+      "key": "VQA-291",
       "external_key": "e2e:plans-runs.spec.ts create plan and run, execute pass/fail/blocked, attach, close",
       "source": "fragment-new"
     },
     {
       "file": "projects-cases.spec.ts",
       "title": "admin can create a project via UI",
-      "key": "VQA-281",
+      "key": "VQA-292",
       "external_key": "e2e:projects-cases.spec.ts admin can create a project via UI",
       "source": "fragment-new"
     },
     {
       "file": "projects-cases.spec.ts",
       "title": "admin can create a project with name only (auto key)",
-      "key": "VQA-282",
+      "key": "VQA-293",
       "external_key": "e2e:projects-cases.spec.ts admin can create a project with name only (auto key)",
       "source": "fragment-new"
     },
     {
       "file": "projects-cases.spec.ts",
       "title": "suite tree, case CRUD with steps, search, filter, bulk",
-      "key": "VQA-283",
+      "key": "VQA-294",
       "external_key": "e2e:projects-cases.spec.ts suite tree, case CRUD with steps, search, filter, bulk",
       "source": "fragment-new"
     },
     {
       "file": "pwa-mobile.spec.ts",
       "title": "bottom nav, folders drawer, and stacked case flow",
-      "key": "VQA-284",
+      "key": "VQA-295",
       "external_key": "e2e:pwa-mobile.spec.ts bottom nav, folders drawer, and stacked case flow",
       "source": "fragment-new"
     },
     {
       "file": "pwa-mobile.spec.ts",
       "title": "offline fallback document is served",
-      "key": "VQA-286",
+      "key": "VQA-297",
       "external_key": "e2e:pwa-mobile.spec.ts offline fallback document is served",
       "source": "fragment-new"
     },
     {
       "file": "pwa-mobile.spec.ts",
       "title": "web app manifest and service worker are present",
-      "key": "VQA-285",
+      "key": "VQA-296",
       "external_key": "e2e:pwa-mobile.spec.ts web app manifest and service worker are present",
+      "source": "fragment-new"
+    },
+    {
+      "file": "rbac-roles-matrix.spec.ts",
+      "title": "developer can open cases UI but not admin",
+      "key": "VQA-299",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts developer can open cases UI but not admin",
+      "source": "fragment-new"
+    },
+    {
+      "file": "rbac-roles-matrix.spec.ts",
+      "title": "role matrix: mutate case allowed or denied per role",
+      "key": "VQA-298",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts role matrix: mutate case allowed or denied per role",
+      "source": "fragment-new"
+    },
+    {
+      "file": "rbac-roles-matrix.spec.ts",
+      "title": "viewer cannot open import page",
+      "key": "VQA-300",
+      "external_key": "e2e:rbac-roles-matrix.spec.ts viewer cannot open import page",
       "source": "fragment-new"
     },
     {
       "file": "rbac.spec.ts",
       "title": "admin sees admin nav and can list users",
-      "key": "VQA-288",
+      "key": "VQA-302",
       "external_key": "e2e:rbac.spec.ts admin sees admin nav and can list users",
       "source": "fragment-new"
     },
     {
       "file": "rbac.spec.ts",
       "title": "viewer is denied mutating APIs and hides write UI",
-      "key": "VQA-287",
+      "key": "VQA-301",
       "external_key": "e2e:rbac.spec.ts viewer is denied mutating APIs and hides write UI",
       "source": "fragment-new"
     },
     {
       "file": "registration-sso.spec.ts",
       "title": "registration disabled hides create-account (when not forced open)",
-      "key": "VQA-290",
+      "key": "VQA-304",
       "external_key": "e2e:registration-sso.spec.ts registration disabled hides create-account (when not forced open)",
       "source": "fragment-new"
     },
     {
       "file": "registration-sso.spec.ts",
       "title": "registration open flow creates an account",
-      "key": "VQA-289",
+      "key": "VQA-303",
       "external_key": "e2e:registration-sso.spec.ts registration open flow creates an account",
       "source": "fragment-new"
     },
     {
       "file": "registration-sso.spec.ts",
       "title": "SSO via mock OIDC",
-      "key": "VQA-291",
+      "key": "VQA-305",
       "external_key": "e2e:registration-sso.spec.ts SSO via mock OIDC",
       "source": "fragment-new"
     },
     {
       "file": "reports-drilldown.spec.ts",
       "title": "expand row shows steps; export filtered CSV; Backspace returns",
-      "key": "VQA-294",
+      "key": "VQA-308",
       "external_key": "e2e:reports-drilldown.spec.ts expand row shows steps; export filtered CSV; Backspace returns",
       "source": "fragment-new"
     },
     {
       "file": "reports-drilldown.spec.ts",
       "title": "failed bar segment pre-filters results",
-      "key": "VQA-293",
+      "key": "VQA-307",
       "external_key": "e2e:reports-drilldown.spec.ts failed bar segment pre-filters results",
       "source": "fragment-new"
     },
     {
       "file": "reports-drilldown.spec.ts",
       "title": "KPI cards drill to cases, runs, and coverage",
-      "key": "VQA-295",
+      "key": "VQA-309",
       "external_key": "e2e:reports-drilldown.spec.ts KPI cards drill to cases, runs, and coverage",
       "source": "fragment-new"
     },
     {
       "file": "reports-drilldown.spec.ts",
       "title": "summary card opens run report with breadcrumbs",
-      "key": "VQA-292",
+      "key": "VQA-306",
       "external_key": "e2e:reports-drilldown.spec.ts summary card opens run report with breadcrumbs",
+      "source": "fragment-new"
+    },
+    {
+      "file": "requirements-coverage.spec.ts",
+      "title": "coverage page lists covered and uncovered",
+      "key": "VQA-311",
+      "external_key": "e2e:requirements-coverage.spec.ts coverage page lists covered and uncovered",
+      "source": "fragment-new"
+    },
+    {
+      "file": "requirements-coverage.spec.ts",
+      "title": "create requirement and link from case detail",
+      "key": "VQA-310",
+      "external_key": "e2e:requirements-coverage.spec.ts create requirement and link from case detail",
       "source": "fragment-new"
     },
     {
       "file": "result-history.spec.ts",
       "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
-      "key": "VQA-296",
+      "key": "VQA-312",
       "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
       "source": "fragment-new"
     },
     {
       "file": "sample-project.spec.ts",
       "title": "Kyiv concert sample project, suites, cases, and two runs exist",
-      "key": "VQA-297",
+      "key": "VQA-313",
       "external_key": "e2e:sample-project.spec.ts Kyiv concert sample project, suites, cases, and two runs exist",
       "source": "fragment-new"
     },
     {
       "file": "sample-project.spec.ts",
       "title": "Vulyk QA sample project and area folders appear",
-      "key": "VQA-298",
+      "key": "VQA-314",
       "external_key": "e2e:sample-project.spec.ts Vulyk QA sample project and area folders appear",
+      "source": "fragment-new"
+    },
+    {
+      "file": "settings-profile-tokens.spec.ts",
+      "title": "settings change-password rejects short password",
+      "key": "VQA-316",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings change-password rejects short password",
+      "source": "fragment-new"
+    },
+    {
+      "file": "settings-profile-tokens.spec.ts",
+      "title": "settings notify prefs toggles persist after reload",
+      "key": "VQA-317",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings notify prefs toggles persist after reload",
+      "source": "fragment-new"
+    },
+    {
+      "file": "settings-profile-tokens.spec.ts",
+      "title": "settings profile save + personal API token create",
+      "key": "VQA-315",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings profile save + personal API token create",
       "source": "fragment-new"
     },
     {
       "file": "setup-wizard.spec.ts",
       "title": "setup CLI --help is available",
-      "key": "VQA-300",
+      "key": "VQA-319",
       "external_key": "e2e:setup-wizard.spec.ts setup CLI --help is available",
       "source": "fragment-new"
     },
     {
       "file": "setup-wizard.spec.ts",
       "title": "setup token protection + wizard locale/timezone",
-      "key": "VQA-299",
+      "key": "VQA-318",
       "external_key": "e2e:setup-wizard.spec.ts setup token protection + wizard locale/timezone",
       "source": "fragment-new"
     },
     {
       "file": "smoke.spec.ts",
       "title": "smoke: login → case → run → junit → import → report",
-      "key": "VQA-301",
+      "key": "VQA-320",
       "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
       "source": "fragment-new"
     },
     {
       "file": "status-sample.spec.ts",
       "title": "Admin sample data section is visible under Settings",
-      "key": "VQA-304",
+      "key": "VQA-323",
       "external_key": "e2e:status-sample.spec.ts Admin sample data section is visible under Settings",
       "source": "fragment-new"
     },
     {
       "file": "status-sample.spec.ts",
       "title": "Runs list Status column uses status-badge testids with translated labels",
-      "key": "VQA-303",
+      "key": "VQA-322",
       "external_key": "e2e:status-sample.spec.ts Runs list Status column uses status-badge testids with translated labels",
       "source": "fragment-new"
     },
     {
       "file": "status-sample.spec.ts",
       "title": "sample nightly suites have varied statuses and Sample CI creator",
-      "key": "VQA-302",
+      "key": "VQA-321",
       "external_key": "e2e:status-sample.spec.ts sample nightly suites have varied statuses and Sample CI creator",
       "source": "fragment-new"
     },
     {
       "file": "test-id-audit.spec.ts",
       "title": "login + app shell attrs are unique and non-sensitive",
-      "key": "VQA-305",
+      "key": "VQA-324",
       "external_key": "e2e:test-id-audit.spec.ts login + app shell attrs are unique and non-sensitive",
+      "source": "fragment-new"
+    },
+    {
+      "file": "users-admin.spec.ts",
+      "title": "admin creates user and assigns project role",
+      "key": "VQA-325",
+      "external_key": "e2e:users-admin.spec.ts admin creates user and assigns project role",
+      "source": "fragment-new"
+    },
+    {
+      "file": "users-admin.spec.ts",
+      "title": "admin sample data section is visible",
+      "key": "VQA-326",
+      "external_key": "e2e:users-admin.spec.ts admin sample data section is visible",
+      "source": "fragment-new"
+    },
+    {
+      "file": "users-admin.spec.ts",
+      "title": "admin SSO tab lists providers panel",
+      "key": "VQA-327",
+      "external_key": "e2e:users-admin.spec.ts admin SSO tab lists providers panel",
       "source": "fragment-new"
     }
   ]

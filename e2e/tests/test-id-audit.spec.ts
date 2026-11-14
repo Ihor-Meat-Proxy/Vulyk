@@ -86,6 +86,19 @@ async function collectTestAttrIssues(page: Page): Promise<string[]> {
         'case-row-custom-field',
         'header-language-item',
         'login-sso-button',
+        'appearance-font-family-item',
+        'appearance-font-size-item',
+        'appearance-status-preview',
+        'status-badge',
+        'run-row-name',
+        'run-row-link',
+        'run-row-status',
+        'runs-page-status-badge',
+        'admin-sso-row',
+        'settings-ci-token-row',
+        'settings-automation-repo-row',
+        'admin-backups-dest-row',
+        'admin-backups-run-status',
       ])
       for (const [id, count] of seen) {
         if (count <= 1) continue
@@ -130,7 +143,7 @@ test.describe('test id audit', () => {
   })
 
   test('login + app shell attrs are unique and non-sensitive', {
-  tag: '@VQA-305', annotation: { type: 'vulyk', description: 'VQA-305' },
+  tag: ['@VQA-324', '@VUE-100'], annotation: [{ type: 'vulyk', description: 'VQA-324' }, { type: 'vulyk', description: 'VUE-100' }],
 }, async ({
     page,
   }) => {

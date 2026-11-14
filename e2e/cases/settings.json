@@ -1,0 +1,317 @@
+{
+  "folder": "Settings",
+  "cases": [
+    {
+      "id": "appearance-axe-accessibility-scan-per-theme",
+      "key": "VUE-7",
+      "title": "axe accessibility scan per theme",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test appearance.spec.ts -g \"axe accessibility scan per theme\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "appearance.spec.ts",
+      "test": "axe accessibility scan per theme",
+      "external_key": "e2e:appearance.spec.ts axe accessibility scan per theme",
+      "automation_link": "e2e/tests/appearance.spec.ts :: axe accessibility scan per theme",
+      "vqa_key": "VQA-234",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
+    },
+    {
+      "id": "appearance-font-size-and-density-apply-to-document",
+      "key": "VUE-8",
+      "title": "font size and density apply to document",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test appearance.spec.ts -g \"font size and density apply to document\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "appearance.spec.ts",
+      "test": "font size and density apply to document",
+      "external_key": "e2e:appearance.spec.ts font size and density apply to document",
+      "automation_link": "e2e/tests/appearance.spec.ts :: font size and density apply to document",
+      "vqa_key": "VQA-235",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "appearance-persists-theme-after-logout-and-login",
+      "key": "VUE-9",
+      "title": "persists theme after logout and login",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test appearance.spec.ts -g \"persists theme after logout and login\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "appearance.spec.ts",
+      "test": "persists theme after logout and login",
+      "external_key": "e2e:appearance.spec.ts persists theme after logout and login",
+      "automation_link": "e2e/tests/appearance.spec.ts :: persists theme after logout and login",
+      "vqa_key": "VQA-232",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "appearance-status-badges-show-icon-and-label",
+      "key": "VUE-10",
+      "title": "status badges show icon and label",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test appearance.spec.ts -g \"status badges show icon and label\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "appearance.spec.ts",
+      "test": "status badges show icon and label",
+      "external_key": "e2e:appearance.spec.ts status badges show icon and label",
+      "automation_link": "e2e/tests/appearance.spec.ts :: status badges show icon and label",
+      "vqa_key": "VQA-233",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "appearance-switches-each-theme-and-persists-after-reload",
+      "key": "VUE-11",
+      "title": "switches each theme and persists after reload",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test appearance.spec.ts -g \"switches each theme and persists after reload\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "appearance.spec.ts",
+      "test": "switches each theme and persists after reload",
+      "external_key": "e2e:appearance.spec.ts switches each theme and persists after reload",
+      "automation_link": "e2e/tests/appearance.spec.ts :: switches each theme and persists after reload",
+      "vqa_key": "VQA-231",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "locale-switch-anonymous-login-page-keeps-locale-from-localstorage",
+      "key": "VUE-55",
+      "title": "anonymous login page keeps locale from localStorage",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test locale-switch.spec.ts -g \"anonymous login page keeps locale from localStorage\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "locale-switch.spec.ts",
+      "test": "anonymous login page keeps locale from localStorage",
+      "external_key": "e2e:locale-switch.spec.ts anonymous login page keeps locale from localStorage",
+      "automation_link": "e2e/tests/locale-switch.spec.ts :: anonymous login page keeps locale from localStorage",
+      "vqa_key": "VQA-281",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "locale-switch-api-errors-still-display-under-non-english-locale",
+      "key": "VUE-56",
+      "title": "API errors still display under non-English locale",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test locale-switch.spec.ts -g \"API errors still display under non-English locale\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "locale-switch.spec.ts",
+      "test": "API errors still display under non-English locale",
+      "external_key": "e2e:locale-switch.spec.ts API errors still display under non-English locale",
+      "automation_link": "e2e/tests/locale-switch.spec.ts :: API errors still display under non-English locale",
+      "vqa_key": "VQA-283",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "locale-switch-cases-nav-remains-reachable-under-each-locale",
+      "key": "VUE-57",
+      "title": "Cases nav remains reachable under each locale",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test locale-switch.spec.ts -g \"Cases nav remains reachable under each locale\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "locale-switch.spec.ts",
+      "test": "Cases nav remains reachable under each locale",
+      "external_key": "e2e:locale-switch.spec.ts Cases nav remains reachable under each locale",
+      "automation_link": "e2e/tests/locale-switch.spec.ts :: Cases nav remains reachable under each locale",
+      "vqa_key": "VQA-282",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "locale-switch-globe-menu-lists-locales-and-switches-via-entity-keys",
+      "key": "VUE-58",
+      "title": "globe menu lists locales and switches via entity keys",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test locale-switch.spec.ts -g \"globe menu lists locales and switches via entity keys\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "locale-switch.spec.ts",
+      "test": "globe menu lists locales and switches via entity keys",
+      "external_key": "e2e:locale-switch.spec.ts globe menu lists locales and switches via entity keys",
+      "automation_link": "e2e/tests/locale-switch.spec.ts :: globe menu lists locales and switches via entity keys",
+      "vqa_key": "VQA-279",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "locale-switch-locale-persists-for-signed-in-user-and-in-localstorage",
+      "key": "VUE-59",
+      "title": "locale persists for signed-in user and in localStorage",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test locale-switch.spec.ts -g \"locale persists for signed-in user and in localStorage\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "locale-switch.spec.ts",
+      "test": "locale persists for signed-in user and in localStorage",
+      "external_key": "e2e:locale-switch.spec.ts locale persists for signed-in user and in localStorage",
+      "automation_link": "e2e/tests/locale-switch.spec.ts :: locale persists for signed-in user and in localStorage",
+      "vqa_key": "VQA-280",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "settings-profile-tokens-settings-change-password-rejects-short-password",
+      "key": "VUE-91",
+      "title": "settings change-password rejects short password",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test settings-profile-tokens.spec.ts -g \"settings change-password rejects short password\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "settings-profile-tokens.spec.ts",
+      "test": "settings change-password rejects short password",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings change-password rejects short password",
+      "automation_link": "e2e/tests/settings-profile-tokens.spec.ts :: settings change-password rejects short password",
+      "vqa_key": "VQA-316",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "settings-profile-tokens-settings-notify-prefs-toggles-persist-after-reload",
+      "key": "VUE-92",
+      "title": "settings notify prefs toggles persist after reload",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test settings-profile-tokens.spec.ts -g \"settings notify prefs toggles persist after reload\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "settings-profile-tokens.spec.ts",
+      "test": "settings notify prefs toggles persist after reload",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings notify prefs toggles persist after reload",
+      "automation_link": "e2e/tests/settings-profile-tokens.spec.ts :: settings notify prefs toggles persist after reload",
+      "vqa_key": "VQA-317",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "settings-profile-tokens-settings-profile-save-personal-api-token-create",
+      "key": "VUE-93",
+      "title": "settings profile save + personal API token create",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test settings-profile-tokens.spec.ts -g \"settings profile save + personal API token create\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "settings-profile-tokens.spec.ts",
+      "test": "settings profile save + personal API token create",
+      "external_key": "e2e:settings-profile-tokens.spec.ts settings profile save + personal API token create",
+      "automation_link": "e2e/tests/settings-profile-tokens.spec.ts :: settings profile save + personal API token create",
+      "vqa_key": "VQA-315",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

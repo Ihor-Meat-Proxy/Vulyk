@@ -1,0 +1,53 @@
+{
+  "folder": "Requirements",
+  "cases": [
+    {
+      "id": "requirements-coverage-coverage-page-lists-covered-and-uncovered",
+      "key": "VUE-86",
+      "title": "coverage page lists covered and uncovered",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test requirements-coverage.spec.ts -g \"coverage page lists covered and uncovered\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "requirements-coverage.spec.ts",
+      "test": "coverage page lists covered and uncovered",
+      "external_key": "e2e:requirements-coverage.spec.ts coverage page lists covered and uncovered",
+      "automation_link": "e2e/tests/requirements-coverage.spec.ts :: coverage page lists covered and uncovered",
+      "vqa_key": "VQA-311",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "requirements-coverage-create-requirement-and-link-from-case-detail",
+      "key": "VUE-87",
+      "title": "create requirement and link from case detail",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test requirements-coverage.spec.ts -g \"create requirement and link from case detail\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "requirements-coverage.spec.ts",
+      "test": "create requirement and link from case detail",
+      "external_key": "e2e:requirements-coverage.spec.ts create requirement and link from case detail",
+      "automation_link": "e2e/tests/requirements-coverage.spec.ts :: create requirement and link from case detail",
+      "vqa_key": "VQA-310",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

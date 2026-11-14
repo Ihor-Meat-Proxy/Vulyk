@@ -62,6 +62,17 @@ See `backend/seed/vulyk-qa.d/README.md` and `docs/ci-failures.md`.
 - Run `npm run check:test-ids` (frontend) and keep `e2e/tests/test-id-audit.spec.ts` green.
 - Avoid `getByText` for controls that exist more than once (toasts, “Save”, folder labels) — that causes strict-mode failures when sibling PRs duplicate UI.
 
+### UI feature PRs must extend e2e
+
+When a PR adds or changes a **user-visible UI flow**:
+
+1. Add or update a Playwright spec under `e2e/tests/` (page objects in `e2e/pages/`).
+2. Tag the test with Vulyk case keys (`@VQA-N` for the sample seed **and** `@VUE-N` for the dedicated UI e2e project).
+3. Refresh case sources:
+   - `node e2e/scripts/sync-vulyk-case-links.mjs` (VQA seed fragment)
+   - `node e2e/scripts/generate-vue-cases.mjs --annotate` (committed `e2e/cases/*.json`)
+4. Prefer local Docker: `./scripts/e2e-local.sh` (see [docs/guides/e2e-local.md](docs/guides/e2e-local.md)). Do **not** add new required CI jobs for this suite without an explicit decision.
+
 ## API route coverage
 
 - `ApiDoc::openapi()` is the canonical operation inventory; every Axum

@@ -1,0 +1,125 @@
+{
+  "folder": "Executions",
+  "cases": [
+    {
+      "id": "execution-steps-execution-page-records-step-results-and-status-colours",
+      "key": "VUE-35",
+      "title": "execution page records step results and status colours",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test execution-steps.spec.ts -g \"execution page records step results and status colours\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "execution-steps.spec.ts",
+      "test": "execution page records step results and status colours",
+      "external_key": "e2e:execution-steps.spec.ts execution page records step results and status colours",
+      "automation_link": "e2e/tests/execution-steps.spec.ts :: execution page records step results and status colours",
+      "vqa_key": "VQA-259",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "execution-steps-runs-list-shows-status-badges-for-open-run",
+      "key": "VUE-36",
+      "title": "runs list shows status badges for open run",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test execution-steps.spec.ts -g \"runs list shows status badges for open run\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "execution-steps.spec.ts",
+      "test": "runs list shows status badges for open run",
+      "external_key": "e2e:execution-steps.spec.ts runs list shows status badges for open run",
+      "automation_link": "e2e/tests/execution-steps.spec.ts :: runs list shows status badges for open run",
+      "vqa_key": "VQA-260",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "executions-case-executions-tab-shows-history-sparkline",
+      "key": "VUE-37",
+      "title": "case executions tab shows history sparkline",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test executions.spec.ts -g \"case executions tab shows history sparkline\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "executions.spec.ts",
+      "test": "case executions tab shows history sparkline",
+      "external_key": "e2e:executions.spec.ts case executions tab shows history sparkline",
+      "automation_link": "e2e/tests/executions.spec.ts :: case executions tab shows history sparkline",
+      "vqa_key": "VQA-262",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "executions-executions-tree-dashboard-suites-drawer",
+      "key": "VUE-38",
+      "title": "executions tree, dashboard, suites drawer",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test executions.spec.ts -g \"executions tree, dashboard, suites drawer\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "executions.spec.ts",
+      "test": "executions tree, dashboard, suites drawer",
+      "external_key": "e2e:executions.spec.ts executions tree, dashboard, suites drawer",
+      "automation_link": "e2e/tests/executions.spec.ts :: executions tree, dashboard, suites drawer",
+      "vqa_key": "VQA-261",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "result-history-mark-passed-failed-blocked-skipped-timeline-and-case-history-tab",
+      "key": "VUE-88",
+      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test result-history.spec.ts -g \"mark Passed→Failed→Blocked→Skipped; timeline and case History tab\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "result-history.spec.ts",
+      "test": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "vqa_key": "VQA-312",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

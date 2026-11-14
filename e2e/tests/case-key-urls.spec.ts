@@ -49,7 +49,7 @@ async function selectProject(page: import('@playwright/test').Page) {
 }
 
 test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace', {
-  tag: '@VQA-246', annotation: { type: 'vulyk', description: 'VQA-246' },
+  tag: ['@VQA-246', '@VUE-22'], annotation: [{ type: 'vulyk', description: 'VQA-246' }, { type: 'vulyk', description: 'VUE-22' }],
 }, async ({
   page,
   context,
@@ -100,7 +100,7 @@ test('case detail uses key URL; UUID redirects; copy + breadcrumbs + backspace',
 })
 
 test('deleted case key shows case deleted page', {
-  tag: '@VQA-247', annotation: { type: 'vulyk', description: 'VQA-247' },
+  tag: ['@VQA-247', '@VUE-23'], annotation: [{ type: 'vulyk', description: 'VQA-247' }, { type: 'vulyk', description: 'VUE-23' }],
 }, async ({ page, request }) => {
   const doomedTitle = `Doomed ${projectKey}`
   const created = await createCase(request, adminToken, projectId, {

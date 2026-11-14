@@ -17,7 +17,7 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 test.describe.configure({ mode: 'serial' })
 
 test('gear menu: appearance, admin for admin only, logout', {
-  tag: '@VQA-259', annotation: { type: 'vulyk', description: 'VQA-259' },
+  tag: ['@VQA-270', '@VUE-46'], annotation: [{ type: 'vulyk', description: 'VQA-270' }, { type: 'vulyk', description: 'VUE-46' }],
 }, async ({
   page,
   request,

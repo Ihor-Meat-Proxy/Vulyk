@@ -1,0 +1,221 @@
+{
+  "folder": "Admin",
+  "cases": [
+    {
+      "id": "admin-backups-create-local-destination-back-up-now-see-restore-preview",
+      "key": "VUE-1",
+      "title": "create local destination, back up now, see restore preview",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-backups.spec.ts -g \"create local destination, back up now, see restore preview\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-backups.spec.ts",
+      "test": "create local destination, back up now, see restore preview",
+      "external_key": "e2e:admin-backups.spec.ts create local destination, back up now, see restore preview",
+      "automation_link": "e2e/tests/admin-backups.spec.ts :: create local destination, back up now, see restore preview",
+      "vqa_key": "VQA-225",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "admin-custom-fields-admin-lists-custom-fields-and-config-export",
+      "key": "VUE-2",
+      "title": "admin lists, custom fields, and config export",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-custom-fields.spec.ts -g \"admin lists, custom fields, and config export\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-custom-fields.spec.ts",
+      "test": "admin lists, custom fields, and config export",
+      "external_key": "e2e:admin-custom-fields.spec.ts admin lists, custom fields, and config export",
+      "automation_link": "e2e/tests/admin-custom-fields.spec.ts :: admin lists, custom fields, and config export",
+      "vqa_key": "VQA-226",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "admin-updates-rollback-manual-install-and-rollback-commands-without-sidecar",
+      "key": "VUE-3",
+      "title": "manual install and rollback commands without sidecar",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-updates-rollback.spec.ts -g \"manual install and rollback commands without sidecar\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-updates-rollback.spec.ts",
+      "test": "manual install and rollback commands without sidecar",
+      "external_key": "e2e:admin-updates-rollback.spec.ts manual install and rollback commands without sidecar",
+      "automation_link": "e2e/tests/admin-updates-rollback.spec.ts :: manual install and rollback commands without sidecar",
+      "vqa_key": "VQA-228",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "admin-updates-rollback-save-update-check-interval-preference",
+      "key": "VUE-4",
+      "title": "save update check interval preference",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-updates-rollback.spec.ts -g \"save update check interval preference\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-updates-rollback.spec.ts",
+      "test": "save update check interval preference",
+      "external_key": "e2e:admin-updates-rollback.spec.ts save update check interval preference",
+      "automation_link": "e2e/tests/admin-updates-rollback.spec.ts :: save update check interval preference",
+      "vqa_key": "VQA-229",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "admin-updates-rollback-updates-tab-shows-version-and-check-control",
+      "key": "VUE-5",
+      "title": "Updates tab shows version and check control",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-updates-rollback.spec.ts -g \"Updates tab shows version and check control\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-updates-rollback.spec.ts",
+      "test": "Updates tab shows version and check control",
+      "external_key": "e2e:admin-updates-rollback.spec.ts Updates tab shows version and check control",
+      "automation_link": "e2e/tests/admin-updates-rollback.spec.ts :: Updates tab shows version and check control",
+      "vqa_key": "VQA-227",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "admin-updates-rollback-version-backups-list-and-job-history-regions-render",
+      "key": "VUE-6",
+      "title": "version backups list and job history regions render",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test admin-updates-rollback.spec.ts -g \"version backups list and job history regions render\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "admin-updates-rollback.spec.ts",
+      "test": "version backups list and job history regions render",
+      "external_key": "e2e:admin-updates-rollback.spec.ts version backups list and job history regions render",
+      "automation_link": "e2e/tests/admin-updates-rollback.spec.ts :: version backups list and job history regions render",
+      "vqa_key": "VQA-230",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "users-admin-admin-creates-user-and-assigns-project-role",
+      "key": "VUE-101",
+      "title": "admin creates user and assigns project role",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test users-admin.spec.ts -g \"admin creates user and assigns project role\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "users-admin.spec.ts",
+      "test": "admin creates user and assigns project role",
+      "external_key": "e2e:users-admin.spec.ts admin creates user and assigns project role",
+      "automation_link": "e2e/tests/users-admin.spec.ts :: admin creates user and assigns project role",
+      "vqa_key": "VQA-325",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "users-admin-admin-sample-data-section-is-visible",
+      "key": "VUE-102",
+      "title": "admin sample data section is visible",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test users-admin.spec.ts -g \"admin sample data section is visible\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "users-admin.spec.ts",
+      "test": "admin sample data section is visible",
+      "external_key": "e2e:users-admin.spec.ts admin sample data section is visible",
+      "automation_link": "e2e/tests/users-admin.spec.ts :: admin sample data section is visible",
+      "vqa_key": "VQA-326",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "users-admin-admin-sso-tab-lists-providers-panel",
+      "key": "VUE-103",
+      "title": "admin SSO tab lists providers panel",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test users-admin.spec.ts -g \"admin SSO tab lists providers panel\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "users-admin.spec.ts",
+      "test": "admin SSO tab lists providers panel",
+      "external_key": "e2e:users-admin.spec.ts admin SSO tab lists providers panel",
+      "automation_link": "e2e/tests/users-admin.spec.ts :: admin SSO tab lists providers panel",
+      "vqa_key": "VQA-327",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

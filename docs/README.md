@@ -54,6 +54,7 @@ Index of guides and references. Prefer these over outdated workstream notes.
 | [ci-failures.md](ci-failures.md) | CI failure catalog |
 | [testing/test-ids.md](testing/test-ids.md) | Playwright `data-testid` conventions |
 | [testing/playwright-vulyk.md](testing/playwright-vulyk.md) | Map e2e tests to VQA cases + optional CI reporter |
+| [guides/e2e-local.md](guides/e2e-local.md) | Local Docker Playwright suite + VUE project sync |
 | [../backend/seed/vulyk-qa.d/README.md](../backend/seed/vulyk-qa.d/README.md) | QA seed fragments |
 
 ## Dated audits (October 2026)

@@ -33,7 +33,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('add two automation repos linked to one project', {
-  tag: '@VQA-273', annotation: { type: 'vulyk', description: 'VQA-273' },
+  tag: ['@VQA-284', '@VUE-60'], annotation: [{ type: 'vulyk', description: 'VQA-284' }, { type: 'vulyk', description: 'VUE-60' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const settings = new SettingsPage(page)
@@ -67,7 +67,7 @@ test('add two automation repos linked to one project', {
 })
 
 test('create project CI token and reveal secret once', {
-  tag: '@VQA-274', annotation: { type: 'vulyk', description: 'VQA-274' },
+  tag: ['@VQA-285', '@VUE-62'], annotation: [{ type: 'vulyk', description: 'VQA-285' }, { type: 'vulyk', description: 'VUE-62' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const settings = new SettingsPage(page)
@@ -82,7 +82,7 @@ test('create project CI token and reveal secret once', {
 })
 
 test('CI open results close for two repo pipelines', {
-  tag: '@VQA-275', annotation: { type: 'vulyk', description: 'VQA-275' },
+  tag: ['@VQA-286', '@VUE-61'], annotation: [{ type: 'vulyk', description: 'VQA-286' }, { type: 'vulyk', description: 'VUE-61' }],
 }, async ({ request }) => {
   async function openRun(repo: string, externalRef: string) {
     return apiJson<{
@@ -182,7 +182,7 @@ test('CI open results close for two repo pipelines', {
 })
 
 test('JUnit ingest maps test_key property to case', {
-  tag: '@VQA-276', annotation: { type: 'vulyk', description: 'VQA-276' },
+  tag: ['@VQA-287', '@VUE-63'], annotation: [{ type: 'vulyk', description: 'VQA-287' }, { type: 'vulyk', description: 'VUE-63' }],
 }, async ({ request }) => {
   const opened = await apiJson<{ run: { id: string } }>(
     request,

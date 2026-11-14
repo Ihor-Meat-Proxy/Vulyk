@@ -1,0 +1,29 @@
+{
+  "folder": "Meta",
+  "cases": [
+    {
+      "id": "test-id-audit-login-app-shell-attrs-are-unique-and-non-sensitive",
+      "key": "VUE-100",
+      "title": "login + app shell attrs are unique and non-sensitive",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test test-id-audit.spec.ts -g \"login + app shell attrs are unique and non-sensitive\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "test-id-audit.spec.ts",
+      "test": "login + app shell attrs are unique and non-sensitive",
+      "external_key": "e2e:test-id-audit.spec.ts login + app shell attrs are unique and non-sensitive",
+      "automation_link": "e2e/tests/test-id-audit.spec.ts :: login + app shell attrs are unique and non-sensitive",
+      "vqa_key": "VQA-324",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    }
+  ]
+}

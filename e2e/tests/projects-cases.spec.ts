@@ -29,7 +29,7 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('admin can create a project via UI', {
-  tag: '@VQA-281', annotation: { type: 'vulyk', description: 'VQA-281' },
+  tag: ['@VQA-292', '@VUE-68'], annotation: [{ type: 'vulyk', description: 'VQA-292' }, { type: 'vulyk', description: 'VUE-68' }],
 }, async ({ page }) => {
   await loginAsAdmin(page)
   const admin = new AdminPage(page)
@@ -39,7 +39,7 @@ test('admin can create a project via UI', {
 })
 
 test('admin can create a project with name only (auto key)', {
-  tag: '@VQA-282', annotation: { type: 'vulyk', description: 'VQA-282' },
+  tag: ['@VQA-293', '@VUE-69'], annotation: [{ type: 'vulyk', description: 'VQA-293' }, { type: 'vulyk', description: 'VUE-69' }],
 }, async ({
   page,
 }) => {
@@ -51,7 +51,7 @@ test('admin can create a project with name only (auto key)', {
 })
 
 test('suite tree, case CRUD with steps, search, filter, bulk', {
-  tag: '@VQA-283', annotation: { type: 'vulyk', description: 'VQA-283' },
+  tag: ['@VQA-294', '@VUE-70'], annotation: [{ type: 'vulyk', description: 'VQA-294' }, { type: 'vulyk', description: 'VUE-70' }],
 }, async ({
   page,
   request,

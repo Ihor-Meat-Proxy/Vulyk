@@ -9,7 +9,7 @@ test.describe('sample project seed', () => {
   })
 
   test('Kyiv concert sample project, suites, cases, and two runs exist', {
-  tag: '@VQA-297', annotation: { type: 'vulyk', description: 'VQA-297' },
+  tag: ['@VQA-313', '@VUE-89'], annotation: [{ type: 'vulyk', description: 'VQA-313' }, { type: 'vulyk', description: 'VUE-89' }],
 }, async ({
     request,
   }) => {
@@ -62,7 +62,7 @@ test.describe('sample project seed', () => {
   })
 
   test('Vulyk QA sample project and area folders appear', {
-  tag: '@VQA-298', annotation: { type: 'vulyk', description: 'VQA-298' },
+  tag: ['@VQA-314', '@VUE-90'], annotation: [{ type: 'vulyk', description: 'VQA-314' }, { type: 'vulyk', description: 'VUE-90' }],
 }, async ({
     request,
     page,
