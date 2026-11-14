@@ -208,13 +208,23 @@ function main() {
   }
 }
 
+function readSpecOrNull(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8')
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return null
+    throw err
+  }
+}
+
 function annotateSpecs(byFolder) {
   const TESTS = path.join(ROOT, 'e2e/tests')
   for (const cases of byFolder.values()) {
     for (const c of cases) {
       const full = path.join(TESTS, c.spec)
-      if (!fs.existsSync(full)) continue
-      let text = fs.readFileSync(full, 'utf8')
+      // Open once (no existsSync → write TOCTOU); skip missing specs.
+      let text = readSpecOrNull(full)
+      if (text == null) continue
       const callRe =
         /\b(test(?:\.(?:only|skip|fix|fix\.only|fix\.skip))?)\(\s*(['"`])([^'"`]+)\2/g
       let match
@@ -272,6 +282,7 @@ function annotateSpecs(byFolder) {
         const newBody = body ? `\n  ${inject},\n  ${body}\n` : `\n  ${inject},\n`
         edits.push({ start: optsStart, end: end + 1, text: `{${newBody}}` })
       }
+      if (!edits.length) continue
       edits.sort((a, b) => b.start - a.start)
       for (const e of edits) {
         text = text.slice(0, e.start) + e.text + text.slice(e.end)

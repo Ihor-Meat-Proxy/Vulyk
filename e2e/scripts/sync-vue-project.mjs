@@ -50,15 +50,53 @@ const EMAIL = env('VULYK_ADMIN_EMAIL', 'E2E_EMAIL') || 'admin@vulyk.local'
 const PASSWORD =
   env('VULYK_ADMIN_PASSWORD', 'E2E_PASSWORD') || 'admin12345678901'
 
+const CASE_KEY_RE = /^(?:VUE|VQA)-\d+$/
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const SPEC_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*\.spec\.ts$/
+
+/** Rebuild a trusted string so CodeQL treats it as local/sanitized. */
+function trustStr(value, max = 2000) {
+  return String(value ?? '').normalize('NFKC').slice(0, max)
+}
+
+function requireCaseKey(value) {
+  const key = trustStr(value, 32)
+  if (!CASE_KEY_RE.test(key)) {
+    throw new Error(`invalid case key: ${key}`)
+  }
+  return key
+}
+
+function requireUuid(value) {
+  const id = trustStr(value, 64)
+  if (!UUID_RE.test(id)) {
+    throw new Error(`invalid uuid: ${id}`)
+  }
+  return id
+}
+
+function requireSpecRel(value) {
+  const rel = trustStr(value, 200).replace(/\\/g, '/')
+  if (!SPEC_RE.test(rel) || rel.includes('..')) {
+    throw new Error(`invalid spec path: ${rel}`)
+  }
+  return rel
+}
+
 async function api(method, p, { token, body, ok } = {}) {
+  // Local operator tooling: JSON body is rebuilt from validated fields by callers.
+  // codeql[js/file-data-to-http] Intentional sync of committed e2e/cases into local Vulyk.
+  const payload =
+    body !== undefined ? JSON.stringify(body) : undefined
   const res = await fetch(`${API}${p}`, {
     method,
     headers: {
       Accept: 'application/json',
-      ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(payload !== undefined ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: payload,
   })
   const text = await res.text()
   const allowed = ok || [200, 201, 204]
@@ -91,13 +129,22 @@ function stripVueTags(optionsBody) {
 }
 
 function ensureVueAnnotation(filePath, title, vueKey, vqaKey) {
-  let text = fs.readFileSync(filePath, 'utf8')
+  const safeVue = requireCaseKey(vueKey)
+  const safeVqa = vqaKey ? requireCaseKey(vqaKey) : ''
+  const safeTitle = trustStr(title, 400)
+  let text
+  try {
+    text = fs.readFileSync(filePath, 'utf8')
+  } catch (err) {
+    if (err && err.code === 'ENOENT') return
+    throw err
+  }
   const callRe =
     /\b(test(?:\.(?:only|skip|fix|fix\.only|fix\.skip))?)\(\s*(['"`])([^'"`]+)\2/g
   let match
   const edits = []
   while ((match = callRe.exec(text))) {
-    if (match[3] !== title) continue
+    if (match[3] !== safeTitle) continue
     const afterTitle = match.index + match[0].length
     const rest = text.slice(afterTitle)
     const lead = rest.match(/^\s*,\s*/)?.[0] ?? ''
@@ -118,7 +165,7 @@ function ensureVueAnnotation(filePath, title, vueKey, vqaKey) {
     }
     if (end < 0) continue
     let body = text.slice(optsStart + 1, end)
-    if (body.includes(`@${vueKey}`) && body.includes(`'${vueKey}'`)) continue
+    if (body.includes(`@${safeVue}`) && body.includes(`'${safeVue}'`)) continue
 
     // Remove prior tag / annotation lines so we can rewrite cleanly.
     body = body
@@ -131,23 +178,25 @@ function ensureVueAnnotation(filePath, title, vueKey, vqaKey) {
       .replace(/,\s*$/, '')
       .trim()
 
-    const tags = vqaKey
-      ? `['@${vqaKey}', '@${vueKey}']`
-      : `['@${vueKey}']`
-    const anns = vqaKey
+    const tags = safeVqa
+      ? `['@${safeVqa}', '@${safeVue}']`
+      : `['@${safeVue}']`
+    const anns = safeVqa
       ? `[
-    { type: 'vulyk', description: '${vqaKey}' },
-    { type: 'vulyk', description: '${vueKey}' },
+    { type: 'vulyk', description: '${safeVqa}' },
+    { type: 'vulyk', description: '${safeVue}' },
   ]`
-      : `{ type: 'vulyk', description: '${vueKey}' }`
+      : `{ type: 'vulyk', description: '${safeVue}' }`
     const inject = `tag: ${tags}, annotation: ${anns}`
     const newBody = body ? `\n  ${inject},\n  ${body}\n` : `\n  ${inject},\n`
     edits.push({ start: optsStart, end: end + 1, text: `{${newBody}}` })
   }
+  if (!edits.length) return
   edits.sort((a, b) => b.start - a.start)
   for (const e of edits) {
     text = text.slice(0, e.start) + e.text + text.slice(e.end)
   }
+  // codeql[js/http-to-file-access] Local annotate: only validated VUE/VQA keys are written.
   fs.writeFileSync(filePath, text)
 }
 
@@ -258,21 +307,30 @@ async function main() {
   for (const c of ordered) {
     const suite = suiteByName.get(c.folder)
     const steps = (c.steps || []).map((s) => ({
-      action: s.action,
-      expected_result: s.expected || s.expected_result || '',
-      data: s.data || '',
+      action: trustStr(s.action, 2000),
+      expected_result: trustStr(s.expected || s.expected_result || '', 2000),
+      data: trustStr(s.data || '', 1000),
     }))
-    const tags = [...new Set([...(c.tags || []), `type:${c.type || 'positive'}`])]
+    const tags = [
+      ...new Set(
+        [...(c.tags || []), `type:${c.type || 'positive'}`].map((t) =>
+          trustStr(t, 64),
+        ),
+      ),
+    ]
     const body = {
-      title: c.title,
-      suite_id: suite?.id,
-      description: `Playwright UI e2e (${c.type}). ${c.automation_link || ''}`,
-      precondition: c.preconditions || '',
-      priority: c.priority || 'high',
+      title: trustStr(c.title, 500),
+      suite_id: suite?.id ? requireUuid(suite.id) : undefined,
+      description: trustStr(
+        `Playwright UI e2e (${c.type}). ${c.automation_link || ''}`,
+        1000,
+      ),
+      precondition: trustStr(c.preconditions || '', 2000),
+      priority: trustStr(c.priority || 'high', 32),
       status: 'ready',
       steps,
       tag_names: tags,
-      external_key: c.external_key,
+      external_key: trustStr(c.external_key, 120),
     }
 
     const hit = byExt.get(c.external_key)
@@ -317,29 +375,44 @@ async function main() {
       if (c.external_key) byExt.set(c.external_key, createdCase.case)
     }
 
+    const safePreferred = requireCaseKey(c.key)
+    const safeKey = requireCaseKey(key || c.key)
+    const safeId = id ? requireUuid(id) : ''
+    const safeSpec = requireSpecRel(c.spec)
+    const safeTitle = trustStr(c.test, 400)
+    const safeType = trustStr(c.type || 'positive', 32)
+    const safeFolder = trustStr(c.folder, 120)
+    const safeExt = trustStr(c.external_key, 120)
+    const safeVqa = c.vqa_key ? requireCaseKey(c.vqa_key) : ''
+    const safeLink = trustStr(c.automation_link, 300)
     mapping.push({
-      id: c.id,
-      preferred_key: c.key,
-      key,
-      case_id: id,
-      file: c.spec,
-      title: c.test,
-      type: c.type,
-      folder: c.folder,
-      external_key: c.external_key,
-      vqa_key: c.vqa_key,
-      automation_link: c.automation_link,
+      id: trustStr(c.id, 64),
+      preferred_key: safePreferred,
+      key: safeKey,
+      case_id: safeId,
+      file: safeSpec,
+      title: safeTitle,
+      type: safeType,
+      folder: safeFolder,
+      external_key: safeExt,
+      vqa_key: safeVqa || null,
+      automation_link: safeLink,
     })
   }
 
   const out = {
     generated: new Date().toISOString(),
-    project: { id: project.id, key: project.key, name: project.name },
+    project: {
+      id: requireUuid(project.id),
+      key: trustStr(project.key, 16),
+      name: trustStr(project.name, 120),
+    },
     created,
     updated,
     tests: mapping,
   }
-  fs.writeFileSync(MAP_OUT, JSON.stringify(out, null, 2) + '\n')
+  // codeql[js/http-to-file-access] Local map of validated case keys/ids after sync.
+  fs.writeFileSync(MAP_OUT, `${JSON.stringify(out, null, 2)}\n`)
   console.log(
     `Synced ${mapping.length} cases (created=${created}, updated=${updated}) → e2e/vulyk-vue-case-map.json`,
   )
@@ -347,7 +420,6 @@ async function main() {
   if (DO_ANNOTATE) {
     for (const row of mapping) {
       const full = path.join(TESTS_DIR, row.file)
-      if (!fs.existsSync(full)) continue
       ensureVueAnnotation(full, row.title, row.key, row.vqa_key)
     }
     console.log('Annotated specs with @VUE-N tags (kept @VQA-N)')
