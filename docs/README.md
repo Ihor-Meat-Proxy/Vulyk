@@ -50,6 +50,7 @@ Index of guides and references. Prefer these over outdated workstream notes.
 |-----|-------|
 | [../AGENTS.md](../AGENTS.md) | Agent / PR guardrails |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Hooks, migrations, i18n, test ids |
+| [ci-checks.md](ci-checks.md) | CI / security / quality check index |
 | [ci-failures.md](ci-failures.md) | CI failure catalog |
 | [testing/test-ids.md](testing/test-ids.md) | Playwright `data-testid` conventions |
 | [testing/playwright-vulyk.md](testing/playwright-vulyk.md) | Map e2e tests to VQA cases + optional CI reporter |

@@ -1,0 +1,20 @@
+# Semgrep rules for Vulyk CI (free/community rulesets + light custom rules).
+# CI: returntocorp/semgrep-action / semgrep ci
+# Local: semgrep --config .semgrep.yml --config p/ci --config p/rust --config p/javascript --config p/typescript
+
+rules:
+  - id: vulyk.no-hardcoded-jwt-secret-in-src
+    languages: [rust, typescript, javascript]
+    severity: ERROR
+    message: "Hardcoded JWT/secrets key placeholder in application source (use env)."
+    patterns:
+      - pattern-either:
+          - pattern: '"vulyk-jwt-secret"'
+          - pattern: '"changeme-jwt"'
+          - pattern: '"supersecret"'
+    paths:
+      exclude:
+        - "**/tests/**"
+        - "**/e2e/**"
+        - "**/*.md"
+        - "**/docs/**"

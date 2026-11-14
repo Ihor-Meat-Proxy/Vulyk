@@ -1,0 +1,282 @@
+# Security scanning — CVE/deps, containers, SAST, secrets.
+# Triggers: PRs, push to main, weekly schedule (catch new CVEs).
+# See docs/ci-checks.md. Does not replace required jobs in ci.yml.
+
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Mondays 06:17 UTC — offset from Dependabot Monday runs
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-audit:
+    name: Rust (cargo-audit + cargo-deny)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-targets: false
+      - name: Install cargo-audit + cargo-deny
+        run: |
+          cargo install cargo-audit cargo-deny --locked --force
+      - name: cargo audit
+        run: cargo audit
+      - name: cargo deny check
+        run: cargo deny check
+
+  npm-audit:
+    name: JS/TS (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: frontend npm audit
+        working-directory: frontend
+        # Production + build toolchains; fail on high/critical. Low/moderate
+        # (e.g. deepmerge via vite-plugin-pwa with no upstream fix) are reported
+        # but do not block — see docs/ci-checks.md.
+        run: |
+          npm ci
+          npm audit --audit-level=high
+      - name: e2e npm audit
+        working-directory: e2e
+        run: |
+          npm ci
+          npm audit --audit-level=high
+
+  osv:
+    name: OSV-Scanner (lockfiles)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.7.1
+        with:
+          scan-args: |-
+            --format=sarif
+            --output=osv-results.sarif
+            -L Cargo.lock
+            -L frontend/package-lock.json
+            -L e2e/package-lock.json
+        continue-on-error: true
+      - name: Upload OSV SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: osv-results.sarif
+          category: osv-scanner
+        continue-on-error: true
+
+  trivy-fs:
+    name: Trivy filesystem
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy FS scan (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          # vuln only — secret findings covered by gitleaks (test PEMs are fixtures).
+          scanners: vuln
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+      - name: Trivy FS gate (table)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          scanners: vuln
+          exit-code: "1"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+      - name: Upload Trivy FS SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+        continue-on-error: true
+
+  trivy-images:
+    name: Trivy container images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: .
+            file: backend/Dockerfile
+            tag: vulyk-api:security
+          - name: web
+            context: ./frontend
+            file: frontend/Dockerfile
+            tag: vulyk-web:security
+          - name: updater
+            context: ./deploy/updater
+            file: deploy/updater/Dockerfile
+            tag: vulyk-updater:security
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.name }} image
+        run: docker build -f "${{ matrix.file }}" -t "${{ matrix.tag }}" "${{ matrix.context }}"
+      - name: Trivy image scan (SARIF)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ matrix.tag }}
+          format: sarif
+          output: trivy-${{ matrix.name }}.sarif
+          # Day-one: CRITICAL OS/app vulns gate; HIGH reported in SARIF for ratchet.
+          severity: CRITICAL,HIGH
+          scanners: vuln
+          exit-code: "0"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+      - name: Trivy image gate (CRITICAL)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ matrix.tag }}
+          format: table
+          severity: CRITICAL
+          scanners: vuln
+          exit-code: "1"
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+      - name: Upload Trivy image SARIF
+        if: always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-image-${{ matrix.name }}
+        continue-on-error: true
+
+  codeql:
+    name: CodeQL SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript, rust]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Semgrep
+        run: pipx install semgrep
+      # Broad packs → SARIF only (day-one noise; ratchet later via code scanning).
+      - name: Semgrep scan (report)
+        run: |
+          semgrep scan \
+            --config p/ci \
+            --config p/rust \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/owasp-top-ten \
+            --config .semgrep.yml \
+            --sarif \
+            --output semgrep.sarif \
+            --metrics=off || true
+      # Gate: ERROR severity on app sources + custom rules (starts green).
+      - name: Semgrep gate (ERROR)
+        run: |
+          semgrep scan \
+            --config p/rust \
+            --config p/javascript \
+            --config p/typescript \
+            --config .semgrep.yml \
+            --severity=ERROR \
+            --error \
+            --metrics=off \
+            --exclude='e2e/**' \
+            --exclude='**/node_modules/**' \
+            --exclude='**/target/**' \
+            --exclude='docs/**' \
+            --exclude='frontend/dist/**'
+      - name: Upload Semgrep SARIF
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+        continue-on-error: true
+
+  gitleaks:
+    name: Gitleaks secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # gitleaks-action requires a paid license for GitHub orgs; use the CLI.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.0"
+        run: |
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      - name: Gitleaks detect
+        run: gitleaks detect --source . --config .gitleaks.toml --verbose --redact
