@@ -1,0 +1,16 @@
+# Justified ignores aligned with deny.toml / .cargo/audit.toml.
+# Prefer upgrades; each entry has a review-by date in docs/ci-checks.md.
+
+# crypto-bigint via jsonwebtoken — review by 2027-05-01
+RUSTSEC-2026-0387
+CVE-2026-0387
+
+# rsa Marvin via jsonwebtoken — review by 2027-05-01
+RUSTSEC-2023-0071
+
+# lopdf via genpdf PDF export — migrate by 2027-02-01
+RUSTSEC-2026-0187
+
+# libsqlite3-sys unused (Postgres-only) — review by 2027-02-01
+RUSTSEC-2026-0459
+CVE-2026-119375

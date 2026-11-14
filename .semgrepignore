@@ -1,0 +1,14 @@
+# Semgrep path noise — keep scans focused on product code.
+node_modules/
+**/node_modules/
+frontend/dist/
+e2e/playwright-report/
+e2e/test-results/
+target/
+**/target/
+docs/
+*.md
+frontend/lighthouse-report.json
+backend/seed/
+*.lock
+package-lock.json
