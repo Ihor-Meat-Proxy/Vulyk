@@ -2,7 +2,7 @@ FROM python:3.12-slim-bookworm
 # docker.io from Debian; Compose v2 plugin from GitHub releases (no docker-compose-v2
 # apt package on bookworm). Needed so install.sh upgrade/rollback can talk to the
 # mounted Docker socket from the updater sidecar.
-ARG DOCKER_COMPOSE_VERSION=v2.40.3
+ARG DOCKER_COMPOSE_VERSION=v5.7.1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates docker.io gzip \
     && rm -rf /var/lib/apt/lists/* \
