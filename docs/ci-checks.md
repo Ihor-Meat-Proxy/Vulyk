@@ -10,7 +10,7 @@ Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`, and
 | --- | --- | --- | --- |
 | **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, migrations, upgrade, frontend, Docker, Playwright, …) |
 | **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | CVE/deps, containers, SAST, secrets |
-| **Dependabot auto-merge** | `.github/workflows/dependabot-auto-merge.yml` | `pull_request_target` (Dependabot only) | Enables squash auto-merge for **patch/minor** (incl. grouped Actions updates); majors stay manual |
+| **Dependabot auto-merge** | `.github/workflows/dependabot-auto-merge.yml` | `pull_request_target` (Dependabot only) | Enables squash auto-merge for **patch** + **≥1.x minor** only; **0.x minor treated as breaking**; majors stay manual |
 | **Release** | `.github/workflows/release.yml` | tags / release | Publish images |
 
 Lighthouse remains **advisory** (`continue-on-error`) inside `ci.yml` — see [ci-failures.md](ci-failures.md).
@@ -30,7 +30,7 @@ Lighthouse remains **advisory** (`continue-on-error`) inside `ci.yml` — see [c
 
 **Dependabot:** `.github/dependabot.yml` — weekly `cargo`, `npm` (frontend + e2e), `docker` (API/web/updater), `github-actions`.
 
-**Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` when `update-type` is `semver-patch` or `semver-minor` (grouped github-actions updates included when the highest bump is still patch/minor). **Semver-major bumps are never auto-merged.** The job does not check out PR code and only needs `contents: write` + `pull-requests: write`.
+**Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps only: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**. **0.x “minor” bumps are treated as breaking** (Dependabot still labels them `semver-minor`) and are never auto-merged; neither are semver-majors. Grouped updates use fetch-metadata’s highest `update-type` / version pair. The job does not check out PR code and only needs `contents: write` + `pull-requests: write`.
 
 ### Justified advisory ignores
 
