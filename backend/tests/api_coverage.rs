@@ -103,6 +103,9 @@ fn inventory() -> (Vec<ApiOperation>, vulyk_api::api_coverage::CoverageManifest)
 
 async fn insert_admin_token(pool: &sqlx::PgPool) -> String {
     let email = format!("api-coverage+{}@example.com", uuid::Uuid::new_v4().simple());
+    // Password is never used for login in this suite (JWT is minted directly);
+    // generate a unique value so CodeQL does not flag a hard-coded credential.
+    let password = format!("cov-{}", uuid::Uuid::new_v4());
     let user_id: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO users (
                email, display_name, password_hash, is_system_admin, must_change_password
@@ -110,10 +113,11 @@ async fn insert_admin_token(pool: &sqlx::PgPool) -> String {
            RETURNING id"#,
     )
     .bind(&email)
-    .bind(vulyk_api::auth::hash_password("api-coverage-password-123").expect("hash password"))
+    .bind(vulyk_api::auth::hash_password(&password).expect("hash password"))
     .fetch_one(pool)
     .await
     .expect("insert API coverage admin");
+    // Must match AppState.auth.jwt_secret in test_state().
     vulyk_api::auth::issue_jwt(user_id, &email, true, "api-coverage-test-jwt-secret", 1)
         .expect("issue API coverage JWT")
 }
