@@ -7,7 +7,7 @@ description = "Vulyk test management API"
 default-run = "vulyk-api"
 
 [dependencies]
-aes-gcm = "0.10"
+aes-gcm = "0.11"
 argon2 = { version = "0.6.0", features = ["getrandom"] }
 async-trait = "0.1"
 axum = { version = "0.8", features = ["macros", "multipart"] }
