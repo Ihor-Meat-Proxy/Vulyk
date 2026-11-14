@@ -266,7 +266,7 @@ async fn authenticated_json_operations_reject_malformed_payload() {
         .await
         .expect("migrate API coverage database");
     let token = insert_admin_token(&pool).await;
-    let (operations, _manifest) = inventory();
+    let (operations, manifest) = inventory();
     let app = app_router(test_state(pool, true))
         .fallback(|| async { (MISSING_ROUTE_STATUS, "API coverage missing-route sentinel") });
     let mut failures = Vec::new();
@@ -276,21 +276,29 @@ async fn authenticated_json_operations_reject_malformed_payload() {
         .filter(|operation| operation.has_request_body)
     {
         let key = operation.key();
+        if manifest.validation_not_applicable.contains_key(&key) {
+            continue;
+        }
         let response = app
             .clone()
             .oneshot(request_for(operation, true, Some(&token)))
             .await
             .unwrap_or_else(|error| panic!("{key}: router request failed: {error}"));
         let status = response.status();
-        if !matches!(
-            status,
-            StatusCode::BAD_REQUEST
-                | StatusCode::UNPROCESSABLE_ENTITY
-                | StatusCode::UNSUPPORTED_MEDIA_TYPE
-                | StatusCode::UNAUTHORIZED
-        ) {
+        // Path-parameter lookups may 404 before the body is parsed when the
+        // resource does not exist (random UUIDs in this sweep).
+        let path_miss_ok = operation.has_path_parameters && status == StatusCode::NOT_FOUND;
+        if !path_miss_ok
+            && !matches!(
+                status,
+                StatusCode::BAD_REQUEST
+                    | StatusCode::UNPROCESSABLE_ENTITY
+                    | StatusCode::UNSUPPORTED_MEDIA_TYPE
+                    | StatusCode::UNAUTHORIZED
+            )
+        {
             failures.push(format!(
-                "{key}: authenticated malformed JSON returned {status}, expected 400/401/415/422"
+                "{key}: authenticated malformed JSON returned {status}, expected 400/401/404/415/422"
             ));
         }
     }
@@ -384,6 +392,9 @@ async fn identifier_gets_return_not_found_for_random_ids() {
         operation.method == "GET"
             && operation.has_path_parameters
             && !manifest.public_operations.contains_key(&operation.key())
+            && !manifest
+                .not_found_not_applicable
+                .contains_key(&operation.key())
     }) {
         let key = operation.key();
         let response = app

@@ -65,6 +65,20 @@
       "justification": "GitLab webhook uses its provider token rather than a Vulyk bearer token."
     }
   },
-  "validation_not_applicable": {},
-  "not_found_not_applicable": {}
+  "validation_not_applicable": {
+    "POST /api/v1/projects/{project_id}/ci/runs/{run_id}/start": {
+      "justification": "Handler resolves project/run path IDs before the JSON body; missing resources return 404 ahead of payload validation."
+    },
+    "POST /api/v1/webhooks/automation-repos/{repo_id}": {
+      "justification": "Webhook resolves the automation-repo path ID (and provider signature) before the JSON body; unknown repos return 404."
+    }
+  },
+  "not_found_not_applicable": {
+    "GET /api/v1/projects/{project_id}/cases/{case_id}/requirements": {
+      "justification": "Returns an empty requirement link list when the parent case/project is absent rather than 404 (collection-style response)."
+    },
+    "GET /api/v1/projects/{project_id}/memberships": {
+      "justification": "Returns an empty membership list for unknown project IDs rather than 404 (collection-style response)."
+    }
+  }
 }
