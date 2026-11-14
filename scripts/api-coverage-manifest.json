@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "public_operations": {
+    "GET /api/v1/auth/me": {
+      "justification": "Authentication entry point; its handler performs optional/required user extraction instead of the global protected-router middleware."
+    },
+    "GET /api/v1/auth/sso/callback": {
+      "justification": "OIDC callback must be reachable by the identity provider."
+    },
+    "GET /api/v1/auth/sso/providers": {
+      "justification": "Login UI needs enabled provider metadata before authentication."
+    },
+    "GET /api/v1/auth/sso/{key}/start": {
+      "justification": "OIDC authorization must start before a Vulyk session exists."
+    },
+    "GET /api/v1/auth/status": {
+      "justification": "Login/setup clients and probes need authentication mode and setup status."
+    },
+    "GET /api/v1/roles/matrix": {
+      "justification": "Static role capability metadata is intentionally public."
+    },
+    "GET /api/v1/setup/status": {
+      "justification": "First-run setup status must be available before an administrator exists."
+    },
+    "GET /health": {
+      "justification": "Liveness probe is intentionally public."
+    },
+    "GET /ready": {
+      "justification": "Readiness probe is intentionally public."
+    },
+    "PATCH /api/v1/auth/me": {
+      "justification": "Authentication entry point; its handler requires a user instead of using the global protected-router middleware."
+    },
+    "POST /api/v1/auth/bootstrap": {
+      "justification": "Creates the first administrator, so no authenticated principal exists yet."
+    },
+    "POST /api/v1/auth/change-password": {
+      "justification": "Authentication entry point; the handler accepts sessions that are restricted to changing an expired/weak password."
+    },
+    "POST /api/v1/auth/login": {
+      "justification": "Login must be reachable without credentials."
+    },
+    "POST /api/v1/auth/logout": {
+      "justification": "Logout is idempotent and clears cookies even when the current session is absent or expired."
+    },
+    "POST /api/v1/auth/register": {
+      "justification": "Registration availability is controlled by instance policy, not by the protected-router middleware."
+    },
+    "POST /api/v1/setup/complete": {
+      "justification": "First-run setup is authorized by a one-time setup token before an administrator session exists."
+    },
+    "POST /api/v1/webhooks/automation-repos/{repo_id}": {
+      "justification": "Repository webhook uses its provider webhook secret rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/github": {
+      "justification": "GitHub webhook uses HMAC signature authentication rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/github/{config_id}": {
+      "justification": "GitHub webhook uses HMAC signature authentication rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/gitlab": {
+      "justification": "GitLab webhook uses its provider token rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/gitlab/{config_id}": {
+      "justification": "GitLab webhook uses its provider token rather than a Vulyk bearer token."
+    }
+  },
+  "validation_not_applicable": {},
+  "not_found_not_applicable": {}
+}

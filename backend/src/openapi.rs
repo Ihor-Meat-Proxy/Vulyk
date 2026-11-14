@@ -96,6 +96,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::setup::setup_complete,
         crate::routes::sso_admin::list_providers,
         crate::routes::sso_admin::update_provider,
+        crate::routes::sso_admin::patch_provider,
         crate::routes::instance_settings::get_settings,
         crate::routes::instance_settings::put_settings,
         crate::routes::instance_settings::get_role_matrix,

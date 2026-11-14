@@ -1,13 +1,14 @@
 # CI checks
 
 Index of automated gates beyond the narrative in [ci-failures.md](ci-failures.md).
-Local mirrors live in `./scripts/check.sh` and `./scripts/check-security.sh`.
+Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`, and
+`./scripts/check-api-coverage.sh`.
 
 ## Workflows
 
 | Workflow | File | When | Role |
 | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, migrations, upgrade, frontend, Docker, Playwright, …) |
+| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, migrations, upgrade, frontend, Docker, Playwright, …) |
 | **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | CVE/deps, containers, SAST, secrets |
 | **Release** | `.github/workflows/release.yml` | tags / release | Publish images |
 
@@ -65,7 +66,36 @@ cargo install cargo-audit cargo-deny --locked
 
 ## API coverage
 
-Route↔OpenAPI drift and endpoint integration-test matrix land in a follow-up PR.
+`API coverage (OpenAPI ↔ Axum)` is a required, per-operation gate:
+
+1. `ApiDoc::openapi()` is enumerated as the contract inventory.
+2. A source inventory of every `Router::route(...)` declaration detects routes
+   that exist only in Axum. OpenAPI-only operations are detected in the other
+   direction.
+3. The assembled router receives every operation with `auth.required=true`.
+   Protected operations must return `401`; public exceptions must be listed
+   with a justification in `scripts/api-coverage-manifest.json`.
+4. JSON request bodies receive malformed payload probes (`400`, `415`, or
+   `422`). With `DATABASE_URL`, random identifiers also exercise the main
+   not-found/forbidden path.
+5. Every operation must declare a successful `2xx` response (or the `3xx`
+   redirect that is the successful browser contract for SSO). Reports are uploaded
+   as `api-coverage-report.json` and `api-coverage-summary.md`.
+
+Run the same gate locally:
+
+```bash
+./scripts/check-api-coverage.sh
+```
+
+The DB-free inventory, drift, authentication, and public validation checks
+always run. Authenticated validation, focused SSO alias coverage, and the
+random-ID database sweep print explicit skips when `DATABASE_URL` is unset.
+
+When adding or changing an endpoint, update the Axum registration and
+`ApiDoc`/`#[utoipa::path]` together. Add a focused success/error integration
+test for its business behavior. Only add a manifest exception when an error
+class is genuinely inapplicable; include a concrete justification.
 
 ## Upgrade path
 

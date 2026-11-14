@@ -15,7 +15,7 @@ pub fn router() -> Router<AppState> {
         .route("/api/v1/admin/sso/providers", get(list_providers))
         .route(
             "/api/v1/admin/sso/providers/{id}",
-            axum::routing::put(update_provider).patch(update_provider),
+            axum::routing::put(update_provider).patch(patch_provider),
         )
 }
 
@@ -51,4 +51,24 @@ pub async fn update_provider(
 ) -> AppResult<Json<SsoProviderAdmin>> {
     let updated = sso::update_provider(&state.pool, &state.secrets, id, body).await?;
     Ok(Json(SsoProviderAdmin::from(&updated)))
+}
+
+/// PATCH is retained as a compatibility alias and is documented separately so
+/// the OpenAPI contract exactly matches the Axum method table.
+#[utoipa::path(
+    patch,
+    path = "/api/v1/admin/sso/providers/{id}",
+    tag = "admin",
+    params(("id" = Uuid, Path, description = "Provider id")),
+    request_body = UpdateSsoProviderRequest,
+    responses((status = 200, description = "Updated provider", body = SsoProviderAdmin)),
+    security(("bearer_auth" = []))
+)]
+pub async fn patch_provider(
+    state: State<AppState>,
+    admin: RequireSystemAdmin,
+    id: Path<Uuid>,
+    body: Json<UpdateSsoProviderRequest>,
+) -> AppResult<Json<SsoProviderAdmin>> {
+    update_provider(state, admin, id, body).await
 }

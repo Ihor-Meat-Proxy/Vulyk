@@ -9,6 +9,9 @@ Cursor agents and humans: read this before opening or updating a PR. Do **not** 
 3. Confirm **migrations**, **sample seeds**, **i18n**, and **e2e locators** follow the rules below.
 4. Prefer small PRs. Match style: `cargo fmt`, clippy `-D warnings`, frontend oxlint/tsc, Playwright `data-testid`.
 5. If the PR can affect **upgrading an existing install**, complete the [Upgrade path](#upgrade-path-same-pr) section in the **same PR**.
+6. When changing an HTTP endpoint, keep its Axum method/path and
+   `#[utoipa::path]` registration aligned, add focused success/error tests, and
+   run `./scripts/check-api-coverage.sh`.
 
 ## Upgrade path (same PR)
 
@@ -58,6 +61,19 @@ See `backend/seed/vulyk-qa.d/README.md` and `docs/ci-failures.md`.
 - Add a constant, spread `testIdProps` / `listItemProps` on the control, update page objects.
 - Run `npm run check:test-ids` (frontend) and keep `e2e/tests/test-id-audit.spec.ts` green.
 - Avoid `getByText` for controls that exist more than once (toasts, “Save”, folder labels) — that causes strict-mode failures when sibling PRs duplicate UI.
+
+## API route coverage
+
+- `ApiDoc::openapi()` is the canonical operation inventory; every Axum
+  method/path must appear there and every OpenAPI operation must dispatch.
+- `backend/tests/api_coverage.rs` performs DB-free route/auth/validation sweeps
+  and a DB-backed random-ID error sweep when `DATABASE_URL` is set.
+- Public operations and inapplicable error classes require a justification in
+  `scripts/api-coverage-manifest.json`; stale entries fail the gate.
+- CI uploads JSON and Markdown reports from `target/api-coverage/`.
+- Add endpoint-specific integration assertions for normal success and its main
+  `400`/`403`/`404` behavior; the generic inventory sweep does not replace
+  business-behavior tests.
 
 ## Migrations (parallel PRs)
 
@@ -112,6 +128,7 @@ Details: [`docs/ci-checks.md`](docs/ci-checks.md).
 ./scripts/check-quality.sh   # machete, eslint, prettier, knip, coverage
 ./scripts/check-seed-keys.sh
 ./scripts/check-migrations.sh
+./scripts/check-api-coverage.sh
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cd frontend && npm run lint && npm run lint:eslint && npm run format:check && npm run typecheck && npm run check:test-ids
