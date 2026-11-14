@@ -205,7 +205,10 @@ export function CaseFolderTree({
               depth,
             })}
           >
-            <span className={`priority-bar priority-${c.priority}`} aria-hidden />
+            <span
+              className={`priority-bar priority-${c.priority}`}
+              aria-hidden
+            />
             <span
               className={`case-status-token status-${c.status}`}
               title={c.status}
@@ -260,7 +263,10 @@ export function CaseFolderTree({
         {state.loading && (
           <p
             className="muted"
-            style={{ paddingLeft: `${0.75 + depth * 0.9}rem`, fontSize: '0.8rem' }}
+            style={{
+              paddingLeft: `${0.75 + depth * 0.9}rem`,
+              fontSize: '0.8rem',
+            }}
             {...testIdProps(TestIds.folderTreeLoading)}
           >
             {t('common.loading')}
@@ -436,7 +442,9 @@ export function CaseFolderTree({
             type="button"
             className="folder-tree-twistie"
             aria-expanded={unfiledOpen}
-            aria-label={unfiledOpen ? t('folders.collapse') : t('folders.expand')}
+            aria-label={
+              unfiledOpen ? t('folders.collapse') : t('folders.expand')
+            }
             onClick={toggleUnfiled}
             {...testIdProps(TestIds.folderUnfiledTwistie)}
           >
@@ -448,7 +456,9 @@ export function CaseFolderTree({
             onClick={() => onSelectSuite(null)}
             {...testIdProps(TestIds.folderUnfiledButton)}
           >
-            <span className="folder-tree-folder-name">{t('folders.unfiled')}</span>
+            <span className="folder-tree-folder-name">
+              {t('folders.unfiled')}
+            </span>
           </button>
         </div>
         {unfiledOpen && (

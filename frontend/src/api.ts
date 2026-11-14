@@ -280,9 +280,10 @@ export type CreateCustomFieldDefinition = {
   project_ids?: string[]
 }
 
-export type UpdateCustomFieldDefinition = Partial<CreateCustomFieldDefinition> & {
-  acknowledge_hide_values?: boolean
-}
+export type UpdateCustomFieldDefinition =
+  Partial<CreateCustomFieldDefinition> & {
+    acknowledge_hide_values?: boolean
+  }
 
 export type UpdateFieldResponse = {
   field: CustomFieldDefinitionDetail
@@ -1173,10 +1174,7 @@ export type GeneratedCaseDraft = {
 }
 
 export type ChatResponseKind =
-  | 'answer'
-  | 'clarify'
-  | 'propose_cases'
-  | 'propose_requirements'
+  'answer' | 'clarify' | 'propose_cases' | 'propose_requirements'
 
 export type ProposedCaseDraft = {
   title: string
@@ -1737,10 +1735,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   logout: () => request<void>('/api/v1/auth/logout', { method: 'POST' }),
-  changePassword: (body: {
-    current_password?: string
-    new_password: string
-  }) =>
+  changePassword: (body: { current_password?: string; new_password: string }) =>
     request<void>('/api/v1/auth/change-password', {
       method: 'POST',
       body: JSON.stringify(body),
@@ -1765,8 +1760,7 @@ export const api = {
     ),
 
   getRoleMatrix: () => request<RoleMatrixResponse>('/api/v1/roles/matrix'),
-  getAdminSettings: () =>
-    request<InstanceSettings>('/api/v1/admin/settings'),
+  getAdminSettings: () => request<InstanceSettings>('/api/v1/admin/settings'),
   updateAdminSettings: (body: UpdateInstanceSettings) =>
     request<InstanceSettings>('/api/v1/admin/settings', {
       method: 'PUT',
@@ -1804,8 +1798,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
-  getSampleData: () =>
-    request<SampleDataStatus>('/api/v1/admin/sample-data'),
+  getSampleData: () => request<SampleDataStatus>('/api/v1/admin/sample-data'),
   removeSampleData: () =>
     request<SampleDataSummary>('/api/v1/admin/sample-data', {
       method: 'DELETE',
@@ -1903,9 +1896,7 @@ export const api = {
     if (opts?.project_id) qs.set('project_id', opts.project_id)
     if (opts?.limit) qs.set('limit', String(opts.limit))
     const q = qs.toString()
-    return request<BackupRun[]>(
-      `/api/v1/admin/backups/runs${q ? `?${q}` : ''}`,
-    )
+    return request<BackupRun[]>(`/api/v1/admin/backups/runs${q ? `?${q}` : ''}`)
   },
   runBackupNow: (body: {
     destination_id: string
@@ -2240,8 +2231,7 @@ export const api = {
       { method: 'PUT', body: JSON.stringify(body) },
     ),
 
-  listAdminLists: () =>
-    request<OptionList[]>('/api/v1/admin/lists'),
+  listAdminLists: () => request<OptionList[]>('/api/v1/admin/lists'),
   getAdminList: (id: string) =>
     request<OptionListDetail>(`/api/v1/admin/lists/${id}`),
   createAdminList: (body: {
@@ -2301,19 +2291,19 @@ export const api = {
       deprecated: boolean
     }>,
   ) =>
-    request<OptionListItem>(
-      `/api/v1/admin/lists/${listId}/items/${itemId}`,
-      { method: 'PUT', body: JSON.stringify(body) },
-    ),
+    request<OptionListItem>(`/api/v1/admin/lists/${listId}/items/${itemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   deleteAdminListItem: (listId: string, itemId: string) =>
     request<void>(`/api/v1/admin/lists/${listId}/items/${itemId}`, {
       method: 'DELETE',
     }),
   reorderAdminListItems: (listId: string, itemIds: string[]) =>
-    request<OptionListItem[]>(
-      `/api/v1/admin/lists/${listId}/items/reorder`,
-      { method: 'PUT', body: JSON.stringify({ item_ids: itemIds }) },
-    ),
+    request<OptionListItem[]>(`/api/v1/admin/lists/${listId}/items/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ item_ids: itemIds }),
+    }),
 
   listAdminCustomFields: () =>
     request<CustomFieldDefinitionDetail[]>('/api/v1/admin/custom-fields'),
@@ -2330,10 +2320,10 @@ export const api = {
     fieldId: string,
     body: UpdateCustomFieldDefinition,
   ) =>
-    request<UpdateFieldResponse>(
-      `/api/v1/admin/custom-fields/${fieldId}`,
-      { method: 'PUT', body: JSON.stringify(body) },
-    ),
+    request<UpdateFieldResponse>(`/api/v1/admin/custom-fields/${fieldId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   deleteAdminCustomField: (fieldId: string) =>
     request<{ action: string }>(`/api/v1/admin/custom-fields/${fieldId}`, {
       method: 'DELETE',
@@ -2359,7 +2349,8 @@ export const api = {
     const blob = await res.blob()
     const disposition = res.headers.get('content-disposition') ?? ''
     const match = /filename="?([^"]+)"?/.exec(disposition)
-    const ext = body.format === 'yaml' || body.format === 'yml' ? 'yaml' : 'json'
+    const ext =
+      body.format === 'yaml' || body.format === 'yml' ? 'yaml' : 'json'
     const filename = match?.[1] ?? `vulyk-config.${ext}`
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -2417,7 +2408,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
-  updateRun: (projectId: string, runId: string, body: Record<string, unknown>) =>
+  updateRun: (
+    projectId: string,
+    runId: string,
+    body: Record<string, unknown>,
+  ) =>
     request<TestRunDetail>(`/api/v1/projects/${projectId}/runs/${runId}`, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -2484,30 +2479,25 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getCampaign: (projectId: string, campaignId: string) =>
-    request<Campaign>(
-      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
-    ),
+    request<Campaign>(`/api/v1/projects/${projectId}/campaigns/${campaignId}`),
   updateCampaign: (
     projectId: string,
     campaignId: string,
     body: UpdateCampaign,
   ) =>
-    request<Campaign>(
-      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
-      { method: 'PUT', body: JSON.stringify(body) },
-    ),
+    request<Campaign>(`/api/v1/projects/${projectId}/campaigns/${campaignId}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
   deleteCampaign: (projectId: string, campaignId: string) =>
-    request<void>(
-      `/api/v1/projects/${projectId}/campaigns/${campaignId}`,
-      { method: 'DELETE' },
-    ),
+    request<void>(`/api/v1/projects/${projectId}/campaigns/${campaignId}`, {
+      method: 'DELETE',
+    }),
   listIterations: (projectId: string, campaignId?: string) => {
     const qs = campaignId
       ? `?campaign_id=${encodeURIComponent(campaignId)}`
       : ''
-    return request<Iteration[]>(
-      `/api/v1/projects/${projectId}/iterations${qs}`,
-    )
+    return request<Iteration[]>(`/api/v1/projects/${projectId}/iterations${qs}`)
   },
   createIteration: (
     projectId: string,
@@ -2532,10 +2522,9 @@ export const api = {
       { method: 'PUT', body: JSON.stringify(body) },
     ),
   deleteIteration: (projectId: string, iterationId: string) =>
-    request<void>(
-      `/api/v1/projects/${projectId}/iterations/${iterationId}`,
-      { method: 'DELETE' },
-    ),
+    request<void>(`/api/v1/projects/${projectId}/iterations/${iterationId}`, {
+      method: 'DELETE',
+    }),
   iterationDashboard: (projectId: string, iterationId: string) =>
     request<IterationDashboard>(
       `/api/v1/projects/${projectId}/iterations/${iterationId}/dashboard`,
@@ -2569,10 +2558,9 @@ export const api = {
     )
   },
   deleteSuiteRun: (projectId: string, runId: string) =>
-    request<void>(
-      `/api/v1/projects/${projectId}/suites-runs/${runId}`,
-      { method: 'DELETE' },
-    ),
+    request<void>(`/api/v1/projects/${projectId}/suites-runs/${runId}`, {
+      method: 'DELETE',
+    }),
   runInCi: (
     projectId: string,
     body: {
@@ -2683,9 +2671,7 @@ export const api = {
       },
     ),
   listIntegrations: (projectId: string) =>
-    request<IntegrationPublic[]>(
-      `/api/v1/projects/${projectId}/integrations`,
-    ),
+    request<IntegrationPublic[]>(`/api/v1/projects/${projectId}/integrations`),
   listDefects: (projectId: string) =>
     request<Defect[]>(`/api/v1/projects/${projectId}/defects`),
 
@@ -2763,10 +2749,10 @@ export const api = {
       config_id?: string
     },
   ) =>
-    request<ChatProposeResponse>(
-      `/api/v1/projects/${projectId}/llm/chat`,
-      { method: 'POST', body: JSON.stringify(body) },
-    ),
+    request<ChatProposeResponse>(`/api/v1/projects/${projectId}/llm/chat`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
   chatConfirm: (
     projectId: string,
     body: {
@@ -2819,9 +2805,7 @@ export const api = {
       body: JSON.stringify(body),
     }),
   listAutomationReposForProject: (projectId: string) =>
-    request<AutomationRepo[]>(
-      `/api/v1/projects/${projectId}/automation-repos`,
-    ),
+    request<AutomationRepo[]>(`/api/v1/projects/${projectId}/automation-repos`),
   testAutomationRepoPreview: (body: {
     provider: string
     remote_url: string
@@ -2991,7 +2975,11 @@ export const api = {
     request<RunReportDetail>(
       `/api/v1/projects/${projectId}/reports/runs/${runId}`,
     ),
-  getRunCaseResults: (projectId: string, runId: string, params: RunResultsParams = {}) => {
+  getRunCaseResults: (
+    projectId: string,
+    runId: string,
+    params: RunResultsParams = {},
+  ) => {
     const qs = new URLSearchParams()
     if (params.status) qs.set('status', params.status)
     if (params.folder) qs.set('folder', params.folder)
@@ -3029,7 +3017,11 @@ export const api = {
       `/api/v1/projects/${projectId}/reports/runs/${runId}/groups?${qs}`,
     )
   },
-  getTrends: (projectId: string, granularity: 'run' | 'day' = 'run', limit = 20) =>
+  getTrends: (
+    projectId: string,
+    granularity: 'run' | 'day' = 'run',
+    limit = 20,
+  ) =>
     request<PassFailTrends>(
       `/api/v1/projects/${projectId}/reports/trends?granularity=${granularity}&limit=${limit}`,
     ),
@@ -3086,8 +3078,7 @@ export const api = {
     const disposition = res.headers.get('content-disposition') ?? ''
     const match = /filename="?([^"]+)"?/.exec(disposition)
     const filename =
-      match?.[1] ??
-      `vulyk-report.${opts.format === 'pdf' ? 'pdf' : 'csv'}`
+      match?.[1] ?? `vulyk-report.${opts.format === 'pdf' ? 'pdf' : 'csv'}`
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url

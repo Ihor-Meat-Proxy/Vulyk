@@ -1,0 +1,8 @@
+# cargo-llvm-cov / CI coverage floors for Rust (lib unit tests).
+# Measured 2026-11-14: lines ≈12.5%, functions ≈14.2% on --workspace --lib.
+# Ratchet these up as tests grow. Full workspace+integration coverage is
+# reported in CI job summaries but not gated yet (needs Postgres).
+
+[thresholds]
+lines = 12
+functions = 14

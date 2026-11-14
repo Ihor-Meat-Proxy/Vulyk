@@ -1,10 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  api,
-  type AutomatedSuite,
-  type AutomatedSuitesParams,
-} from '../api'
+import { api, type AutomatedSuite, type AutomatedSuitesParams } from '../api'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import {
@@ -150,7 +146,10 @@ export function AutomatedSuitesTable({
       ) as { url?: string } | undefined
       if (report?.url) return report.url
       const anyUrl = art.find(
-        (a) => a && typeof a === 'object' && typeof (a as { url?: string }).url === 'string',
+        (a) =>
+          a &&
+          typeof a === 'object' &&
+          typeof (a as { url?: string }).url === 'string',
       ) as { url?: string } | undefined
       return anyUrl?.url ?? null
     }
@@ -289,7 +288,10 @@ export function AutomatedSuitesTable({
                             <SampleBadge testId="executions-suite-sample-badge" />
                           </>
                         ) : null}
-                        <div className="meta-row" style={{ marginTop: '0.25rem' }}>
+                        <div
+                          className="meta-row"
+                          style={{ marginTop: '0.25rem' }}
+                        >
                           <CiSourceBadge
                             source={suite.source}
                             ciProvider={suite.ci_provider}
@@ -310,8 +312,8 @@ export function AutomatedSuitesTable({
                       <td>{fmt(suite.created_at)}</td>
                       <td>{formatDuration(suite.duration_ms)}</td>
                       <td className="muted">
-                        {suite.pass_count}/{suite.fail_count}/{suite.skip_count}/
-                        {suite.blocked_count}
+                        {suite.pass_count}/{suite.fail_count}/{suite.skip_count}
+                        /{suite.blocked_count}
                       </td>
                       <td>
                         <div className="exec-row-actions">
@@ -319,7 +321,9 @@ export function AutomatedSuitesTable({
                             type="button"
                             className="btn secondary"
                             onClick={() => onOpenDetails(suite)}
-                            {...testIdProps(TestIds.automatedSuiteDetailsButton)}
+                            {...testIdProps(
+                              TestIds.automatedSuiteDetailsButton,
+                            )}
                           >
                             {t('executions.details')}
                           </button>
@@ -329,7 +333,9 @@ export function AutomatedSuitesTable({
                               href={report}
                               target="_blank"
                               rel="noreferrer"
-                              {...testIdProps(TestIds.automatedSuiteReportButton)}
+                              {...testIdProps(
+                                TestIds.automatedSuiteReportButton,
+                              )}
                             >
                               {t('executions.report')}
                             </a>
@@ -341,7 +347,9 @@ export function AutomatedSuitesTable({
                                 className="btn secondary"
                                 disabled={busyId === suite.id}
                                 onClick={() => void onRerun(suite)}
-                                {...testIdProps(TestIds.automatedSuiteRerunButton)}
+                                {...testIdProps(
+                                  TestIds.automatedSuiteRerunButton,
+                                )}
                               >
                                 {t('executions.rerun')}
                               </button>
@@ -350,7 +358,9 @@ export function AutomatedSuitesTable({
                                 className="btn secondary"
                                 disabled={busyId === suite.id}
                                 onClick={() => void onRunInCi(suite)}
-                                {...testIdProps(TestIds.automatedSuiteRunInCiButton)}
+                                {...testIdProps(
+                                  TestIds.automatedSuiteRunInCiButton,
+                                )}
                               >
                                 {t('executions.runInCi')}
                               </button>
@@ -362,7 +372,9 @@ export function AutomatedSuitesTable({
                               className="btn secondary"
                               disabled={busyId === suite.id}
                               onClick={() => void onDelete(suite)}
-                              {...testIdProps(TestIds.automatedSuiteDeleteButton)}
+                              {...testIdProps(
+                                TestIds.automatedSuiteDeleteButton,
+                              )}
                             >
                               {t('executions.delete')}
                             </button>

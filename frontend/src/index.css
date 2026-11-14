@@ -52,17 +52,27 @@
   --control-pad-y: 0.45rem;
   --control-pad-x: 0.7rem;
   /* Self-hosted via @fontsource (see theme/fonts.ts). Default body = Inter. */
-  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
-  --font-body: "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --font-preview-inter: "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-preview-ibm_plex_sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --font-preview-noto_sans: "Noto Sans", "Segoe UI", system-ui, sans-serif;
-  --font-preview-source_sans_3: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-preview-inter: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-preview-ibm_plex_sans:
+    'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-preview-noto_sans: 'Noto Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-preview-source_sans_3:
+    'Source Sans 3', 'Segoe UI', system-ui, sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent-soft) 70%, transparent) 0%, transparent 42%),
-    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--status-retest-bg) 55%, transparent) 0%, transparent 36%),
+    radial-gradient(
+      circle at 12% 8%,
+      color-mix(in srgb, var(--accent-soft) 70%, transparent) 0%,
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 88% 0%,
+      color-mix(in srgb, var(--status-retest-bg) 55%, transparent) 0%,
+      transparent 36%
+    ),
     var(--bg);
   font-family: var(--font-body);
   font-synthesis: none;
@@ -70,7 +80,7 @@
   -webkit-font-smoothing: antialiased;
 }
 
-[data-density="compact"] {
+[data-density='compact'] {
   --space-1: 0.15rem;
   --space-2: 0.35rem;
   --space-3: 0.5rem;
@@ -80,7 +90,7 @@
   --sidebar-width: 220px;
 }
 
-[data-density="comfortable"] {
+[data-density='comfortable'] {
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -100,9 +110,9 @@
   }
 }
 
-[data-reduced-motion="true"] *,
-[data-reduced-motion="true"] *::before,
-[data-reduced-motion="true"] *::after {
+[data-reduced-motion='true'] *,
+[data-reduced-motion='true'] *::before,
+[data-reduced-motion='true'] *::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
@@ -1126,7 +1136,6 @@ select.project-select {
   white-space: nowrap;
 }
 
-
 .case-virtual {
   border: 1px solid var(--line);
   border-radius: 0.55rem;
@@ -1210,7 +1219,11 @@ select.project-select {
 .status-btn.status-untestable {
   background: var(--status-untestable-bg);
   color: var(--status-untestable-fg);
-  border-color: color-mix(in srgb, var(--status-untestable-fg) 35%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--status-untestable-fg) 35%,
+    transparent
+  );
   border-style: dashed;
 }
 
@@ -1529,7 +1542,7 @@ select.project-select {
   text-align: left;
 }
 
-.font-family-option[aria-checked="true"] {
+.font-family-option[aria-checked='true'] {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--ink);
@@ -1550,12 +1563,11 @@ select.project-select {
   gap: 0.35rem;
 }
 
-.font-size-steps button[aria-pressed="true"] {
+.font-size-steps button[aria-pressed='true'] {
   background: var(--accent);
   color: var(--accent-on);
   border-color: var(--accent);
 }
-
 
 .req-list {
   margin: 0;
@@ -1720,7 +1732,9 @@ select.project-select {
 a.kpi-link {
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 a.kpi-link:hover,
@@ -2072,7 +2086,11 @@ button.trend-seg.clickable:focus-visible {
 
 .pwa-toast-warn {
   border-color: color-mix(in srgb, var(--warn) 45%, var(--line));
-  background: color-mix(in srgb, var(--status-retest-bg) 80%, var(--bg-elevated));
+  background: color-mix(
+    in srgb,
+    var(--status-retest-bg) 80%,
+    var(--bg-elevated)
+  );
 }
 
 .sr-only {

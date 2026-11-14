@@ -88,31 +88,39 @@ export function Chat({ projectId }: Props) {
         list[0]
       if (def) setConfigId((cur) => cur || def.id)
     })
-    void api.listProjects().then(setProjects).catch(() => setProjects([]))
+    void api
+      .listProjects()
+      .then(setProjects)
+      .catch(() => setProjects([]))
   }, [projectId])
 
   const forRequirements = Boolean(
-    proposal &&
-      proposal.requirements.length > 0 &&
-      proposal.cases.length === 0,
+    proposal && proposal.requirements.length > 0 && proposal.cases.length === 0,
   )
 
   useEffect(() => {
     if (!proposal) return
     const pid = proposal.placement.project_id
-    void api.listSuites(pid).then(setSuites).catch(() => setSuites([]))
+    void api
+      .listSuites(pid)
+      .then(setSuites)
+      .catch(() => setSuites([]))
     void api
       .listRequirementFolders(pid)
       .then(setReqFolders)
       .catch(() => setReqFolders([]))
-  }, [proposal?.placement.project_id, proposal?.cases.length, proposal?.requirements.length])
+  }, [
+    proposal?.placement.project_id,
+    proposal?.cases.length,
+    proposal?.requirements.length,
+  ])
 
   const modelOptions = useMemo(() => configs, [configs])
 
   const canConfirm = Boolean(
     proposal &&
-      ((proposal.cases.length > 0 && canCreateCases) ||
-        (proposal.requirements.length > 0 && canManageReqs)),
+    ((proposal.cases.length > 0 && canCreateCases) ||
+      (proposal.requirements.length > 0 && canManageReqs)),
   )
 
   const updatePlacement = (patch: Partial<ChatPlacement>) => {
@@ -530,13 +538,14 @@ export function Chat({ projectId }: Props) {
                         value={s.action}
                         onChange={(e) => {
                           const steps = c.steps.map((st, j) =>
-                            j === si
-                              ? { ...st, action: e.target.value }
-                              : st,
+                            j === si ? { ...st, action: e.target.value } : st,
                           )
                           updateCase(i, { steps })
                         }}
-                        {...listChildProps(TestIds.chatDraftCase, 'step-action')}
+                        {...listChildProps(
+                          TestIds.chatDraftCase,
+                          'step-action',
+                        )}
                       />
                     </label>
                     <label className="field">

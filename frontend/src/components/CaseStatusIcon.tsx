@@ -29,10 +29,7 @@ export function CaseStatusIcon({ status, className }: Props) {
     case 'deprecated':
       return (
         <svg {...common}>
-          <path
-            fill="currentColor"
-            d="M3.2 7.1h9.6v1.8H3.2z"
-          />
+          <path fill="currentColor" d="M3.2 7.1h9.6v1.8H3.2z" />
         </svg>
       )
     case 'draft':

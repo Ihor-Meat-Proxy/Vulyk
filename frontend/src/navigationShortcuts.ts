@@ -12,7 +12,10 @@ export function shouldIgnoreNavShortcutForTarget(
 
 /** True when Backspace may navigate to the parent route (not inside inputs). */
 export function shouldHandleBackspaceToParent(
-  e: Pick<KeyboardEvent, 'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'repeat'> & {
+  e: Pick<
+    KeyboardEvent,
+    'key' | 'metaKey' | 'ctrlKey' | 'altKey' | 'repeat'
+  > & {
     target: EventTarget | null
   },
 ): boolean {

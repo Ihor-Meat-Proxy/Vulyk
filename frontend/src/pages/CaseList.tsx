@@ -213,7 +213,17 @@ export function CaseList({
       limit: PAGE_SIZE,
       offset: pageOffset,
     }),
-    [suiteId, directOnly, deferredQuery, tag, status, sort, order, cfIds, cfQuery],
+    [
+      suiteId,
+      directOnly,
+      deferredQuery,
+      tag,
+      status,
+      sort,
+      order,
+      cfIds,
+      cfQuery,
+    ],
   )
 
   const persistColumns = useCallback(
@@ -276,7 +286,6 @@ export function CaseList({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [treeDrawerOpen])
-
 
   // Restore list scroll after returning from case detail (Backspace / back link).
   useEffect(() => {
@@ -343,7 +352,9 @@ export function CaseList({
             .getCaseListColumns(projectId)
             .then((remote) => {
               if (cancelled) return
-              apply(remote.columns?.length ? remote : local ?? defaultConfig())
+              apply(
+                remote.columns?.length ? remote : (local ?? defaultConfig()),
+              )
             })
             .catch(() => {
               if (!cancelled) apply(local ?? defaultConfig())
@@ -371,7 +382,18 @@ export function CaseList({
   useEffect(() => {
     setOffset(0)
     setSelected(new Set())
-  }, [projectId, suiteId, deferredQuery, tag, status, directOnly, sort, order, cfIds.join(','), cfQuery])
+  }, [
+    projectId,
+    suiteId,
+    deferredQuery,
+    tag,
+    status,
+    directOnly,
+    sort,
+    order,
+    cfIds.join(','),
+    cfQuery,
+  ])
 
   useEffect(() => {
     if (suiteId == null) setDirectOnly(false)
@@ -567,10 +589,7 @@ export function CaseList({
       suites.some((s) => s.parent_id === suite.id)
     let onNonempty: 'move_to_parent' | 'delete_cases' = 'move_to_parent'
     if (hasContent) {
-      const choice = window.prompt(
-        t('folders.deleteConfirm'),
-        'move_to_parent',
-      )
+      const choice = window.prompt(t('folders.deleteConfirm'), 'move_to_parent')
       if (choice == null) return
       if (choice.trim() === 'delete_cases') {
         if (!canDeleteCases) {
@@ -666,17 +685,13 @@ export function CaseList({
       case 'automated':
         return (
           <span {...testIdProps(TestIds.caseRowAutomated)}>
-            {c.automated
-              ? t('cases.automatedYes')
-              : t('cases.automatedNo')}
+            {c.automated ? t('cases.automatedYes') : t('cases.automatedNo')}
           </span>
         )
       case 'last_run_status':
         return (
           <span {...testIdProps(TestIds.caseRowLastRunStatus)}>
-            {c.last_run_status
-              ? c.last_run_status
-              : t('cases.lastRunNone')}
+            {c.last_run_status ? c.last_run_status : t('cases.lastRunNone')}
           </span>
         )
       case 'updated_at':
@@ -963,8 +978,9 @@ export function CaseList({
                       onChange={(e) => {
                         const id = e.target.value
                         setBulkFieldId(id)
-                        const ft = customFields.find((f) => f.id === id)
-                          ?.field_type
+                        const ft = customFields.find(
+                          (f) => f.id === id,
+                        )?.field_type
                         setBulkFieldValue(ft === 'checkbox' ? 'true' : '')
                       }}
                       aria-label={t('cases.bulkCustomField')}
@@ -984,9 +1000,7 @@ export function CaseList({
                           className="filter-input"
                           value={bulkFieldValue}
                           onChange={(e) => setBulkFieldValue(e.target.value)}
-                          {...testIdProps(
-                            TestIds.caseListBulkCustomFieldValue,
-                          )}
+                          {...testIdProps(TestIds.caseListBulkCustomFieldValue)}
                         >
                           <option value="true">yes</option>
                           <option value="false">no</option>
@@ -997,9 +1011,7 @@ export function CaseList({
                           placeholder={t('cases.bulkCustomValue')}
                           value={bulkFieldValue}
                           onChange={(e) => setBulkFieldValue(e.target.value)}
-                          {...testIdProps(
-                            TestIds.caseListBulkCustomFieldValue,
-                          )}
+                          {...testIdProps(TestIds.caseListBulkCustomFieldValue)}
                         />
                       ))}
                     {bulkFieldId && (

@@ -117,7 +117,10 @@ export function ExportConfigPanel({ projects, onError }: Props) {
     }
   }
 
-  const renderChanges = (title: string, items: ConfigImportPreview['creates']) =>
+  const renderChanges = (
+    title: string,
+    items: ConfigImportPreview['creates'],
+  ) =>
     items.length > 0 ? (
       <div>
         <h4>{title}</h4>
@@ -235,9 +238,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           <span>{t('admin.export.strategy')}</span>
           <select
             value={strategy}
-            onChange={(e) =>
-              setStrategy(e.target.value as 'merge' | 'replace')
-            }
+            onChange={(e) => setStrategy(e.target.value as 'merge' | 'replace')}
             {...testIdProps(TestIds.adminConfigStrategySelect)}
           >
             <option value="merge">{t('admin.export.merge')}</option>

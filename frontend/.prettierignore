@@ -1,0 +1,7 @@
+dist
+coverage
+node_modules
+package-lock.json
+lighthouse-report.json
+*.min.js
+src/i18n/locales

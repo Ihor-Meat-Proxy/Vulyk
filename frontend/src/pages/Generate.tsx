@@ -88,7 +88,10 @@ export function Generate({ projectId }: Props) {
     if (!projectId) return
     const raw = searchParams.get('cases')
     if (!raw) return
-    const ids = raw.split(',').map((s) => s.trim()).filter(Boolean)
+    const ids = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
     if (ids.length === 0) return
     let cancelled = false
     void (async () => {
@@ -307,10 +310,7 @@ export function Generate({ projectId }: Props) {
               ))}
             </select>
           </label>
-          <div
-            className="field"
-            {...testIdProps(TestIds.generateCasePicker)}
-          >
+          <div className="field" {...testIdProps(TestIds.generateCasePicker)}>
             <span>{t('generate.pickCases')}</span>
             <CasePicker
               projectId={projectId}

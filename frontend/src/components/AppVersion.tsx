@@ -17,7 +17,9 @@ export function AppVersion() {
     let cancelled = false
     ;(async () => {
       try {
-        const res = await fetch(`${API_BASE}/health`, { credentials: 'include' })
+        const res = await fetch(`${API_BASE}/health`, {
+          credentials: 'include',
+        })
         if (!res.ok) return
         const body = (await res.json()) as HealthPayload
         if (!cancelled && body.version) {

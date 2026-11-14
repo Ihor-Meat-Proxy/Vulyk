@@ -62,9 +62,7 @@ export function Login() {
         {...testIdProps(TestIds.loginPanel)}
       >
         <div className="brand">
-          <span className="brand-mark">
-            {status?.instance_name || 'Vulyk'}
-          </span>
+          <span className="brand-mark">{status?.instance_name || 'Vulyk'}</span>
           <span className="brand-tag" {...testIdProps(TestIds.loginBrandTag)}>
             {isBootstrap
               ? t('login.bootstrapTitle')
@@ -74,9 +72,7 @@ export function Login() {
           </span>
         </div>
         <p className="muted">
-          {isBootstrap
-            ? t('login.bootstrapSubtitle')
-            : t('login.subtitle')}
+          {isBootstrap ? t('login.bootstrapSubtitle') : t('login.subtitle')}
         </p>
         {(isBootstrap || showRegister) && (
           <label className="field">
@@ -109,9 +105,7 @@ export function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
             {...(minLength != null ? { minLength } : {})}
-            autoComplete={
-              settingPassword ? 'new-password' : 'current-password'
-            }
+            autoComplete={settingPassword ? 'new-password' : 'current-password'}
             {...testIdProps(TestIds.loginPasswordInput)}
           />
           {settingPassword && (

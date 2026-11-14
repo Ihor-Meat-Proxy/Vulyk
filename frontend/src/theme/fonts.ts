@@ -20,7 +20,7 @@ export const UI_FONT_FAMILIES = [
 
 export type UiFontFamily = (typeof UI_FONT_FAMILIES)[number]
 
-export const DEFAULT_UI_FONT: UiFontFamily = UI_FONT_INTER
+const DEFAULT_UI_FONT: UiFontFamily = UI_FONT_INTER
 
 const CSS_FAMILY: Record<UiFontFamily, string> = {
   inter: '"Inter", "Segoe UI", system-ui, sans-serif',

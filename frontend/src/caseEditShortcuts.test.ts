@@ -111,9 +111,9 @@ describe('shouldModEnterAddStep', () => {
 
 describe('isCaseEditorSaveShortcut', () => {
   it('matches Cmd+S on Apple and Ctrl+S elsewhere', () => {
-    expect(isCaseEditorSaveShortcut(key({ key: 's', metaKey: true }), true)).toBe(
-      true,
-    )
+    expect(
+      isCaseEditorSaveShortcut(key({ key: 's', metaKey: true }), true),
+    ).toBe(true)
     expect(
       isCaseEditorSaveShortcut(key({ key: 'S', ctrlKey: true }), false),
     ).toBe(true)
@@ -151,38 +151,54 @@ describe('shouldHandleSaveShortcut', () => {
 
     const saveEvent = key({ key: 's', ctrlKey: true })
     expect(
-      shouldHandleSaveShortcut(saveEvent, {
-        editorRoot,
-        saving: false,
-        document,
-      }, false),
+      shouldHandleSaveShortcut(
+        saveEvent,
+        {
+          editorRoot,
+          saving: false,
+          document,
+        },
+        false,
+      ),
     ).toBe(true)
 
     expect(
-      shouldHandleSaveShortcut(saveEvent, {
-        editorRoot: null,
-        saving: false,
-        document,
-      }, false),
+      shouldHandleSaveShortcut(
+        saveEvent,
+        {
+          editorRoot: null,
+          saving: false,
+          document,
+        },
+        false,
+      ),
     ).toBe(false)
 
     expect(
-      shouldHandleSaveShortcut(saveEvent, {
-        editorRoot,
-        saving: true,
-        document,
-      }, false),
+      shouldHandleSaveShortcut(
+        saveEvent,
+        {
+          editorRoot,
+          saving: true,
+          document,
+        },
+        false,
+      ),
     ).toBe(false)
 
     const foreign = document.createElement('div')
     foreign.setAttribute('role', 'dialog')
     document.body.appendChild(foreign)
     expect(
-      shouldHandleSaveShortcut(saveEvent, {
-        editorRoot,
-        saving: false,
-        document,
-      }, false),
+      shouldHandleSaveShortcut(
+        saveEvent,
+        {
+          editorRoot,
+          saving: false,
+          document,
+        },
+        false,
+      ),
     ).toBe(false)
 
     foreign.remove()
@@ -206,11 +222,15 @@ describe('shouldHandleSaveShortcut', () => {
 
     const accepted = makeEvent()
     if (
-      shouldHandleSaveShortcut(accepted.e, {
-        editorRoot,
-        saving: false,
-        document,
-      }, false)
+      shouldHandleSaveShortcut(
+        accepted.e,
+        {
+          editorRoot,
+          saving: false,
+          document,
+        },
+        false,
+      )
     ) {
       accepted.e.preventDefault()
     }
@@ -219,11 +239,15 @@ describe('shouldHandleSaveShortcut', () => {
     editorRoot.remove()
     const rejected = makeEvent()
     if (
-      shouldHandleSaveShortcut(rejected.e, {
-        editorRoot: null,
-        saving: false,
-        document,
-      }, false)
+      shouldHandleSaveShortcut(
+        rejected.e,
+        {
+          editorRoot: null,
+          saving: false,
+          document,
+        },
+        false,
+      )
     ) {
       rejected.e.preventDefault()
     }

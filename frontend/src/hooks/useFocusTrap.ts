@@ -10,19 +10,22 @@ const FOCUSABLE_SELECTOR = [
 ].join(',')
 
 function listFocusable(root: HTMLElement): HTMLElement[] {
-  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-    (el) => {
-      if (el.closest('[aria-hidden="true"]')) return false
-      if (el.hasAttribute('disabled') || el.getAttribute('aria-disabled') === 'true') {
-        return false
-      }
-      // Prefer computed style over offsetParent (unreliable in jsdom / for
-      // position:fixed descendants).
-      const style = window.getComputedStyle(el)
-      if (style.display === 'none' || style.visibility === 'hidden') return false
-      return true
-    },
-  )
+  return Array.from(
+    root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+  ).filter((el) => {
+    if (el.closest('[aria-hidden="true"]')) return false
+    if (
+      el.hasAttribute('disabled') ||
+      el.getAttribute('aria-disabled') === 'true'
+    ) {
+      return false
+    }
+    // Prefer computed style over offsetParent (unreliable in jsdom / for
+    // position:fixed descendants).
+    const style = window.getComputedStyle(el)
+    if (style.display === 'none' || style.visibility === 'hidden') return false
+    return true
+  })
 }
 
 type Options = {

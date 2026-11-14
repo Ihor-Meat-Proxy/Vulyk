@@ -401,7 +401,9 @@ export function BackupsPanel({ projects, onError }: Props) {
           {policies.map((p) => (
             <li key={p.id}>
               {p.schedule} → {p.destination_id.slice(0, 8)}…
-              {p.project_id ? ` · project ${p.project_id.slice(0, 8)}` : ' · all'}
+              {p.project_id
+                ? ` · project ${p.project_id.slice(0, 8)}`
+                : ' · all'}
             </li>
           ))}
         </ul>

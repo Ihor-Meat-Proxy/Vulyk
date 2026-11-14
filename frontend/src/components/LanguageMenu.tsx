@@ -71,8 +71,9 @@ export function LanguageMenu() {
 
   const onMenuKeyDown = (e: ReactKeyboardEvent) => {
     const items = Array.from(
-      listRef.current?.querySelectorAll<HTMLElement>('[role="menuitemradio"]') ??
-        [],
+      listRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitemradio"]',
+      ) ?? [],
     )
     const idx = items.indexOf(document.activeElement as HTMLElement)
     if (e.key === 'ArrowDown') {
@@ -110,6 +111,7 @@ export function LanguageMenu() {
           id={menuId}
           className="icon-menu-panel"
           role="menu"
+          tabIndex={-1}
           aria-label={label}
           ref={listRef}
           onKeyDown={onMenuKeyDown}

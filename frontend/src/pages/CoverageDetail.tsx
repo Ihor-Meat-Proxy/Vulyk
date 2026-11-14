@@ -149,7 +149,10 @@ export function CoverageDetail({ projectId }: Props) {
                     <li key={c.case_id}>
                       <Link
                         to={`/cases/${encodeURIComponent(c.case_key)}`}
-                        {...listChildProps(TestIds.reportsCoverageReq, 'case-link')}
+                        {...listChildProps(
+                          TestIds.reportsCoverageReq,
+                          'case-link',
+                        )}
                       >
                         {c.case_key}
                       </Link>{' '}

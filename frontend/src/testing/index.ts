@@ -1,8 +1,4 @@
-export {
-  TestIds,
-  childTestId,
-  type TestId,
-} from './testIds'
+export { TestIds, childTestId, type TestId } from './testIds'
 export {
   stripTestIdsEnabled,
   testIdProps,

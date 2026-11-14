@@ -10,7 +10,10 @@ function translate(locale: Locale, key: string): string {
 describe('i18n missing-key fallback', () => {
   it('falls back to English when the active locale lacks a key', () => {
     // Same resolution order as t(): active → en → key (without mutating shipped dicts).
-    const en = { ...localeDictionaries.en, ___en_only_probe___: 'English probe' }
+    const en = {
+      ...localeDictionaries.en,
+      ___en_only_probe___: 'English probe',
+    }
     const fr = localeDictionaries.fr
     const key = '___en_only_probe___'
     expect(fr[key] ?? en[key] ?? key).toBe('English probe')

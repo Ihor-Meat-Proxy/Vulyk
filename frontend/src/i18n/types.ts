@@ -20,7 +20,9 @@ export const LOCALES: LocaleMeta[] = [
 
 export const LOCALE_CODES: Locale[] = LOCALES.map((l) => l.code)
 
-export function normalizeLocale(value: string | null | undefined): Locale | null {
+export function normalizeLocale(
+  value: string | null | undefined,
+): Locale | null {
   if (!value) return null
   const base = value.toLowerCase().split(/[-_]/)[0]
   if ((LOCALE_CODES as string[]).includes(base)) return base as Locale

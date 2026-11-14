@@ -1,12 +1,16 @@
 /** Detect Apple platforms for ⌘ vs Ctrl shortcut labels and modifiers. */
 export function isApplePlatform(
-  nav: Pick<Navigator, 'platform' | 'userAgent'> = typeof navigator !== 'undefined'
+  nav: Pick<Navigator, 'platform' | 'userAgent'> = typeof navigator !==
+  'undefined'
     ? navigator
     : { platform: '', userAgent: '' },
 ): boolean {
   const platform = nav.platform || ''
   const ua = nav.userAgent || ''
-  return /Mac|iPhone|iPad|iPod/i.test(platform) || /Mac OS X|iPhone|iPad|iPod/i.test(ua)
+  return (
+    /Mac|iPhone|iPad|iPod/i.test(platform) ||
+    /Mac OS X|iPhone|iPad|iPod/i.test(ua)
+  )
 }
 
 /** Platform-appropriate modifier key label for save/add-step hints. */
@@ -35,12 +39,15 @@ export function isEditableTarget(target: EventTarget | null): boolean {
  */
 export function isForeignModalOpen(
   editorRoot: Element | null,
-  doc: Document = typeof document !== 'undefined' ? document : (null as unknown as Document),
+  doc: Document = typeof document !== 'undefined'
+    ? document
+    : (null as unknown as Document),
 ): boolean {
   if (!doc?.querySelectorAll) return false
   const modals = doc.querySelectorAll('[role="dialog"], [aria-modal="true"]')
   for (const modal of modals) {
-    if (editorRoot && (modal === editorRoot || editorRoot.contains(modal))) continue
+    if (editorRoot && (modal === editorRoot || editorRoot.contains(modal)))
+      continue
     return true
   }
   return false

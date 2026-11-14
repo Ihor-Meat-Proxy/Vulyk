@@ -17,11 +17,17 @@ describe('passwordPolicy', () => {
 
   it('login never sets HTML minLength; set-password does', () => {
     expect(passwordFieldMinLength(false)).toBeUndefined()
-    expect(passwordFieldMinLength(true)).toBe(DEFAULT_PASSWORD_POLICY.min_length)
+    expect(passwordFieldMinLength(true)).toBe(
+      DEFAULT_PASSWORD_POLICY.min_length,
+    )
   })
 
   it('exposes live requirement flags', () => {
-    const flags = passwordRequirementFlags('ab1', { min_length: 16, require_letter: true, require_digit: true })
+    const flags = passwordRequirementFlags('ab1', {
+      min_length: 16,
+      require_letter: true,
+      require_digit: true,
+    })
     expect(flags).toEqual({ length: false, letter: true, digit: true })
   })
 })

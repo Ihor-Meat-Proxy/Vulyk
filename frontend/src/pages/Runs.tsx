@@ -160,24 +160,24 @@ export function Runs({ projectId }: Props) {
           {t('runs.ciIngestHelp')}
         </p>
         {canExecute && (
-        <div className="toolbar">
-          <input
-            value={runName}
-            onChange={(e) => setRunName(e.target.value)}
-            aria-label={t('a11y.newRunName')}
-            placeholder={t('a11y.placeholder.runName')}
-            {...testIdProps(TestIds.runsCreateNameInput)}
-          />
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={() => void onCreateRun()}
-            {...testIdProps(TestIds.runsCreateButton)}
-          >
-            {t('runs.newRun')}
-          </button>
-        </div>
+          <div className="toolbar">
+            <input
+              value={runName}
+              onChange={(e) => setRunName(e.target.value)}
+              aria-label={t('a11y.newRunName')}
+              placeholder={t('a11y.placeholder.runName')}
+              {...testIdProps(TestIds.runsCreateNameInput)}
+            />
+            <button
+              type="button"
+              className="btn"
+              disabled={busy}
+              onClick={() => void onCreateRun()}
+              {...testIdProps(TestIds.runsCreateButton)}
+            >
+              {t('runs.newRun')}
+            </button>
+          </div>
         )}
         {runs.length === 0 ? (
           <p className="empty" {...testIdProps(TestIds.runsEmpty)}>
@@ -215,7 +215,10 @@ export function Runs({ projectId }: Props) {
                     ) : null}
                   </td>
                   <td {...testIdProps(TestIds.runRowStatus)}>
-                    <StatusBadge status={run.status} testId="runs-list-status-badge" />
+                    <StatusBadge
+                      status={run.status}
+                      testId="runs-list-status-badge"
+                    />
                   </td>
                   <td>{run.source}</td>
                   <td className="muted">{fmt(run.created_at)}</td>
@@ -226,7 +229,12 @@ export function Runs({ projectId }: Props) {
         )}
         {selectedRunId && (
           <div style={{ marginTop: '1.25rem' }}>
-            <h3 style={{ fontFamily: 'var(--font-display)', margin: '0 0 0.5rem' }}>
+            <h3
+              style={{
+                fontFamily: 'var(--font-display)',
+                margin: '0 0 0.5rem',
+              }}
+            >
               {t('runs.results')}
             </h3>
             {results.length === 0 ? (
@@ -245,7 +253,10 @@ export function Runs({ projectId }: Props) {
                   {results.map((r) => (
                     <tr key={r.id} style={{ cursor: 'default' }}>
                       <td>
-                        <StatusBadge status={r.status} testId="runs-result-status-badge" />
+                        <StatusBadge
+                          status={r.status}
+                          testId="runs-result-status-badge"
+                        />
                       </td>
                       <td>
                         <code>{r.external_id ?? '—'}</code>
@@ -262,142 +273,152 @@ export function Runs({ projectId }: Props) {
       </section>
 
       {(canManageCi || canTrigger) && (
-      <section className="panel">
-        <h2>{t('runs.ciTriggers')}</h2>
-        <p className="muted" style={{ marginTop: 0 }}>
-          {t('runs.ciTriggersHelp')}
-        </p>
-        {canManageCi && (
-        <>
-        <div className="toolbar">
-          <select
-            value={provider}
-            onChange={(e) => {
-              const next = e.target.value as 'github' | 'gitlab'
-              setProvider(next)
-              setCiName(next === 'github' ? 'GitHub Actions' : 'GitLab pipeline')
-              setCiJson(
-                next === 'github'
-                  ? '{\n  "token": "",\n  "owner": "org",\n  "repo": "repo",\n  "workflow_id": "ci.yml",\n  "ref": "main"\n}'
-                  : '{\n  "base_url": "https://gitlab.com",\n  "project_id": "group/project",\n  "trigger_token": "",\n  "ref": "main"\n}',
-              )
-            }}
-            aria-label={t('a11y.ciProvider')}
-            {...testIdProps(TestIds.runsCiProviderSelect)}
-          >
-            <option value="github">GitHub</option>
-            <option value="gitlab">GitLab</option>
-          </select>
-          <input
-            value={ciName}
-            onChange={(e) => setCiName(e.target.value)}
-            aria-label={t('a11y.ciConfigName')}
-            placeholder={t('a11y.placeholder.configName')}
-            {...testIdProps(TestIds.runsCiNameInput)}
-          />
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={() => void onSaveCi()}
-            {...testIdProps(TestIds.runsCiSaveButton)}
-          >
-            {t('runs.saveConfig')}
-          </button>
-        </div>
-        <textarea
-          className="code-input"
-          value={ciJson}
-          onChange={(e) => setCiJson(e.target.value)}
-          rows={8}
-          aria-label={t('a11y.ciConfigJson')}
-          {...testIdProps(TestIds.runsCiJsonInput)}
-        />
-        </>
-        )}
+        <section className="panel">
+          <h2>{t('runs.ciTriggers')}</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            {t('runs.ciTriggersHelp')}
+          </p>
+          {canManageCi && (
+            <>
+              <div className="toolbar">
+                <select
+                  value={provider}
+                  onChange={(e) => {
+                    const next = e.target.value as 'github' | 'gitlab'
+                    setProvider(next)
+                    setCiName(
+                      next === 'github' ? 'GitHub Actions' : 'GitLab pipeline',
+                    )
+                    setCiJson(
+                      next === 'github'
+                        ? '{\n  "token": "",\n  "owner": "org",\n  "repo": "repo",\n  "workflow_id": "ci.yml",\n  "ref": "main"\n}'
+                        : '{\n  "base_url": "https://gitlab.com",\n  "project_id": "group/project",\n  "trigger_token": "",\n  "ref": "main"\n}',
+                    )
+                  }}
+                  aria-label={t('a11y.ciProvider')}
+                  {...testIdProps(TestIds.runsCiProviderSelect)}
+                >
+                  <option value="github">GitHub</option>
+                  <option value="gitlab">GitLab</option>
+                </select>
+                <input
+                  value={ciName}
+                  onChange={(e) => setCiName(e.target.value)}
+                  aria-label={t('a11y.ciConfigName')}
+                  placeholder={t('a11y.placeholder.configName')}
+                  {...testIdProps(TestIds.runsCiNameInput)}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => void onSaveCi()}
+                  {...testIdProps(TestIds.runsCiSaveButton)}
+                >
+                  {t('runs.saveConfig')}
+                </button>
+              </div>
+              <textarea
+                className="code-input"
+                value={ciJson}
+                onChange={(e) => setCiJson(e.target.value)}
+                rows={8}
+                aria-label={t('a11y.ciConfigJson')}
+                {...testIdProps(TestIds.runsCiJsonInput)}
+              />
+            </>
+          )}
 
-        {configs.length > 0 && (
-          <table className="table" style={{ marginTop: '1rem' }}>
-            <thead>
-              <tr>
-                <th>{t('runs.colName')}</th>
-                <th>{t('runs.colProvider')}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {configs.map((cfg, index) => (
-                <tr key={cfg.id} style={{ cursor: 'default' }}>
-                  <td>{cfg.name}</td>
-                  <td>{cfg.provider}</td>
-                  <td>
-                    {canTrigger && (
-                    <button
-                      type="button"
-                      className="btn secondary"
-                      disabled={busy || !cfg.enabled}
-                      onClick={() => void onDispatch(cfg.id)}
-                      {...listItemProps(TestIds.runsCiDispatchButton, {
-                        entityId: cfg.id,
-                        index,
-                      })}
-                    >
-                      {t('runs.dispatch')}
-                    </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-
-        {dispatches.length > 0 && (
-          <>
-            <h3 style={{ fontFamily: 'var(--font-display)', margin: '1.25rem 0 0.5rem' }}>
-              {t('runs.recentDispatches')}
-            </h3>
-            <table className="table">
+          {configs.length > 0 && (
+            <table className="table" style={{ marginTop: '1rem' }}>
               <thead>
                 <tr>
-                  <th>{t('runs.colStatus')}</th>
-                  <th>{t('runs.colExternal')}</th>
-                  <th>{t('runs.colError')}</th>
-                  <th>{t('runs.colWhen')}</th>
+                  <th>{t('runs.colName')}</th>
+                  <th>{t('runs.colProvider')}</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {dispatches.slice(0, 10).map((d, index) => (
-                  <tr key={d.id} style={{ cursor: 'default' }}>
+                {configs.map((cfg, index) => (
+                  <tr key={cfg.id} style={{ cursor: 'default' }}>
+                    <td>{cfg.name}</td>
+                    <td>{cfg.provider}</td>
                     <td>
-                      <StatusBadge status={d.status} testId="runs-dispatch-status-badge" />
-                    </td>
-                    <td>
-                      {d.external_url ? (
-                        <a
-                          href={d.external_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          {...listItemProps(TestIds.runsCiExternalLink, {
-                            entityId: d.id,
+                      {canTrigger && (
+                        <button
+                          type="button"
+                          className="btn secondary"
+                          disabled={busy || !cfg.enabled}
+                          onClick={() => void onDispatch(cfg.id)}
+                          {...listItemProps(TestIds.runsCiDispatchButton, {
+                            entityId: cfg.id,
                             index,
                           })}
                         >
-                          {d.external_id ?? t('runs.openExternal')}
-                        </a>
-                      ) : (
-                        (d.external_id ?? '—')
+                          {t('runs.dispatch')}
+                        </button>
                       )}
                     </td>
-                    <td className="muted">{d.last_error ?? '—'}</td>
-                    <td className="muted">{fmt(d.created_at)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </>
-        )}
-      </section>
+          )}
+
+          {dispatches.length > 0 && (
+            <>
+              <h3
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  margin: '1.25rem 0 0.5rem',
+                }}
+              >
+                {t('runs.recentDispatches')}
+              </h3>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t('runs.colStatus')}</th>
+                    <th>{t('runs.colExternal')}</th>
+                    <th>{t('runs.colError')}</th>
+                    <th>{t('runs.colWhen')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dispatches.slice(0, 10).map((d, index) => (
+                    <tr key={d.id} style={{ cursor: 'default' }}>
+                      <td>
+                        <StatusBadge
+                          status={d.status}
+                          testId="runs-dispatch-status-badge"
+                        />
+                      </td>
+                      <td>
+                        {d.external_url ? (
+                          <a
+                            href={d.external_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            {...listItemProps(TestIds.runsCiExternalLink, {
+                              entityId: d.id,
+                              index,
+                            })}
+                          >
+                            {d.external_id ?? t('runs.openExternal')}
+                          </a>
+                        ) : (
+                          (d.external_id ?? '—')
+                        )}
+                      </td>
+                      <td className="muted">{d.last_error ?? '—'}</td>
+                      <td className="muted">{fmt(d.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </section>
       )}
     </div>
   )

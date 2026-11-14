@@ -73,7 +73,8 @@ async function pruneStore(
   const all: { key: string; viewedAt: number }[] = await new Promise(
     (resolve, reject) => {
       const req = index.getAll()
-      req.onsuccess = () => resolve(req.result as { key: string; viewedAt: number }[])
+      req.onsuccess = () =>
+        resolve(req.result as { key: string; viewedAt: number }[])
       req.onerror = () => reject(req.error)
     },
   )

@@ -126,5 +126,26 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'text-summary', 'json-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      // Default Vitest include = files loaded by the suite (day-one baseline).
+      exclude: [
+        'src/main.tsx',
+        'src/**/*.d.ts',
+        'src/i18n/locales/**',
+        'src/testing/testIds.ts',
+        'node_modules/**',
+        'dist/**',
+      ],
+      // Floors from 2026-11-14 suite-imported baseline (~36% lines). Ratchet up.
+      thresholds: {
+        lines: 35,
+        statements: 34,
+        branches: 37,
+        functions: 24,
+      },
+    },
   },
 })

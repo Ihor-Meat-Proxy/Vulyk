@@ -3,10 +3,7 @@ import { api, type RegistrationMode } from '../api'
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
 import { LOCALES, normalizeLocale, useI18n, type Locale } from '../i18n'
-import {
-  DEFAULT_PASSWORD_POLICY,
-  passwordMeetsPolicy,
-} from '../passwordPolicy'
+import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
 import { browserTimeZone } from '../timezone'
 
@@ -190,7 +187,10 @@ export function SetupWizard() {
             <option value="disabled">{t('setup.modeDisabled')}</option>
           </select>
         </label>
-        <label className="field" style={{ flexDirection: 'row', gap: '0.5rem' }}>
+        <label
+          className="field"
+          style={{ flexDirection: 'row', gap: '0.5rem' }}
+        >
           <input
             type="checkbox"
             checked={seedSample}

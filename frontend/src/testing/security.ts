@@ -10,7 +10,9 @@ const UUID_RE =
 export const SAFE_KEY_RE = /^[A-Za-z0-9][A-Za-z0-9_./:-]{0,63}$/
 
 /** True when `value` is safe for `data-entity-key` (no spaces, emails, or secrets). */
-export function isSafeEntityKey(value: string | null | undefined): value is string {
+export function isSafeEntityKey(
+  value: string | null | undefined,
+): value is string {
   return value != null && value !== '' && SAFE_KEY_RE.test(value)
 }
 
@@ -100,7 +102,11 @@ export function findSuspiciousTestAttrValue(
       return { attr, value, reason: 'entity id must not contain whitespace' }
     }
     if (value.length > 128) {
-      return { attr, value, reason: 'entity id unreasonably long (possible secret)' }
+      return {
+        attr,
+        value,
+        reason: 'entity id unreasonably long (possible secret)',
+      }
     }
     // High-entropy blobs that aren't UUID-shaped
     if (
@@ -143,7 +149,11 @@ export function findSuspiciousTestAttrValue(
 
   // Other data-* used for tests
   if (attr.startsWith('data-')) {
-    if (value.length >= 40 && /^[A-Za-z0-9+/=_-]+$/.test(value) && !UUID_RE.test(value)) {
+    if (
+      value.length >= 40 &&
+      /^[A-Za-z0-9+/=_-]+$/.test(value) &&
+      !UUID_RE.test(value)
+    ) {
       return {
         attr,
         value,

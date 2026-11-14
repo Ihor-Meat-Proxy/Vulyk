@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  draftStepsFromApi,
-  emptyDraftStep,
-  stepsForApi,
-} from './draftSteps'
+import { draftStepsFromApi, emptyDraftStep, stepsForApi } from './draftSteps'
 
 describe('draftSteps', () => {
   it('assigns distinct client keys for empty steps', () => {

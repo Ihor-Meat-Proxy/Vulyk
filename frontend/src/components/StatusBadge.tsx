@@ -42,9 +42,7 @@ const STATUS_I18N: Record<string, string> = {
 export function statusLabelKey(status: string): string {
   const normalized = status.trim().toLowerCase().replace(/-/g, '_')
   return (
-    STATUS_I18N[normalized] ||
-    STATUS_I18N[status.trim().toLowerCase()] ||
-    ''
+    STATUS_I18N[normalized] || STATUS_I18N[status.trim().toLowerCase()] || ''
   )
 }
 

@@ -14,12 +14,7 @@ import en from './locales/en'
 import es from './locales/es'
 import fr from './locales/fr'
 import uk from './locales/uk'
-import {
-  intlLocale,
-  normalizeLocale,
-  type Locale,
-  type Dict,
-} from './types'
+import { intlLocale, normalizeLocale, type Locale, type Dict } from './types'
 
 export type { Locale, Dict, LocaleMeta } from './types'
 export { LOCALES, LOCALE_CODES, normalizeLocale, intlLocale } from './types'
@@ -77,9 +72,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    setLocaleState(
-      resolveInitialLocale(user?.locale, status?.default_locale),
-    )
+    setLocaleState(resolveInitialLocale(user?.locale, status?.default_locale))
   }, [user?.locale, status?.default_locale])
 
   useEffect(() => {

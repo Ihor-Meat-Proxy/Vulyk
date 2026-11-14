@@ -69,9 +69,14 @@ function parseDefault(fieldType: string, raw: string): unknown {
   if (fieldType === 'multi_select') {
     try {
       const parsed = JSON.parse(trimmed) as unknown
-      return Array.isArray(parsed) ? parsed : trimmed.split(',').map((s) => s.trim())
+      return Array.isArray(parsed)
+        ? parsed
+        : trimmed.split(',').map((s) => s.trim())
     } catch {
-      return trimmed.split(',').map((s) => s.trim()).filter(Boolean)
+      return trimmed
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
     }
   }
   return trimmed
@@ -143,7 +148,8 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
     name: form.name.trim(),
     field_type: form.field_type,
     entity: form.entity,
-    option_list_id: needsList && form.option_list_id ? form.option_list_id : null,
+    option_list_id:
+      needsList && form.option_list_id ? form.option_list_id : null,
     default_value: parseDefault(form.field_type, form.default_value),
     required: form.required,
     help_text: form.help_text,
@@ -272,7 +278,10 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
                 <td>
                   {f.name}
                   {!f.active ? (
-                    <span className="muted"> ({t('admin.lists.inactive')})</span>
+                    <span className="muted">
+                      {' '}
+                      ({t('admin.lists.inactive')})
+                    </span>
                   ) : null}
                 </td>
                 <td>{f.field_type}</td>

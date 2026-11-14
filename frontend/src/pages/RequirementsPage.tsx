@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import {
-  api,
-  type CustomField,
-  type Requirement,
-} from '../api'
+import { api, type CustomField, type Requirement } from '../api'
 import { CustomFieldInput } from '../components/CustomFieldInput'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
@@ -161,10 +157,7 @@ export function RequirementsPage({ projectId }: Props) {
           {t('requirements.empty')}
         </p>
       ) : (
-        <table
-          className="table"
-          {...testIdProps(TestIds.requirementsList)}
-        >
+        <table className="table" {...testIdProps(TestIds.requirementsList)}>
           <thead>
             <tr>
               <th>{t('requirements.colKey')}</th>
