@@ -37,6 +37,7 @@ import { BackupsPanel } from './admin/BackupsPanel'
 import { CustomFieldsPanel } from './admin/CustomFieldsPanel'
 import { ExportConfigPanel } from './admin/ExportConfigPanel'
 import { ListsPanel } from './admin/ListsPanel'
+import { shouldShowAuthOffBanner } from './adminAuthOffBanner'
 
 type Tab =
   | 'users'
@@ -160,9 +161,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
     void load()
   }, [load])
 
-  const showAuthOffBanner = Boolean(
-    authStatus && !authStatus.auth_required && isSystemAdmin,
-  )
+  const showAuthOffBanner = shouldShowAuthOffBanner(user, authStatus)
 
   return (
     <div className="admin" {...testIdProps(TestIds.adminPage)}>
