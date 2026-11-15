@@ -112,7 +112,9 @@ On **Executions**, open a suite and click **Run in CI** (`trigger_ci`). Vulyk
 creates a **Queued** run, dispatches the workflow with `vulyk_run_id` +
 `case_keys`, and shows the GitHub run link once the workflow starts (or via the
 `workflow_run` webhook). Stale Queued runs are marked failed after
-`VULYK_CI_QUEUED_TIMEOUT_SECS` (default 7200).
+`VULYK_CI_QUEUED_TIMEOUT_SECS` (default 7200). Hard-killed reporters that leave a
+run `in_progress` are auto-cancelled after `VULYK_STALE_RUN_TTL_HOURS` (default
+24) of inactivity; project admins can also abandon a stuck run from the UI.
 
 ### Reporter / action attach
 

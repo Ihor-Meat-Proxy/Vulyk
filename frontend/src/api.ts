@@ -2421,6 +2421,12 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify(body),
     }),
+  /** Project admin: mark a stuck in_progress/running run as cancelled. */
+  abandonRun: (projectId: string, runId: string, body?: { message?: string }) =>
+    request<TestRun>(`/api/v1/projects/${projectId}/runs/${runId}/abandon`, {
+      method: 'POST',
+      body: JSON.stringify(body ?? {}),
+    }),
   getRunItem: (projectId: string, runId: string, itemId: string) =>
     request<RunItemExecution>(
       `/api/v1/projects/${projectId}/runs/${runId}/items/${itemId}`,

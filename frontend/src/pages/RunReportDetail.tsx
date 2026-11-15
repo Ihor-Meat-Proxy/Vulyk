@@ -50,6 +50,8 @@ export function RunReportDetail({ projectId }: Props) {
   const { t } = useI18n()
   const { can } = useProjectPermissions(projectId)
   const canExport = can('export_reports')
+  const canAbandon = can('delete_project')
+  const [abandoning, setAbandoning] = useState(false)
 
   const statusFilter = searchParams.get('status') ?? ''
   const folderFilter = searchParams.get('folder') ?? ''
@@ -189,6 +191,28 @@ export function RunReportDetail({ projectId }: Props) {
     }
   }
 
+  const onAbandon = async () => {
+    if (!projectId || !runId) return
+    if (!window.confirm(t('runs.abandonConfirm'))) return
+    setAbandoning(true)
+    try {
+      await api.abandonRun(projectId, runId, {
+        message: 'abandoned from run report',
+      })
+      await refresh()
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setAbandoning(false)
+    }
+  }
+
+  const statusIsAbandonable = (s: string) => {
+    const v = s.toLowerCase()
+    return v === 'in_progress' || v === 'running'
+  }
+
   if (!projectId) {
     return <p className="muted">{t('reports.selectProject')}</p>
   }
@@ -238,6 +262,17 @@ export function RunReportDetail({ projectId }: Props) {
           >
             {t('reports.refresh')}
           </button>
+          {canAbandon && detail && statusIsAbandonable(detail.status) && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={abandoning}
+              onClick={() => void onAbandon()}
+              {...testIdProps(TestIds.reportsRunAbandonButton)}
+            >
+              {abandoning ? t('runs.abandoning') : t('runs.abandon')}
+            </button>
+          )}
           {canExport && (
             <button
               type="button"

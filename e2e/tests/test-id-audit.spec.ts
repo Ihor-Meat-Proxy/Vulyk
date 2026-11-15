@@ -93,6 +93,7 @@ async function collectTestAttrIssues(page: Page): Promise<string[]> {
         'run-row-name',
         'run-row-link',
         'run-row-status',
+        'run-row-abandon',
         'runs-page-status-badge',
         'admin-sso-row',
         'settings-ci-token-row',

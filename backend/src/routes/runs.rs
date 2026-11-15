@@ -14,8 +14,8 @@ use uuid::Uuid;
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::models::{
-    normalize_result_status, BulkIngestResults, CreateResult, CreateRun, Page, PageQuery,
-    ResultStep, RunItem, RunItemExecution, RunItemView, TestResult, TestResultDetail,
+    normalize_result_status, AbandonRunRequest, BulkIngestResults, CreateResult, CreateRun, Page,
+    PageQuery, ResultStep, RunItem, RunItemExecution, RunItemView, TestResult, TestResultDetail,
     TestResultHistoryItem, TestRun, TestRunDetail, TestStep, UpdateRun, UpdateRunItem, UNTESTED,
 };
 use crate::routes::AppState;
@@ -39,6 +39,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/v1/projects/{project_id}/runs/{run_id}/trigger",
             post(trigger_run),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/runs/{run_id}/abandon",
+            post(abandon_run),
         )
         .route(
             "/api/v1/projects/{project_id}/runs/{run_id}/items",
@@ -110,6 +114,9 @@ pub async fn list_runs(
     )
     .await?;
     ensure_project(&state.pool, project_id).await?;
+    // Lazy cancel: age out stale in_progress runs so list never shows zombies forever
+    // even if the job worker is idle.
+    let _ = crate::jobs::expire_stale_in_progress_runs(&state.pool).await;
     let page = PageQuery {
         limit: query.limit,
         offset: query.offset,
@@ -290,6 +297,8 @@ pub async fn get_run(
         Permission::ViewProject,
     )
     .await?;
+    // Lazy cancel before read so detail reflects auto-cancel without waiting for the worker.
+    let _ = crate::jobs::expire_stale_in_progress_runs(&state.pool).await;
     let run = load_run(&state.pool, project_id, run_id).await?;
     let progress = run_progress(&state.pool, run.id).await?;
     let items = load_run_items(&state.pool, run.id).await?;
@@ -406,6 +415,92 @@ pub async fn trigger_run(
     .fetch_one(&state.pool)
     .await?;
     Ok(Json(row))
+}
+
+fn is_abandonable_status(status: &str) -> bool {
+    matches!(status, "in_progress" | "running")
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/runs/{run_id}/abandon",
+    tag = "runs",
+    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    request_body = AbandonRunRequest,
+    responses(
+        (status = 200, description = "Run marked cancelled", body = TestRun),
+        (status = 400, description = "Run is not in_progress"),
+        (status = 403, description = "Requires project admin")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn abandon_run(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Json(body): Json<AbandonRunRequest>,
+) -> AppResult<Json<TestRun>> {
+    // Project admin (DeleteProject) or system admin — not CI tokens / viewers.
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::DeleteProject,
+    )
+    .await?;
+    let existing = load_run(&state.pool, project_id, run_id).await?;
+    if !is_abandonable_status(&existing.status) {
+        return Err(AppError::BadRequest(format!(
+            "cannot abandon run in status '{}'; only in_progress or running",
+            existing.status
+        )));
+    }
+
+    let message = body
+        .message
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .unwrap_or("abandoned by admin");
+    let mut meta = existing.meta.clone();
+    if let Some(obj) = meta.as_object_mut() {
+        obj.insert("cancelled".into(), json!(true));
+        obj.insert("cancel_reason".into(), json!("admin_abandon"));
+        obj.insert("cancel_message".into(), json!(message));
+    } else {
+        meta = json!({
+            "cancelled": true,
+            "cancel_reason": "admin_abandon",
+            "cancel_message": message,
+        });
+    }
+
+    let row = sqlx::query_as::<_, TestRun>(&format!(
+        r#"UPDATE test_runs
+           SET status = 'cancelled',
+               finished_at = COALESCE(finished_at, NOW()),
+               meta = $3,
+               updated_at = NOW()
+           WHERE id = $1 AND project_id = $2
+             AND status IN ('in_progress', 'running')
+           RETURNING {RUN_COLS}"#
+    ))
+    .bind(run_id)
+    .bind(project_id)
+    .bind(&meta)
+    .fetch_optional(&state.pool)
+    .await?;
+
+    match row {
+        Some(run) => {
+            let _ = crate::services::campaigns::refresh_run_counters(&state.pool, run.id).await;
+            Ok(Json(run))
+        }
+        None => Err(AppError::BadRequest(
+            "run is no longer in_progress (already closed or cancelled)".into(),
+        )),
+    }
 }
 
 #[utoipa::path(

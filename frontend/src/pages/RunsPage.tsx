@@ -19,6 +19,12 @@ import { formatTimestamp } from '../timezone'
 /** Page size for runs list + load-more (review #46). */
 export const RUNS_PAGE_SIZE = 50
 
+/** Live / in-progress runs that admins may abandon from the list. */
+export function isAbandonableRunStatus(status: string): boolean {
+  const v = status.toLowerCase()
+  return v === 'in_progress' || v === 'running'
+}
+
 type Props = {
   projectId: string | null
   suites: Suite[]
@@ -32,6 +38,7 @@ export function RunsPage({ projectId, suites }: Props) {
   const canExecute = can('execute_runs')
   const canUpload = can('upload_results')
   const canPlans = can('manage_plans')
+  const canAbandon = can('delete_project')
   const fmt = (value: string | null | undefined) =>
     formatTimestamp(value, {
       timeZone: user?.timezone,
@@ -53,6 +60,24 @@ export function RunsPage({ projectId, suites }: Props) {
   const [uploadRunId, setUploadRunId] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
+  const [abandoningId, setAbandoningId] = useState<string | null>(null)
+
+  const abandonRun = async (runId: string) => {
+    if (!projectId) return
+    if (!window.confirm(t('runs.abandonConfirm'))) return
+    setAbandoningId(runId)
+    try {
+      const updated = await api.abandonRun(projectId, runId, {
+        message: 'abandoned from runs list',
+      })
+      setRuns((prev) => prev.map((r) => (r.id === runId ? updated : r)))
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setAbandoningId(null)
+    }
+  }
 
   const applyRunsPage = (
     runPage: { items: TestRun[]; total: number },
@@ -383,6 +408,7 @@ export function RunsPage({ projectId, suites }: Props) {
                   <th>{t('runs.colName')}</th>
                   <th>{t('runs.colStatus')}</th>
                   <th>{t('runs.colStarted')}</th>
+                  {canAbandon && <th />}
                 </tr>
               </thead>
               <tbody>
@@ -410,6 +436,23 @@ export function RunsPage({ projectId, suites }: Props) {
                       />
                     </td>
                     <td className="muted">{fmt(r.started_at)}</td>
+                    {canAbandon && (
+                      <td>
+                        {isAbandonableRunStatus(r.status) ? (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={abandoningId === r.id}
+                            onClick={() => void abandonRun(r.id)}
+                            {...listChildProps(TestIds.runRow, 'abandon')}
+                          >
+                            {abandoningId === r.id
+                              ? t('runs.abandoning')
+                              : t('runs.abandon')}
+                          </button>
+                        ) : null}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

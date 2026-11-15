@@ -25,6 +25,9 @@ pub fn spawn_worker(pool: PgPool) {
     let worker_id = format!("api-{}", Uuid::new_v4());
     tokio::spawn(async move {
         tracing::info!(%worker_id, "job worker started");
+        // Startup sweep: hard-killed reporters leave in_progress forever.
+        let _ = expire_stale_in_progress_runs(&pool).await;
+        let _ = expire_stale_queued_ci_runs(&pool).await;
         loop {
             match tick(&pool, &worker_id).await {
                 Ok(true) => { /* keep draining */ }
@@ -47,8 +50,10 @@ pub async fn process_one(pool: &PgPool, worker_id: &str) -> Result<bool, String>
 }
 
 async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
-    // Best-effort: mark abandoned Queued CI runs (never started by the workflow).
+    // Best-effort: mark abandoned Queued CI runs (never started by the workflow)
+    // and age out stale in_progress / running runs (hard-killed reporters).
     let _ = expire_stale_queued_ci_runs(pool).await;
+    let _ = expire_stale_in_progress_runs(pool).await;
 
     let Some(job) = jobs_svc::claim_next(pool, worker_id)
         .await
@@ -88,6 +93,15 @@ fn queued_ci_timeout_secs() -> i64 {
         .unwrap_or(7200)
 }
 
+/// Hours of inactivity before an `in_progress`/`running` run is auto-cancelled.
+/// Default 24. Set `VULYK_STALE_RUN_TTL_HOURS=0` to disable.
+pub fn stale_run_ttl_hours() -> i64 {
+    std::env::var("VULYK_STALE_RUN_TTL_HOURS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(24)
+}
+
 async fn expire_stale_queued_ci_runs(pool: &PgPool) -> Result<u64, String> {
     let secs = queued_ci_timeout_secs();
     let result = sqlx::query(
@@ -119,6 +133,44 @@ async fn expire_stale_queued_ci_runs(pool: &PgPool) -> Result<u64, String> {
     .await
     .map_err(|e| e.to_string())?;
     Ok(result.rows_affected())
+}
+
+/// Cancel `in_progress` / `running` runs whose `updated_at` is older than the TTL.
+/// Used by the job worker, startup sweep, and lazy cancel on list/get.
+/// Returns the number of runs cancelled. No-op when TTL ≤ 0.
+pub async fn expire_stale_in_progress_runs(pool: &PgPool) -> Result<u64, String> {
+    let hours = stale_run_ttl_hours();
+    if hours <= 0 {
+        return Ok(0);
+    }
+    let result = sqlx::query(
+        r#"
+        UPDATE test_runs
+        SET status = 'cancelled',
+            finished_at = COALESCE(finished_at, NOW()),
+            updated_at = NOW(),
+            meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object(
+                'cancelled', true,
+                'cancel_reason', 'stale_ttl',
+                'cancel_message', 'auto-cancelled: no activity within stale-run TTL'
+            )
+        WHERE status IN ('in_progress', 'running')
+          AND updated_at < NOW() - make_interval(hours => $1::int)
+        "#,
+    )
+    .bind(hours as i32)
+    .execute(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+    let n = result.rows_affected();
+    if n > 0 {
+        tracing::info!(
+            count = n,
+            ttl_hours = hours,
+            "auto-cancelled stale in_progress runs"
+        );
+    }
+    Ok(n)
 }
 
 async fn handle_ingest(

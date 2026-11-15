@@ -190,6 +190,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "reporter-dx",
         include_str!("../seed/vulyk-qa.d/reporter-dx.json"),
     ),
+    (
+        "stale-run-auto-cancel",
+        include_str!("../seed/vulyk-qa.d/stale-run-auto-cancel.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

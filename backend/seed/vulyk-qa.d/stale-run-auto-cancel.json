@@ -1,0 +1,70 @@
+{
+  "feature": "stale-run-auto-cancel",
+  "suites": [
+    {
+      "name": {
+        "en": "Stale run auto-cancel",
+        "uk": "Автоскасування застарілих прогонів",
+        "fr": "Annulation auto des runs obsolètes",
+        "es": "Cancelación automática de runs obsoletos",
+        "de": "Automatisches Abbrechen veralteter Runs"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Stale in_progress runs auto-cancel after VULYK_STALE_RUN_TTL_HOURS",
+            "uk": "Застарілі in_progress прогони автоскасовуються після VULYK_STALE_RUN_TTL_HOURS",
+            "fr": "Les runs in_progress obsolètes sont auto-annulés après VULYK_STALE_RUN_TTL_HOURS",
+            "es": "Los runs in_progress obsoletos se cancelan tras VULYK_STALE_RUN_TTL_HOURS",
+            "de": "Veraltete in_progress-Runs werden nach VULYK_STALE_RUN_TTL_HOURS auto-abgebrochen"
+          },
+          "description": {
+            "en": "Job worker + list/get lazy path mark inactive in_progress/running runs as cancelled after the TTL (default 24h).",
+            "uk": "Job worker і lazy-шлях list/get позначають неактивні in_progress/running як cancelled після TTL (типово 24 год).",
+            "fr": "Job worker + list/get lazy path mark inactive in_progress/running runs as cancelled after the TTL (default 24h).",
+            "es": "Job worker + list/get lazy path mark inactive in_progress/running runs as cancelled after the TTL (default 24h).",
+            "de": "Job worker + list/get lazy path mark inactive in_progress/running runs as cancelled after the TTL (default 24h)."
+          },
+          "precondition": {
+            "en": "API with VULYK_STALE_RUN_TTL_HOURS set; an in_progress run older than the TTL.",
+            "uk": "API з VULYK_STALE_RUN_TTL_HOURS; in_progress прогін старіший за TTL.",
+            "fr": "API with VULYK_STALE_RUN_TTL_HOURS set; an in_progress run older than the TTL.",
+            "es": "API with VULYK_STALE_RUN_TTL_HOURS set; an in_progress run older than the TTL.",
+            "de": "API with VULYK_STALE_RUN_TTL_HOURS set; an in_progress run older than the TTL."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "api",
+            "regression",
+            "ci",
+            "runs",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "api:stale_run_abandon.rs#stale_in_progress_run_is_auto_cancelled",
+          "steps": [
+            {
+              "action": {
+                "en": "Create an in_progress run, backdate updated_at past the TTL, run expire_stale_in_progress_runs.",
+                "uk": "Створити in_progress прогін, зсунути updated_at за TTL, викликати expire_stale_in_progress_runs.",
+                "fr": "Create an in_progress run, backdate updated_at past the TTL, run expire_stale_in_progress_runs.",
+                "es": "Create an in_progress run, backdate updated_at past the TTL, run expire_stale_in_progress_runs.",
+                "de": "Create an in_progress run, backdate updated_at past the TTL, run expire_stale_in_progress_runs."
+              },
+              "expected_result": {
+                "en": "Run status is cancelled; meta.cancel_reason is stale_ttl.",
+                "uk": "Статус cancelled; meta.cancel_reason = stale_ttl.",
+                "fr": "Run status is cancelled; meta.cancel_reason is stale_ttl.",
+                "es": "Run status is cancelled; meta.cancel_reason is stale_ttl.",
+                "de": "Run status is cancelled; meta.cancel_reason is stale_ttl."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
