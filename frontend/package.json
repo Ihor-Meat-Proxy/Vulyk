@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:test-ids": "node scripts/check-test-ids.mjs",
+    "check:i18n-literals": "node scripts/check-jsx-literals.mjs",
     "preview": "vite preview",
     "lighthouse:ci": "node scripts/lighthouse-ci.mjs"
   },

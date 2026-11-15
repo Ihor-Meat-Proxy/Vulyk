@@ -1,0 +1,46 @@
+# Regex allowlist for check-jsx-literals.mjs
+# Match either the literal text or "relative/path.tsx::text"
+# Brand / product
+^Vulyk$
+^Vulyk version$
+# Language names in locale picker (proper nouns)
+^(English|Ukrainian|Français|Español|Deutsch)$
+# Common tech tokens intentionally left untranslated in UI chrome
+^(OK|API|CI|JSON|SSO|SHA)$
+# Typographic / unit-only
+^—$
+^ms$
+# Example placeholders (not translated copy)
+^Europe/Kyiv$
+^\.github/workflows/
+# Baseline hard-coded strings on main (remove after i18n extract #187 merges)
+^A\ new\ Vulyk\ version\ is\ ready\.$
+^Add\ placeholder$
+^App\ shell\ cached\ —\ ready\ for\ offline\ use\.$
+^Base\ URL$
+^Choose\ an\ importer,\ map\ fields,\ dry\-run\ a\ preview,\ then\ persist\.$
+^Create\ a\ project\ via\ the\ API\ to\ get\ started,\ then\ refresh\.$
+^Default\ project\ role$
+^Dry\-run\ preview$
+^Field\ mapping$
+^Folder\ id$
+^Generic\ HTTPS\ Git$
+^Import\ cases$
+^Import\ complete$
+^Install\ Vulyk\ for\ quick\ access\ on\ this\ device\.$
+^Loading\ settings…$
+^Loading…$
+^Name\ A–Z$
+^Name\ Z–A$
+^No\ integration\ settings\ yet$
+^No\ projects$
+^Not\ now$
+^Paste\ CSV,\ XML,\ or\ JSON\ export…$
+^Run\ not\ found\.$
+^Select\ a\ project\ first\.$
+^Select\ a\ project\ to\ view\ executions\.$
+^Source\ content$
+^Sync\ now$
+^Test\ management$
+^You\ do\ not\ have\ permission\ to\ import\ cases\.$
+^daily\ /\ on\-push\ /\ manual$
