@@ -10,6 +10,13 @@ use crate::models::{
     TestCaseListItem, CASE_LIST_SORT_FIELDS,
 };
 
+/// Built-in Automated flag (list column / sort / filter / PDF).
+///
+/// True when the case is linked for automation (`external_key`) **or** has received
+/// at least one automated/CI result (`last_automation_at` set by ingest).
+pub const AUTOMATED_SQL_EXPR: &str =
+    "(tc.external_key IS NOT NULL OR tc.last_automation_at IS NOT NULL)";
+
 /// Resolve `order` query to ASC/DESC.
 pub fn parse_sort_direction(order: Option<&str>) -> &'static str {
     match order.map(|o| o.trim().to_lowercase()).as_deref() {
@@ -58,7 +65,7 @@ pub fn order_by_sql(sort: &str, dir: &str) -> String {
         "status" => format!("tc.status {dir}"),
         "updated_at" => format!("tc.updated_at {dir}"),
         "created_at" => format!("tc.created_at {dir}"),
-        "automated" => format!("(tc.external_key IS NOT NULL) {dir}"),
+        "automated" => format!("{AUTOMATED_SQL_EXPR} {dir}"),
         "last_run_status" => format!("last_run_status {dir} {nulls}"),
         "folder" => format!("folder_name {dir} {nulls}"),
         "tags" => format!("tag_names {dir} {nulls}"),

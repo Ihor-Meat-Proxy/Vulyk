@@ -107,6 +107,13 @@
       "source": "fragment-new"
     },
     {
+      "file": "automated-case-flag.spec.ts",
+      "title": "CI results flip built-in Automated filter without external_key",
+      "key": "VQA-336",
+      "external_key": "e2e:automated-case-flag.spec.ts CI results flip built-in Automated filter without external_key",
+      "source": "existing"
+    },
+    {
       "file": "automation-repos-ci.settings.spec.ts",
       "title": "settings: automation repo + project CI token CRUD",
       "key": "VQA-239",

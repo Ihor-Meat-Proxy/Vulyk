@@ -166,6 +166,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "lists-custom-fields-config",
         include_str!("../seed/vulyk-qa.d/lists-custom-fields-config.json"),
     ),
+    (
+        "automated-case-flag",
+        include_str!("../seed/vulyk-qa.d/automated-case-flag.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
@@ -991,7 +995,9 @@ async fn ensure_sample_custom_fields(pool: &PgPool, project_id: Uuid) -> AppResu
         }
     };
 
-    // Automated? checkbox — all projects
+    // Automation planned checkbox — all projects.
+    // Named distinctly from the built-in Automated column/filter (external_key OR
+    // last_automation_at). This CF is a manual "planned" flag only.
     let automated_exists: bool = sqlx::query_scalar(
         "SELECT EXISTS(SELECT 1 FROM custom_field_definitions WHERE key = 'automated')",
     )
@@ -1003,10 +1009,22 @@ async fn ensure_sample_custom_fields(pool: &PgPool, project_id: Uuid) -> AppResu
                  (key, name, field_type, entity, default_value, required, help_text,
                   sort_order, show_in_list, show_in_filters, active, scope)
                VALUES (
-                 'automated', 'Automated?', 'checkbox', 'test_case', 'false'::jsonb, FALSE,
-                 'Whether this case has automated coverage',
+                 'automated', 'Automation planned', 'checkbox', 'test_case', 'false'::jsonb, FALSE,
+                 'Manual flag: automation is planned. Actual coverage uses the built-in Automated column (external link or CI results).',
                  10, TRUE, TRUE, TRUE, 'all'
                )"#,
+        )
+        .execute(pool)
+        .await?;
+    } else {
+        // Existing sample installs: rename so the CF no longer collides with the
+        // built-in Automated Yes/No signal in the case list.
+        sqlx::query(
+            r#"UPDATE custom_field_definitions
+               SET name = 'Automation planned',
+                   help_text = 'Manual flag: automation is planned. Actual coverage uses the built-in Automated column (external link or CI results).'
+               WHERE key = 'automated'
+                 AND (name = 'Automated?' OR name = 'Automated')"#,
         )
         .execute(pool)
         .await?;

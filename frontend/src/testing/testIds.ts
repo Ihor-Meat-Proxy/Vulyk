@@ -96,6 +96,7 @@ export const TestIds = {
   caseListSearchInput: 'case-list-search-input',
   caseListTagInput: 'case-list-tag-input',
   caseListStatusFilter: 'case-list-status-filter',
+  caseListAutomatedFilter: 'case-list-automated-filter',
   caseListDirectOnlyCheckbox: 'case-list-direct-only-checkbox',
   caseListCustomFieldFilter: 'case-list-custom-field-filter',
   caseListBulkBar: 'case-list-bulk-bar',

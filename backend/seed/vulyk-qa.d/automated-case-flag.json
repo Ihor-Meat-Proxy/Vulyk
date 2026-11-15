@@ -1,0 +1,71 @@
+{
+  "feature": "automated-case-flag",
+  "suites": [
+    {
+      "name": {
+        "en": "Automated case flag",
+        "uk": "Прапорець автоматизації кейсу",
+        "fr": "Indicateur de cas automatisé",
+        "es": "Indicador de caso automatizado",
+        "de": "Automatisierungs-Flag für Fälle"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "CI results flip built-in Automated without external_key",
+            "uk": "CI-результати вмикають вбудований Automated без external_key",
+            "fr": "Les résultats CI activent Automated sans external_key",
+            "es": "Los resultados CI activan Automated sin external_key",
+            "de": "CI-Ergebnisse setzen Automated ohne external_key"
+          },
+          "description": {
+            "en": "After CI posts results for a case with no external_key, the built-in Automated column/filter must show Yes.",
+            "uk": "Після CI-результатів для кейсу без external_key вбудований Automated має бути Yes.",
+            "fr": "After CI posts results for a case with no external_key, the built-in Automated column/filter must show Yes.",
+            "es": "After CI posts results for a case with no external_key, the built-in Automated column/filter must show Yes.",
+            "de": "After CI posts results for a case with no external_key, the built-in Automated column/filter must show Yes."
+          },
+          "precondition": {
+            "en": "Project with a case that has no external_key; CI open → results → close.",
+            "uk": "Проєкт із кейсом без external_key; CI open → results → close.",
+            "fr": "Project with a case that has no external_key; CI open → results → close.",
+            "es": "Project with a case that has no external_key; CI open → results → close.",
+            "de": "Project with a case that has no external_key; CI open → results → close."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "ci",
+            "cases",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:automated-case-flag.spec.ts#ci-flips-automated",
+          "steps": [
+            {
+              "action": {
+                "en": "Create a case without external_key, post a CI passed result for its case key, open Cases, enable Automated column, filter Automated=Yes.",
+                "uk": "Створити кейс без external_key, надіслати CI passed, відкрити Cases, увімкнути колонку Automated, фільтр Yes.",
+                "fr": "Create a case without external_key, post a CI passed result for its case key, open Cases, enable Automated column, filter Automated=Yes.",
+                "es": "Create a case without external_key, post a CI passed result for its case key, open Cases, enable Automated column, filter Automated=Yes.",
+                "de": "Create a case without external_key, post a CI passed result for its case key, open Cases, enable Automated column, filter Automated=Yes."
+              },
+              "expected_result": {
+                "en": "case-row-automated shows Yes; filtering Automated=Yes lists the case.",
+                "uk": "case-row-automated показує Yes; фільтр Automated=Yes показує кейс.",
+                "fr": "case-row-automated shows Yes; filtering Automated=Yes lists the case.",
+                "es": "case-row-automated shows Yes; filtering Automated=Yes lists the case.",
+                "de": "case-row-automated shows Yes; filtering Automated=Yes lists the case."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

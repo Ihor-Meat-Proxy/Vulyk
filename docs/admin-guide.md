@@ -173,7 +173,7 @@ Values appear on case/requirement create/edit/detail, list columns & filters, bu
 
 RBAC: only **Admin** manages field definitions and lists; project editors set values (`CreateEditCases`).
 
-Sample seed adds **Automated?** (checkbox) and **Browsers** (multi-select) with All-projects scope.
+Sample seed adds **Automation planned** (checkbox; manual planning flag — distinct from the built-in **Automated** column/filter driven by `external_key` or CI results) and **Browsers** (multi-select) with All-projects scope.
 
 ### Config export / import (Admin → Export / import)
 

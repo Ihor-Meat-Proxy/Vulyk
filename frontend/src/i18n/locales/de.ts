@@ -297,6 +297,8 @@ const de: Dict = {
   'cases.bulkCustomField': "Benutzerdefiniertes Feld…",
   'cases.bulkCustomValue': "Wert",
   'cases.clearSelection': "Auswahl aufheben",
+  'cases.allAutomated': "Alle Automatisierung",
+  'cases.automatedFilter': "Automatisierungsfilter",
   'cases.automatedNo': "Nein",
   'cases.automatedYes': "Ja",
   'cases.colAutomated': "Automatisiert",

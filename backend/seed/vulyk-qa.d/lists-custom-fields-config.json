@@ -77,8 +77,8 @@
           "steps": [
             {
               "action": {
-                "en": "Create fields automated (checkbox) and browsers (multi_select → Browsers list), scope All projects, show in list/filters.",
-                "uk": "Create fields automated (checkbox) and browsers (multi_select → Browsers list), scope All projects, show in list/filters."
+                "en": "Create fields automated (checkbox, label Automation planned) and browsers (multi_select → Browsers list), scope All projects, show in list/filters. Built-in Automated column/filter is separate (external_key or CI results).",
+                "uk": "Create fields automated (checkbox, label Automation planned) and browsers (multi_select → Browsers list), scope All projects, show in list/filters. Built-in Automated column/filter is separate (external_key or CI results)."
               },
               "expected_result": {
                 "en": "Fields appear on case create/edit/detail for every project; editors can set values; only Admin manages definitions.",

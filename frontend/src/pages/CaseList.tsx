@@ -131,6 +131,7 @@ export function CaseList({
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState('')
   const [status, setStatus] = useState('')
+  const [automatedFilter, setAutomatedFilter] = useState('')
   const [directOnly, setDirectOnly] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [pending, startTransition] = useTransition()
@@ -206,6 +207,12 @@ export function CaseList({
       q: deferredQuery || undefined,
       tag: tag || undefined,
       status: status || undefined,
+      automated:
+        automatedFilter === 'true'
+          ? true
+          : automatedFilter === 'false'
+            ? false
+            : undefined,
       sort: sort !== 'default' ? sort : undefined,
       order: sort !== 'default' ? order : undefined,
       cfIds: cfIds.length ? cfIds : undefined,
@@ -219,6 +226,7 @@ export function CaseList({
       deferredQuery,
       tag,
       status,
+      automatedFilter,
       sort,
       order,
       cfIds,
@@ -861,6 +869,17 @@ export function CaseList({
             <option value="draft">draft</option>
             <option value="ready">ready</option>
             <option value="deprecated">deprecated</option>
+          </select>
+          <select
+            className="filter-input"
+            value={automatedFilter}
+            onChange={(e) => setAutomatedFilter(e.target.value)}
+            aria-label={t('cases.automatedFilter')}
+            {...testIdProps(TestIds.caseListAutomatedFilter)}
+          >
+            <option value="">{t('cases.allAutomated')}</option>
+            <option value="true">{t('cases.automatedYes')}</option>
+            <option value="false">{t('cases.automatedNo')}</option>
           </select>
           {filterFields.map((f, index) =>
             f.field_type === 'checkbox' ? (

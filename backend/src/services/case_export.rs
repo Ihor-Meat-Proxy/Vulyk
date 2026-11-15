@@ -1089,7 +1089,13 @@ pub async fn load_case_export(
 
     let labels = PdfLabels::for_locale(locale);
     let folder = folder_path(pool, project_id, case.suite_id, labels.unfiled).await?;
-    let automated = case.external_key.as_ref().is_some_and(|k| !k.is_empty());
+    let last_automation_at: Option<chrono::DateTime<chrono::Utc>> =
+        sqlx::query_scalar("SELECT last_automation_at FROM test_cases WHERE id = $1")
+            .bind(case_id)
+            .fetch_one(pool)
+            .await?;
+    let automated =
+        case.external_key.as_ref().is_some_and(|k| !k.is_empty()) || last_automation_at.is_some();
     let detail = load_case_detail(pool, case).await?;
     let requirements = load_requirements(pool, case_id).await?;
 
