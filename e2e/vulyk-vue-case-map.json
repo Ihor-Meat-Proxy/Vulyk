@@ -1145,12 +1145,12 @@
       "key": "VUE-191",
       "case_id": "dd05f440-c771-4baa-b228-f430458afd19",
       "file": "result-history.spec.ts",
-      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "title": "mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "type": "positive",
       "folder": "Executions",
-      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "vqa_key": "VQA-312",
-      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed→Failed→Blocked→Skipped; timeline and case History tab"
+      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab"
     },
     {
       "id": "sample-project-kyiv-concert-sample-project-suites-cases-and-two-runs-exist",
@@ -1249,12 +1249,12 @@
       "key": "VUE-199",
       "case_id": "1a34bda9-15a7-4fdb-9b8a-a7387c35aa94",
       "file": "smoke.spec.ts",
-      "title": "smoke: login → case → run → junit → import → report",
+      "title": "smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "type": "positive",
       "folder": "Smoke",
-      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
+      "external_key": "e2e:smoke.spec.ts smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "vqa_key": "VQA-320",
-      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login → case → run → junit → import → report"
+      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report"
     },
     {
       "id": "status-sample-admin-sample-data-section-is-visible-under-settings",
@@ -1463,6 +1463,32 @@
       "external_key": "e2e:ux-polish-f13-f22.spec.ts case edit title input is wide enough; copy link uses sans font",
       "vqa_key": "VQA-353",
       "automation_link": "e2e/tests/ux-polish-f13-f22.spec.ts :: case edit title input is wide enough; copy link uses sans font"
+    },
+    {
+      "id": "live-run-polling-in-progress-run-detail-polls-progress-without-full-reload",
+      "preferred_key": "VUE-218",
+      "key": "VUE-218",
+      "case_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "file": "live-run-polling.spec.ts",
+      "title": "in_progress run detail polls progress without full reload",
+      "type": "positive",
+      "folder": "Plans & runs",
+      "external_key": "e2e:live-run-polling.spec.ts in_progress run detail polls progress without full reload",
+      "vqa_key": "VQA-356",
+      "automation_link": "e2e/tests/live-run-polling.spec.ts :: in_progress run detail polls progress without full reload"
+    },
+    {
+      "id": "live-run-polling-runs-list-polls-live-status-badges",
+      "preferred_key": "VUE-219",
+      "key": "VUE-219",
+      "case_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+      "file": "live-run-polling.spec.ts",
+      "title": "runs list polls live status badges",
+      "type": "positive",
+      "folder": "Plans & runs",
+      "external_key": "e2e:live-run-polling.spec.ts runs list polls live status badges",
+      "vqa_key": "VQA-357",
+      "automation_link": "e2e/tests/live-run-polling.spec.ts :: runs list polls live status badges"
     }
   ]
 }

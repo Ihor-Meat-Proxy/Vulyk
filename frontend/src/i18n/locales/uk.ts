@@ -875,6 +875,7 @@ const uk: Dict = {
   'runs.colAssignee': "Виконавець",
   'runs.back': "← Прогони",
   'runs.progress': "Прогрес: {completed}/{total} ({percent}%)",
+  'runs.live': "Наживо",
   'runs.cachedBadge': "кеш",
   'runs.cachedOffline': "Показано кешований прогін (офлайн).",
   'runs.savedOffline': "Збережено офлайн — синхронізується, коли знову будете онлайн.",

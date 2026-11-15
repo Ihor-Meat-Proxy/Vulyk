@@ -633,9 +633,9 @@
     },
     {
       "file": "result-history.spec.ts",
-      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "title": "mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "key": "VQA-312",
-      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "source": "fragment-new"
     },
     {
@@ -689,9 +689,9 @@
     },
     {
       "file": "smoke.spec.ts",
-      "title": "smoke: login → case → run → junit → import → report",
+      "title": "smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "key": "VQA-320",
-      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
+      "external_key": "e2e:smoke.spec.ts smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "source": "fragment-new"
     },
     {
@@ -763,6 +763,20 @@
       "key": "VQA-338",
       "external_key": "e2e:theme-csp.spec.ts theme-init.js applies stored theme without CSP violations",
       "source": "existing"
+    },
+    {
+      "file": "live-run-polling.spec.ts",
+      "title": "in_progress run detail polls progress without full reload",
+      "key": "VQA-356",
+      "external_key": "e2e:live-run-polling.spec.ts in_progress run detail polls progress without full reload",
+      "source": "fragment-new"
+    },
+    {
+      "file": "live-run-polling.spec.ts",
+      "title": "runs list polls live status badges",
+      "key": "VQA-357",
+      "external_key": "e2e:live-run-polling.spec.ts runs list polls live status badges",
+      "source": "fragment-new"
     }
   ],
   "cases": [

@@ -40,6 +40,7 @@ const FOLDER_FOR_SPEC = {
   'case-export-pdf.spec.ts': 'Projects & cases',
   'folder-tree-lazy.spec.ts': 'Projects & cases',
   'plans-runs.spec.ts': 'Plans & runs',
+  'live-run-polling.spec.ts': 'Plans & runs',
   'executions.spec.ts': 'Executions',
   'result-history.spec.ts': 'Executions',
   'imports-reports.spec.ts': 'Imports & reports',

@@ -875,6 +875,7 @@ const de: Dict = {
   'runs.colAssignee': "Zugewiesen",
   'runs.back': "← Läufe",
   'runs.progress': "Fortschritt: {completed}/{total} ({percent}%)",
+  'runs.live': "Live",
   'runs.cachedBadge': "zwischengespeichert",
   'runs.cachedOffline': "Zwischengespeicherter Lauf wird angezeigt (offline).",
   'runs.savedOffline': "Offline gespeichert — Sync, sobald Sie wieder online sind.",

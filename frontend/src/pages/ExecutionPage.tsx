@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import {
   api,
+  isAbortError,
   type AutomatedSuite,
   type AttachmentMeta,
   type Requirement,
@@ -12,6 +13,11 @@ import {
 import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
+import { isLiveRunStatus, LIVE_RUN_POLL_MS } from '../lib/liveRun'
+import {
+  applyUnlessCancelled,
+  createStaleGuard,
+} from '../lib/staleGuard'
 import { TestIds, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
@@ -150,6 +156,38 @@ export function ExecutionPage({ projectId }: Props) {
       cancelled = true
     }
   }, [projectId, runId, caseId])
+
+  // Light poll: refresh suite shell + results while the run is live.
+  const isLive = isLiveRunStatus(runDetail?.run.status)
+  useEffect(() => {
+    if (!projectId || !runId || !isLive) return
+    const guard = createStaleGuard()
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const [detail, page] = await Promise.all([
+            api.getRun(projectId, runId, { signal: guard.signal }),
+            api.listSuiteResults(projectId, runId, {
+              limit: 100,
+              offset: 0,
+            }),
+          ])
+          if (guard.isCancelled()) return
+          applyUnlessCancelled(guard, () => {
+            setRunDetail(detail)
+            setResults(page.items)
+          })
+        } catch (err) {
+          if (isAbortError(err) || guard.isCancelled()) return
+          /* ignore transient poll errors */
+        }
+      })()
+    }, LIVE_RUN_POLL_MS)
+    return () => {
+      guard.cancel()
+      window.clearInterval(id)
+    }
+  }, [projectId, runId, isLive])
 
   if (!projectId) return <p className="muted">Select a project first.</p>
   if (loading) {
@@ -355,6 +393,14 @@ export function ExecutionPage({ projectId }: Props) {
       <div className="detail-header">
         <h2 style={{ margin: 0 }}>{suiteShell.name}</h2>
         <StatusBadge status={suiteShell.status} />
+        {isLive && (
+          <span
+            className="badge run-live-badge"
+            {...testIdProps(TestIds.executionLiveBadge)}
+          >
+            {t('runs.live')}
+          </span>
+        )}
       </div>
       <div className="meta-row">
         <span className="muted">{suiteShell.source}</span>

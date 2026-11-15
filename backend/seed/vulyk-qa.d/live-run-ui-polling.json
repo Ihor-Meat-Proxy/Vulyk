@@ -1,0 +1,139 @@
+{
+  "feature": "live-run-ui-polling",
+  "suites": [
+    {
+      "name": {
+        "en": "Live run UI polling",
+        "uk": "Опитування UI живого прогону",
+        "fr": "Polling UI d’un run en direct",
+        "es": "Sondeo UI de run en vivo",
+        "de": "Live-Run-UI-Polling"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-356",
+          "title": {
+            "en": "in_progress run detail polls progress without full reload",
+            "uk": "in_progress run detail polls progress without full reload",
+            "fr": "in_progress run detail polls progress without full reload",
+            "es": "in_progress run detail polls progress without full reload",
+            "de": "in_progress run detail polls progress without full reload"
+          },
+          "description": {
+            "en": "Playwright e2e: open an in_progress run, post a result via API, assert progress updates without reload.",
+            "uk": "Playwright e2e: open an in_progress run, post a result via API, assert progress updates without reload.",
+            "fr": "Playwright e2e: open an in_progress run, post a result via API, assert progress updates without reload.",
+            "es": "Playwright e2e: open an in_progress run, post a result via API, assert progress updates without reload.",
+            "de": "Playwright e2e: open an in_progress run, post a result via API, assert progress updates without reload."
+          },
+          "precondition": {
+            "en": "API + UI running; admin session; project with at least one case.",
+            "uk": "API + UI running; admin session; project with at least one case.",
+            "fr": "API + UI running; admin session; project with at least one case.",
+            "es": "API + UI running; admin session; project with at least one case.",
+            "de": "API + UI running; admin session; project with at least one case."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "runs",
+            "live-poll"
+          ],
+          "external_key": "e2e:live-run-polling.spec.ts in_progress run detail polls progress without full reload",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\"",
+                "uk": "Run npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\"",
+                "fr": "Run npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\"",
+                "es": "Run npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\"",
+                "de": "Run npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\""
+              },
+              "expected_result": {
+                "en": "Live badge visible; progress updates after API result within ~8s without page reload.",
+                "uk": "Live badge visible; progress updates after API result within ~8s without page reload.",
+                "fr": "Live badge visible; progress updates after API result within ~8s without page reload.",
+                "es": "Live badge visible; progress updates after API result within ~8s without page reload.",
+                "de": "Live badge visible; progress updates after API result within ~8s without page reload."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-357",
+          "title": {
+            "en": "runs list polls live status badges",
+            "uk": "runs list polls live status badges",
+            "fr": "runs list polls live status badges",
+            "es": "runs list polls live status badges",
+            "de": "runs list polls live status badges"
+          },
+          "description": {
+            "en": "Playwright e2e: Runs list shows Live indicator and refreshes status when a run closes via API.",
+            "uk": "Playwright e2e: Runs list shows Live indicator and refreshes status when a run closes via API.",
+            "fr": "Playwright e2e: Runs list shows Live indicator and refreshes status when a run closes via API.",
+            "es": "Playwright e2e: Runs list shows Live indicator and refreshes status when a run closes via API.",
+            "de": "Playwright e2e: Runs list shows Live indicator and refreshes status when a run closes via API."
+          },
+          "precondition": {
+            "en": "API + UI running; admin session; in_progress run exists.",
+            "uk": "API + UI running; admin session; in_progress run exists.",
+            "fr": "API + UI running; admin session; in_progress run exists.",
+            "es": "API + UI running; admin session; in_progress run exists.",
+            "de": "API + UI running; admin session; in_progress run exists."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "runs",
+            "live-poll"
+          ],
+          "external_key": "e2e:live-run-polling.spec.ts runs list polls live status badges",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\"",
+                "uk": "Run npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\"",
+                "fr": "Run npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\"",
+                "es": "Run npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\"",
+                "de": "Run npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\""
+              },
+              "expected_result": {
+                "en": "Live badge on Runs list; status badge updates after API close without reload.",
+                "uk": "Live badge on Runs list; status badge updates after API close without reload.",
+                "fr": "Live badge on Runs list; status badge updates after API close without reload.",
+                "es": "Live badge on Runs list; status badge updates after API close without reload.",
+                "de": "Live badge on Runs list; status badge updates after API close without reload."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

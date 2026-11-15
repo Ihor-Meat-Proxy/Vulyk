@@ -48,6 +48,54 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "live-run-polling-in-progress-run-detail-polls-progress-without-full-reload",
+      "key": "VUE-218",
+      "title": "in_progress run detail polls progress without full reload",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test live-run-polling.spec.ts -g \"in_progress run detail polls progress without full reload\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "live-run-polling.spec.ts",
+      "test": "in_progress run detail polls progress without full reload",
+      "external_key": "e2e:live-run-polling.spec.ts in_progress run detail polls progress without full reload",
+      "automation_link": "e2e/tests/live-run-polling.spec.ts :: in_progress run detail polls progress without full reload",
+      "vqa_key": "VQA-356",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "live-run-polling-runs-list-polls-live-status-badges",
+      "key": "VUE-219",
+      "title": "runs list polls live status badges",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test live-run-polling.spec.ts -g \"runs list polls live status badges\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "live-run-polling.spec.ts",
+      "test": "runs list polls live status badges",
+      "external_key": "e2e:live-run-polling.spec.ts runs list polls live status badges",
+      "automation_link": "e2e/tests/live-run-polling.spec.ts :: runs list polls live status badges",
+      "vqa_key": "VQA-357",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }

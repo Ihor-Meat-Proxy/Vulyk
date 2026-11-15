@@ -875,6 +875,7 @@ const en: Dict = {
   'runs.colAssignee': "Assignee",
   'runs.back': "← Runs",
   'runs.progress': "Progress: {completed}/{total} ({percent}%)",
+  'runs.live': "Live",
   'runs.cachedBadge': "cached",
   'runs.cachedOffline': "Showing cached run (offline).",
   'runs.savedOffline': "Saved offline — will sync when you are back online.",

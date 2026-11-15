@@ -178,6 +178,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "ux-polish-f13-f22",
         include_str!("../seed/vulyk-qa.d/ux-polish-f13-f22.json"),
     ),
+    (
+        "live-run-ui-polling",
+        include_str!("../seed/vulyk-qa.d/live-run-ui-polling.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]
