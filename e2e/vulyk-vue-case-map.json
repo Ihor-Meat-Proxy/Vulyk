@@ -1145,12 +1145,12 @@
       "key": "VUE-191",
       "case_id": "dd05f440-c771-4baa-b228-f430458afd19",
       "file": "result-history.spec.ts",
-      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "title": "mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "type": "positive",
       "folder": "Executions",
-      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
       "vqa_key": "VQA-312",
-      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed→Failed→Blocked→Skipped; timeline and case History tab"
+      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab"
     },
     {
       "id": "sample-project-kyiv-concert-sample-project-suites-cases-and-two-runs-exist",
@@ -1249,12 +1249,12 @@
       "key": "VUE-199",
       "case_id": "1a34bda9-15a7-4fdb-9b8a-a7387c35aa94",
       "file": "smoke.spec.ts",
-      "title": "smoke: login → case → run → junit → import → report",
+      "title": "smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "type": "positive",
       "folder": "Smoke",
-      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
+      "external_key": "e2e:smoke.spec.ts smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
       "vqa_key": "VQA-320",
-      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login → case → run → junit → import → report"
+      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report"
     },
     {
       "id": "status-sample-admin-sample-data-section-is-visible-under-settings",
@@ -1593,6 +1593,112 @@
       "external_key": "e2e:run-counters-sot.spec.ts CI run detail progress matches Reports summary counters",
       "vqa_key": "VQA-355",
       "automation_link": "e2e/tests/run-counters-sot.spec.ts :: CI run detail progress matches Reports summary counters"
+    },
+    {
+      "id": "a11y-pass-generate-case-picker-exposes-labels-pressed-folders-and-focusable-chips",
+      "preferred_key": "VUE-230",
+      "key": "VUE-230",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "Generate case picker exposes labels, pressed folders, and focusable chips",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts Generate case picker exposes labels, pressed folders, and focusable chips",
+      "vqa_key": "VQA-368",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: Generate case picker exposes labels, pressed folders, and focusable chips"
+    },
+    {
+      "id": "a11y-pass-ci-tokens-copy-controls-and-env-block-are-labeled-for-assistive-tech",
+      "preferred_key": "VUE-231",
+      "key": "VUE-231",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "CI tokens copy controls and env block are labeled for assistive tech",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts CI tokens copy controls and env block are labeled for assistive tech",
+      "vqa_key": "VQA-369",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: CI tokens copy controls and env block are labeled for assistive tech"
+    },
+    {
+      "id": "a11y-pass-updates-check-error-region-uses-alert-live-region",
+      "preferred_key": "VUE-232",
+      "key": "VUE-232",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "Updates check error region uses alert live region",
+      "type": "negative",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts Updates check error region uses alert live region",
+      "vqa_key": "VQA-370",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: Updates check error region uses alert live region"
+    },
+    {
+      "id": "a11y-pass-in-progress-status-badge-exposes-text-label-not-colour-alone",
+      "preferred_key": "VUE-233",
+      "key": "VUE-233",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "In-progress status badge exposes text label not colour alone",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts In-progress status badge exposes text label not colour alone",
+      "vqa_key": "VQA-371",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: In-progress status badge exposes text label not colour alone"
+    }
+  ],
+  "cases": [
+    {
+      "id": "a11y-pass-generate-case-picker-exposes-labels-pressed-folders-and-focusable-chips",
+      "preferred_key": "VUE-230",
+      "key": "VUE-230",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "Generate case picker exposes labels, pressed folders, and focusable chips",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts Generate case picker exposes labels, pressed folders, and focusable chips",
+      "vqa_key": "VQA-368",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: Generate case picker exposes labels, pressed folders, and focusable chips"
+    },
+    {
+      "id": "a11y-pass-ci-tokens-copy-controls-and-env-block-are-labeled-for-assistive-tech",
+      "preferred_key": "VUE-231",
+      "key": "VUE-231",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "CI tokens copy controls and env block are labeled for assistive tech",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts CI tokens copy controls and env block are labeled for assistive tech",
+      "vqa_key": "VQA-369",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: CI tokens copy controls and env block are labeled for assistive tech"
+    },
+    {
+      "id": "a11y-pass-updates-check-error-region-uses-alert-live-region",
+      "preferred_key": "VUE-232",
+      "key": "VUE-232",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "Updates check error region uses alert live region",
+      "type": "negative",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts Updates check error region uses alert live region",
+      "vqa_key": "VQA-370",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: Updates check error region uses alert live region"
+    },
+    {
+      "id": "a11y-pass-in-progress-status-badge-exposes-text-label-not-colour-alone",
+      "preferred_key": "VUE-233",
+      "key": "VUE-233",
+      "case_id": null,
+      "file": "a11y-pass.spec.ts",
+      "title": "In-progress status badge exposes text label not colour alone",
+      "type": "positive",
+      "folder": "PWA & a11y",
+      "external_key": "e2e:a11y-pass.spec.ts In-progress status badge exposes text label not colour alone",
+      "vqa_key": "VQA-371",
+      "automation_link": "e2e/tests/a11y-pass.spec.ts :: In-progress status badge exposes text label not colour alone"
     }
   ]
 }

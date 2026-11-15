@@ -819,6 +819,34 @@
       "key": "VQA-362",
       "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
       "source": "fragment-new"
+    },
+    {
+      "file": "a11y-pass.spec.ts",
+      "title": "Generate case picker exposes labels, pressed folders, and focusable chips",
+      "key": "VQA-368",
+      "external_key": "e2e:a11y-pass.spec.ts Generate case picker exposes labels, pressed folders, and focusable chips",
+      "source": "fragment-new"
+    },
+    {
+      "file": "a11y-pass.spec.ts",
+      "title": "CI tokens copy controls and env block are labeled for assistive tech",
+      "key": "VQA-369",
+      "external_key": "e2e:a11y-pass.spec.ts CI tokens copy controls and env block are labeled for assistive tech",
+      "source": "fragment-new"
+    },
+    {
+      "file": "a11y-pass.spec.ts",
+      "title": "Updates check error region uses alert live region",
+      "key": "VQA-370",
+      "external_key": "e2e:a11y-pass.spec.ts Updates check error region uses alert live region",
+      "source": "fragment-new"
+    },
+    {
+      "file": "a11y-pass.spec.ts",
+      "title": "In-progress status badge exposes text label not colour alone",
+      "key": "VQA-371",
+      "external_key": "e2e:a11y-pass.spec.ts In-progress status badge exposes text label not colour alone",
+      "source": "fragment-new"
     }
   ],
   "cases": [

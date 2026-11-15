@@ -51,12 +51,21 @@ export function StatusBadge({ status, className, testId }: Props) {
   const { t } = useI18n()
   const key = statusLabelKey(status)
   const label = key ? t(key) : status
+  const normalized = status.trim().toLowerCase().replace(/-/g, '_')
+  const isLive =
+    normalized === 'in_progress' ||
+    normalized === 'running' ||
+    normalized === 'queued' ||
+    normalized === 'dispatched'
 
   return (
     <span
       className={`status-pill ${statusClass(status)}${className ? ` ${className}` : ''}`}
       data-status={status}
       data-testid={testId ?? 'status-badge'}
+      role={isLive ? 'status' : undefined}
+      aria-live={isLive ? 'polite' : undefined}
+      aria-label={label}
     >
       <StatusIcon status={status} />
       <span className="status-label">{label}</span>
