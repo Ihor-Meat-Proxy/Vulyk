@@ -17,6 +17,21 @@ use crate::openapi::ApiDoc;
 const DOCS_HTML_TEMPLATE: &str = include_str!("../../assets/scalar/index.html");
 const SCALAR_JS: &[u8] = include_bytes!("../../assets/scalar/standalone.js");
 
+/// Scalar standalone `data-configuration` JSON (single-quoted HTML attribute — no `'` inside).
+///
+/// Keeps search + Test Request (Try it) on, prefers OpenAPI `bearer_auth`, targets same-origin
+/// `/`, and never loads fonts.scalar.com / CDNs (air-gapped CSP).
+pub const SCALAR_CONFIGURATION: &str = concat!(
+    "{",
+    r#""withDefaultFonts":false,"#,
+    r#""hideSearch":false,"#,
+    r#""hideTestRequestButton":false,"#,
+    r#""searchHotKey":"k","#,
+    r#""servers":[{"url":"/","description":"This Vulyk instance (same origin)"}],"#,
+    r#""authentication":{"preferredSecurityScheme":"bearer_auth"}"#,
+    "}"
+);
+
 pub fn router() -> Router<crate::routes::AppState> {
     Router::new()
         .route("/api/docs", get(docs_html))
@@ -47,6 +62,7 @@ pub async fn docs_html() -> Response {
     };
     let html = DOCS_HTML_TEMPLATE
         .replace("$title", "Vulyk API")
+        .replace("$configuration", SCALAR_CONFIGURATION)
         .replace("$spec", &spec);
     Html(html).into_response()
 }
@@ -99,8 +115,34 @@ mod tests {
             "docs HTML must not load remote assets"
         );
         assert!(
-            DOCS_HTML_TEMPLATE.contains("withDefaultFonts"),
-            "docs must disable Scalar CDN fonts"
+            DOCS_HTML_TEMPLATE.contains("$configuration"),
+            "docs template must inject Scalar configuration"
+        );
+        assert!(
+            !DOCS_HTML_TEMPLATE.contains("fonts.scalar.com"),
+            "docs HTML must not reference Scalar font CDN"
+        );
+    }
+
+    #[test]
+    fn scalar_configuration_is_air_gapped_and_interactive() {
+        let cfg: serde_json::Value =
+            serde_json::from_str(SCALAR_CONFIGURATION).expect("SCALAR_CONFIGURATION JSON");
+        assert_eq!(cfg["withDefaultFonts"], false);
+        assert_eq!(cfg["hideSearch"], false);
+        assert_eq!(cfg["hideTestRequestButton"], false);
+        assert_eq!(cfg["searchHotKey"], "k");
+        assert_eq!(cfg["authentication"]["preferredSecurityScheme"], "bearer_auth");
+        assert_eq!(cfg["servers"][0]["url"], "/");
+        assert!(
+            !SCALAR_CONFIGURATION.contains('\''),
+            "config is embedded in a single-quoted HTML attribute"
+        );
+        assert!(
+            !SCALAR_CONFIGURATION.contains("https://")
+                && !SCALAR_CONFIGURATION.contains("cdn.")
+                && !SCALAR_CONFIGURATION.contains("fonts.scalar"),
+            "Scalar config must not reference remote assets"
         );
     }
 

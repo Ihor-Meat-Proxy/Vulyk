@@ -16,6 +16,13 @@
       "source": "existing"
     },
     {
+      "file": "api-docs.spec.ts",
+      "title": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "key": "VQA-359",
+      "external_key": "e2e:api-docs.spec.ts API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "source": "fragment-new"
+    },
+    {
       "file": "admin-custom-fields.spec.ts",
       "title": "admin lists, custom fields, and config export",
       "key": "VQA-226",

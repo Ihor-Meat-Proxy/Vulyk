@@ -60,7 +60,73 @@
                 "es": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors.",
                 "de": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors."
               },
-              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "uk": "Scalar пошук, Try it і Auth працюють без CDN",
+            "fr": "Scalar search, Try it, and Auth stay interactive without CDN",
+            "es": "Scalar search, Try it, and Auth stay interactive without CDN",
+            "de": "Scalar-Suche, Try it und Auth bleiben ohne CDN interaktiv"
+          },
+          "description": {
+            "en": "/api/docs enables Scalar search and Test Request against same-origin with bearer_auth preferred; no fonts.scalar.com / CDN.",
+            "uk": "/api/docs вмикає пошук Scalar і Test Request на same-origin з bearer_auth; без fonts.scalar.com / CDN.",
+            "fr": "/api/docs enables Scalar search and Test Request against same-origin with bearer_auth preferred; no fonts.scalar.com / CDN.",
+            "es": "/api/docs enables Scalar search and Test Request against same-origin with bearer_auth preferred; no fonts.scalar.com / CDN.",
+            "de": "/api/docs enables Scalar search and Test Request against same-origin with bearer_auth preferred; no fonts.scalar.com / CDN."
+          },
+          "precondition": {
+            "en": "API process running.",
+            "uk": "API-процес запущено.",
+            "fr": "API process running.",
+            "es": "API process running.",
+            "de": "API process running."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "api",
+            "openapi",
+            "ux",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:api-docs.spec.ts#scalar-ux",
+          "key": "VQA-359",
+          "steps": [
+            {
+              "action": {
+                "en": "Open /api/docs; confirm Search... input, Test Request / Auth UI, OpenAPI servers url /, bearer_auth scheme; no CSP/CDN console errors.",
+                "uk": "Відкрити /api/docs; перевірити Search..., Test Request / Auth, servers url /, bearer_auth; без CSP/CDN помилок.",
+                "fr": "Open /api/docs; confirm Search... input, Test Request / Auth UI, OpenAPI servers url /, bearer_auth scheme; no CSP/CDN console errors.",
+                "es": "Open /api/docs; confirm Search... input, Test Request / Auth UI, OpenAPI servers url /, bearer_auth scheme; no CSP/CDN console errors.",
+                "de": "Open /api/docs; confirm Search... input, Test Request / Auth UI, OpenAPI servers url /, bearer_auth scheme; no CSP/CDN console errors."
+              },
+              "expected_result": {
+                "en": "Search and Try it / Auth controls are present; configuration keeps withDefaultFonts false; no CDN font or script loads.",
+                "uk": "Пошук і Try it / Auth видимі; withDefaultFonts false; немає CDN шрифтів чи скриптів.",
+                "fr": "Search and Try it / Auth controls are present; configuration keeps withDefaultFonts false; no CDN font or script loads.",
+                "es": "Search and Try it / Auth controls are present; configuration keeps withDefaultFonts false; no CDN font or script loads.",
+                "de": "Search and Try it / Auth controls are present; configuration keeps withDefaultFonts false; no CDN font or script loads."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
             }
           ]
         }

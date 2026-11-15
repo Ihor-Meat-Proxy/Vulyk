@@ -44,7 +44,7 @@
     {
       "name": "Meta",
       "file": "meta.json",
-      "count": 2
+      "count": 3
     },
     {
       "name": "Plans & runs",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 127,
+  "case_count": 128,
   "generated": "2026-11-15T08:55:00.000Z"
 }
