@@ -6205,6 +6205,250 @@
             }
           ],
           "key": "VQA-329"
+        },
+        {
+          "title": {
+            "en": "open with start leaves run in_progress before results",
+            "uk": "open with start leaves run in_progress before results",
+            "fr": "open with start leaves run in_progress before results",
+            "es": "open with start leaves run in_progress before results",
+            "de": "open with start leaves run in_progress before results"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — open with start leaves run in_progress before results",
+            "uk": "Покриття Playwright e2e: ci-reporter-live-run.spec.ts — open with start leaves run in_progress before results",
+            "fr": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — open with start leaves run in_progress before results",
+            "es": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — open with start leaves run in_progress before results",
+            "de": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — open with start leaves run in_progress before results"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ci",
+            "reporter"
+          ],
+          "external_key": "e2e:ci-reporter-live-run.spec.ts open with start leaves run in_progress before results",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"open with start leaves run in_progress before results\"",
+                "uk": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"open with start leaves run in_progress before results\"",
+                "fr": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"open with start leaves run in_progress before results\"",
+                "es": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"open with start leaves run in_progress before results\"",
+                "de": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"open with start leaves run in_progress before results\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-332"
+        },
+        {
+          "title": {
+            "en": "streaming posts partial results while run stays in_progress",
+            "uk": "streaming posts partial results while run stays in_progress",
+            "fr": "streaming posts partial results while run stays in_progress",
+            "es": "streaming posts partial results while run stays in_progress",
+            "de": "streaming posts partial results while run stays in_progress"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — streaming posts partial results while run stays in_progress",
+            "uk": "Покриття Playwright e2e: ci-reporter-live-run.spec.ts — streaming posts partial results while run stays in_progress",
+            "fr": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — streaming posts partial results while run stays in_progress",
+            "es": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — streaming posts partial results while run stays in_progress",
+            "de": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — streaming posts partial results while run stays in_progress"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ci",
+            "reporter"
+          ],
+          "external_key": "e2e:ci-reporter-live-run.spec.ts streaming posts partial results while run stays in_progress",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"streaming posts partial results while run stays in_progress\"",
+                "uk": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"streaming posts partial results while run stays in_progress\"",
+                "fr": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"streaming posts partial results while run stays in_progress\"",
+                "es": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"streaming posts partial results while run stays in_progress\"",
+                "de": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"streaming posts partial results while run stays in_progress\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-333"
+        },
+        {
+          "title": {
+            "en": "close at end marks run closed",
+            "uk": "close at end marks run closed",
+            "fr": "close at end marks run closed",
+            "es": "close at end marks run closed",
+            "de": "close at end marks run closed"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — close at end marks run closed",
+            "uk": "Покриття Playwright e2e: ci-reporter-live-run.spec.ts — close at end marks run closed",
+            "fr": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — close at end marks run closed",
+            "es": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — close at end marks run closed",
+            "de": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — close at end marks run closed"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ci",
+            "reporter"
+          ],
+          "external_key": "e2e:ci-reporter-live-run.spec.ts close at end marks run closed",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"close at end marks run closed\"",
+                "uk": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"close at end marks run closed\"",
+                "fr": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"close at end marks run closed\"",
+                "es": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"close at end marks run closed\"",
+                "de": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"close at end marks run closed\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-334"
+        },
+        {
+          "title": {
+            "en": "cancelled close shows Cancelled status badge",
+            "uk": "cancelled close shows Cancelled status badge",
+            "fr": "cancelled close shows Cancelled status badge",
+            "es": "cancelled close shows Cancelled status badge",
+            "de": "cancelled close shows Cancelled status badge"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — cancelled close shows Cancelled status badge",
+            "uk": "Покриття Playwright e2e: ci-reporter-live-run.spec.ts — cancelled close shows Cancelled status badge",
+            "fr": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — cancelled close shows Cancelled status badge",
+            "es": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — cancelled close shows Cancelled status badge",
+            "de": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — cancelled close shows Cancelled status badge"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ci",
+            "reporter"
+          ],
+          "external_key": "e2e:ci-reporter-live-run.spec.ts cancelled close shows Cancelled status badge",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"cancelled close shows Cancelled status badge\"",
+                "uk": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"cancelled close shows Cancelled status badge\"",
+                "fr": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"cancelled close shows Cancelled status badge\"",
+                "es": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"cancelled close shows Cancelled status badge\"",
+                "de": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"cancelled close shows Cancelled status badge\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-335"
         }
       ]
     }

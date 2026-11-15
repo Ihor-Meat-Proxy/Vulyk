@@ -11,5 +11,6 @@
     "resolveJsonModule": true,
     "types": ["node"]
   },
-  "include": ["./**/*.ts", "../frontend/src/testing/testIds.ts"]
+  "include": ["./**/*.ts", "../frontend/src/testing/testIds.ts"],
+  "exclude": ["./**/*.test.ts"]
 }

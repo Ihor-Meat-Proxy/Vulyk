@@ -120,6 +120,11 @@ Set `VULYK_RUN_ID` (or the action `run-id` input) so the pipeline **attaches** t
 the existing run instead of opening a new one. The Playwright reporter and
 `vulyk-report` / `vulyk-upload.sh` all honor this.
 
+The built-in Playwright reporter (`e2e/reporters/vulyk-reporter.ts`) opens the
+run in **`onBegin`** (`start: true` → `in_progress`), streams batched results
+from **`onTestEnd`**, and closes in **`onEnd`** (with `cancelled: true` on
+interrupt). See [playwright-vulyk.md](../testing/playwright-vulyk.md).
+
 Optional: configure a GitHub **workflow_run** webhook on the project CI config
 (with `webhook_secret`) so cancelled / failed-to-start workflows update the
 dispatch and run status.
@@ -219,17 +224,19 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 |--------|---------|
 | Queued | Created by **Run in CI**; waiting for the workflow to start |
 | Open | Pipeline registered; no results yet |
-| In progress | Workflow started / results streaming |
-| Closed / failed | Job finished (success, failure, cancelled, or Queued timeout) |
+| In progress | Workflow started / results streaming (Playwright reporter opens here in `onBegin`) |
+| Closed | Job finished successfully or with failures |
+| Cancelled | Job interrupted / cancelled close (`status=cancelled`, not a passed-looking Closed badge) |
 
 On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 
 ```mermaid
 stateDiagram-v2
   [*] --> Open: pipeline start
-  Open --> InProgress: first result
+  Open --> InProgress: start / first result
   InProgress --> Closed: job end
-  Open --> Closed: cancelled / empty close
+  InProgress --> Cancelled: interrupted / cancelled close
+  Open --> Cancelled: cancelled before start
 ```
 
 ## Automation repositories (Generate)

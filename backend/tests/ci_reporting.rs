@@ -551,3 +551,134 @@ async fn ci_token_auth_and_permissions() {
         .unwrap();
     assert_eq!(cross.status(), reqwest::StatusCode::FORBIDDEN);
 }
+
+#[tokio::test]
+async fn ci_open_start_stream_and_cancelled_close() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, _pool) = spawn_app(false).await;
+    let client = reqwest::Client::new();
+    let key = unique_key("L");
+
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({ "key": key, "name": "Live CI Proj" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let case: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .json(&json!({
+            "title": "Live case",
+            "status": "ready",
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
+
+    // Open with start:true → visible in_progress before any results.
+    let opened: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci/runs"))
+        .json(&json!({
+            "suite_name": "Live reporter",
+            "external_ref": format!("live-{}", uuid::Uuid::new_v4()),
+            "start": true,
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run_id = opened["run"]["id"].as_str().unwrap();
+    assert_eq!(opened["run"]["status"], "in_progress");
+
+    // Partial stream while still in_progress.
+    let partial: Value = client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}/results"
+        ))
+        .json(&json!({
+            "results": [{
+                "case_key": case_key,
+                "status": "passed",
+                "external_id": "spec::partial",
+                "duration_ms": 12
+            }]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(partial["inserted"].as_i64().unwrap(), 1);
+
+    let mid: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(mid["status"], "in_progress");
+
+    // Cancelled close → status=cancelled (not closed + meta only).
+    let cancelled: Value = client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}/close"
+        ))
+        .json(&json!({ "cancelled": true, "message": "interrupted" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(cancelled["status"], "cancelled");
+    assert_eq!(cancelled["meta"]["cancelled"], true);
+
+    let after = client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}/results"
+        ))
+        .json(&json!({
+            "results": [{ "case_key": case_key, "status": "failed" }]
+        }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(after.status(), reqwest::StatusCode::CONFLICT);
+}

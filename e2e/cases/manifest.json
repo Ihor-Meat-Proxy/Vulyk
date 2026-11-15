@@ -19,7 +19,7 @@
     {
       "name": "Automation & CI",
       "file": "automation-ci.json",
-      "count": 9
+      "count": 13
     },
     {
       "name": "Edge cases",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 105,
-  "generated": "2026-11-15T08:35:00.000Z"
+  "case_count": 109,
+  "generated": "2026-11-15T08:55:00.000Z"
 }
