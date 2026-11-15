@@ -50,7 +50,6 @@ export function formatTimestamp(
 
 export function browserTimeZone(): string {
   return (
-    normalizeTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone) ||
-    'UTC'
+    normalizeTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone) || 'UTC'
   )
 }

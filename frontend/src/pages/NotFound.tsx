@@ -6,7 +6,10 @@ export function NotFound() {
   const { t } = useI18n()
 
   return (
-    <div className="panel not-found-page" {...testIdProps(TestIds.notFoundPage)}>
+    <div
+      className="panel not-found-page"
+      {...testIdProps(TestIds.notFoundPage)}
+    >
       <h1 style={{ marginTop: 0 }} {...testIdProps(TestIds.notFoundTitle)}>
         {t('notFound.title')}
       </h1>

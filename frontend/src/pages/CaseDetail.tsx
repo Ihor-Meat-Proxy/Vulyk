@@ -48,10 +48,7 @@ import { friendlyErrorMessage } from '../friendlyError'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
-function planTypeLabel(
-  planType: string,
-  t: (key: string) => string,
-): string {
+function planTypeLabel(planType: string, t: (key: string) => string): string {
   const key = planType.trim().toLowerCase()
   if (key === 'ci' || key === 'ci run') return t('executions.planTypeCi')
   if (key === 'iteration') return t('executions.planTypeIteration')
@@ -1226,7 +1223,9 @@ export function CaseDetail({
               <div className="meta-row results-summary">
                 <span>
                   {t('executions.passRate')}:{' '}
-                  <strong {...testIdProps(TestIds.caseDetailExecutionsPassRate)}>
+                  <strong
+                    {...testIdProps(TestIds.caseDetailExecutionsPassRate)}
+                  >
                     {execPage.total === 0
                       ? '—'
                       : `${execPage.pass_rate.toFixed(0)}%`}

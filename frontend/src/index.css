@@ -3401,9 +3401,8 @@ button.trend-seg.clickable:focus-visible {
   background: none;
   padding: 0;
   color: var(--ink-muted);
-  font: inherit;
   font-size: 0.85rem;
-  font-family: inherit;
+  font-family: var(--font-body);
   font-weight: 500;
   cursor: pointer;
   text-decoration: underline;

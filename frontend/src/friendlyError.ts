@@ -23,7 +23,9 @@ export function friendlyErrorMessage(
       /^internal/i.test(raw) ||
       /^forbidden:/i.test(raw)
     ) {
-      return kind === 'login' ? t('login.genericError') : t('common.unexpectedError')
+      return kind === 'login'
+        ? t('login.genericError')
+        : t('common.unexpectedError')
     }
     // Prefer short API messages that are already human-readable.
     if (raw && raw.length < 120 && !raw.includes('{')) {
@@ -33,8 +35,12 @@ export function friendlyErrorMessage(
   if (err instanceof Error && err.message && err.message.length < 120) {
     const raw = err.message.trim()
     if (/^bad request:|^not found:|^internal/i.test(raw)) {
-      return kind === 'login' ? t('login.genericError') : t('common.unexpectedError')
+      return kind === 'login'
+        ? t('login.genericError')
+        : t('common.unexpectedError')
     }
   }
-  return kind === 'login' ? t('login.genericError') : t('common.unexpectedError')
+  return kind === 'login'
+    ? t('login.genericError')
+    : t('common.unexpectedError')
 }

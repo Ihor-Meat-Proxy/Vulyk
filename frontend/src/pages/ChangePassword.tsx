@@ -58,7 +58,10 @@ export function ChangePassword() {
           {forced ? t('password.forcedSubtitle') : t('password.subtitle')}
         </p>
         {forced && (
-          <p className="muted" {...testIdProps(TestIds.changePasswordPolicyNote)}>
+          <p
+            className="muted"
+            {...testIdProps(TestIds.changePasswordPolicyNote)}
+          >
             {t('password.forcedPolicyNote')}
           </p>
         )}

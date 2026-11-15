@@ -253,9 +253,7 @@ export function RunsPage({ projectId, suites }: Props) {
             <label
               className={`file-input-label${!uploadRunId || uploading ? ' is-disabled' : ''}`}
             >
-              <span className="btn secondary">
-                {t('runs.chooseJunitFile')}
-              </span>
+              <span className="btn secondary">{t('runs.chooseJunitFile')}</span>
               <input
                 type="file"
                 className="file-input"

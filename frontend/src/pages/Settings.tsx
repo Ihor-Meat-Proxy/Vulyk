@@ -663,7 +663,9 @@ export function Settings() {
             }
             onBlur={() =>
               setTimezone(
-                normalizeTimeZone(timezone) || timezone.trim() || browserTimeZone(),
+                normalizeTimeZone(timezone) ||
+                  timezone.trim() ||
+                  browserTimeZone(),
               )
             }
             placeholder="Europe/Kyiv"
