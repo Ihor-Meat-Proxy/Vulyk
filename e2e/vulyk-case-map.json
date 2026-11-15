@@ -633,9 +633,9 @@
     },
     {
       "file": "result-history.spec.ts",
-      "title": "mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
+      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
       "key": "VQA-312",
-      "external_key": "e2e:result-history.spec.ts mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
       "source": "fragment-new"
     },
     {
@@ -689,9 +689,9 @@
     },
     {
       "file": "smoke.spec.ts",
-      "title": "smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
+      "title": "smoke: login → case → run → junit → import → report",
       "key": "VQA-320",
-      "external_key": "e2e:smoke.spec.ts smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
+      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
       "source": "fragment-new"
     },
     {

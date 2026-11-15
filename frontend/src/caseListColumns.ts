@@ -51,6 +51,7 @@ export const BUILTIN_COLUMNS: BuiltinColumnDef[] = [
     sortable: true,
     hideable: false,
     defaultVisible: true,
+    /* Keep a readable floor so titles stay findable; ellipsis CSS still clips overflow. */
     width: 'minmax(10rem, 1fr)',
   },
   {

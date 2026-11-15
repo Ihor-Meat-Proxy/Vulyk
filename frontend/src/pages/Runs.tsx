@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   api,
   type CiConfig,
@@ -157,7 +158,13 @@ export function Runs({ projectId }: Props) {
       <section className="panel">
         <h2>{t('runs.title')}</h2>
         <p className="muted" style={{ marginTop: 0 }}>
-          {t('runs.ciIngestHelp')}
+          {t('runs.ciIngestHelp')}{' '}
+          <Link
+            to="/settings#ci-tokens"
+            {...testIdProps(TestIds.runsCiTokensLink)}
+          >
+            {t('runs.ciTokensLink')}
+          </Link>
         </p>
         {canExecute && (
           <div className="toolbar">

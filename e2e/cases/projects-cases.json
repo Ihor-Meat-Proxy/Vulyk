@@ -456,6 +456,30 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "ui-layout-polish-case-list-long-titles-ellipsize-without-overlapping-columns",
+      "key": "VUE-116",
+      "title": "Case list long titles ellipsize without overlapping columns",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ui-layout-polish.spec.ts",
+      "test": "Case list long titles ellipsize without overlapping columns",
+      "external_key": "e2e:ui-layout-polish.spec.ts Case list long titles ellipsize without overlapping columns",
+      "automation_link": "e2e/tests/ui-layout-polish.spec.ts :: Case list long titles ellipsize without overlapping columns",
+      "vqa_key": "VQA-342",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }

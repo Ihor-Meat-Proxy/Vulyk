@@ -5,6 +5,7 @@ import {
   useState,
   type FormEvent,
 } from 'react'
+import { Link } from 'react-router-dom'
 import {
   api,
   type ApiTokenPublic,
@@ -892,6 +893,7 @@ function IntegrationsPanel({
   onChanged: () => void
   onError: (msg: string) => void
 }) {
+  const { t } = useI18n()
   const [kind, setKind] = useState('openproject')
   const [name, setName] = useState('')
 
@@ -919,6 +921,16 @@ function IntegrationsPanel({
     <div className="panel admin-grid">
       <div>
         <h3>Integrations</h3>
+        <p className="muted">
+          {t('admin.integrationsCiTokensHelp')}{' '}
+          <Link
+            to="/settings#ci-tokens"
+            {...testIdProps(TestIds.adminIntegrationsCiTokensLink)}
+          >
+            {t('admin.integrationsCiTokensLink')}
+          </Link>
+          .
+        </p>
         <table className="table" {...testIdProps(TestIds.adminIntegrationList)}>
           <thead>
             <tr>

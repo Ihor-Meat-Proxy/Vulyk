@@ -299,7 +299,10 @@ export default function App() {
             }
           />
           <Route path="appearance" element={<Appearance />} />
-          <Route path="settings" element={<Settings />} />
+          <Route
+            path="settings"
+            element={<Settings activeProjectId={activeProjectId} />}
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

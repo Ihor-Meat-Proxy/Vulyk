@@ -65,6 +65,14 @@ export class SettingsPage {
     return this.page.getByTestId(TestIds.settingsCiTokenSecret)
   }
 
+  ciTokenEnvBlock() {
+    return this.page.getByTestId(TestIds.settingsCiTokenEnvBlock)
+  }
+
+  ciTokenCopyButton() {
+    return this.page.getByTestId(TestIds.settingsCiTokenCopyButton)
+  }
+
   ciTokenRows() {
     return this.page.getByTestId(TestIds.settingsCiTokenRow)
   }
