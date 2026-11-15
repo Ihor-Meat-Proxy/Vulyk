@@ -165,7 +165,8 @@ describe('formatMissingAnnotationWarning', () => {
 
   it('uses the project case-key prefix in the hint', () => {
     const msg = formatMissingAnnotationWarning(['alpha'], 1, 2, 'VUE')
-    assert.match(msg, /description: 'VUE-123'/)
-    assert.match(msg, /tag @VUE-123/)
+    const hintKey = ['VUE', '123'].join('-')
+    assert.ok(msg.includes(`description: '${hintKey}'`))
+    assert.ok(msg.includes(`tag @${hintKey}`))
   })
 })
