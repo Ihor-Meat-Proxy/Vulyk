@@ -198,6 +198,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "case-list-density",
         include_str!("../seed/vulyk-qa.d/case-list-density.json"),
     ),
+    (
+        "run-counters-sot",
+        include_str!("../seed/vulyk-qa.d/run-counters-sot.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

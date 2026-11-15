@@ -1580,6 +1580,19 @@
       "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
       "vqa_key": "VQA-362",
       "automation_link": "e2e/tests/case-list-density.spec.ts :: virtualized case list reveals a known case after scroll"
+    },
+    {
+      "id": "run-counters-sot-ci-run-detail-progress-matches-reports-summary-counters",
+      "preferred_key": "VUE-217",
+      "key": "VUE-217",
+      "case_id": "8630656f-ef03-4d17-8181-577f5fa639cf",
+      "file": "run-counters-sot.spec.ts",
+      "title": "CI run detail progress matches Reports summary counters",
+      "type": "positive",
+      "folder": "Automation & CI",
+      "external_key": "e2e:run-counters-sot.spec.ts CI run detail progress matches Reports summary counters",
+      "vqa_key": "VQA-355",
+      "automation_link": "e2e/tests/run-counters-sot.spec.ts :: CI run detail progress matches Reports summary counters"
     }
   ]
 }

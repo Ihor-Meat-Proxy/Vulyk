@@ -95,7 +95,9 @@ erDiagram
   projects ||--o{ test_plans : owns
   test_plans ||--o{ test_runs : schedules
   test_runs ||--o{ test_results : collects
+  test_runs ||--o{ run_items : progress
   test_cases ||--o{ test_results : measured
+  test_cases ||--o{ run_items : one_status
   projects ||--o{ ci_configs : configures
   projects ||--o{ integrations : configures
   projects ||--o{ llm_configs : configures
@@ -161,6 +163,18 @@ erDiagram
     uuid plan_id FK
     text name
     text status
+    int pass_count
+    int fail_count
+    int skip_count
+    int blocked_count
+  }
+
+  run_items {
+    uuid id PK
+    uuid run_id FK
+    uuid case_id FK
+    text status
+    int sort_order
   }
 
   test_results {
@@ -182,6 +196,8 @@ erDiagram
     timestamptz run_at
   }
 ```
+
+**Run counters SoT:** `run_items` holds one status per case (UI progress). Append-only `test_results` is history/flaky. Denormalized `test_runs.pass_count` / `fail_count` / `skip_count` / `blocked_count` and Reports run-summary status bars are aggregated from `run_items` via `compute_run_status_counts` / `refresh_run_counters` (lazy `ensure_run_items_from_results` for historical CI).
 
 ## API conventions
 

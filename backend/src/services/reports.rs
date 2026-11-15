@@ -75,30 +75,12 @@ pub async fn run_summary(
     .await?
     .ok_or_else(|| AppError::NotFound(format!("run {run_id}")))?;
 
-    // Prefer ingested test_results when present (CI / bulk upload). Otherwise use
-    // run_items (manual execution progress, including untested placeholders).
-    let result_rows = sqlx::query_as::<_, CountRow>(
-        r#"SELECT status, COUNT(*)::bigint AS count
-           FROM test_results WHERE run_id = $1
-           GROUP BY status"#,
-    )
-    .bind(run_id)
-    .fetch_all(pool)
-    .await?;
-
-    let counts = if result_rows.iter().any(|r| r.count > 0) {
-        from_rows(&result_rows)
-    } else {
-        let item_rows = sqlx::query_as::<_, CountRow>(
-            r#"SELECT status, COUNT(*)::bigint AS count
-               FROM run_items WHERE run_id = $1
-               GROUP BY status"#,
-        )
-        .bind(run_id)
-        .fetch_all(pool)
-        .await?;
-        from_rows(&item_rows)
-    };
+    // Status bars use run_items (one status per case) — same SoT as Run detail
+    // progress and denormalized test_runs.*_count. Flaky/history still use
+    // append-only test_results elsewhere.
+    let counts = crate::services::runs::compute_run_status_counts(pool, run_id)
+        .await?
+        .to_status_counts();
 
     let pass_rate = counts.pass_rate();
     Ok(RunSummaryReport {

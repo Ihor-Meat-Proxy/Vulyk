@@ -1,0 +1,74 @@
+{
+  "feature": "run-counters-sot",
+  "suites": [
+    {
+      "name": {
+        "en": "Run counters source of truth",
+        "uk": "Єдине джерело лічильників прогону",
+        "fr": "Source unique des compteurs de run",
+        "es": "Fuente única de contadores del run",
+        "de": "Single Source of Truth für Run-Zähler"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-355",
+          "title": {
+            "en": "CI run detail progress matches Reports summary counters",
+            "uk": "Прогрес деталей CI-рану збігається з лічильниками Reports",
+            "fr": "La progression du détail CI correspond aux compteurs Reports",
+            "es": "El progreso del detalle CI coincide con los contadores de Reports",
+            "de": "CI-Run-Detail-Fortschritt stimmt mit Reports-Zählern überein"
+          },
+          "description": {
+            "en": "After CI ingest (including retries for the same case), Run detail progress, denormalized test_runs.*_count, and Reports run summary all count one status per case from run_items.",
+            "uk": "Після CI ingest (включно з retry того самого кейсу) прогрес Run detail, denormalized test_runs.*_count і Reports summary рахують один статус на кейс з run_items.",
+            "fr": "After CI ingest (including retries for the same case), Run detail progress, denormalized test_runs.*_count, and Reports run summary all count one status per case from run_items.",
+            "es": "After CI ingest (including retries for the same case), Run detail progress, denormalized test_runs.*_count, and Reports run summary all count one status per case from run_items.",
+            "de": "After CI ingest (including retries for the same case), Run detail progress, denormalized test_runs.*_count, and Reports run summary all count one status per case from run_items."
+          },
+          "precondition": {
+            "en": "Project with two cases; CI open → results (retry + skip) → close.",
+            "uk": "Проєкт із двома кейсами; CI open → results (retry + skip) → close.",
+            "fr": "Project with two cases; CI open → results (retry + skip) → close.",
+            "es": "Project with two cases; CI open → results (retry + skip) → close.",
+            "de": "Project with two cases; CI open → results (retry + skip) → close."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "api",
+            "ci",
+            "runs",
+            "reports",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:run-counters-sot.spec.ts#progress-matches-reports",
+          "steps": [
+            {
+              "action": {
+                "en": "Open a CI run, post failed then passed for case A and skipped for case B, close, then GET run detail and Reports summary.",
+                "uk": "Відкрити CI-ран, надіслати failed потім passed для A і skipped для B, закрити, GET detail і Reports summary.",
+                "fr": "Open a CI run, post failed then passed for case A and skipped for case B, close, then GET run detail and Reports summary.",
+                "es": "Open a CI run, post failed then passed for case A and skipped for case B, close, then GET run detail and Reports summary.",
+                "de": "Open a CI run, post failed then passed for case A and skipped for case B, close, then GET run detail and Reports summary."
+              },
+              "expected_result": {
+                "en": "progress.total=2, passed=1, skipped=1, failed=0; Reports counts and run.pass_count/skip_count match.",
+                "uk": "progress.total=2, passed=1, skipped=1, failed=0; Reports counts і run.pass_count/skip_count збігаються.",
+                "fr": "progress.total=2, passed=1, skipped=1, failed=0; Reports counts and run.pass_count/skip_count match.",
+                "es": "progress.total=2, passed=1, skipped=1, failed=0; Reports counts and run.pass_count/skip_count match.",
+                "de": "progress.total=2, passed=1, skipped=1, failed=0; Reports counts and run.pass_count/skip_count match."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

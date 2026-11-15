@@ -780,6 +780,9 @@ pub async fn update_run_item(
         .await?;
     }
 
+    // Keep denormalized pass/fail/skip/blocked in sync with run_items SoT.
+    crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
+
     let case_row = sqlx::query_as::<_, (String, String, String)>(
         "SELECT key, title, priority FROM test_cases WHERE id = $1",
     )
@@ -1079,6 +1082,32 @@ pub async fn create_result(
             .bind(&body.message)
             .execute(&mut *tx)
             .await?;
+        } else if let Some(cid) = case_id {
+            // No run_item_id: upsert by case so progress/counters stay aligned.
+            sqlx::query(
+                r#"
+                INSERT INTO run_items (run_id, case_id, status, sort_order, comment, executed_at)
+                VALUES (
+                    $1, $2, $3,
+                    COALESCE((SELECT MAX(sort_order) FROM run_items WHERE run_id = $1), -1) + 1,
+                    $4, NOW()
+                )
+                ON CONFLICT (run_id, case_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    comment = CASE
+                        WHEN EXCLUDED.comment <> '' THEN EXCLUDED.comment
+                        ELSE run_items.comment
+                    END,
+                    executed_at = COALESCE(EXCLUDED.executed_at, run_items.executed_at),
+                    updated_at = NOW()
+                "#,
+            )
+            .bind(run_id)
+            .bind(cid)
+            .bind(&status)
+            .bind(&body.message)
+            .execute(&mut *tx)
+            .await?;
         }
     }
 
@@ -1087,6 +1116,8 @@ pub async fn create_result(
     }
 
     tx.commit().await?;
+    // Denormalized counters follow run_items (SoT), not raw test_results rows.
+    crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
     Ok(Json(TestResultDetail { result, steps }))
 }
 
