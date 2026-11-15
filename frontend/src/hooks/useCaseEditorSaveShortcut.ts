@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useEffectEvent, type RefObject } from 'react'
 import { shouldHandleSaveShortcut } from '../caseEditShortcuts'
 import { isApplePlatform } from '../platform'
 
@@ -7,6 +7,9 @@ import { isApplePlatform } from '../platform'
  * Listener is removed on unmount / when editing ends so the browser Save Page
  * works normally elsewhere. Ignores key repeat, save-in-flight, foreign modals,
  * and non-primary modifier combos (Shift+Cmd+S, etc.).
+ *
+ * `onSave` is wrapped with `useEffectEvent` inside this hook so callers can pass
+ * a normal function (oxlint forbids assigning/passing Effect Event functions).
  */
 export function useCaseEditorSaveShortcut(opts: {
   enabled: boolean
@@ -15,6 +18,7 @@ export function useCaseEditorSaveShortcut(opts: {
   onSave: () => void
 }) {
   const { enabled, saving, editorRef, onSave } = opts
+  const onSaveEvent = useEffectEvent(onSave)
 
   useEffect(() => {
     if (!enabled) return
@@ -36,10 +40,10 @@ export function useCaseEditorSaveShortcut(opts: {
         return
       }
       e.preventDefault()
-      onSave()
+      onSaveEvent()
     }
 
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [enabled, saving, editorRef, onSave])
+  }, [enabled, saving, editorRef])
 }
