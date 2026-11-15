@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-15
+
+Patch release: upgrade backup path + version bump after the audit fix/improvement
+train (#165–#180). Operators upgrading from 0.3.0 get a real version move and a
+working 7-day rollback point.
+
+### Fixed
+
+- **Upgrade backup capture (U1)** — `log()` in `scripts/install.sh` now writes to
+  stderr so `backup_file="$(run_full_backup …)"` captures only the bundle path.
+  Polluted multi-line captures no longer skip `version-backups/` registration or
+  break auto-rollback. Upgrade validates the bundle directory + `db.sql.gz`
+  before continuing; auto-rollback refuses invalid paths.
+- CI: `scripts/test-install-backup-capture.sh` asserts stderr logging, path
+  capture, version-backups registration with a valid gzip archive, polluted-path
+  rejection, and env-sync secret preservation.
+
+### Changed
+
+- Version bump 0.3.0 → 0.3.1 across `VERSION`, Cargo workspace, frontend, and
+  Helm `appVersion`.
+
 ## [0.3.0] - 2026-10-27
 
 Third release: two-way **Run in CI**, REST automation-repo indexing (no local

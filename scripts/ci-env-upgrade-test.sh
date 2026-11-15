@@ -8,7 +8,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
-log() { printf '==> %s\n' "$*"; }
+log() { printf '==> %s\n' "$*" >&2; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
 
 need_cmd() { command -v "$1" >/dev/null 2>&1 || die "missing $1"; }

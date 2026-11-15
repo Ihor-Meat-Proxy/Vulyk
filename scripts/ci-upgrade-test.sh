@@ -13,7 +13,7 @@ BIND_ADDR="${BIND_ADDR:-127.0.0.1:8080}"
 PERF_CASES="${PERF_CASES:-200}"
 
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
-log() { printf '==> %s\n' "$*"; }
+log() { printf '==> %s\n' "$*" >&2; }
 
 [[ -n "${BASE_SHA}" ]] || die "usage: $0 <base-sha> (or set VULYK_UPGRADE_BASE_SHA)"
 [[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is required"
@@ -273,12 +273,38 @@ export VULYK_VERSION_BACKUP_DIR="${WORKDIR}/version-backups"
 mkdir -p "${VULYK_VERSION_BACKUP_DIR}/src-bundle/config"
 cp /tmp/vulyk-pre-upgrade.sql.gz "${VULYK_VERSION_BACKUP_DIR}/src-bundle/db.sql.gz"
 cp /tmp/vulyk-pre-upgrade.env "${VULYK_VERSION_BACKUP_DIR}/src-bundle/config/.env"
+[[ -f "${VULYK_VERSION_BACKUP_DIR}/src-bundle/db.sql.gz" ]] \
+  || die "pre-upgrade backup bundle missing db.sql.gz"
+gzip -t "${VULYK_VERSION_BACKUP_DIR}/src-bundle/db.sql.gz" \
+  || die "pre-upgrade db.sql.gz failed gzip -t (invalid archive)"
+# Guard against the U1 polluted-path bug: a multi-line "path" must not look like a bundle.
+polluted=$'==> Creating verified backup bundle\n'"${VULYK_VERSION_BACKUP_DIR}/src-bundle"
+if [[ -d "${polluted}" ]]; then
+  die "polluted multi-line backup path unexpectedly resolves as a directory"
+fi
 python3 "${ROOT}/scripts/version_backups.py" register \
   --source "${VULYK_VERSION_BACKUP_DIR}/src-bundle" \
   --version "$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("version","0.0.0"))' "${BASE_HEALTH}")" \
   --from-version "$(python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("version","0.0.0"))' "${BASE_HEALTH}")" \
   --to-version "head" \
   --rollback >/tmp/vulyk-vb-register.json
+# Assert the registered rollback point exists with a valid archive (would have
+# been skipped when backup_file captured log lines).
+python3 - <<'PY'
+import json, gzip, os, sys
+from pathlib import Path
+meta = json.load(open("/tmp/vulyk-vb-register.json"))
+root = Path(os.environ["VULYK_VERSION_BACKUP_DIR"])
+dirs = [p for p in root.iterdir() if p.is_dir() and (p / "db.sql.gz").is_file() and p.name != "src-bundle"]
+if not dirs:
+    print("no version-backups rollback point registered", file=sys.stderr)
+    sys.exit(1)
+db = dirs[0] / "db.sql.gz"
+with gzip.open(db, "rb") as f:
+    f.read(1)
+assert "rollback" in meta.get("roles", []), meta
+print("ok version-backups rollback point", dirs[0].name, "gzip-valid")
+PY
 python3 "${ROOT}/scripts/test-version-backups.py" -q
 
 stop_api
@@ -518,5 +544,61 @@ PY
 # Active rollback point still listed
 python3 "${ROOT}/scripts/version_backups.py" active-rollback --current-version head \
   | python3 -c 'import json,sys; m=json.load(sys.stdin); assert m and m.get("roles"), m; print("ok active rollback point", m.get("_id") or m.get("id"))'
+
+log "Simulating forced failed-upgrade auto-rollback (restore pre-upgrade dump again)..."
+# Post-rollback mutation that must vanish after a second restore (mirrors
+# auto_rollback_upgrade -> restore_db_from_dump on migrate/health failure).
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
+  "INSERT INTO system_settings (key, value) VALUES ('upgrade_ci_fail_marker', '\"should-vanish-on-auto-rollback\"'::jsonb)
+   ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;" >/dev/null
+stop_api
+VALID_BUNDLE="${VULYK_VERSION_BACKUP_DIR}/src-bundle"
+[[ -d "${VALID_BUNDLE}" && -f "${VALID_BUNDLE}/db.sql.gz" ]] \
+  || die "forced auto-rollback requires valid bundle at ${VALID_BUNDLE}"
+psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
+  "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" >/dev/null
+gzip -dc "${VALID_BUNDLE}/db.sql.gz" \
+  | grep -Ev '^(SET |SELECT pg_catalog\.set_config\().*transaction_timeout' \
+  | psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -q
+FAIL_MARKER="$(psql "${DATABASE_URL}" -Atc "SELECT value::text FROM system_settings WHERE key='upgrade_ci_fail_marker'" || true)"
+[[ -z "${FAIL_MARKER}" ]] || die "forced auto-rollback left fail marker: ${FAIL_MARKER}"
+# Secrets key from bundle config must still match what the job uses (never regenerated).
+grep -q "VULYK_SECRETS_KEY=${VULYK_SECRETS_KEY}" "${VALID_BUNDLE}/config/.env" \
+  || die "bundle env secrets key mismatch after forced auto-rollback path"
+export VULYK_AUTO_MIGRATE=false
+./target/release/vulyk-api migrate run
+./target/release/vulyk-api > /tmp/vulyk-upgrade-auto-rollback.log 2>&1 &
+echo $! > /tmp/vulyk-upgrade-api.pid
+if ! wait_health; then
+  cat /tmp/vulyk-upgrade-auto-rollback.log >&2 || true
+  die "API failed after forced auto-rollback restore"
+fi
+python3 - <<'PY'
+import hashlib, os, subprocess, sys
+from pathlib import Path
+try:
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+except ImportError:
+    import subprocess as sp
+    sp.check_call([sys.executable, "-m", "pip", "install", "-q", "cryptography"])
+    from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+db_url = os.environ["DATABASE_URL"]
+secrets_key = os.environ.get("VULYK_SECRETS_KEY", "upgrade-ci-secrets")
+key = hashlib.sha256(secrets_key.encode()).digest()
+plain_expected = Path("/tmp/vulyk-upgrade-secret-plain.txt").read_text()
+cfg_id = Path("/tmp/vulyk-upgrade-llm-config-id.txt").read_text().strip()
+row = subprocess.check_output(
+    ["psql", db_url, "-Atc",
+     f"SELECT encode(api_key_ciphertext,'hex') || ',' || encode(api_key_nonce,'hex') FROM llm_configs WHERE id = '{cfg_id}'::uuid"],
+    text=True,
+).strip()
+hex_ct, hex_nonce = row.split(",", 1)
+plain = AESGCM(key).decrypt(bytes.fromhex(hex_nonce), bytes.fromhex(hex_ct), None).decode()
+if plain != plain_expected:
+    print("secret decrypt mismatch after forced auto-rollback", file=sys.stderr)
+    sys.exit(1)
+print("ok forced auto-rollback restored DB + encrypted secret; secrets not regenerated")
+PY
 
 log "Upgrade + rollback CI test passed"
