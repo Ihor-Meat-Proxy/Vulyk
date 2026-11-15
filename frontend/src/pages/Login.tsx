@@ -3,6 +3,7 @@ import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
 import { LanguageMenu } from '../components/LanguageMenu'
 import { PasswordRequirements } from '../components/PasswordRequirements'
+import { friendlyErrorMessage } from '../friendlyError'
 import { useI18n } from '../i18n'
 import {
   DEFAULT_PASSWORD_POLICY,
@@ -45,7 +46,7 @@ export function Login() {
         await login(email, password)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(friendlyErrorMessage(err, t, 'login'))
     } finally {
       setBusy(false)
     }

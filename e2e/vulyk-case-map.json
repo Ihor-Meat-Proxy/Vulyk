@@ -764,5 +764,70 @@
       "external_key": "e2e:theme-csp.spec.ts theme-init.js applies stored theme without CSP violations",
       "source": "existing"
     }
+  ],
+  "cases": [
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "unknown route shows 404 page with back link",
+      "key": "VQA-345",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts unknown route shows 404 page with back link",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "bad password login shows friendly message",
+      "key": "VQA-346",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts bad password login shows friendly message",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "empty case executions show dash pass rate and 0 of 0 pager",
+      "key": "VQA-347",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts empty case executions show dash pass rate and 0 of 0 pager",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "CI lifecycle run is labeled CI run on case executions tab",
+      "key": "VQA-348",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts CI lifecycle run is labeled CI run on case executions tab",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "Admin opens on Users tab for system admin",
+      "key": "VQA-349",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts Admin opens on Users tab for system admin",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "key": "VQA-350",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "Runs JUnit upload shows hint while disabled; header icons are tappable size",
+      "key": "VQA-351",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts Runs JUnit upload shows hint while disabled; header icons are tappable size",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "automation-repo returns 200 null when none configured",
+      "key": "VQA-352",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts automation-repo returns 200 null when none configured",
+      "source": "fragment-new"
+    },
+    {
+      "file": "ux-polish-f13-f22.spec.ts",
+      "title": "case edit title input is wide enough; copy link uses sans font",
+      "key": "VQA-353",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts case edit title input is wide enough; copy link uses sans font",
+      "source": "fragment-new"
+    }
   ]
 }

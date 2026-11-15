@@ -273,6 +273,7 @@ pub struct SuiteResultRow {
 pub struct CaseExecutionHistoryItem {
     pub result_id: Uuid,
     pub path: String,
+    /// Stable plan kind: `ci`, `iteration`, or `run` (UI localizes the label).
     pub plan_type: String,
     pub exec_number: i64,
     pub mode: String,

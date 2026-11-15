@@ -125,8 +125,12 @@ export function CoverageDetail({ projectId }: Props) {
           {...testIdProps(TestIds.reportsCoverageCovered)}
         >
           <h3>{t('reports.covered')}</h3>
-          {!data?.covered.length && (
-            <p className="muted">{t('reports.noCoverageRows')}</p>
+          {data && data.covered.length === 0 && (
+            <p className="muted">
+              {data.total_requirements === 0
+                ? t('reports.noRequirements')
+                : t('reports.noCoverageRows')}
+            </p>
           )}
           <ul className="coverage-req-list">
             {data?.covered.map((r, idx) => (
@@ -177,8 +181,15 @@ export function CoverageDetail({ projectId }: Props) {
           {...testIdProps(TestIds.reportsCoverageUncovered)}
         >
           <h3>{t('reports.uncovered')}</h3>
-          {!data?.uncovered.length && (
-            <p className="muted">{t('reports.noUncovered')}</p>
+          {data && data.uncovered.length === 0 && (
+            <p
+              className="muted"
+              {...testIdProps(TestIds.reportsCoverageUncoveredEmpty)}
+            >
+              {data.total_requirements === 0
+                ? t('reports.noRequirements')
+                : t('reports.noUncovered')}
+            </p>
           )}
           <ul className="coverage-req-list">
             {data?.uncovered.map((r, idx) => (

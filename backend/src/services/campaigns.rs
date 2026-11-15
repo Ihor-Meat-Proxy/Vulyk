@@ -952,6 +952,7 @@ pub async fn case_execution_history(
     let rows = sqlx::query(
         r#"SELECT tr.id AS result_id, tr.status, tr.executed_at, tr.duration_ms, tr.run_id,
                   r.iteration_id, r.source, r.name AS run_name, r.created_by_name,
+                  COALESCE(r.lifecycle, 'legacy') AS lifecycle,
                   i.name AS iteration_name, c.name AS campaign_name,
                   COALESCE(u.display_name, r.created_by_name) AS executed_by,
                   (SELECT COUNT(*)::bigint FROM defects d WHERE d.result_id = tr.id) AS linked_issues,
@@ -1012,6 +1013,16 @@ pub async fn case_execution_history(
                 _ => run_name.clone(),
             };
             let source: String = row.get("source");
+            let lifecycle: String = row.get("lifecycle");
+            let iteration_id: Option<Uuid> = row.get("iteration_id");
+            // Stable codes for the UI (not English display labels).
+            let plan_type = if lifecycle == "ci" || source == "ci" {
+                "ci"
+            } else if iteration_id.is_some() {
+                "iteration"
+            } else {
+                "run"
+            };
             let mode = if source == "manual" || source == "sample" {
                 "manual"
             } else {
@@ -1020,7 +1031,7 @@ pub async fn case_execution_history(
             CaseExecutionHistoryItem {
                 result_id: row.get("result_id"),
                 path,
-                plan_type: "Iteration".into(),
+                plan_type: plan_type.into(),
                 exec_number: row.get("exec_number"),
                 mode: mode.into(),
                 status: row.get("status"),
@@ -1028,7 +1039,7 @@ pub async fn case_execution_history(
                 executed_on: row.get("executed_at"),
                 linked_issues: row.get("linked_issues"),
                 run_id: row.get("run_id"),
-                iteration_id: row.get("iteration_id"),
+                iteration_id,
                 duration_ms: row.get("duration_ms"),
             }
         })

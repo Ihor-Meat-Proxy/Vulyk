@@ -336,6 +336,30 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "ux-polish-f13-f22-settings-timezone-normalizes-europe-kiev-to-europe-kyiv",
+      "key": "VUE-212",
+      "title": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ux-polish-f13-f22.spec.ts",
+      "test": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "automation_link": "e2e/tests/ux-polish-f13-f22.spec.ts :: settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+      "vqa_key": "VQA-350",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }

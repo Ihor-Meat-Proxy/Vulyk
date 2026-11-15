@@ -15,7 +15,7 @@ import { LOCALES, useI18n, type Locale } from '../i18n'
 import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { can } from '../permissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
-import { browserTimeZone } from '../timezone'
+import { browserTimeZone, normalizeTimeZone } from '../timezone'
 
 const CI_GUIDE_URL =
   'https://github.com/Ihor-Meat-Proxy/Vulyk/blob/main/docs/guides/ci-integration.md'
@@ -127,7 +127,9 @@ export function Settings() {
   const { t, locale, setLocale } = useI18n()
   const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [displayName, setDisplayName] = useState(user?.display_name ?? '')
-  const [timezone, setTimezone] = useState(user?.timezone || browserTimeZone())
+  const [timezone, setTimezone] = useState(
+    normalizeTimeZone(user?.timezone) || browserTimeZone(),
+  )
   const [notify, setNotify] = useState<NotifyPrefs>(() =>
     readNotify(user?.preferences),
   )
@@ -161,7 +163,7 @@ export function Settings() {
 
   useEffect(() => {
     setDisplayName(user?.display_name ?? '')
-    setTimezone(user?.timezone || browserTimeZone())
+    setTimezone(normalizeTimeZone(user?.timezone) || browserTimeZone())
     setNotify(readNotify(user?.preferences))
   }, [user])
 
@@ -310,7 +312,7 @@ export function Settings() {
       await api.updateMe({
         display_name: displayName.trim() || user.display_name,
         locale,
-        timezone: timezone.trim() || undefined,
+        timezone: normalizeTimeZone(timezone.trim()) || undefined,
         preferences: {
           theme: user.preferences.theme,
           font_size: user.preferences.font_size,
@@ -656,11 +658,19 @@ export function Settings() {
           <span>{t('settings.timezone')}</span>
           <input
             value={timezone}
-            onChange={(e) => setTimezone(e.target.value)}
-            placeholder="Europe/Paris"
+            onChange={(e) =>
+              setTimezone(normalizeTimeZone(e.target.value) || e.target.value)
+            }
+            onBlur={() =>
+              setTimezone(
+                normalizeTimeZone(timezone) || timezone.trim() || browserTimeZone(),
+              )
+            }
+            placeholder="Europe/Kyiv"
             required
             {...testIdProps(TestIds.settingsTimezoneInput)}
           />
+          <span className="muted">{t('settings.timezoneHint')}</span>
         </label>
 
         <h3>{t('settings.notifications')}</h3>

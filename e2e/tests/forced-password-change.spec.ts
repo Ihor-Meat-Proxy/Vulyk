@@ -60,8 +60,11 @@ test('short legacy password signs in then forces 16+ change', {
     timeout: 30_000,
   })
   await expect(page.getByTestId(TestIds.changePasswordSubtitle)).toContainText(
-    /no longer meets|security policy|політиц|безпек|politique|política|Richtlinie/i,
+    /choose a new password|must set a new password|новий пароль|nouveau mot de passe|nueva contraseña|neues Passwort/i,
   )
+  await expect(page.getByTestId(TestIds.changePasswordPolicyNote)).toBeVisible()
+  await expect(page.getByTestId(TestIds.changePasswordDisabledHint)).toBeVisible()
+  await expect(page.getByTestId(TestIds.changePasswordSubmitButton)).toBeDisabled()
 
   const token = await page.evaluate(() => localStorage.getItem('vulyk.authToken'))
   expect(token).toBeTruthy()

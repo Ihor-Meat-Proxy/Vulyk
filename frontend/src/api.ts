@@ -2856,9 +2856,11 @@ export const api = {
       { method: 'POST', body: JSON.stringify(body) },
     ),
 
-  /** Legacy singular project-scoped automation repo (shim). */
+  /** Legacy singular project-scoped automation repo (shim). Null when none. */
   getAutomationRepo: (projectId: string) =>
-    request<AutomationRepo>(`/api/v1/projects/${projectId}/automation-repo`),
+    request<AutomationRepo | null>(
+      `/api/v1/projects/${projectId}/automation-repo`,
+    ),
   upsertAutomationRepo: (
     projectId: string,
     body: {

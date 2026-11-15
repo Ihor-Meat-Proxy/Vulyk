@@ -30,6 +30,7 @@ import { useI18n } from '../i18n'
 import { DEFAULT_PASSWORD_POLICY } from '../passwordPolicy'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
 import { TestIds, listItemProps, testIdProps } from '../testing'
+import { formatTimestamp, normalizeTimeZone } from '../timezone'
 import { getStoredToken } from '../token'
 import { BackupsPanel } from './admin/BackupsPanel'
 import { CustomFieldsPanel } from './admin/CustomFieldsPanel'
@@ -78,7 +79,7 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
   const { user } = useAuth()
   const { t } = useI18n()
   const { can } = useProjectPermissions(project?.id ?? null)
-  const [tab, setTab] = useState<Tab>('roles')
+  const [tab, setTab] = useState<Tab>('users')
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<UserPublic[]>([])
   const [memberships, setMemberships] = useState<MembershipView[]>([])
@@ -669,7 +670,7 @@ function AutomationRepoPanel({
     has_token: boolean
   }) => {
     const indexed = repo.last_indexed_at
-      ? ` · last indexed ${new Date(repo.last_indexed_at).toLocaleString()}`
+      ? ` · last indexed ${formatTimestamp(repo.last_indexed_at)}`
       : ''
     const trigger = repo.last_index_trigger
       ? ` · via ${repo.last_index_trigger}`
@@ -687,6 +688,12 @@ function AutomationRepoPanel({
     if (!projectId) return
     try {
       const repo = await api.getAutomationRepo(projectId)
+      if (!repo) {
+        setSaved(false)
+        setStatus(null)
+        setInfo(null)
+        return
+      }
       setProvider(repo.provider)
       setRemoteUrl(repo.remote_url)
       setBranch(repo.branch)
@@ -1724,7 +1731,11 @@ function SettingsPanel({
     setInstanceName(settings.instance_name)
     setBaseUrl(settings.base_url)
     setLocale(settings.default_locale)
-    setTimezone(settings.default_timezone)
+    setTimezone(
+      normalizeTimeZone(settings.default_timezone) ||
+        settings.default_timezone ||
+        'UTC',
+    )
     setDefaultTheme(settings.default_theme || 'system')
     setRegistrationMode(settings.registration_mode)
     setDefaultRole(settings.default_role)
@@ -1747,7 +1758,7 @@ function SettingsPanel({
         instance_name: instanceName,
         base_url: baseUrl,
         default_locale: locale,
-        default_timezone: timezone,
+        default_timezone: normalizeTimeZone(timezone) || timezone,
         default_theme: defaultTheme,
         registration_mode: registrationMode,
         default_role: defaultRole,

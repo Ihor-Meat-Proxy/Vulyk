@@ -9,27 +9,27 @@
     {
       "name": "Admin",
       "file": "admin.json",
-      "count": 10
+      "count": 11
     },
     {
       "name": "Auth",
       "file": "auth.json",
-      "count": 13
+      "count": 14
     },
     {
       "name": "Automation & CI",
       "file": "automation-ci.json",
-      "count": 13
+      "count": 14
     },
     {
       "name": "Edge cases",
       "file": "edge-cases.json",
-      "count": 7
+      "count": 8
     },
     {
       "name": "Executions",
       "file": "executions.json",
-      "count": 5
+      "count": 6
     },
     {
       "name": "Imports & reports",
@@ -49,12 +49,12 @@
     {
       "name": "Plans & runs",
       "file": "plans-runs.json",
-      "count": 1
+      "count": 2
     },
     {
       "name": "Projects & cases",
       "file": "projects-cases.json",
-      "count": 17
+      "count": 19
     },
     {
       "name": "PWA & a11y",
@@ -79,7 +79,7 @@
     {
       "name": "Settings",
       "file": "settings.json",
-      "count": 14
+      "count": 15
     },
     {
       "name": "Shell",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 113,
+  "case_count": 122,
   "generated": "2026-11-15T08:55:00.000Z"
 }

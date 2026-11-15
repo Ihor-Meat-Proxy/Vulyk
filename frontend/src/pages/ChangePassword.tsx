@@ -17,6 +17,9 @@ export function ChangePassword() {
   const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const requireCurrent = Boolean(user && !user.must_change_password)
   const forced = Boolean(user?.must_change_password)
+  const meetsPolicy = passwordMeetsPolicy(newPassword, policy)
+  const confirmMismatch = Boolean(confirm) && newPassword !== confirm
+  const submitDisabled = busy || !meetsPolicy || confirmMismatch
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -54,6 +57,11 @@ export function ChangePassword() {
         <p className="muted" {...testIdProps(TestIds.changePasswordSubtitle)}>
           {forced ? t('password.forcedSubtitle') : t('password.subtitle')}
         </p>
+        {forced && (
+          <p className="muted" {...testIdProps(TestIds.changePasswordPolicyNote)}>
+            {t('password.forcedPolicyNote')}
+          </p>
+        )}
         {(requireCurrent || forced) && (
           <label className="field">
             <span>
@@ -100,10 +108,20 @@ export function ChangePassword() {
             {error}
           </p>
         )}
+        {submitDisabled && !busy && (
+          <p
+            className="muted"
+            {...testIdProps(TestIds.changePasswordDisabledHint)}
+          >
+            {confirmMismatch
+              ? t('password.mismatch')
+              : t('password.submitDisabledHint')}
+          </p>
+        )}
         <button
           className="btn"
           type="submit"
-          disabled={busy || !passwordMeetsPolicy(newPassword, policy)}
+          disabled={submitDisabled}
           {...testIdProps(TestIds.changePasswordSubmitButton)}
         >
           {busy ? t('login.working') : t('password.submit')}

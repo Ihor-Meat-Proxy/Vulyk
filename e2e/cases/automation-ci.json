@@ -320,6 +320,30 @@
         "ci",
         "reporter"
       ]
+    },
+    {
+      "id": "ux-polish-f13-f22-automation-repo-returns-200-null-when-none-configured",
+      "key": "VUE-214",
+      "title": "automation-repo returns 200 null when none configured",
+      "type": "negative",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ux-polish-f13-f22.spec.ts",
+      "test": "automation-repo returns 200 null when none configured",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts automation-repo returns 200 null when none configured",
+      "automation_link": "e2e/tests/ux-polish-f13-f22.spec.ts :: automation-repo returns 200 null when none configured",
+      "vqa_key": "VQA-352",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }
