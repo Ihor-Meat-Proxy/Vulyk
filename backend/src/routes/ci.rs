@@ -560,15 +560,23 @@ pub async fn run_in_ci(
         .fetch_optional(&state.pool)
         .await?;
         if let Some(cid) = case_id {
-            let _ = sqlx::query(
+            if let Err(e) = sqlx::query(
                 r#"INSERT INTO run_items (run_id, case_id, status)
-                   VALUES ($1, $2, 'untested')
+                   VALUES ($1, $2, 'Untested')
                    ON CONFLICT (run_id, case_id) DO NOTHING"#,
             )
             .bind(run.id)
             .bind(cid)
             .execute(&state.pool)
-            .await;
+            .await
+            {
+                tracing::warn!(
+                    error = %e,
+                    run_id = %run.id,
+                    case_id = %cid,
+                    "failed to attach run_item for CI dispatch"
+                );
+            }
         }
     }
 

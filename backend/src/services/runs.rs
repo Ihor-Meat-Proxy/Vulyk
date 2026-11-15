@@ -17,7 +17,38 @@ pub async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> Ap
     Ok(run)
 }
 
+fn progress_from_counts(
+    total: i64,
+    untested: i64,
+    passed: i64,
+    failed: i64,
+    blocked: i64,
+    skipped: i64,
+    retest: i64,
+) -> RunProgress {
+    let completed = total - untested;
+    let percent = if total == 0 {
+        0.0
+    } else {
+        (completed as f64 / total as f64) * 100.0
+    };
+    RunProgress {
+        total,
+        untested,
+        passed,
+        failed,
+        blocked,
+        skipped,
+        retest,
+        completed,
+        percent,
+    }
+}
+
 pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunProgress> {
+    // Ensure CI-ingested results appear as run items (F1).
+    ensure_run_items_from_results(pool, run_id).await?;
+
     let row = sqlx::query(
         r#"SELECT
              COUNT(*)::bigint AS total,
@@ -33,31 +64,119 @@ pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunPro
     .fetch_one(pool)
     .await?;
 
-    let total: i64 = row.try_get("total")?;
-    let untested: i64 = row.try_get("untested")?;
-    let passed: i64 = row.try_get("passed")?;
-    let failed: i64 = row.try_get("failed")?;
-    let blocked: i64 = row.try_get("blocked")?;
-    let skipped: i64 = row.try_get("skipped")?;
-    let retest: i64 = row.try_get("retest")?;
-    let completed = total - untested;
-    let percent = if total == 0 {
-        0.0
-    } else {
-        (completed as f64 / total as f64) * 100.0
-    };
+    Ok(progress_from_counts(
+        row.try_get("total")?,
+        row.try_get("untested")?,
+        row.try_get("passed")?,
+        row.try_get("failed")?,
+        row.try_get("blocked")?,
+        row.try_get("skipped")?,
+        row.try_get("retest")?,
+    ))
+}
 
-    Ok(RunProgress {
-        total,
-        untested,
-        passed,
-        failed,
-        blocked,
-        skipped,
-        retest,
-        completed,
-        percent,
-    })
+/// Upsert `run_items` from the latest `test_results` per case when the run has
+/// results but no (or incomplete) items — CI ingest historically only wrote
+/// `test_results`, which left Run detail at Progress 0/0.
+pub async fn ensure_run_items_from_results(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<()> {
+    let result_cases: i64 = sqlx::query_scalar(
+        r#"SELECT COUNT(DISTINCT case_id)::bigint FROM test_results
+           WHERE run_id = $1 AND case_id IS NOT NULL"#,
+    )
+    .bind(run_id)
+    .fetch_one(pool)
+    .await?;
+    if result_cases == 0 {
+        return Ok(());
+    }
+
+    let item_cases: i64 =
+        sqlx::query_scalar(r#"SELECT COUNT(*)::bigint FROM run_items WHERE run_id = $1"#)
+            .bind(run_id)
+            .fetch_one(pool)
+            .await?;
+    // Fast path: every matched result case already has a run_item.
+    if item_cases >= result_cases {
+        return Ok(());
+    }
+
+    sqlx::query(
+        r#"
+        INSERT INTO run_items (run_id, case_id, status, sort_order, comment, executed_at)
+        SELECT
+            $1,
+            lr.case_id,
+            lr.status,
+            COALESCE(
+              (SELECT MAX(sort_order) FROM run_items WHERE run_id = $1),
+              -1
+            ) + ROW_NUMBER() OVER (ORDER BY tc.key),
+            COALESCE(lr.message, ''),
+            lr.executed_at
+        FROM (
+            SELECT DISTINCT ON (case_id)
+                   case_id, status, message, executed_at
+            FROM test_results
+            WHERE run_id = $1 AND case_id IS NOT NULL
+            ORDER BY case_id, executed_at DESC NULLS LAST, created_at DESC
+        ) lr
+        INNER JOIN test_cases tc ON tc.id = lr.case_id
+        ON CONFLICT (run_id, case_id) DO UPDATE SET
+            status = EXCLUDED.status,
+            comment = CASE
+                WHEN EXCLUDED.comment <> '' THEN EXCLUDED.comment
+                ELSE run_items.comment
+            END,
+            executed_at = COALESCE(EXCLUDED.executed_at, run_items.executed_at),
+            updated_at = NOW()
+        "#,
+    )
+    .bind(run_id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Upsert run_items for matched ingest rows (case_id, status). Last status wins.
+pub async fn upsert_run_items_for_statuses(
+    pool: &sqlx::PgPool,
+    run_id: Uuid,
+    matched: &[(Uuid, String)],
+) -> AppResult<()> {
+    if matched.is_empty() {
+        return Ok(());
+    }
+    let mut by_case: std::collections::HashMap<Uuid, String> = std::collections::HashMap::new();
+    for (case_id, status) in matched {
+        by_case.insert(*case_id, status.clone());
+    }
+    let (case_ids, statuses): (Vec<Uuid>, Vec<String>) = by_case.into_iter().unzip();
+
+    sqlx::query(
+        r#"
+        INSERT INTO run_items (run_id, case_id, status, sort_order, executed_at)
+        SELECT
+            $1,
+            v.id,
+            v.status,
+            COALESCE(
+              (SELECT MAX(sort_order) FROM run_items WHERE run_id = $1),
+              -1
+            ) + ROW_NUMBER() OVER (ORDER BY v.id),
+            NOW()
+        FROM UNNEST($2::uuid[], $3::text[]) AS v(id, status)
+        ON CONFLICT (run_id, case_id) DO UPDATE SET
+            status = EXCLUDED.status,
+            executed_at = COALESCE(EXCLUDED.executed_at, run_items.executed_at),
+            updated_at = NOW()
+        "#,
+    )
+    .bind(run_id)
+    .bind(&case_ids)
+    .bind(&statuses)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 fn run_item_view_from_row(row: sqlx::postgres::PgRow) -> AppResult<RunItemView> {
@@ -91,6 +210,7 @@ const RUN_ITEM_SELECT: &str = r#"SELECT
 
 /// Full item list for run detail embed (progress UI). Prefer [`load_run_items_page`] for list APIs.
 pub async fn load_run_items(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<Vec<RunItemView>> {
+    ensure_run_items_from_results(pool, run_id).await?;
     let items = sqlx::query(RUN_ITEM_SELECT)
         .bind(run_id)
         .fetch_all(pool)
@@ -109,6 +229,7 @@ pub async fn load_run_items_page(
     limit: i64,
     offset: i64,
 ) -> AppResult<(Vec<RunItemView>, i64)> {
+    ensure_run_items_from_results(pool, run_id).await?;
     let total: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM run_items WHERE run_id = $1")
         .bind(run_id)
         .fetch_one(pool)

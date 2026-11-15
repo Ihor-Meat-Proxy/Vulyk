@@ -170,6 +170,30 @@
       ]
     },
     {
+      "id": "multi-repo-ci-ingest-ci-run-detail-shows-progress-and-cases-after-results",
+      "key": "VUE-104",
+      "title": "CI run detail shows progress and cases after results",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "multi-repo-ci-ingest.spec.ts",
+      "test": "CI run detail shows progress and cases after results",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts CI run detail shows progress and cases after results",
+      "automation_link": "e2e/tests/multi-repo-ci-ingest.spec.ts :: CI run detail shows progress and cases after results",
+      "vqa_key": "VQA-328",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
       "id": "multi-repo-ci-ingest-junit-ingest-maps-test-key-property-to-case",
       "key": "VUE-63",
       "title": "JUnit ingest maps test_key property to case",

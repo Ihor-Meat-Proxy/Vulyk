@@ -293,7 +293,7 @@ export function RunDetail({ projectId }: Props) {
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
           <StatusBadge status={run.status} testId="run-detail-status-badge" />
-          <span>
+          <span {...testIdProps(TestIds.runDetailProgress)}>
             {t('runs.progress', {
               completed: progress.completed,
               total: progress.total,

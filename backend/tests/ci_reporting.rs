@@ -268,6 +268,34 @@ async fn ci_open_result_close_and_junit_key() {
         .unwrap();
     assert_eq!(closed["status"], "closed");
 
+    // Run detail must surface CI results as progress/items (audit F1).
+    let detail: Value = client
+        .get(format!("{base}/api/v1/projects/{project_id}/runs/{run_id}"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        detail["progress"]["total"].as_i64().unwrap_or(0) >= 1,
+        "expected progress.total >= 1, got {}",
+        detail["progress"]
+    );
+    assert!(
+        detail["progress"]["passed"].as_i64().unwrap_or(0) >= 1,
+        "expected progress.passed >= 1"
+    );
+    let items = detail["items"].as_array().expect("items array");
+    assert!(
+        !items.is_empty(),
+        "CI-reported run detail must list case items"
+    );
+    assert_eq!(items[0]["case_key"], case_key);
+    assert_eq!(items[0]["item"]["status"], "Passed");
+
     // Post after close → 409
     let after = client
         .post(format!(
@@ -280,6 +308,105 @@ async fn ci_open_result_close_and_junit_key() {
         .await
         .unwrap();
     assert_eq!(after.status(), reqwest::StatusCode::CONFLICT);
+}
+
+/// Historical CI runs that only have `test_results` (no `run_items`) must still
+/// show progress on GET run detail via lazy backfill.
+#[tokio::test]
+async fn ci_run_detail_backfills_items_from_results() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(false).await;
+    let client = reqwest::Client::new();
+    let key = unique_key("B");
+
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({ "key": key, "name": "Backfill Proj" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+    let project_uuid = uuid::Uuid::parse_str(project_id).unwrap();
+
+    let case: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .json(&json!({ "title": "Legacy CI case", "status": "ready" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let case_id = case
+        .get("id")
+        .or_else(|| case.get("case").and_then(|c| c.get("id")))
+        .and_then(|v| v.as_str())
+        .expect("case id");
+    let case_uuid = uuid::Uuid::parse_str(case_id).unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
+
+    let run_id: uuid::Uuid = sqlx::query_scalar(
+        r#"INSERT INTO test_runs (
+             project_id, name, status, source, lifecycle, pass_count, fail_count, skip_count
+           ) VALUES ($1, 'Legacy CI run', 'closed', 'ci:github', 'ci', 1, 0, 0)
+           RETURNING id"#,
+    )
+    .bind(project_uuid)
+    .fetch_one(&pool)
+    .await
+    .expect("insert run");
+
+    sqlx::query(
+        r#"INSERT INTO test_results (run_id, case_id, status, source, duration_ms)
+           VALUES ($1, $2, 'Passed', 'ci:github', 42)"#,
+    )
+    .bind(run_id)
+    .bind(case_uuid)
+    .execute(&pool)
+    .await
+    .expect("insert result");
+
+    let item_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*)::bigint FROM run_items WHERE run_id = $1")
+            .bind(run_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(item_count, 0, "precondition: no run_items yet");
+
+    let detail: Value = client
+        .get(format!("{base}/api/v1/projects/{project_id}/runs/{run_id}"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(detail["progress"]["total"], 1);
+    assert_eq!(detail["progress"]["passed"], 1);
+    assert_eq!(detail["progress"]["completed"], 1);
+    let items = detail["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1);
+    assert_eq!(items[0]["case_key"], case_key);
+    assert_eq!(items[0]["item"]["status"], "Passed");
 }
 
 #[tokio::test]

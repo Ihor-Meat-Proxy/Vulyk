@@ -255,6 +255,7 @@ export const TestIds = {
   runDetailBackLink: 'run-detail-back-link',
   runDetailStartButton: 'run-detail-start-button',
   runDetailCompleteButton: 'run-detail-complete-button',
+  runDetailProgress: 'run-detail-progress',
   runDetailCases: 'run-detail-cases',
   runDetailCaseRow: 'run-detail-case-row',
   runDetailAddCasesButton: 'run-detail-add-cases-button',

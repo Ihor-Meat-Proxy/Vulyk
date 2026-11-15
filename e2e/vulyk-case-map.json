@@ -416,6 +416,13 @@
     },
     {
       "file": "multi-repo-ci-ingest.spec.ts",
+      "title": "CI run detail shows progress and cases after results",
+      "key": "VQA-328",
+      "external_key": "e2e:multi-repo-ci-ingest.spec.ts CI run detail shows progress and cases after results",
+      "source": "existing"
+    },
+    {
+      "file": "multi-repo-ci-ingest.spec.ts",
       "title": "add two automation repos linked to one project",
       "key": "VQA-284",
       "external_key": "e2e:multi-repo-ci-ingest.spec.ts add two automation repos linked to one project",
