@@ -166,7 +166,9 @@ test('CI tokens copy controls and env block are labeled for assistive tech', {
   )
 
   const env = settings.ciTokenEnvBlock()
-  await expect(env).toHaveAttribute('role', 'region')
+  // Focusable readonly snippet (not a landmark): textbox + aria-readonly.
+  await expect(env).toHaveAttribute('role', 'textbox')
+  await expect(env).toHaveAttribute('aria-readonly', 'true')
   await expect(env).toHaveAttribute(
     'aria-label',
     /environment|середовища|environnement|entorno|Umgebung/i,
