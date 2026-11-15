@@ -38,9 +38,10 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
 }
 
 fn unique_key(prefix: &str) -> String {
+    // case_key_prefix max 8 chars: ^[A-Z][A-Z0-9]{1,7}$
     format!(
         "{prefix}{}",
-        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+        &uuid::Uuid::new_v4().simple().to_string().to_uppercase()[..7]
     )
 }
 
@@ -49,17 +50,22 @@ async fn create_project_case_run(
     base: &str,
 ) -> (String, String, String, String, String) {
     let key = unique_key("C");
-    let project: Value = client
+    let project_resp = client
         .post(format!("{base}/api/v1/projects"))
-        .json(&serde_json::json!({ "key": key, "name": "Counters SoT" }))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": format!("Counters SoT {key}"),
+            "case_key_prefix": key
+        }))
         .send()
         .await
-        .unwrap()
-        .error_for_status()
-        .unwrap()
-        .json()
-        .await
         .unwrap();
+    if !project_resp.status().is_success() {
+        let status = project_resp.status();
+        let body = project_resp.text().await.unwrap_or_default();
+        panic!("create project failed: {status} {body}");
+    }
+    let project: Value = project_resp.json().await.unwrap();
     let project_id = project["id"].as_str().unwrap().to_string();
 
     let case: Value = client
@@ -230,7 +236,11 @@ async fn ci_ingest_reports_summary_matches_run_detail_progress() {
 
     let project: Value = client
         .post(format!("{base}/api/v1/projects"))
-        .json(&serde_json::json!({ "key": key, "name": "CI SoT" }))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": format!("CI SoT {key}"),
+            "case_key_prefix": key
+        }))
         .send()
         .await
         .unwrap()
