@@ -2,7 +2,8 @@
 # E2E / sample-seed hygiene for Playwright <-> Vulyk case keys.
 #
 # Fails when:
-#   1. backend/seed/vulyk-qa.d/playwright-e2e.json VQA keys have numeric gaps
+#   1. playwright-e2e.json VQA keys have numeric gaps not covered by other
+#      seed fragments (feature extracts are allowed to own mid-range keys)
 #   2. Two seed files (base or fragments) claim the same non-empty external_key
 #   3. Spec @VQA-N / @VUE-N tags (or vulyk annotations) reference missing keys
 #
@@ -140,16 +141,40 @@ def check_playwright_e2e_gaps() -> list[str]:
             f"{PE_PATH}: duplicate VQA numbers inside fragment: "
             + ", ".join(f"VQA-{n}" for n in dups)
         )
-    gaps: list[str] = []
+    # Gaps are OK when the missing numbers live in other seed fragments
+    # (feature cases extracted out of playwright-e2e.json). Only flag holes
+    # that are not claimed anywhere in the seed corpus.
+    claimed_elsewhere = {
+        n for n, source in vqa_keys_from_seed().items() if not source.endswith(
+            "playwright-e2e.json"
+        )
+    }
+    missing: list[int] = []
     for a, b in zip(nums_sorted, nums_sorted[1:]):
-        if b > a + 1:
-            if b == a + 2:
-                gaps.append(f"VQA-{a + 1}")
+        for n in range(a + 1, b):
+            if n not in claimed_elsewhere:
+                missing.append(n)
+    gaps: list[str] = []
+    if missing:
+        # Compress consecutive missing numbers into ranges for the message.
+        start = prev = missing[0]
+        ranges: list[tuple[int, int]] = []
+        for n in missing[1:]:
+            if n == prev + 1:
+                prev = n
+                continue
+            ranges.append((start, prev))
+            start = prev = n
+        ranges.append((start, prev))
+        for lo, hi in ranges:
+            if lo == hi:
+                gaps.append(f"VQA-{lo}")
             else:
-                gaps.append(f"VQA-{a + 1}..VQA-{b - 1}")
+                gaps.append(f"VQA-{lo}..VQA-{hi}")
     if gaps:
         errors.append(
-            f"{PE_PATH}: VQA key gaps ({len(gaps)} range(s)): {', '.join(gaps)}. "
+            f"{PE_PATH}: VQA key gaps not covered by other fragments "
+            f"({len(gaps)} range(s)): {', '.join(gaps)}. "
             "Do not skip numbers when appending; claim the next free VQA after "
             "max(playwright-e2e) (or fill an existing hole). "
             "NEVER run sync-vulyk-case-links.mjs on a feature branch - it can "
@@ -157,9 +182,19 @@ def check_playwright_e2e_gaps() -> list[str]:
             "omitted for non-e2e sample cases."
         )
     else:
+        filled = sorted(
+            n
+            for n in claimed_elsewhere
+            if nums_sorted[0] < n < nums_sorted[-1] and n not in nums_sorted
+        )
+        extra = (
+            f"; {len(filled)} gap(s) filled by other fragments"
+            if filled
+            else ""
+        )
         print(
-            f"OK: {PE_PATH.name} - {len(nums_sorted)} contiguous VQA keys "
-            f"(VQA-{nums_sorted[0]:03d}..VQA-{nums_sorted[-1]:03d})"
+            f"OK: {PE_PATH.name} - {len(nums_sorted)} VQA keys "
+            f"(VQA-{nums_sorted[0]:03d}..VQA-{nums_sorted[-1]:03d}){extra}"
         )
     return errors
 
