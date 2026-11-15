@@ -108,7 +108,33 @@ pub async fn compute_run_status_counts(
 }
 
 pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunProgress> {
-    Ok(compute_run_status_counts(pool, run_id).await?.to_progress())
+    let mut progress = compute_run_status_counts(pool, run_id).await?.to_progress();
+    // CI open may publish planned_total before any results exist. Grow the
+    // denominator so live UI does not read N/N (100%) while the suite runs.
+    let planned: Option<i64> = sqlx::query_scalar(
+        r#"SELECT CASE
+             WHEN jsonb_typeof(meta->'planned_total') = 'number'
+               THEN (meta->>'planned_total')::bigint
+             ELSE NULL
+           END
+           FROM test_runs WHERE id = $1"#,
+    )
+    .bind(run_id)
+    .fetch_optional(pool)
+    .await?
+    .flatten();
+    if let Some(planned) = planned.filter(|p| *p > progress.total) {
+        let extra = planned - progress.total;
+        progress.total = planned;
+        progress.untested += extra;
+        progress.completed = progress.total - progress.untested;
+        progress.percent = if progress.total == 0 {
+            0.0
+        } else {
+            (progress.completed as f64 / progress.total as f64) * 100.0
+        };
+    }
+    Ok(progress)
 }
 
 /// Refresh denormalized `test_runs` pass/fail/skip/blocked from `run_items`

@@ -292,8 +292,40 @@ pub async fn bearer_middleware(
         .and_then(|v| v.to_str().ok())
         .map(str::to_string);
 
+    // Treat missing Authorization and empty Bearer the same so Scalar Try it
+    // with a blank token field (often `Authorization: Bearer ` — HTTP stacks
+    // may trim to bare `Bearer`) still reaches the session-cookie / open-mode
+    // path instead of 401 (demo bug D1).
+    let bearer = header.as_deref().and_then(|h| {
+        let rest = h
+            .strip_prefix("Bearer")
+            .or_else(|| h.strip_prefix("bearer"))?;
+        // Require end-of-string or whitespace after the scheme word.
+        if !(rest.is_empty() || rest.starts_with(char::is_whitespace)) {
+            return None;
+        }
+        let token = rest.trim();
+        if token.is_empty() {
+            None
+        } else {
+            Some(token.to_string())
+        }
+    });
+    let malformed_auth = header.is_some() && bearer.is_none() && {
+        let h = header.as_deref().unwrap_or("").trim();
+        let looks_bearer = h.eq_ignore_ascii_case("bearer")
+            || h.to_ascii_lowercase().starts_with("bearer ")
+            || h.to_ascii_lowercase().starts_with("bearer\t");
+        // Empty Bearer → treat as absent. Non-Bearer Authorization stays an error.
+        !looks_bearer
+    };
+
+    if malformed_auth {
+        return unauthorized("expected Bearer token");
+    }
+
     // Session cookie path: allow anonymous when auth not required.
-    if header.is_none() {
+    if bearer.is_none() {
         let jar = CookieJar::from_headers(req.headers());
         if let Some(cookie) = jar.get(SESSION_COOKIE) {
             match authenticate_session(&state.pool, cookie.value()).await {
@@ -329,19 +361,9 @@ pub async fn bearer_middleware(
         return next.run(req).await;
     }
 
-    let h = header.unwrap();
-    let Some(token) = h
-        .strip_prefix("Bearer ")
-        .or_else(|| h.strip_prefix("bearer "))
-        .map(str::trim)
-    else {
-        return unauthorized("expected Bearer token");
-    };
-    if token.is_empty() {
-        return unauthorized("empty token");
-    }
+    let token = bearer.unwrap();
 
-    match authenticate_bearer(&state.pool, &state.auth.jwt_secret, token).await {
+    match authenticate_bearer(&state.pool, &state.auth.jwt_secret, &token).await {
         Ok(user) => {
             if let Some(resp) = block_if_must_change(&user, &method, &path) {
                 return resp;
@@ -393,10 +415,13 @@ async fn resolve_auth(parts: &mut Parts, state: &AppState) -> AppResult<AuthUser
 
 fn bearer_token(parts: &Parts) -> Option<String> {
     let value = parts.headers.get(AUTHORIZATION)?.to_str().ok()?;
-    let token = value
-        .strip_prefix("Bearer ")
-        .or_else(|| value.strip_prefix("bearer "))?;
-    let token = token.trim();
+    let rest = value
+        .strip_prefix("Bearer")
+        .or_else(|| value.strip_prefix("bearer"))?;
+    if !(rest.is_empty() || rest.starts_with(char::is_whitespace)) {
+        return None;
+    }
+    let token = rest.trim();
     if token.is_empty() {
         None
     } else {

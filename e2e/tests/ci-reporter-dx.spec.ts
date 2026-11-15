@@ -76,8 +76,14 @@ test('unmatched-key warning lists sample + count and warns once per key', {
   const missing = formatMissingAnnotationWarning(
     ['no key here', 'also missing'],
     2,
+    3,
+    'VUE',
   )
   expect(missing).toMatch(/2 test\(s\) missing vulyk case key/)
   expect(missing).toMatch(/sample: "no key here", "also missing"/)
+  // Build the expected hint without embedding `@VUE-N` literally (hygiene
+  // scans specs for tag refs).
+  const hintKey = ['VUE', '123'].join('-')
+  expect(missing).toContain(`tag @${hintKey}`)
   expect(missing).toMatch(/playwright-vulyk\.md/)
 })

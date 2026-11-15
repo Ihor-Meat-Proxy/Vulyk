@@ -89,6 +89,8 @@ export default class VulykReporter implements Reporter {
   private missingAnnotationWarned = false
   private unmatchedWarned = new Set<string>()
   private pipelineUrl: string | undefined
+  private plannedTotal = 0
+  private caseKeyPrefix = ''
   private openReady: Promise<void> = Promise.resolve()
   private flushChain: Promise<void> = Promise.resolve()
   private flushTimer: ReturnType<typeof setTimeout> | null = null
@@ -97,11 +99,13 @@ export default class VulykReporter implements Reporter {
     return false
   }
 
-  async onBegin(_config: FullConfig, _suite: Suite): Promise<void> {
+  async onBegin(_config: FullConfig, suite: Suite): Promise<void> {
     this.baseUrl = env('VULYK_URL', 'VULYK_API_URL').replace(/\/$/, '')
     this.token = env('VULYK_CI_TOKEN', 'VULYK_API_TOKEN')
     this.projectRef = env('VULYK_PROJECT', 'VULYK_PROJECT_KEY', 'VULYK_PROJECT_ID')
     this.runName = env('VULYK_RUN_NAME') || 'Playwright e2e'
+    this.caseKeyPrefix = env('VULYK_CASE_KEY_PREFIX').toUpperCase()
+    this.plannedTotal = suite.allTests().length
     this.dryRun = isReporterDryRun()
     this.enabled = Boolean(this.baseUrl && this.token && this.projectRef)
     if (!this.enabled) {
@@ -179,6 +183,8 @@ export default class VulykReporter implements Reporter {
       formatMissingAnnotationWarning(
         this.missingAnnotationTitles,
         this.missingAnnotationTitles.length,
+        undefined,
+        this.caseKeyPrefix || env('VULYK_CASE_KEY_PREFIX') || 'KEY',
       ),
     )
   }
@@ -236,9 +242,15 @@ export default class VulykReporter implements Reporter {
         for (const k of unmatched.newlyWarned) this.unmatchedWarned.add(k)
         console.warn(unmatched.message)
       }
-      console.log(
-        `[vulyk-reporter] posted ${results.length} results (inserted=${resp.inserted})`,
-      )
+      if (this.dryRun) {
+        console.log(
+          `[vulyk-reporter] dry-run results: would insert ${results.length}`,
+        )
+      } else {
+        console.log(
+          `[vulyk-reporter] posted ${results.length} results (inserted=${resp.inserted})`,
+        )
+      }
       if (!drainAll) break
     }
   }
@@ -339,8 +351,11 @@ export default class VulykReporter implements Reporter {
         run: { id: string; status: string }
       }>('POST', `/api/v1/projects/${this.projectId}/ci/runs`, {
         provider: process.env.GITHUB_ACTIONS ? 'github' : 'other',
-        suite_name: this.runName,
+        // Display name stays the operator-facing run title; suite_name is the
+        // technical suite label (may differ when both are set).
+        suite_name: env('VULYK_SUITE_NAME') || 'playwright',
         name: this.runName,
+        planned_total: this.plannedTotal > 0 ? this.plannedTotal : undefined,
         external_ref: externalRef,
         branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
         commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,

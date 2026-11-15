@@ -64,6 +64,7 @@ services:
       # Prod: migrations run via ./scripts/install.sh upgrade (migrate run) before API start.
       VULYK_AUTO_MIGRATE: ${VULYK_AUTO_MIGRATE:-false}
       VULYK_BASE_URL: ${VULYK_BASE_URL:-}
+      VULYK_STALE_RUN_TTL_HOURS: ${VULYK_STALE_RUN_TTL_HOURS:-24}
       VULYK_SETUP_TOKEN: ${VULYK_SETUP_TOKEN:-}
       VULYK_UPDATER_URL: ${VULYK_UPDATER_URL:-http://updater:9091}
       VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
