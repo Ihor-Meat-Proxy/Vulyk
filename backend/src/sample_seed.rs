@@ -131,6 +131,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         include_str!("../seed/vulyk-qa.d/playwright-e2e.json"),
     ),
     (
+        "api-docs-self-hosted",
+        include_str!("../seed/vulyk-qa.d/api-docs-self-hosted.json"),
+    ),
+    (
         "case-list-columns",
         include_str!("../seed/vulyk-qa.d/case-list-columns.json"),
     ),

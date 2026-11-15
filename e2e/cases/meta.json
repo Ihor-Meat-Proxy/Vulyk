@@ -2,6 +2,30 @@
   "folder": "Meta",
   "cases": [
     {
+      "id": "api-docs-api-docs-and-openapi-json-are-self-hosted",
+      "key": "VUE-105",
+      "title": "API docs and openapi.json are self-hosted",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "api-docs.spec.ts",
+      "test": "API docs and openapi.json are self-hosted",
+      "external_key": "e2e:api-docs.spec.ts API docs and openapi.json are self-hosted",
+      "automation_link": "e2e/tests/api-docs.spec.ts :: API docs and openapi.json are self-hosted",
+      "vqa_key": "VQA-329",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
       "id": "test-id-audit-login-app-shell-attrs-are-unique-and-non-sensitive",
       "key": "VUE-100",
       "title": "login + app shell attrs are unique and non-sensitive",

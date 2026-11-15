@@ -138,7 +138,7 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
         version = db::crate_version(),
         "Vulyk API listening on http://{addr}"
     );
-    tracing::info!("OpenAPI docs at http://{addr}/api/docs");
+    tracing::info!("OpenAPI docs at http://{addr}/api/docs (spec: /api/openapi.json)");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;

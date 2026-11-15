@@ -254,6 +254,7 @@ pub fn password_change_allowed_path(method: &str, path: &str) -> bool {
             | ("GET", "/health")
             | ("GET", "/api/health")
     ) || path.starts_with("/api/docs")
+        || path == "/api/openapi.json"
 }
 
 fn forbid_must_change_password() -> Response {

@@ -1,4 +1,5 @@
 pub mod admin;
+pub mod api_docs;
 pub mod attachments;
 pub mod auth;
 pub mod automation_repos;
@@ -37,12 +38,9 @@ pub mod webhooks;
 
 use axum::{middleware, Router};
 use sqlx::PgPool;
-use utoipa::OpenApi;
-use utoipa_scalar::{Scalar, Servable};
 
 use crate::auth::{bearer_middleware, AuthConfig, LoginThrottle, PasswordPolicy};
 use crate::crypto::SecretsKey;
-use crate::openapi::ApiDoc;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -101,6 +99,6 @@ pub fn app_router(state: AppState) -> Router {
         .merge(instance_settings::public_router())
         .merge(webhooks::router())
         .merge(protected)
-        .merge(Scalar::with_url("/api/docs", ApiDoc::openapi()))
+        .merge(api_docs::router())
         .with_state(state)
 }

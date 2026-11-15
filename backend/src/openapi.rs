@@ -81,6 +81,9 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
     paths(
         crate::routes::health::health,
         crate::routes::health::ready,
+        crate::routes::api_docs::docs_html,
+        crate::routes::api_docs::scalar_js,
+        crate::routes::api_docs::openapi_json,
         crate::routes::auth::auth_status,
         crate::routes::auth::bootstrap,
         crate::routes::auth::register,

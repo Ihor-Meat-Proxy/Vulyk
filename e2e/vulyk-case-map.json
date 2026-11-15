@@ -9,6 +9,13 @@
       "source": "fragment-new"
     },
     {
+      "file": "api-docs.spec.ts",
+      "title": "API docs and openapi.json are self-hosted",
+      "key": "VQA-329",
+      "external_key": "e2e:api-docs.spec.ts API docs and openapi.json are self-hosted",
+      "source": "existing"
+    },
+    {
       "file": "admin-custom-fields.spec.ts",
       "title": "admin lists, custom fields, and config export",
       "key": "VQA-226",

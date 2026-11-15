@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>$title</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+</head>
+<body>
+  <!-- Spec inlined so docs work offline without a second fetch; also served at /api/openapi.json.
+       withDefaultFonts:false keeps Scalar from loading fonts.scalar.com (blocked by CSP). -->
+  <script
+    id="api-reference"
+    type="application/json"
+    data-configuration='{"withDefaultFonts":false}'
+  >
+    $spec
+  </script>
+  <!-- Self-hosted @scalar/api-reference standalone bundle (no CDN). -->
+  <script src="/api/docs/assets/scalar.js"></script>
+</body>
+</html>
