@@ -86,6 +86,8 @@ echo "==> e2e typecheck + Vulyk case-key annotations"
   if [[ ! -d node_modules ]]; then npm ci; fi
   npm run typecheck
   npm run check:vulyk-case-links
+  npm run check:vue-cases
+  npm run test:sync-vue-idempotent
 )
 
 echo "OK: ./scripts/check.sh (${MODE}) passed"

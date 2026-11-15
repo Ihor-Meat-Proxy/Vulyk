@@ -443,23 +443,35 @@ function syncAdditive(tests) {
     return ek && !testExt.has(ek) && !ek.startsWith('e2e:')
   }).length
 
-  // Only allocate empty keys inside the playwright fragment. Other fragments
-  // with omitted keys are filled at seed / check-seed-keys time; counting them
-  // here would steal numbers and create playwright-e2e gaps.
-  let maxN = 0
+  // Allocate empty keys inside the playwright fragment only.
+  // Start after max(playwright-e2e) and skip numbers already claimed by any
+  // seed file so we fill uncovered holes (e.g. 365..367) instead of jumping
+  // to global max+1 (which makes check-e2e-case-keys.sh fail on PE gaps).
   const KEY_RE = /^([A-Z][A-Z0-9]{1,7})-([0-9]+)$/
+  const claimed = new Set()
+  let peMax = 0
   for (const c of [...others, ...kept]) {
     const raw = (c.key || '').trim()
     if (!raw) continue
     const m = KEY_RE.exec(raw.toUpperCase())
     if (!m || m[1] !== 'VQA') continue
-    maxN = Math.max(maxN, Number(m[2]))
+    const n = Number(m[2])
+    claimed.add(n)
   }
-  let next = maxN + 1
+  for (const c of kept) {
+    const raw = (c.key || '').trim()
+    if (!raw) continue
+    const m = KEY_RE.exec(raw.toUpperCase())
+    if (!m || m[1] !== 'VQA') continue
+    peMax = Math.max(peMax, Number(m[2]))
+  }
+  let next = peMax + 1
   let allocated = 0
   for (const c of kept) {
     if ((c.key || '').trim()) continue
+    while (claimed.has(next)) next += 1
     c.key = `VQA-${next}`
+    claimed.add(next)
     next += 1
     allocated += 1
   }

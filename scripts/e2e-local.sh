@@ -164,6 +164,16 @@ sync_vue_project() {
   VULYK_ADMIN_EMAIL="${VULYK_ADMIN_EMAIL:-admin@vulyk.local}" \
   VULYK_ADMIN_PASSWORD="${VULYK_ADMIN_PASSWORD:-admin12345678901}" \
   node e2e/scripts/sync-vue-project.mjs ${DO_REPORT:+--mint-ci-token} | tee "$ARTDIR/vue-sync.log"
+  # Idempotency gate (S1): a second sync against the live stack must create 0.
+  echo "==> Re-syncing VUE project (idempotency check)"
+  VULYK_API_URL="$(host_api_url)" \
+  VULYK_ADMIN_EMAIL="${VULYK_ADMIN_EMAIL:-admin@vulyk.local}" \
+  VULYK_ADMIN_PASSWORD="${VULYK_ADMIN_PASSWORD:-admin12345678901}" \
+  node e2e/scripts/sync-vue-project.mjs | tee "$ARTDIR/vue-sync-2.log"
+  if ! rg -q 'created=0' "$ARTDIR/vue-sync-2.log"; then
+    echo "error: second VUE sync did not report created=0 (see $ARTDIR/vue-sync-2.log)" >&2
+    exit 1
+  fi
   local project_id
   project_id="$(node -e "const m=require('./e2e/vulyk-vue-case-map.json'); process.stdout.write(m.project?.id||'')")"
   if [[ -n "${project_id:-}" ]]; then
