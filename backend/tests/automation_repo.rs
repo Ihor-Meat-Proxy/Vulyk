@@ -10,7 +10,7 @@ use axum::{
     extract::State as AxumState, http::StatusCode, response::IntoResponse, routing::post, Json,
     Router,
 };
-use hmac::Mac;
+use hmac::{KeyInit, Mac};
 use serde_json::{json, Value};
 
 async fn spawn_api() -> String {
