@@ -135,7 +135,9 @@ export function BackupsPanel({ projects, onError }: Props) {
     try {
       const res = await api.testBackupDestination(id)
       setTestMsg(
-        res.ok ? res.message : t('admin.backupsFailed', { message: res.message }),
+        res.ok
+          ? res.message
+          : t('admin.backupsFailed', { message: res.message }),
       )
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err))

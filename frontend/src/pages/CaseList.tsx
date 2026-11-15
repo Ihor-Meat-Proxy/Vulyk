@@ -768,9 +768,7 @@ export function CaseList({
   }
 
   if (!projectId) {
-    return (
-      <div className="empty">{t('cases.noProjectsHint')}</div>
-    )
+    return <div className="empty">{t('cases.noProjectsHint')}</div>
   }
 
   return (
