@@ -159,7 +159,13 @@ describe('formatMissingAnnotationWarning', () => {
     )
     assert.match(msg, /3 test\(s\) missing vulyk case key/)
     assert.match(msg, /sample: "alpha", "beta" \(\+1 more\)/)
-    assert.match(msg, /tag @VQA-123/)
+    assert.match(msg, /tag @KEY-123/)
     assert.match(msg, /playwright-vulyk\.md/)
+  })
+
+  it('uses the project case-key prefix in the hint', () => {
+    const msg = formatMissingAnnotationWarning(['alpha'], 1, 2, 'VUE')
+    assert.match(msg, /description: 'VUE-123'/)
+    assert.match(msg, /tag @VUE-123/)
   })
 })

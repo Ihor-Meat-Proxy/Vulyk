@@ -42,6 +42,10 @@ pub struct OpenCiRunRequest {
     pub pipeline_url: Option<String>,
     pub job_url: Option<String>,
     pub suite_name: Option<String>,
+    /// Expected case/result count (e.g. Playwright suite size). Stored in
+    /// `test_runs.meta.planned_total` so live progress can use a stable total.
+    #[serde(default)]
+    pub planned_total: Option<i64>,
     /// Idempotency key (e.g. `github:run_id:attempt`).
     pub external_ref: Option<String>,
     pub campaign_id: Option<Uuid>,

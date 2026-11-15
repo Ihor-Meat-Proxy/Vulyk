@@ -56,6 +56,8 @@ services:
       # Dev default: migrate on API startup. Prod / upgrade path uses migrate run.
       VULYK_AUTO_MIGRATE: ${VULYK_AUTO_MIGRATE:-true}
       VULYK_BASE_URL: ${VULYK_BASE_URL:-http://localhost:8080}
+      # Auto-cancel stuck in_progress runs (hours). Synced from .env.example.
+      VULYK_STALE_RUN_TTL_HOURS: ${VULYK_STALE_RUN_TTL_HOURS:-24}
     ports:
       - "8080:8080"
     depends_on:

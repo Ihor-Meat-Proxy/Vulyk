@@ -283,14 +283,29 @@ pub async fn open_ci_run(
     let suite_name = body
         .suite_name
         .as_deref()
-        .or(body.name.as_deref())
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_string);
-    let name = suite_name.clone().unwrap_or_else(|| "CI run".to_string());
+    // Prefer explicit display `name` over suite_name so abandoned/auto-cancelled
+    // runs keep the operator-facing title (demo bug R1).
+    let name = body
+        .name
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .or_else(|| suite_name.clone())
+        .unwrap_or_else(|| "CI run".to_string());
     let environment = body.environment.unwrap_or_else(|| json!({}));
     let artifacts = body.artifacts.unwrap_or_else(|| json!([]));
-    let meta = body.meta.unwrap_or_else(|| json!({}));
+    let mut meta = body.meta.unwrap_or_else(|| json!({}));
+    if let Some(planned) = body.planned_total.filter(|n| *n > 0) {
+        if let Some(obj) = meta.as_object_mut() {
+            obj.insert("planned_total".into(), json!(planned));
+        } else {
+            meta = json!({ "planned_total": planned });
+        }
+    }
     let started_at: Option<chrono::DateTime<chrono::Utc>> = if body.start {
         Some(chrono::Utc::now())
     } else {

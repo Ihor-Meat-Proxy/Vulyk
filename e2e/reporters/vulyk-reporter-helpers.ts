@@ -124,15 +124,19 @@ export function formatMissingAnnotationWarning(
   sampleTitles: string[],
   totalMissing: number,
   sampleLimit: number = KEY_WARNING_SAMPLE_LIMIT,
+  /** Project case-key prefix (e.g. VUE). Defaults to KEY when unknown. */
+  caseKeyPrefix: string = 'KEY',
 ): string {
   const sample = sampleTitles.slice(0, sampleLimit)
   const more = Math.max(0, totalMissing - sample.length)
   const samplePart = sample.map((t) => JSON.stringify(t)).join(', ')
   const morePart = more > 0 ? ` (+${more} more)` : ''
+  const prefix = (caseKeyPrefix || 'KEY').replace(/[^A-Za-z0-9]/g, '').toUpperCase() || 'KEY'
+  const example = `${prefix}-123`
   return (
     `[vulyk-reporter] ${totalMissing} test(s) missing vulyk case key ` +
     `(sample: ${samplePart}${morePart}); results for those tests are skipped. ` +
-    `Annotate with { type: 'vulyk', description: 'VQA-123' } or tag @VQA-123 ` +
+    `Annotate with { type: 'vulyk', description: '${example}' } or tag @${example} ` +
     `(see docs/testing/playwright-vulyk.md).`
   )
 }

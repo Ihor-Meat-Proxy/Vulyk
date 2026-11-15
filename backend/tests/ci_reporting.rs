@@ -682,3 +682,114 @@ async fn ci_open_start_stream_and_cancelled_close() {
         .unwrap();
     assert_eq!(after.status(), reqwest::StatusCode::CONFLICT);
 }
+
+#[tokio::test]
+async fn ci_open_prefers_name_and_planned_total_progress() {
+    let (base, pool) = spawn_app(false).await;
+    let client = reqwest::Client::new();
+    let suffix = &uuid::Uuid::new_v4().to_string()[..8];
+    let project_key = format!("P{suffix}");
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({
+            "key": project_key,
+            "name": "Planned",
+            "case_key_prefix": "PLAN"
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let case: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .json(&json!({ "title": "One", "status": "ready" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
+
+    let opened: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci/runs"))
+        .json(&json!({
+            "name": "Local Playwright e2e (box audit)",
+            "suite_name": "demo",
+            "planned_total": 10,
+            "external_ref": format!("planned-{}", uuid::Uuid::new_v4()),
+            "start": true,
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(
+        opened["run"]["name"],
+        "Local Playwright e2e (box audit)",
+        "display name must win over suite_name"
+    );
+    assert_eq!(opened["run"]["suite_name"], "demo");
+    assert_eq!(opened["run"]["meta"]["planned_total"], 10);
+    let run_id = opened["run"]["id"].as_str().unwrap();
+
+    client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}/results"
+        ))
+        .json(&json!({
+            "results": [{
+                "case_key": case_key,
+                "status": "passed",
+                "external_id": "spec::one",
+            }]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+
+    let detail: Value = client
+        .get(format!("{base}/api/v1/projects/{project_id}/runs/{run_id}"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(detail["progress"]["total"], 10);
+    assert_eq!(detail["progress"]["completed"], 1);
+    let percent = detail["progress"]["percent"].as_f64().unwrap();
+    assert!(percent > 0.0 && percent < 100.0, "percent={percent}");
+
+    // Empty Bearer must not 401 when auth is off (D1 / Scalar Try it).
+    let empty_bearer = client
+        .get(format!("{base}/api/v1/projects"))
+        .header("Authorization", "Bearer ")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(empty_bearer.status(), reqwest::StatusCode::OK);
+
+    let _ = pool;
+}

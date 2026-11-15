@@ -52,6 +52,7 @@ services:
       VULYK_DEFAULT_TIMEZONE: UTC
       VULYK_PASSWORD_MIN_LENGTH: "16"
       VULYK_AUTO_MIGRATE: "true"
+      VULYK_STALE_RUN_TTL_HOURS: ${VULYK_STALE_RUN_TTL_HOURS:-24}
       # Writable by the non-root API user (admin backups e2e).
       VULYK_CONTENT_BACKUP_DIR: /var/lib/vulyk/content-backups
       # UI is served by web; SSO callbacks go through the web proxy.
