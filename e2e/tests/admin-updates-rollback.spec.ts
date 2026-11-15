@@ -125,5 +125,6 @@ test('failed update check surfaces error instead of latest', {
   await expect(status).not.toContainText(
     /latest checked release|остання перевірена|dernière version vérifiée|última versión comprobada|zuletzt geprüfte/i,
   )
-  await expect(page.getByTestId(TestIds.adminError)).toBeVisible()
+  // Check failures stay in the Updates panel alert only (no duplicate Admin banner).
+  await expect(page.getByTestId(TestIds.adminError)).toHaveCount(0)
 })
