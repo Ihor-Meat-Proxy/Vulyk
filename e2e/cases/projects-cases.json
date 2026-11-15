@@ -480,6 +480,78 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "case-list-density-case-list-sticky-header-remains-visible-while-scrolling-virtual",
+      "key": "VUE-222",
+      "title": "case list sticky header remains visible while scrolling virtual rows",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-list-density.spec.ts",
+      "test": "case list sticky header remains visible while scrolling virtual rows",
+      "external_key": "e2e:case-list-density.spec.ts case list sticky header remains visible while scrolling virtual rows",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: case list sticky header remains visible while scrolling virtual rows",
+      "vqa_key": "VQA-360",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-list-density-column-visibility-toggle-does-not-refetch-cases-limit-200",
+      "key": "VUE-223",
+      "title": "column visibility toggle does not refetch cases?limit=200",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-list-density.spec.ts",
+      "test": "column visibility toggle does not refetch cases?limit=200",
+      "external_key": "e2e:case-list-density.spec.ts column visibility toggle does not refetch cases?limit=200",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: column visibility toggle does not refetch cases?limit=200",
+      "vqa_key": "VQA-361",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "case-list-density-virtualized-case-list-reveals-a-known-case-after-scroll",
+      "key": "VUE-224",
+      "title": "virtualized case list reveals a known case after scroll",
+      "type": "edge",
+      "priority": "medium",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "case-list-density.spec.ts",
+      "test": "virtualized case list reveals a known case after scroll",
+      "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: virtualized case list reveals a known case after scroll",
+      "vqa_key": "VQA-362",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:edge"
+      ]
     }
   ]
 }

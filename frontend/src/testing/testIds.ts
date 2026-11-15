@@ -133,6 +133,7 @@ export const TestIds = {
   caseListColTags: 'case-list-col-tags',
   caseListColCustomField: 'case-list-col-custom-field',
   caseListHead: 'case-list-head',
+  caseListVirtualScroll: 'case-list-virtual-scroll',
   caseListColSort: 'case-list-col-sort',
   caseListColumnsButton: 'case-list-columns-button',
   caseListColumnsMenu: 'case-list-columns-menu',

@@ -1250,6 +1250,21 @@ input[type='radio'] {
   background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
 }
 
+.virtual-list-sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: color-mix(in srgb, var(--bg-elevated) 96%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+
+.case-virtual .case-list-head {
+  margin-bottom: 0;
+  padding: 0.45rem 0.5rem;
+  border-bottom: 0;
+}
+
 .pager {
   margin-top: 0.75rem;
 }

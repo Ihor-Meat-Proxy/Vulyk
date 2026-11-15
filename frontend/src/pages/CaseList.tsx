@@ -25,7 +25,6 @@ import {
   reorderColumns,
   sanitizeConfig,
   visibleColumns,
-  visibleCustomFieldIds,
   writeLocalConfig,
   type CaseListColumnsConfig,
   type ResolvedColumn,
@@ -197,9 +196,19 @@ export function CaseList({
     return canExport ? `${base} 3.5rem` : base
   }, [visibleCols, showCheckbox, canExport])
 
-  const cfIds = useMemo(
-    () => visibleCustomFieldIds(columnConfig),
-    [columnConfig],
+  /**
+   * Always request every project custom-field value. Column show/hide/reorder
+   * must not change list query params (avoids duplicate limit=200 refetch).
+   * Sorted join keeps the dependency referentially stable.
+   */
+  const cfIdsKey = useMemo(
+    () =>
+      customFields
+        .map((f) => f.id)
+        .slice()
+        .sort()
+        .join(','),
+    [customFields],
   )
 
   const listParams = useCallback(
@@ -217,7 +226,7 @@ export function CaseList({
             : undefined,
       sort: sort !== 'default' ? sort : undefined,
       order: sort !== 'default' ? order : undefined,
-      cfIds: cfIds.length ? cfIds : undefined,
+      cfIds: cfIdsKey ? cfIdsKey.split(',') : undefined,
       cf: Object.keys(cfQuery).length ? cfQuery : undefined,
       limit: PAGE_SIZE,
       offset: pageOffset,
@@ -231,7 +240,7 @@ export function CaseList({
       automatedFilter,
       sort,
       order,
-      cfIds,
+      cfIdsKey,
       cfQuery,
     ],
   )
@@ -402,10 +411,11 @@ export function CaseList({
     deferredQuery,
     tag,
     status,
+    automatedFilter,
     directOnly,
     sort,
     order,
-    cfIds.join(','),
+    cfIdsKey,
     cfQuery,
   ])
 
@@ -1106,71 +1116,76 @@ export function CaseList({
           </div>
         ) : (
           <>
-            <div
-              className="table-head case-list-head"
-              style={{ gridTemplateColumns: gridTemplate }}
-              {...testIdProps(TestIds.caseListHead)}
-            >
-              {showCheckbox ? <span /> : null}
-              {visibleCols.map((col, colIndex) => {
-                const label = columnLabel(col)
-                const sorted = sort === col.id
-                const headerId = colHeaderTestId(col.id)
-                const headerProps =
-                  headerId === TestIds.caseListColCustomField
-                    ? listItemProps(TestIds.caseListColCustomField, {
-                        entityId: parseCustomFieldId(col.id) ?? col.id,
-                        entityKey: col.id,
-                        index: colIndex,
-                      })
-                    : testIdProps(headerId)
-                return (
-                  <div
-                    key={col.id}
-                    className={`case-col-head${sorted ? ' is-sorted' : ''}`}
-                    draggable
-                    onDragStart={() => setDragColId(col.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (dragColId) {
-                        void persistColumns(
-                          reorderColumns(columnConfig, dragColId, col.id),
-                        )
-                      }
-                      setDragColId(null)
-                    }}
-                    onDragEnd={() => setDragColId(null)}
-                    {...headerProps}
-                  >
-                    {col.sortable ? (
-                      <button
-                        type="button"
-                        className="case-col-sort"
-                        onClick={() => toggleSort(col.id)}
-                        aria-label={t('cases.sortBy', { column: label })}
-                        {...listItemProps(TestIds.caseListColSort, {
-                          entityId: parseCustomFieldId(col.id) ?? col.id,
-                          entityKey: col.id,
-                          index: colIndex,
-                        })}
-                      >
-                        {label}
-                        {sorted ? (order === 'asc' ? ' ↑' : ' ↓') : ''}
-                      </button>
-                    ) : (
-                      <span>{label}</span>
-                    )}
-                  </div>
-                )
-              })}
-              {canExport ? <span /> : null}
-            </div>
             <div {...testIdProps(TestIds.caseListTable)}>
               <VirtualList
                 items={cases}
                 rowHeight={44}
                 height={520}
                 className="case-virtual"
+                scrollTestId={TestIds.caseListVirtualScroll}
+                header={
+                  <div
+                    className="table-head case-list-head"
+                    style={{ gridTemplateColumns: gridTemplate }}
+                    {...testIdProps(TestIds.caseListHead)}
+                  >
+                    {showCheckbox ? <span /> : null}
+                    {visibleCols.map((col, colIndex) => {
+                      const label = columnLabel(col)
+                      const sorted = sort === col.id
+                      const headerId = colHeaderTestId(col.id)
+                      const headerProps =
+                        headerId === TestIds.caseListColCustomField
+                          ? listItemProps(TestIds.caseListColCustomField, {
+                              entityId: parseCustomFieldId(col.id) ?? col.id,
+                              entityKey: col.id,
+                              index: colIndex,
+                            })
+                          : testIdProps(headerId)
+                      return (
+                        <div
+                          key={col.id}
+                          className={`case-col-head${sorted ? ' is-sorted' : ''}`}
+                          draggable
+                          onDragStart={() => setDragColId(col.id)}
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={() => {
+                            if (dragColId) {
+                              void persistColumns(
+                                reorderColumns(columnConfig, dragColId, col.id),
+                              )
+                            }
+                            setDragColId(null)
+                          }}
+                          onDragEnd={() => setDragColId(null)}
+                          {...headerProps}
+                        >
+                          {col.sortable ? (
+                            <button
+                              type="button"
+                              className="case-col-sort"
+                              onClick={() => toggleSort(col.id)}
+                              aria-label={t('cases.sortBy', {
+                                column: label,
+                              })}
+                              {...listItemProps(TestIds.caseListColSort, {
+                                entityId: parseCustomFieldId(col.id) ?? col.id,
+                                entityKey: col.id,
+                                index: colIndex,
+                              })}
+                            >
+                              {label}
+                              {sorted ? (order === 'asc' ? ' ↑' : ' ↓') : ''}
+                            </button>
+                          ) : (
+                            <span>{label}</span>
+                          )}
+                        </div>
+                      )
+                    })}
+                    {canExport ? <span /> : null}
+                  </div>
+                }
                 renderRow={(c, index) => (
                   <div
                     className="table-row case-list-row"
