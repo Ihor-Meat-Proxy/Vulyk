@@ -742,8 +742,7 @@ async fn ci_open_prefers_name_and_planned_total_progress() {
         .await
         .unwrap();
     assert_eq!(
-        opened["run"]["name"],
-        "Local Playwright e2e (box audit)",
+        opened["run"]["name"], "Local Playwright e2e (box audit)",
         "display name must win over suite_name"
     );
     assert_eq!(opened["run"]["suite_name"], "demo");
