@@ -19,6 +19,12 @@ import { formatTimestamp } from '../timezone'
 /** Page size for runs list + load-more (review #46). */
 export const RUNS_PAGE_SIZE = 50
 
+/** Live / in-progress runs that admins may abandon from the list. */
+export function isAbandonableRunStatus(status: string): boolean {
+  const v = status.toLowerCase()
+  return v === 'in_progress' || v === 'running'
+}
+
 type Props = {
   projectId: string | null
   suites: Suite[]
@@ -55,11 +61,6 @@ export function RunsPage({ projectId, suites }: Props) {
   const [uploading, setUploading] = useState(false)
   const [uploadMessage, setUploadMessage] = useState<string | null>(null)
   const [abandoningId, setAbandoningId] = useState<string | null>(null)
-
-  const isAbandonable = (s: string) => {
-    const v = s.toLowerCase()
-    return v === 'in_progress' || v === 'running'
-  }
 
   const abandonRun = async (runId: string) => {
     if (!projectId) return
@@ -437,7 +438,7 @@ export function RunsPage({ projectId, suites }: Props) {
                     <td className="muted">{fmt(r.started_at)}</td>
                     {canAbandon && (
                       <td>
-                        {isAbandonable(r.status) ? (
+                        {isAbandonableRunStatus(r.status) ? (
                           <button
                             type="button"
                             className="btn secondary"
