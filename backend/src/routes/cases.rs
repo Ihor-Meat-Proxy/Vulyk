@@ -25,7 +25,7 @@ use crate::services::case_keys::{
 };
 use crate::services::case_list::{
     fts_rank_prefix, load_custom_fields_for_cases, normalize_sort_field, order_by_sql,
-    parse_cf_ids_param, parse_sort_direction, row_to_list_item,
+    parse_cf_ids_param, parse_sort_direction, row_to_list_item, AUTOMATED_SQL_EXPR,
 };
 use crate::services::cases::{
     add_case_tags, load_case_detail, remove_case_tags, replace_case_tags, resolve_tag_ids,
@@ -254,6 +254,8 @@ pub struct ListCasesQuery {
     pub tag: Option<String>,
     pub status: Option<String>,
     pub priority: Option<String>,
+    /// Filter by built-in Automated flag (`external_key` or `last_automation_at`).
+    pub automated: Option<bool>,
     /// Sort field: `default`, `key`, `title`, `priority`, `status`, `automated`,
     /// `last_run_status`, `updated_at`, `created_at`, `folder`, `tags`, `sort_order`,
     /// or `cf:<uuid>` for a custom field.
@@ -290,6 +292,7 @@ impl ListCasesQuery {
         ("tag" = Option<String>, Query, description = "Filter by tag name"),
         ("status" = Option<String>, Query, description = "Filter by status"),
         ("priority" = Option<String>, Query, description = "Filter by priority"),
+        ("automated" = Option<bool>, Query, description = "Filter by built-in Automated (true = external_key or last_automation_at set)"),
         ("sort" = Option<String>, Query, description = "Sort field (default|key|title|priority|status|automated|last_run_status|updated_at|created_at|folder|tags|sort_order|cf:<uuid>)"),
         ("order" = Option<String>, Query, description = "asc (default) or desc"),
         ("cf_ids" = Option<String>, Query, description = "Comma-separated custom field ids to include on each row"),
@@ -375,6 +378,12 @@ pub async fn list_cases(
         "TRUE"
     };
 
+    let automated_predicate = match query.automated {
+        Some(true) => AUTOMATED_SQL_EXPR.to_string(),
+        Some(false) => format!("NOT {AUTOMATED_SQL_EXPR}"),
+        None => "TRUE".to_string(),
+    };
+
     let total_sql = format!(
         r#"WITH RECURSIVE suite_tree AS (
              SELECT id FROM suites WHERE id = $2
@@ -390,7 +399,8 @@ pub async fn list_cases(
              AND ($4::text IS NULL OR tc.priority = $4)
              AND ({tag_predicate})
              AND {search_q}
-             AND {cf_predicate}"#,
+             AND {cf_predicate}
+             AND ({automated_predicate})"#,
         search_q = crate::services::case_list::search_q_predicate(),
     );
 
@@ -432,7 +442,7 @@ pub async fn list_cases(
            SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
                   tc.precondition, tc.priority, tc.status, tc.version, tc.external_key,
                   tc.sort_order, tc.created_at, tc.updated_at,
-                  (tc.external_key IS NOT NULL) AS automated,
+                  {AUTOMATED_SQL_EXPR} AS automated,
                   su.name AS folder_name,
                   tc.last_run_status,
                   (
@@ -452,6 +462,7 @@ pub async fn list_cases(
              AND ({tag_predicate})
              AND {search_q}
              AND {cf_predicate}
+             AND ({automated_predicate})
            ORDER BY
              {rank_prefix}
              {order_sql}

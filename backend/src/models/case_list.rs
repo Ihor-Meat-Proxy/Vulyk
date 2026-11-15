@@ -62,7 +62,8 @@ pub struct TestCaseListItem {
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    /// True when the case has an `external_key` (automation / import link).
+    /// True when the case has an `external_key` (automation / import link)
+    /// **or** `last_automation_at` (CI/ingest has posted results).
     #[serde(default)]
     pub automated: bool,
     /// Latest `test_results.status` by executed_at (manual + ingest).

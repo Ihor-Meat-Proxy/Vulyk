@@ -34,6 +34,12 @@ export class CasesPage {
       .selectOption(status)
   }
 
+  async filterAutomated(value: '' | 'true' | 'false') {
+    await this.page
+      .getByTestId(TestIds.caseListAutomatedFilter)
+      .selectOption(value)
+  }
+
   async selectCase(key: string) {
     await this.page
       .locator(

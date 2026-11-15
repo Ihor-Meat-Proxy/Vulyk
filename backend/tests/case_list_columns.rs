@@ -528,3 +528,188 @@ async fn last_run_status_from_test_results() {
         .unwrap();
     assert_eq!(page["items"][0]["last_run_status"], "Passed");
 }
+
+/// F4: cases without external_key become automated=true after CI results set last_automation_at.
+#[tokio::test]
+async fn list_automated_true_after_ci_results_without_external_key() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let base = spawn_app().await;
+    let client = reqwest::Client::new();
+    let key = uniq("AUTO");
+
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&serde_json::json!({ "key": key, "name": "Automated flag" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let case: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+        .json(&serde_json::json!({
+            "title": "Manual-looking case",
+            "priority": "medium",
+            "status": "ready",
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let case_key = case
+        .get("key")
+        .or_else(|| case.get("case").and_then(|c| c.get("key")))
+        .and_then(|v| v.as_str())
+        .expect("case key")
+        .to_string();
+    assert!(
+        case.get("external_key").and_then(|v| v.as_str()).is_none()
+            || case
+                .get("case")
+                .and_then(|c| c.get("external_key"))
+                .and_then(|v| v.as_str())
+                .is_none()
+    );
+
+    let before: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases?limit=50"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let before_item = before["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["key"] == case_key)
+        .expect("case in list");
+    assert_eq!(before_item["automated"], false);
+    assert!(before_item["external_key"].is_null());
+
+    let opened: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci/runs"))
+        .json(&serde_json::json!({
+            "provider": "github",
+            "repo": "acme/auto-flag",
+            "branch": "main",
+            "commit": "abc",
+            "pipeline_url": "https://github.com/acme/auto-flag/actions/runs/1",
+            "suite_name": "CI",
+            "external_ref": format!("e2e-auto-{}", uuid::Uuid::new_v4()),
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run_id = opened["run"]["id"].as_str().unwrap();
+
+    let results: Value = client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/ci/runs/{run_id}/results"
+        ))
+        .json(&serde_json::json!({
+            "results": [{
+                "case_key": case_key,
+                "status": "passed",
+                "external_id": "spec::manual-looking",
+                "duration_ms": 5
+            }]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(results["inserted"].as_i64().unwrap() >= 1);
+
+    let after: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases?limit=50"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let after_item = after["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["key"] == case_key)
+        .expect("case in list after CI");
+    assert_eq!(
+        after_item["automated"], true,
+        "CI result should flip built-in automated without external_key"
+    );
+    assert!(after_item["external_key"].is_null());
+
+    let filtered_yes: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases?automated=true&limit=50"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        filtered_yes["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c["key"] == case_key),
+        "automated=true filter should include the case"
+    );
+
+    let filtered_no: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases?automated=false&limit=50"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert!(
+        !filtered_no["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|c| c["key"] == case_key),
+        "automated=false filter should exclude the case"
+    );
+}

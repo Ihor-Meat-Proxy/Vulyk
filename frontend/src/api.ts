@@ -783,6 +783,8 @@ export type ListCasesParams = {
   tag?: string
   status?: string
   priority?: string
+  /** Filter by built-in Automated (external_key or last_automation_at). */
+  automated?: boolean
   /** Server-side sort field (key, title, automated, last_run_status, cf:<uuid>, …). */
   sort?: string
   /** asc | desc */
@@ -2009,6 +2011,7 @@ export const api = {
     if (params.tag) qs.set('tag', params.tag)
     if (params.status) qs.set('status', params.status)
     if (params.priority) qs.set('priority', params.priority)
+    if (params.automated !== undefined) qs.set('automated', String(params.automated))
     if (params.sort) qs.set('sort', params.sort)
     if (params.order) qs.set('order', params.order)
     if (params.cfIds?.length) qs.set('cf_ids', params.cfIds.join(','))

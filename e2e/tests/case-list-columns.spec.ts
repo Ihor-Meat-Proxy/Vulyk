@@ -63,7 +63,7 @@ test('customize columns: hide priority, show automated, keyboard reorder, sort, 
   await expect(titleBox).toBeChecked()
   await expect(titleBox).toBeDisabled()
 
-  // Prefer data-entity-key — seeded "Automated?" custom fields also match label text.
+  // Prefer data-entity-key — seeded "Automation planned" CF must not match built-in Automated.
   await cases.toggleColumn('priority', false)
   await cases.toggleColumn('automated', true)
   await expect(

@@ -297,6 +297,8 @@ const fr: Dict = {
   'cases.bulkCustomField': "Champ personnalisé…",
   'cases.bulkCustomValue': "Valeur",
   'cases.clearSelection': "Effacer",
+  'cases.allAutomated': "Toute automatisation",
+  'cases.automatedFilter': "Filtrer par automatisation",
   'cases.automatedNo': "Non",
   'cases.automatedYes': "Oui",
   'cases.colAutomated': "Automatisé",

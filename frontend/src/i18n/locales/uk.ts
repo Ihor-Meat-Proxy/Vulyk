@@ -297,6 +297,8 @@ const uk: Dict = {
   'cases.bulkCustomField': "Кастомне поле…",
   'cases.bulkCustomValue': "Значення",
   'cases.clearSelection': "Скинути",
+  'cases.allAutomated': "Уся автоматизація",
+  'cases.automatedFilter': "Фільтр автоматизації",
   'cases.automatedNo': "Ні",
   'cases.automatedYes': "Так",
   'cases.colAutomated': "Автоматизовано",
