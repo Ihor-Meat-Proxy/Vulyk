@@ -335,6 +335,15 @@ select {
   font-size: 0.92rem;
 }
 
+.run-live-badge {
+  background: color-mix(in srgb, var(--status-running-bg) 85%, transparent);
+  color: var(--status-running-fg);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
 .steps {
   display: flex;
   flex-direction: column;

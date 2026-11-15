@@ -875,6 +875,7 @@ const fr: Dict = {
   'runs.colAssignee': "Assigné",
   'runs.back': "← Exécutions",
   'runs.progress': "Progression : {completed}/{total} ({percent} %)",
+  'runs.live': "En direct",
   'runs.cachedBadge': "cache",
   'runs.cachedOffline': "Affichage de l’exécution en cache (hors ligne).",
   'runs.savedOffline': "Enregistré hors ligne — synchronisation lorsque vous serez de nouveau en ligne.",

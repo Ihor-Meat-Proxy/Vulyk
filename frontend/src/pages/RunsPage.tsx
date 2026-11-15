@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   api,
@@ -11,6 +11,11 @@ import { useAuth } from '../auth'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { hasLiveRuns, LIVE_RUN_POLL_MS } from '../lib/liveRun'
+import {
+  applyUnlessCancelled,
+  createStaleGuard,
+} from '../lib/staleGuard'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 
@@ -90,6 +95,35 @@ export function RunsPage({ projectId, suites }: Props) {
       ac.abort()
     }
   }, [projectId])
+
+  // Keep StatusBadges fresh while any listed run is still live.
+  const liveList = hasLiveRuns(runs)
+  const loadedCountRef = useRef(runs.length)
+  loadedCountRef.current = runs.length
+  useEffect(() => {
+    if (!projectId || !liveList) return
+    const guard = createStaleGuard()
+    const id = window.setInterval(() => {
+      void (async () => {
+        try {
+          const limit = Math.max(loadedCountRef.current, RUNS_PAGE_SIZE)
+          const runPage = await api.listRuns(projectId, limit, 0, {
+            signal: guard.signal,
+          })
+          applyUnlessCancelled(guard, () => {
+            applyRunsPage(runPage, false)
+          })
+        } catch (err) {
+          if (isAbortError(err) || guard.isCancelled()) return
+          /* ignore transient poll errors */
+        }
+      })()
+    }, LIVE_RUN_POLL_MS)
+    return () => {
+      guard.cancel()
+      window.clearInterval(id)
+    }
+  }, [projectId, liveList])
 
   const loadMoreRuns = async () => {
     if (!projectId || loadingMore || runs.length >= runsTotal) return
@@ -317,7 +351,18 @@ export function RunsPage({ projectId, suites }: Props) {
       </section>
 
       <section className="panel">
-        <h3 style={{ marginTop: 0 }}>{t('runs.recent')}</h3>
+        <h3 style={{ marginTop: 0 }}>
+          {t('runs.recent')}
+          {liveList && (
+            <span
+              className="badge run-live-badge"
+              style={{ marginLeft: '0.5rem', fontWeight: 500 }}
+              {...testIdProps(TestIds.runsLiveBadge)}
+            >
+              {t('runs.live')}
+            </span>
+          )}
+        </h3>
         {error && (
           <p className="error" {...testIdProps(TestIds.runsError)}>
             {error}

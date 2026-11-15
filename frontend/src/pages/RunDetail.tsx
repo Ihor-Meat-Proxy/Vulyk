@@ -12,6 +12,10 @@ import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
 import {
+  isLiveRunStatus,
+  LIVE_RUN_POLL_MS,
+} from '../lib/liveRun'
+import {
   applyUnlessCancelled,
   createStaleGuard,
   type StaleGuard,
@@ -61,6 +65,9 @@ export function RunDetail({ projectId }: Props) {
   const [saving, setSaving] = useState(false)
   const [mobileStep, setMobileStep] = useState(0)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  /** Skip poll apply while a local save is in flight (avoids clobbering edits). */
+  const savingRef = useRef(false)
+  savingRef.current = saving
 
   const reload = async (guard?: StaleGuard) => {
     if (!projectId || !runId) return
@@ -113,6 +120,37 @@ export function RunDetail({ projectId }: Props) {
       guard.cancel()
     }
   }, [projectId, runId])
+
+  // Poll while the run is live so CI/reporter progress appears without reload.
+  const liveStatus = detail?.run.status
+  const isLive = isLiveRunStatus(liveStatus)
+  useEffect(() => {
+    if (!projectId || !runId || !isLive) return
+    const guard = createStaleGuard()
+    const id = window.setInterval(() => {
+      if (savingRef.current) return
+      void (async () => {
+        try {
+          const data = await api.getRun(projectId, runId, {
+            signal: guard.signal,
+          })
+          if (guard.isCancelled() || savingRef.current) return
+          applyUnlessCancelled(guard, () => {
+            setDetail(data)
+            setFromCache(false)
+          })
+          void cacheRun(projectId, runId, data)
+        } catch (err) {
+          if (isAbortError(err) || guard.isCancelled()) return
+          /* ignore transient poll errors */
+        }
+      })()
+    }, LIVE_RUN_POLL_MS)
+    return () => {
+      guard.cancel()
+      window.clearInterval(id)
+    }
+  }, [projectId, runId, isLive])
 
   const openItem = async (itemId: string) => {
     if (!projectId || !runId) return
@@ -293,6 +331,14 @@ export function RunDetail({ projectId }: Props) {
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         <div className="meta-row">
           <StatusBadge status={run.status} testId="run-detail-status-badge" />
+          {isLive && (
+            <span
+              className="badge run-live-badge"
+              {...testIdProps(TestIds.runDetailLiveBadge)}
+            >
+              {t('runs.live')}
+            </span>
+          )}
           <span {...testIdProps(TestIds.runDetailProgress)}>
             {t('runs.progress', {
               completed: progress.completed,
