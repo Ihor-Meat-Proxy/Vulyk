@@ -191,8 +191,8 @@ function startMock() {
         return
       }
       send(res, 404, { error: { code: 'not_found', message: url.pathname } })
-    } catch (err) {
-      send(res, 500, { error: { message: String(err) } })
+    } catch {
+      send(res, 500, { error: { message: 'mock handler failed' } })
     }
   })
 
@@ -240,9 +240,14 @@ function parseCreated(log) {
 }
 
 async function main() {
-  const prevMap = fs.existsSync(MAP_OUT)
-    ? fs.readFileSync(MAP_OUT, 'utf8')
-    : null
+  let prevMap = null
+  let hadMap = false
+  try {
+    prevMap = fs.readFileSync(MAP_OUT, 'utf8')
+    hadMap = true
+  } catch (err) {
+    if (!err || err.code !== 'ENOENT') throw err
+  }
   const { server, port, state } = await startMock()
   try {
     const first = await runSync(port)
@@ -280,13 +285,13 @@ async function main() {
     )
   } finally {
     server.close()
-    if (prevMap === null) {
+    if (!hadMap) {
       try {
         fs.unlinkSync(MAP_OUT)
       } catch {
         /* ignore */
       }
-    } else {
+    } else if (prevMap !== null) {
       fs.writeFileSync(MAP_OUT, prevMap)
     }
   }
