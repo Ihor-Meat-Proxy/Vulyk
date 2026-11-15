@@ -51,8 +51,8 @@ export const BUILTIN_COLUMNS: BuiltinColumnDef[] = [
     sortable: true,
     hideable: false,
     defaultVisible: true,
-    /* minmax(0, …) lets long titles ellipsis instead of overlapping fixed cols. */
-    width: 'minmax(0, 1fr)',
+    /* Keep a readable floor so titles stay findable; ellipsis CSS still clips overflow. */
+    width: 'minmax(10rem, 1fr)',
   },
   {
     id: 'priority',

@@ -235,6 +235,7 @@ test('CI tokens: links, active project default, copy + env block, timestamps', {
     page.getByTestId(TestIds.settingsCiTokenCopyEnvButton),
   ).toBeVisible()
   await expect(page.getByTestId(TestIds.settingsCiTokenCreated).first()).toBeVisible()
+  // Fresh tokens have no last_used_at yet, but the meta row still renders.
   await expect(page.getByTestId(TestIds.settingsCiTokenLastUsed).first()).toBeVisible()
 })
 
