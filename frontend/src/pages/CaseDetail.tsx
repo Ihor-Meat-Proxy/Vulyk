@@ -506,15 +506,13 @@ export function CaseDetail({
     }
   }
 
-  const onSaveEvent = useEffectEvent(() => {
-    void save()
-  })
-
   useCaseEditorSaveShortcut({
     enabled: editing,
     saving,
     editorRef,
-    onSave: onSaveEvent,
+    onSave: () => {
+      void save()
+    },
   })
 
   useEffect(() => {
