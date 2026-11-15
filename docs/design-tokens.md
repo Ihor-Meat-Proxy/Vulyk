@@ -7,8 +7,8 @@ Vulyk uses CSS custom properties (design tokens) for colour, spacing, and typogr
 | Choice | Resolved | Notes |
 |--------|----------|--------|
 | `system` (default) | `light` / `dark` / `high_contrast` | Follows `prefers-color-scheme`; upgrades to high contrast when `prefers-contrast: more` |
-| `light` | light | Page bg ≈ `#F7F8FA`, text ≈ `#1F2328` (no pure white/black) |
-| `dark` | dark | Page bg ≈ `#121417`, text ≈ `#E6E6E6`, desaturated accents |
+| `light` | light | Warm cream hive: bg ≈ `#F7F1E6`, muted honey accent `#7A5C18` |
+| `dark` | dark | Warm charcoal ≈ `#1A1714`, soft honey accent `#D4B56A` |
 | `high_contrast` | high contrast | WCAG AAA ≥ **7:1** for text pairs; also used under `forced-colors` |
 | `sepia` | sepia / night warm | Low-blue warm palette for evening use |
 
@@ -57,12 +57,16 @@ Per-theme badge pairs: `--status-*-fg` / `--status-*-bg` / solid `--status-*` fo
 - `high_contrast`: ≥ **7:1** (AAA).
 - Enforced by unit test: `frontend/src/theme/contrast.test.ts`.
 
+## Brand palette (bee / hive)
+
+Default **light** and **dark** themes use a muted bee/beehive palette: warm cream or charcoal surfaces with desaturated honey/amber accents (not vivid green). Status colours stay Okabe–Ito so pass (sage), fail (brick/vermillion), blocked, and skipped remain distinguishable from the honey accent. Changing these tokens updates the product default only; it does **not** rewrite saved `vulyk.appearance` / user preference choices (theme id, font, density, etc.).
+
 ## User & instance preferences
 
 - **User appearance:** gear → **Appearance**, or `PATCH /api/v1/auth/me` with `preferences: { theme, font_size, font_family, density, reduced_motion }` (stored in `users.preferences` JSONB). `font_family` is one of `inter` (default), `ibm_plex_sans`, `noto_sans`, `source_sans_3`.
 - **User locale:** globe menu or gear → **My settings**; `PATCH /api/v1/auth/me` with `locale` (`en` / `uk` / `fr` / `es` / `de`). Anonymous sessions keep `localStorage['vulyk.locale']`.
 - **Instance defaults:** gear → **Admin settings** → default theme / locale (`system_settings`); also on `GET /api/v1/auth/status` as `default_theme` / `default_locale`.
-- **Local appearance:** `localStorage['vulyk.appearance']` for pre-login and instant apply.
+- **Local appearance:** `localStorage['vulyk.appearance']` for pre-login and instant apply. Upgrades that only change palette tokens leave this key untouched.
 - **Reduced motion:** user override or `prefers-reduced-motion: reduce` → `data-reduced-motion="true"`.
 
 Missing UI translation keys fall back to English, then to the key string. Seeded sample content uses bilingual fields with English fallback for `fr` / `es` / `de` when those locale strings are empty.
