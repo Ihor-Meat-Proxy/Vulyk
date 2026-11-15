@@ -120,10 +120,19 @@ Set `VULYK_RUN_ID` (or the action `run-id` input) so the pipeline **attaches** t
 the existing run instead of opening a new one. The Playwright reporter and
 `vulyk-report` / `vulyk-upload.sh` all honor this.
 
-The built-in Playwright reporter (`e2e/reporters/vulyk-reporter.ts`) opens the
-run in **`onBegin`** (`start: true` → `in_progress`), streams batched results
-from **`onTestEnd`**, and closes in **`onEnd`** (with `cancelled: true` on
-interrupt). See [playwright-vulyk.md](../testing/playwright-vulyk.md).
+The built-in Playwright reporter (`e2e/reporters/vulyk-reporter.ts`) is **live**:
+
+| Hook | API | Run status |
+|------|-----|------------|
+| **`onBegin`** | Open with `start: true`, or **start** an existing `VULYK_RUN_ID` | `in_progress` before any test ends |
+| **`onTestEnd`** | Batched / timed `POST …/results` | stays `in_progress` while streaming |
+| **`onEnd`** | Flush + `POST …/close` (`cancelled: true` on interrupt) | `closed` or `cancelled` |
+
+Set `VULYK_REPORTER_DRY_RUN=1` to log the same open/start/results/close steps
+without POSTing (useful when wiring a new pipeline). Unmatched case keys warn
+once per key with a sample list + count; missing annotations warn once with
+sample test titles — annotate with `{ type: 'vulyk', description: 'KEY' }` or
+`@KEY` (see [playwright-vulyk.md](../testing/playwright-vulyk.md)).
 
 Optional: configure a GitHub **workflow_run** webhook on the project CI config
 (with `webhook_secret`) so cancelled / failed-to-start workflows update the
@@ -249,7 +258,9 @@ Under **Settings → Test automation repositories** you can register multiple Gi
 |---------|--------|
 | `401` / `403` | Token revoked? Wrong project? User lacks `upload_results`? |
 | Empty suite | Results file path; `format` auto-detect; job `if: always()` / `when: always` |
-| `unmatched_case_keys` | Key typo; case not in project; use `test_key` property |
+| `unmatched_case_keys` | Key typo; case not in project; use `test_key` property or Playwright `{ type: 'vulyk', description: 'KEY' }` / `@KEY`. Reporter logs each key once (sample + count). |
+| Missing Playwright annotation | Add tag + annotation (see [playwright-vulyk.md](../testing/playwright-vulyk.md)); reporter warns once with sample titles |
+| Want lifecycle logs only | Set `VULYK_REPORTER_DRY_RUN=1` (still needs URL/token/project to enable) |
 | Duplicate runs | Set stable `--external-ref` (Action sets GitHub run id by default) |
 | Posts after close | Open a new run; closed runs reject new results |
 

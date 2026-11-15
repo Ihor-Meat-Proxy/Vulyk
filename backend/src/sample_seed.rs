@@ -186,6 +186,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "auth-off-admin-warning",
         include_str!("../seed/vulyk-qa.d/auth-off-admin-warning.json"),
     ),
+    (
+        "reporter-dx",
+        include_str!("../seed/vulyk-qa.d/reporter-dx.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

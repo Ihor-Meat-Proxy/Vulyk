@@ -368,6 +368,60 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "ci-reporter-dx-dry-run-helper-logs-openstartresultsclose-without-posting",
+      "key": "VUE-225",
+      "title": "dry-run helper logs open/start/results/close without POSTing",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\"",
+          "expected": "Test passes; dry-run helper formats lifecycle logs without HTTP POSTs."
+        }
+      ],
+      "spec": "ci-reporter-dx.spec.ts",
+      "test": "dry-run helper logs open/start/results/close without POSTing",
+      "external_key": "e2e:ci-reporter-dx.spec.ts dry-run helper logs open/start/results/close without POSTing",
+      "automation_link": "e2e/tests/ci-reporter-dx.spec.ts :: dry-run helper logs open/start/results/close without POSTing",
+      "vqa_key": "VQA-363",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive",
+        "ci",
+        "reporter",
+        "dx"
+      ]
+    },
+    {
+      "id": "ci-reporter-dx-unmatched-key-warning-lists-sample--count-and-warns-once-per-key",
+      "key": "VUE-226",
+      "title": "unmatched-key warning lists sample + count and warns once per key",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\"",
+          "expected": "Test passes; unmatched-key warning includes sample + count once per key."
+        }
+      ],
+      "spec": "ci-reporter-dx.spec.ts",
+      "test": "unmatched-key warning lists sample + count and warns once per key",
+      "external_key": "e2e:ci-reporter-dx.spec.ts unmatched-key warning lists sample + count and warns once per key",
+      "automation_link": "e2e/tests/ci-reporter-dx.spec.ts :: unmatched-key warning lists sample + count and warns once per key",
+      "vqa_key": "VQA-364",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive",
+        "ci",
+        "reporter",
+        "dx"
+      ]
     }
   ]
 }
