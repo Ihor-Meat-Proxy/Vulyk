@@ -75,6 +75,7 @@ echo "==> frontend lint / typecheck / test-ids"
   npm run lint
   npm run typecheck
   npm run check:test-ids
+  npm run check:i18n-literals
   if [[ "${MODE}" == "full" ]]; then
     npm run test
   fi
