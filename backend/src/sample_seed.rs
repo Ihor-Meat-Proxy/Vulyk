@@ -143,6 +143,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         include_str!("../seed/vulyk-qa.d/multi-repo-ci-ingest.json"),
     ),
     (
+        "ci-run-detail-progress",
+        include_str!("../seed/vulyk-qa.d/ci-run-detail-progress.json"),
+    ),
+    (
         "password-policy-lockout",
         include_str!("../seed/vulyk-qa.d/password-policy-lockout.json"),
     ),

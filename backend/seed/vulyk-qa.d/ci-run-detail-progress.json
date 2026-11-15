@@ -1,0 +1,71 @@
+{
+  "feature": "ci-run-detail-progress",
+  "suites": [
+    {
+      "name": {
+        "en": "CI run detail progress",
+        "uk": "Прогрес CI-рану",
+        "fr": "Progression du run CI",
+        "es": "Progreso del run CI",
+        "de": "CI-Run-Fortschritt"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "CI-reported run detail shows progress and cases",
+            "uk": "Деталі CI-рану показують прогрес і кейси",
+            "fr": "Le détail d'un run CI affiche la progression et les cas",
+            "es": "El detalle de un run CI muestra progreso y casos",
+            "de": "CI-Run-Detail zeigt Fortschritt und Fälle"
+          },
+          "description": {
+            "en": "After Playwright/CI posts results, Runs → run detail must show Progress N/N and case rows (not 0/0).",
+            "uk": "Після ingest результатів Runs → деталі рану показують Progress N/N і рядки кейсів (не 0/0).",
+            "fr": "After Playwright/CI posts results, Runs → run detail must show Progress N/N and case rows (not 0/0).",
+            "es": "After Playwright/CI posts results, Runs → run detail must show Progress N/N and case rows (not 0/0).",
+            "de": "After Playwright/CI posts results, Runs → run detail must show Progress N/N and case rows (not 0/0)."
+          },
+          "precondition": {
+            "en": "Project with at least one case; CI open → results → close completed.",
+            "uk": "Проєкт із хоча б одним кейсом; CI open → results → close виконано.",
+            "fr": "Project with at least one case; CI open → results → close completed.",
+            "es": "Project with at least one case; CI open → results → close completed.",
+            "de": "Project with at least one case; CI open → results → close completed."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "ci",
+            "runs",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts#run-detail-progress",
+          "steps": [
+            {
+              "action": {
+                "en": "Open a CI run via POST /ci/runs, post a passed result for a known case_key, close the run, then open Runs → that run in the UI.",
+                "uk": "Відкрити CI-ран через POST /ci/runs, надіслати passed для case_key, закрити, відкрити Runs → цей ран у UI.",
+                "fr": "Open a CI run via POST /ci/runs, post a passed result for a known case_key, close the run, then open Runs → that run in the UI.",
+                "es": "Open a CI run via POST /ci/runs, post a passed result for a known case_key, close the run, then open Runs → that run in the UI.",
+                "de": "Open a CI run via POST /ci/runs, post a passed result for a known case_key, close the run, then open Runs → that run in the UI."
+              },
+              "expected_result": {
+                "en": "run-detail-progress shows 1/1 (not 0/0); run-detail-case-row lists the matched case with Passed.",
+                "uk": "run-detail-progress показує 1/1 (не 0/0); run-detail-case-row містить matched кейс зі статусом Passed.",
+                "fr": "run-detail-progress shows 1/1 (not 0/0); run-detail-case-row lists the matched case with Passed.",
+                "es": "run-detail-progress shows 1/1 (not 0/0); run-detail-case-row lists the matched case with Passed.",
+                "de": "run-detail-progress shows 1/1 (not 0/0); run-detail-case-row lists the matched case with Passed."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

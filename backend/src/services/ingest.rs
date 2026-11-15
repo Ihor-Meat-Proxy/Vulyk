@@ -102,6 +102,14 @@ pub async fn persist_results(
     }
 
     refresh_last_automation(pool, run_id, &matched_case_updates).await?;
+    // CI ingest historically wrote only test_results; keep run_items in sync so
+    // Run detail progress/items match Reports (audit F1).
+    if let Err(e) =
+        crate::services::runs::upsert_run_items_for_statuses(pool, run_id, &matched_case_updates)
+            .await
+    {
+        tracing::warn!(error = %e, %run_id, "upsert_run_items_for_statuses after ingest failed");
+    }
     // Keep denormalized case-list column in sync (review #11).
     let case_ids: Vec<Uuid> = matched_case_updates.iter().map(|(id, _)| *id).collect();
     crate::services::results::refresh_last_run_status(pool, &case_ids).await?;

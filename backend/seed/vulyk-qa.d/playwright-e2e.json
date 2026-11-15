@@ -6087,6 +6087,65 @@
             }
           ],
           "key": "VQA-327"
+        },
+        {
+          "title": {
+            "en": "CI run detail shows progress and cases after results",
+            "uk": "CI run detail shows progress and cases after results",
+            "fr": "CI run detail shows progress and cases after results",
+            "es": "CI run detail shows progress and cases after results",
+            "de": "CI run detail shows progress and cases after results"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: multi-repo-ci-ingest.spec.ts — CI run detail shows progress and cases after results",
+            "uk": "Покриття Playwright e2e: multi-repo-ci-ingest.spec.ts — CI run detail shows progress and cases after results",
+            "fr": "Playwright e2e coverage: multi-repo-ci-ingest.spec.ts — CI run detail shows progress and cases after results",
+            "es": "Playwright e2e coverage: multi-repo-ci-ingest.spec.ts — CI run detail shows progress and cases after results",
+            "de": "Playwright e2e coverage: multi-repo-ci-ingest.spec.ts — CI run detail shows progress and cases after results"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:multi-repo-ci-ingest.spec.ts CI run detail shows progress and cases after results",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\"",
+                "uk": "Run npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\"",
+                "fr": "Run npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\"",
+                "es": "Run npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\"",
+                "de": "Run npx playwright test multi-repo-ci-ingest.spec.ts -g \"CI run detail shows progress and cases after results\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-328"
         }
       ]
     }

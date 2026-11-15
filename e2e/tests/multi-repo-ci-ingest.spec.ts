@@ -7,6 +7,7 @@ import {
 } from '../fixtures/api'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 import { uniqueKey } from '../fixtures/env'
+import { RunsPage } from '../pages/RunsPage'
 import { SettingsPage } from '../pages/SettingsPage'
 
 test.describe.configure({ mode: 'serial' })
@@ -179,6 +180,90 @@ test('CI open results close for two repo pipelines', {
       data: { message: 'repo-b done' },
     },
   )
+})
+
+test('CI run detail shows progress and cases after results', {
+  tag: ['@VQA-328', '@VUE-104'],
+  annotation: [
+    { type: 'vulyk', description: 'VQA-328' },
+    { type: 'vulyk', description: 'VUE-104' },
+  ],
+}, async ({ page, request }) => {
+  const suiteName = `CI detail ${projectKey}`
+  const opened = await apiJson<{ run: { id: string; name: string } }>(
+    request,
+    'POST',
+    `/api/v1/projects/${projectId}/ci/runs`,
+    {
+      token: adminToken,
+      data: {
+        provider: 'github',
+        repo: `acme/${projectKey}-detail`,
+        branch: 'main',
+        commit: 'f1cafe',
+        external_ref: `detail-${uniqueKey('')}`,
+        suite_name: suiteName,
+      },
+    },
+  )
+
+  await apiJson(
+    request,
+    'POST',
+    `/api/v1/projects/${projectId}/ci/runs/${opened.run.id}/results`,
+    {
+      token: adminToken,
+      data: {
+        results: [
+          {
+            case_key: caseKey,
+            status: 'passed',
+            external_id: 'spec::detail',
+            duration_ms: 9,
+          },
+        ],
+      },
+    },
+  )
+  await apiJson(
+    request,
+    'POST',
+    `/api/v1/projects/${projectId}/ci/runs/${opened.run.id}/close`,
+    { token: adminToken, data: { message: 'detail done' } },
+  )
+
+  const detail = await apiJson<{
+    progress: { total: number; passed: number; completed: number }
+    items: Array<{ case_key: string; item: { status: string } }>
+  }>(request, 'GET', `/api/v1/projects/${projectId}/runs/${opened.run.id}`, {
+    token: adminToken,
+  })
+  expect(detail.progress.total).toBeGreaterThanOrEqual(1)
+  expect(detail.progress.passed).toBeGreaterThanOrEqual(1)
+  expect(detail.items.some((i) => i.case_key === caseKey)).toBe(true)
+
+  await loginAsAdmin(page)
+  const select = page.locator('.project-select')
+  await expect.poll(async () => select.locator('option').count()).toBeGreaterThan(0)
+  const options = await select.locator('option').allTextContents()
+  const idx = options.findIndex((o) => o.includes(projectKey))
+  if (idx >= 0) await select.selectOption({ index: idx })
+
+  const runs = new RunsPage(page)
+  await runs.open()
+  await runs.openRun(suiteName)
+  await expect(page.getByTestId(TestIds.runDetailProgress)).toContainText(
+    /1\/1|Progress:\s*1\/1/i,
+  )
+  // data-entity-key is on the row itself; scope under runDetailCases so the
+  // duplicate desktop <tr> with the same testid does not trip strict mode.
+  await expect(
+    page
+      .getByTestId(TestIds.runDetailCases)
+      .locator(
+        `[data-testid="${TestIds.runDetailCaseRow}"][data-entity-key="${caseKey}"]`,
+      ),
+  ).toBeVisible()
 })
 
 test('JUnit ingest maps test_key property to case', {

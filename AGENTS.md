@@ -68,10 +68,27 @@ When a PR adds or changes a **user-visible UI flow**:
 
 1. Add or update a Playwright spec under `e2e/tests/` (page objects in `e2e/pages/`).
 2. Tag the test with Vulyk case keys (`@VQA-N` for the sample seed **and** `@VUE-N` for the dedicated UI e2e project).
-3. Refresh case sources:
-   - `node e2e/scripts/sync-vulyk-case-links.mjs` (VQA seed fragment)
-   - `node e2e/scripts/generate-vue-cases.mjs --annotate` (committed `e2e/cases/*.json`)
+3. Refresh case sources carefully (see pitfall below):
+   - Prefer **appending** one case to `backend/seed/vulyk-qa.d/playwright-e2e.json`
+     with the next free `VQA-N`, and appending to `e2e/cases/<folder>.json` with
+     the next free `VUE-N` (check `manifest.json` / highest key). Register a
+     narrative fragment under `vulyk-qa.d/` with **keys omitted** when the sample
+     project should show the case too.
+   - `node e2e/scripts/sync-vulyk-case-links.mjs` / `generate-vue-cases.mjs --annotate`
+     rebuild whole inventories and can renumber unrelated keys — avoid on
+     parallel-PR branches unless you intentionally own a full regen.
 4. Prefer local Docker: `./scripts/e2e-local.sh` (see [docs/guides/e2e-local.md](docs/guides/e2e-local.md)). Do **not** add new required CI jobs for this suite without an explicit decision.
+
+### Recurring CI pitfalls
+
+- **`sync-vulyk-case-links.mjs` skips reading `playwright-e2e.json` when loading
+  existing keys**, then rewrites that file from every spec. A dry run can
+  reallocate every `VQA-N` and break committed `@VQA-*` tags. Prefer manual
+  append of the new case + key; restore the fragment from `main` if you ran the
+  script by mistake.
+- **`generate-vue-cases.mjs` renumbers all `VUE-N` keys** in sorted file/title
+  order. Adding one test mid-alphabet shifts later keys. Append the new `VUE-N`
+  (next after the current max) to `e2e/cases/*.json` + `manifest.json` instead.
 
 ## API route coverage
 
