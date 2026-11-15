@@ -7,6 +7,7 @@ import {
   type ImporterInfo,
 } from '../api'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { useI18n } from '../i18n'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
@@ -25,6 +26,7 @@ const EMPTY_MAPPING: FieldMapping = {
 }
 
 export function ImportPage({ projectId }: Props) {
+  const { t } = useI18n()
   const { can } = useProjectPermissions(projectId)
   const canImport = can('import_cases')
   const [importers, setImporters] = useState<ImporterInfo[]>([])
@@ -63,7 +65,7 @@ export function ImportPage({ projectId }: Props) {
   }, [selected, format])
 
   if (!projectId) {
-    return <p className="muted">Select a project first.</p>
+    return <p className="muted">{t('cases.selectProject')}</p>
   }
 
   const runPreview = async () => {
@@ -112,21 +114,21 @@ export function ImportPage({ projectId }: Props) {
   if (!canImport) {
     return (
       <div className="panel">
-        <p className="muted">You do not have permission to import cases.</p>
+        <p className="muted">{t('import.noPermission')}</p>
       </div>
     )
   }
 
   return (
     <div className="panel import-panel" {...testIdProps(TestIds.importPage)}>
-      <h2>Import cases</h2>
+      <h2>{t('import.title')}</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        Choose an importer, map fields, dry-run a preview, then persist.
+        {t('import.subtitle')}
       </p>
 
       <div className="import-grid">
         <label>
-          Importer
+          {t('import.importer')}
           <select
             value={importerId}
             onChange={(e) => setImporterId(e.target.value)}
@@ -140,7 +142,7 @@ export function ImportPage({ projectId }: Props) {
           </select>
         </label>
         <label>
-          Format
+          {t('import.format')}
           <select
             value={format}
             onChange={(e) => setFormat(e.target.value)}
@@ -156,19 +158,19 @@ export function ImportPage({ projectId }: Props) {
       </div>
 
       <label className="stack-label">
-        Source content
+        {t('import.source')}
         <textarea
           className="import-source"
           rows={10}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="Paste CSV, XML, or JSON export…"
+          placeholder={t('import.sourcePlaceholder')}
           spellCheck={false}
           {...testIdProps(TestIds.importFileInput)}
         />
       </label>
 
-      <h3>Field mapping</h3>
+      <h3>{t('import.fieldMapping')}</h3>
       <div className="mapping-grid">
         {(Object.keys(EMPTY_MAPPING) as (keyof FieldMapping)[]).map(
           (key, index) => (
@@ -196,7 +198,7 @@ export function ImportPage({ projectId }: Props) {
           onClick={() => void runPreview()}
           {...testIdProps(TestIds.importPreviewButton)}
         >
-          Dry-run preview
+          {t('import.preview')}
         </button>
         <button
           type="button"
@@ -205,7 +207,7 @@ export function ImportPage({ projectId }: Props) {
           onClick={() => void runImport()}
           {...testIdProps(TestIds.importSubmitButton)}
         >
-          Import
+          {t('import.submit')}
         </button>
       </div>
 
@@ -217,19 +219,17 @@ export function ImportPage({ projectId }: Props) {
 
       {preview && (
         <section className="preview-block">
-          <h3>
-            Preview — {preview.total} case{preview.total === 1 ? '' : 's'}
-          </h3>
+          <h3>{t('import.previewHeading', { count: preview.total })}</h3>
           {preview.warnings.length > 0 && (
             <p className="muted">{preview.warnings.join(' · ')}</p>
           )}
           <table className="table">
             <thead>
               <tr>
-                <th>Key</th>
-                <th>Title</th>
-                <th>Suite</th>
-                <th>Steps</th>
+                <th>{t('cases.colKey')}</th>
+                <th>{t('cases.colTitle')}</th>
+                <th>{t('import.colSuite')}</th>
+                <th>{t('cases.steps')}</th>
               </tr>
             </thead>
             <tbody>
@@ -253,13 +253,16 @@ export function ImportPage({ projectId }: Props) {
           className="preview-block"
           {...testIdProps(TestIds.importSuccess)}
         >
-          <h3>Import complete</h3>
+          <h3>{t('import.complete')}</h3>
           <p>
-            Created {report.created_cases} cases
+            {t('import.createdCases', { count: report.created_cases })}
             {report.created_suites
-              ? ` and ${report.created_suites} suites`
+              ? ` ${t('import.andSuites', { count: report.created_suites })}`
               : ''}
-            {report.skipped ? ` · skipped ${report.skipped}` : ''}.
+            {report.skipped
+              ? ` ${t('import.skipped', { count: report.skipped })}`
+              : ''}
+            .
           </p>
         </section>
       )}

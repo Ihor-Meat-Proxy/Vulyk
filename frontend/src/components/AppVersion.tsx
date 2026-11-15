@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../i18n'
 import { TestIds, testIdProps } from '../testing'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
@@ -11,6 +12,7 @@ type HealthPayload = {
 
 /** Small footer mark showing API semver from `/health` (falls back to package version). */
 export function AppVersion() {
+  const { t } = useI18n()
   const [version, setVersion] = useState<string>(FALLBACK)
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function AppVersion() {
   return (
     <p
       className="app-version muted"
-      title="Vulyk version"
+      title={t('common.appVersion')}
       {...testIdProps(TestIds.appVersion)}
     >
       Vulyk {version}

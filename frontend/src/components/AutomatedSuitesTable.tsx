@@ -192,13 +192,13 @@ export function AutomatedSuitesTable({
           {...testIdProps(TestIds.automatedSuitesStatusFilter)}
         >
           <option value="">{t('cases.allStatuses')}</option>
-          <option value="Ready">Ready</option>
-          <option value="Running">Running</option>
-          <option value="Passed">Passed</option>
-          <option value="Failed">Failed</option>
-          <option value="Blocked">Blocked</option>
-          <option value="Skipped">Skipped</option>
-          <option value="Untestable">Untestable</option>
+          <option value="Ready">{t('status.ready')}</option>
+          <option value="Running">{t('status.running')}</option>
+          <option value="Passed">{t('status.passed')}</option>
+          <option value="Failed">{t('status.failed')}</option>
+          <option value="Blocked">{t('status.blocked')}</option>
+          <option value="Skipped">{t('status.skipped')}</option>
+          <option value="Untestable">{t('status.untestable')}</option>
         </select>
         <input
           className="filter-input"
@@ -215,11 +215,11 @@ export function AutomatedSuitesTable({
           aria-label={t('a11y.sort')}
           {...testIdProps(TestIds.automatedSuitesSortSelect)}
         >
-          <option value="created_at_desc">Newest</option>
-          <option value="created_at_asc">Oldest</option>
-          <option value="name_asc">Name A–Z</option>
-          <option value="name_desc">Name Z–A</option>
-          <option value="status_asc">Status</option>
+          <option value="created_at_desc">{t('executions.sortNewest')}</option>
+          <option value="created_at_asc">{t('executions.sortOldest')}</option>
+          <option value="name_asc">{t('executions.sortNameAsc')}</option>
+          <option value="name_desc">{t('executions.sortNameDesc')}</option>
+          <option value="status_asc">{t('executions.colStatus')}</option>
         </select>
         <button
           type="button"
