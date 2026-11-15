@@ -12,12 +12,26 @@ no CDN; works offline / air-gapped):
 The machine-readable OpenAPI document is generated via **utoipa** (`ApiDoc` in
 `backend/src/openapi.rs`) and exposed at **`GET /api/openapi.json`**. The docs
 UI loads a vendored `@scalar/api-reference` bundle from
-`/api/docs/assets/scalar.js` under a path-scoped CSP (`script-src 'self'`).
+`/api/docs/assets/scalar.js` under a path-scoped CSP (`script-src 'self'`,
+`connect-src 'self'`, `withDefaultFonts: false` — no `fonts.scalar.com`).
+
+### Using Scalar (search, Try it, Auth)
+
+- **Search** — sidebar search box, or Ctrl/⌘+K.
+- **Test Request (Try it)** — runs against the **same-origin** server (`/` in
+  OpenAPI `servers`). No Scalar proxy / CDN; requests stay on this host.
+- **Auth**
+  1. Open **Auth** and select `bearer_auth`. Paste a JWT from
+     `POST /api/v1/auth/login` (`token`) or a personal API token
+     (Settings → Tokens). Scalar sends `Authorization: Bearer …`.
+  2. **Session cookie** — if you are already signed in on this origin, the
+     browser sends HttpOnly `vulyk_session` with Test Request automatically
+     (nothing to paste). Prefer Bearer when calling from curl / another host.
 
 ## Conventions
 
 - Base path: `/api/v1`
-- Auth: session cookie or `Authorization: Bearer <jwt|api_token>`
+- Auth: session cookie (`vulyk_session`) or `Authorization: Bearer <jwt|api_token>`
 - Errors: `{ "error": { "code": "...", "message": "..." } }` (English messages; UI shows them in any locale without crashing — seed content may be localized via bilingual fields)
 - Locales: instance `default_locale` and `PATCH /api/v1/auth/me` `locale` accept `en` / `uk` / `fr` / `es` / `de`
 - Health: `GET /health`, `GET /ready`

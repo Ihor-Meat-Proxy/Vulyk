@@ -26,9 +26,9 @@ describe('isLiveRunStatus', () => {
 
 describe('hasLiveRuns', () => {
   it('is true when any run is live', () => {
-    expect(
-      hasLiveRuns([{ status: 'closed' }, { status: 'in_progress' }]),
-    ).toBe(true)
+    expect(hasLiveRuns([{ status: 'closed' }, { status: 'in_progress' }])).toBe(
+      true,
+    )
     expect(hasLiveRuns([{ status: 'closed' }])).toBe(false)
     expect(hasLiveRuns([])).toBe(false)
   })

@@ -102,8 +102,32 @@ async fn openapi_json_and_self_hosted_docs() {
         "docs HTML must not load remote scripts"
     );
     assert!(
+        !html.contains("fonts.scalar.com"),
+        "docs HTML must not load Scalar font CDN"
+    );
+    assert!(
+        html.contains("withDefaultFonts") && html.contains("false"),
+        "docs must disable Scalar default fonts"
+    );
+    assert!(
+        html.contains("hideSearch")
+            && html.contains("hideTestRequestButton")
+            && html.contains("bearer_auth")
+            && html.contains(r#""url":"/""#),
+        "docs Scalar config must enable search, Try it, bearer auth, same-origin server"
+    );
+    assert!(
         html.contains("\"openapi\"") || html.contains("openapi"),
         "docs HTML should embed the OpenAPI spec"
+    );
+    assert!(
+        body.pointer("/servers/0/url").and_then(|v| v.as_str()) == Some("/"),
+        "OpenAPI servers[0].url should be same-origin /"
+    );
+    assert!(
+        body.pointer("/components/securitySchemes/bearer_auth")
+            .is_some(),
+        "OpenAPI must expose bearer_auth for Scalar Auth"
     );
 
     let js = client

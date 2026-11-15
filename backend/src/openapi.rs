@@ -1,5 +1,8 @@
 use utoipa::{
-    openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    openapi::{
+        security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+        server::ServerBuilder,
+    },
     Modify, OpenApi,
 };
 
@@ -661,6 +664,28 @@ struct SecurityAddon;
 
 impl Modify for SecurityAddon {
     fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        // Same-origin relative server so Scalar Try it hits this instance (air-gapped; no proxy).
+        openapi.servers = Some(vec![ServerBuilder::new()
+            .url("/")
+            .description(Some(
+                "This Vulyk instance (same origin). Scalar Test Request calls this server; CSP connect-src is self only.",
+            ))
+            .build()]);
+
+        let auth_help = concat!(
+            "\n\n## Auth in /api/docs (Scalar)\n\n",
+            "1. **Bearer** — open **Auth**, select `bearer_auth`, paste a JWT from `POST /api/v1/auth/login` ",
+            "(`token` field) or a personal API token from Settings → Tokens. Scalar sends `Authorization: Bearer …`.\n",
+            "2. **Session cookie** — if you are already signed in on this origin, the browser sends the HttpOnly ",
+            "`vulyk_session` cookie with Test Request automatically (no paste). Cookie auth is not editable in Scalar; ",
+            "use Bearer when calling from another tool.\n",
+            "3. Search uses the sidebar search box (Ctrl/⌘+K). Test Request runs against the same-origin server (`/`).",
+        );
+        match openapi.info.description.as_mut() {
+            Some(desc) => desc.push_str(auth_help),
+            None => openapi.info.description = Some(auth_help.trim_start().into()),
+        }
+
         if let Some(components) = openapi.components.as_mut() {
             components.add_security_scheme(
                 "bearer_auth",
@@ -668,9 +693,12 @@ impl Modify for SecurityAddon {
                     HttpBuilder::new()
                         .scheme(HttpAuthScheme::Bearer)
                         .bearer_format("JWT or API token")
-                        .description(Some(
-                            "Session JWT from /auth/login or personal API token for CI/MCP",
-                        ))
+                        .description(Some(concat!(
+                            "Paste a session JWT (`POST /api/v1/auth/login` → `token`) or a personal API token ",
+                            "(Settings → Tokens / `POST /api/v1/tokens`). ",
+                            "Alternatively, when browsing /api/docs on this origin while logged in, the HttpOnly ",
+                            "`vulyk_session` cookie is sent automatically with Test Request.",
+                        )))
                         .build(),
                 ),
             );
@@ -697,6 +725,30 @@ mod tests {
     fn openapi_doc_builds_without_stack_overflow() {
         let doc = ApiDoc::openapi();
         assert!(!doc.paths.paths.is_empty());
+    }
+
+    #[test]
+    fn openapi_has_same_origin_server_and_bearer_auth() {
+        let doc = ApiDoc::openapi();
+        let servers = doc.servers.as_ref().expect("servers");
+        assert!(
+            servers.iter().any(|s| s.url == "/"),
+            "expected same-origin server /"
+        );
+        let schemes = &doc
+            .components
+            .as_ref()
+            .expect("components")
+            .security_schemes;
+        assert!(
+            schemes.contains_key("bearer_auth"),
+            "expected bearer_auth security scheme"
+        );
+        let desc = doc.info.description.as_deref().unwrap_or("");
+        assert!(
+            desc.contains("bearer_auth") && desc.contains("vulyk_session"),
+            "info.description should document Scalar Auth helper"
+        );
     }
 
     #[test]

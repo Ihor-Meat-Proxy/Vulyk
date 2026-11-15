@@ -12,10 +12,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { hasLiveRuns, LIVE_RUN_POLL_MS } from '../lib/liveRun'
-import {
-  applyUnlessCancelled,
-  createStaleGuard,
-} from '../lib/staleGuard'
+import { applyUnlessCancelled, createStaleGuard } from '../lib/staleGuard'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 

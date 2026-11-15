@@ -1489,6 +1489,19 @@
       "external_key": "e2e:live-run-polling.spec.ts runs list polls live status badges",
       "vqa_key": "VQA-357",
       "automation_link": "e2e/tests/live-run-polling.spec.ts :: runs list polls live status badges"
+    },
+    {
+      "id": "api-docs-api-docs-scalar-search-try-it-and-auth-stay-interactive-without-cdn",
+      "preferred_key": "VUE-221",
+      "key": "VUE-221",
+      "case_id": null,
+      "file": "api-docs.spec.ts",
+      "title": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "type": "positive",
+      "folder": "Meta",
+      "external_key": "e2e:api-docs.spec.ts API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "vqa_key": "VQA-359",
+      "automation_link": "e2e/tests/api-docs.spec.ts :: API docs Scalar search, Try it, and Auth stay interactive without CDN"
     }
   ]
 }

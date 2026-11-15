@@ -26,6 +26,30 @@
       ]
     },
     {
+      "id": "api-docs-api-docs-scalar-search-try-it-and-auth-stay-interactive-without-cdn",
+      "key": "VUE-221",
+      "title": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "api-docs.spec.ts",
+      "test": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "external_key": "e2e:api-docs.spec.ts API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "automation_link": "e2e/tests/api-docs.spec.ts :: API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "vqa_key": "VQA-359",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
       "id": "test-id-audit-login-app-shell-attrs-are-unique-and-non-sensitive",
       "key": "VUE-100",
       "title": "login + app shell attrs are unique and non-sensitive",

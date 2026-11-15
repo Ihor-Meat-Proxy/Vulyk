@@ -28,8 +28,6 @@ export function isLiveRunStatus(status: string | null | undefined): boolean {
 }
 
 /** True when any listed run should keep the list polling. */
-export function hasLiveRuns(
-  runs: ReadonlyArray<{ status: string }>,
-): boolean {
+export function hasLiveRuns(runs: ReadonlyArray<{ status: string }>): boolean {
   return runs.some((r) => isLiveRunStatus(r.status))
 }

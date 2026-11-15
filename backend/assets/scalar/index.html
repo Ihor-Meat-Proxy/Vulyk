@@ -7,11 +7,14 @@
 </head>
 <body>
   <!-- Spec inlined so docs work offline without a second fetch; also served at /api/openapi.json.
-       withDefaultFonts:false keeps Scalar from loading fonts.scalar.com (blocked by CSP). -->
+       Configuration is injected by the API (see SCALAR_CONFIGURATION in api_docs.rs):
+       - withDefaultFonts:false keeps Scalar from loading the font CDN (blocked by CSP)
+       - search + Test Request (Try it) enabled against same-origin servers
+       - preferredSecurityScheme bearer_auth for the Auth helper -->
   <script
     id="api-reference"
     type="application/json"
-    data-configuration='{"withDefaultFonts":false}'
+    data-configuration='$configuration'
   >
     $spec
   </script>
