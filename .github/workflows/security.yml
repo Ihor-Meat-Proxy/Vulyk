@@ -28,7 +28,7 @@ jobs:
     name: Rust (cargo-audit + cargo-deny)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -45,8 +45,8 @@ jobs:
     name: JS/TS (npm audit)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -74,7 +74,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: OSV-Scanner
         uses: google/osv-scanner-action/osv-scanner-action@v2.7.1
         with:
@@ -87,7 +87,7 @@ jobs:
         continue-on-error: true
       - name: Upload OSV SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: osv-results.sarif
           category: osv-scanner
@@ -100,7 +100,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Trivy FS scan (SARIF)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -127,7 +127,7 @@ jobs:
           trivyignores: .trivyignore
       - name: Upload Trivy FS SARIF
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-fs
@@ -156,7 +156,7 @@ jobs:
             file: deploy/updater/Dockerfile
             tag: vulyk-updater:security
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build ${{ matrix.name }} image
         run: docker build -f "${{ matrix.file }}" -t "${{ matrix.tag }}" "${{ matrix.context }}"
       - name: Trivy image scan (SARIF)
@@ -185,7 +185,7 @@ jobs:
           trivyignores: .trivyignore
       - name: Upload Trivy image SARIF
         if: always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-${{ matrix.name }}.sarif
           category: trivy-image-${{ matrix.name }}
@@ -203,16 +203,16 @@ jobs:
       matrix:
         language: [javascript-typescript, rust]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-extended
       - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+        uses: github/codeql-action/autobuild@v4
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
 
@@ -223,7 +223,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Semgrep
         run: pipx install semgrep
       # Broad packs → SARIF only (day-one noise; ratchet later via code scanning).
@@ -257,7 +257,7 @@ jobs:
             --exclude='frontend/dist/**'
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep.sarif
           category: semgrep
@@ -267,7 +267,7 @@ jobs:
     name: Gitleaks secrets
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       # gitleaks-action requires a paid license for GitHub orgs; use the CLI.
