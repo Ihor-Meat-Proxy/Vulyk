@@ -122,13 +122,27 @@ type SettingsProps = {
   activeProjectId?: string | null
 }
 
-function ciTokenEnvBlock(secret: string): string {
-  return [
+function ciTokenEnvBlock(
+  secret: string,
+  opts: { baseUrl?: string; projectId?: string; caseKeyPrefix?: string } = {},
+): string {
+  const baseUrl = (opts.baseUrl || '').replace(/\/$/, '')
+  const lines = [
     `# Vulyk project CI token (shown once)`,
     `VULYK_CI_TOKEN=${secret}`,
     `# Alias accepted by the Playwright reporter:`,
     `# VULYK_API_TOKEN=${secret}`,
-  ].join('\n')
+  ]
+  if (baseUrl) {
+    lines.push(`VULYK_URL=${baseUrl}`)
+  }
+  if (opts.projectId) {
+    lines.push(`VULYK_PROJECT_ID=${opts.projectId}`)
+  }
+  if (opts.caseKeyPrefix) {
+    lines.push(`VULYK_CASE_KEY_PREFIX=${opts.caseKeyPrefix}`)
+  }
+  return lines.join('\n')
 }
 
 export function Settings({ activeProjectId = null }: SettingsProps) {
@@ -657,10 +671,25 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
   const fmtTs = (value: string | null | undefined) => {
     if (!value) return t('settings.ciTokenNeverUsed')
     try {
-      return new Date(value).toLocaleString()
+      return new Intl.DateTimeFormat(locale, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(value))
     } catch {
       return value
     }
+  }
+
+  const ciEnvBlockText = (secret: string) => {
+    const selected = projects.find((p) => p.id === ciProjectId)
+    return ciTokenEnvBlock(secret, {
+      baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
+      projectId: ciProjectId || undefined,
+      caseKeyPrefix: selected?.case_key_prefix || selected?.key || undefined,
+    })
   }
 
   return (
@@ -1366,7 +1395,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                   className="btn secondary tiny"
                   onClick={() =>
                     void copyText(
-                      ciTokenEnvBlock(ciSecretOnce),
+                      ciEnvBlockText(ciSecretOnce),
                       t('settings.ciTokenEnvCopied'),
                     )
                   }
@@ -1384,7 +1413,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                 aria-label={t('a11y.ciTokenEnvBlock')}
                 {...testIdProps(TestIds.settingsCiTokenEnvBlock)}
               >
-                {ciTokenEnvBlock(ciSecretOnce)}
+                {ciEnvBlockText(ciSecretOnce)}
               </div>
               {ciCopyNotice ? (
                 <p
@@ -1427,7 +1456,11 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                       </span>
                     </div>
                   </div>
-                  {tok.revoked_at ? null : (
+                  {tok.revoked_at ? (
+                    <span className="badge muted">
+                      {t('admin.tokensRevoked')}
+                    </span>
+                  ) : (
                     <button
                       type="button"
                       className="linkish"

@@ -1274,6 +1274,28 @@ function TokensPanel({
   )
 }
 
+/** Strip raw upstream JSON from update-check failures for a single friendly alert. */
+function friendlyUpdateCheckError(raw: string): string {
+  const trimmed = raw.trim()
+  if (/rate limit/i.test(trimmed)) {
+    return 'Update check failed: GitHub API rate limit exceeded. Try again later.'
+  }
+  if (/403|Forbidden/i.test(trimmed)) {
+    return 'Update check failed: GitHub releases request was forbidden.'
+  }
+  if (/404|Not Found/i.test(trimmed)) {
+    return 'Update check failed: GitHub release feed was not found.'
+  }
+  // Drop embedded JSON blobs that make the alert unreadable.
+  const withoutJson = trimmed.replace(/\{[\s\S]*\}$/, '').trim()
+  if (withoutJson && withoutJson.length < trimmed.length) {
+    return withoutJson.length > 200
+      ? `${withoutJson.slice(0, 200)}…`
+      : withoutJson
+  }
+  return trimmed.length > 240 ? `${trimmed.slice(0, 240)}…` : trimmed
+}
+
 function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const { t } = useI18n()
   const [status, setStatus] = useState<UpdatesStatus | null>(null)
@@ -1351,10 +1373,11 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
       setActiveJob(s.active_job)
       setCheckError(null)
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err)
-      // Do not claim "latest" when the check failed (audit F7).
+      const raw = err instanceof Error ? err.message : String(err)
+      // One friendly alert in the panel — avoid duplicating raw GitHub JSON
+      // in the Admin-level error banner (demo F7).
+      const msg = friendlyUpdateCheckError(raw)
       setCheckError(msg)
-      onError(msg)
     } finally {
       setChecking(false)
     }
