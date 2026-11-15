@@ -6508,6 +6508,183 @@
             }
           ],
           "key": "VQA-336"
+        },
+        {
+          "title": {
+            "en": "auth required by default: anonymous API denied and gear shows Auth required",
+            "uk": "auth required by default: anonymous API denied and gear shows Auth required",
+            "fr": "auth required by default: anonymous API denied and gear shows Auth required",
+            "es": "auth required by default: anonymous API denied and gear shows Auth required",
+            "de": "auth required by default: anonymous API denied and gear shows Auth required"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: auth-required-default.spec.ts — auth required by default: anonymous API denied and gear shows Auth required",
+            "uk": "Покриття Playwright e2e: auth-required-default.spec.ts — auth required by default: anonymous API denied and gear shows Auth required",
+            "fr": "Playwright e2e coverage: auth-required-default.spec.ts — auth required by default: anonymous API denied and gear shows Auth required",
+            "es": "Playwright e2e coverage: auth-required-default.spec.ts — auth required by default: anonymous API denied and gear shows Auth required",
+            "de": "Playwright e2e coverage: auth-required-default.spec.ts — auth required by default: anonymous API denied and gear shows Auth required"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:auth-required-default.spec.ts auth required by default: anonymous API denied and gear shows Auth required",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test auth-required-default.spec.ts -g \"auth required by default: anonymous API denied and gear shows Auth required\"",
+                "uk": "Run npx playwright test auth-required-default.spec.ts -g \"auth required by default: anonymous API denied and gear shows Auth required\"",
+                "fr": "Run npx playwright test auth-required-default.spec.ts -g \"auth required by default: anonymous API denied and gear shows Auth required\"",
+                "es": "Run npx playwright test auth-required-default.spec.ts -g \"auth required by default: anonymous API denied and gear shows Auth required\"",
+                "de": "Run npx playwright test auth-required-default.spec.ts -g \"auth required by default: anonymous API denied and gear shows Auth required\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-337"
+        },
+        {
+          "title": {
+            "en": "theme-init.js applies stored theme without CSP violations",
+            "uk": "theme-init.js applies stored theme without CSP violations",
+            "fr": "theme-init.js applies stored theme without CSP violations",
+            "es": "theme-init.js applies stored theme without CSP violations",
+            "de": "theme-init.js applies stored theme without CSP violations"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: theme-csp.spec.ts — theme-init.js applies stored theme without CSP violations",
+            "uk": "Покриття Playwright e2e: theme-csp.spec.ts — theme-init.js applies stored theme without CSP violations",
+            "fr": "Playwright e2e coverage: theme-csp.spec.ts — theme-init.js applies stored theme without CSP violations",
+            "es": "Playwright e2e coverage: theme-csp.spec.ts — theme-init.js applies stored theme without CSP violations",
+            "de": "Playwright e2e coverage: theme-csp.spec.ts — theme-init.js applies stored theme without CSP violations"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:theme-csp.spec.ts theme-init.js applies stored theme without CSP violations",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test theme-csp.spec.ts -g \"theme-init.js applies stored theme without CSP violations\"",
+                "uk": "Run npx playwright test theme-csp.spec.ts -g \"theme-init.js applies stored theme without CSP violations\"",
+                "fr": "Run npx playwright test theme-csp.spec.ts -g \"theme-init.js applies stored theme without CSP violations\"",
+                "es": "Run npx playwright test theme-csp.spec.ts -g \"theme-init.js applies stored theme without CSP violations\"",
+                "de": "Run npx playwright test theme-csp.spec.ts -g \"theme-init.js applies stored theme without CSP violations\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-338"
+        },
+        {
+          "title": {
+            "en": "failed update check surfaces error instead of latest",
+            "uk": "failed update check surfaces error instead of latest",
+            "fr": "failed update check surfaces error instead of latest",
+            "es": "failed update check surfaces error instead of latest",
+            "de": "failed update check surfaces error instead of latest"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: admin-updates-rollback.spec.ts — failed update check surfaces error instead of latest",
+            "uk": "Покриття Playwright e2e: admin-updates-rollback.spec.ts — failed update check surfaces error instead of latest",
+            "fr": "Playwright e2e coverage: admin-updates-rollback.spec.ts — failed update check surfaces error instead of latest",
+            "es": "Playwright e2e coverage: admin-updates-rollback.spec.ts — failed update check surfaces error instead of latest",
+            "de": "Playwright e2e coverage: admin-updates-rollback.spec.ts — failed update check surfaces error instead of latest"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts failed update check surfaces error instead of latest",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test admin-updates-rollback.spec.ts -g \"failed update check surfaces error instead of latest\"",
+                "uk": "Run npx playwright test admin-updates-rollback.spec.ts -g \"failed update check surfaces error instead of latest\"",
+                "fr": "Run npx playwright test admin-updates-rollback.spec.ts -g \"failed update check surfaces error instead of latest\"",
+                "es": "Run npx playwright test admin-updates-rollback.spec.ts -g \"failed update check surfaces error instead of latest\"",
+                "de": "Run npx playwright test admin-updates-rollback.spec.ts -g \"failed update check surfaces error instead of latest\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-339"
         }
       ]
     }

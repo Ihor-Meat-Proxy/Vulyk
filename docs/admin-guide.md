@@ -210,7 +210,7 @@ Rollback: `--confirm=ROLLBACK` (or `VULYK_ROLLBACK_CONFIRM=ROLLBACK`).
 | Variable | Purpose |
 |----------|---------|
 | `VULYK_JWT_SECRET` | Required non-default value when auth is on (boot panics otherwise) |
-| `VULYK_AUTH_REQUIRED` | Local default false; **fail-closed** when `VULYK_ENV=production\|prod` or https `VULYK_BASE_URL` (auto-on if unset; panic if explicitly false) |
+| `VULYK_AUTH_REQUIRED` | New-install default **true** (upgrade preserves existing `false`); **fail-closed** when `VULYK_ENV=production\|prod` or https `VULYK_BASE_URL` (auto-on if unset; panic if explicitly false) |
 | `VULYK_ENV` | Optional; `production`/`prod` enables auth fail-closed above |
 | `VULYK_SECRETS_KEY` | Envelope encryption for LLM / integration / SSO / backup destination secrets |
 | `VULYK_COOKIE_SECURE` | Force `Secure` on the session cookie (`1`/`true`) |

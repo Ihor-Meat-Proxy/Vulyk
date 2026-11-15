@@ -170,6 +170,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "automated-case-flag",
         include_str!("../seed/vulyk-qa.d/automated-case-flag.json"),
     ),
+    (
+        "auth-csp-updates",
+        include_str!("../seed/vulyk-qa.d/auth-csp-updates.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

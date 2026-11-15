@@ -99,6 +99,14 @@ if ! grep -qE '^VULYK_UPDATER_TOKEN=.' "${OPERATOR_ENV}"; then
   die "VULYK_UPDATER_TOKEN missing after sync (mark @vulyk:sync @vulyk:secret on it)"
 fi
 
+# F5: new installs default auth on, but upgrade must never overwrite an existing false.
+grep -qE '^VULYK_AUTH_REQUIRED=true([[:space:]]|$|#)' "${ROOT}/.env.example" \
+  || die "HEAD .env.example must default VULYK_AUTH_REQUIRED=true for new installs"
+AUTH_AFTER="$(grep -E '^VULYK_AUTH_REQUIRED=' "${OPERATOR_ENV}" | head -n1 | cut -d= -f2- | tr -d '[:space:]')"
+[[ "${AUTH_AFTER}" == "false" ]] \
+  || die "upgrade must preserve operator VULYK_AUTH_REQUIRED=false (got '${AUTH_AFTER}')"
+log "VULYK_AUTH_REQUIRED preserved as false after sync (new-install default is true)"
+
 # Every Compose ${VAR:?...} must be non-empty after sync (catches empty-template seeds).
 OPERATOR_ENV="${OPERATOR_ENV}" python3 - <<'PY'
 import os, re, sys

@@ -9,12 +9,12 @@
     {
       "name": "Admin",
       "file": "admin.json",
-      "count": 9
+      "count": 10
     },
     {
       "name": "Auth",
       "file": "auth.json",
-      "count": 12
+      "count": 13
     },
     {
       "name": "Automation & CI",
@@ -79,7 +79,7 @@
     {
       "name": "Settings",
       "file": "settings.json",
-      "count": 13
+      "count": 14
     },
     {
       "name": "Shell",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 110,
+  "case_count": 113,
   "generated": "2026-11-15T08:55:00.000Z"
 }

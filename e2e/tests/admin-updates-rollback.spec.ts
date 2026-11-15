@@ -86,3 +86,44 @@ test('version backups list and job history regions render', {
   await expect(page.getByTestId(TestIds.adminUpdatesBackupList)).toBeVisible()
   await expect(page.getByTestId(TestIds.adminUpdatesJobList)).toBeVisible()
 })
+
+test('failed update check surfaces error instead of latest', {
+  tag: ['@VQA-339', '@VUE-113'],
+  annotation: [
+    { type: 'vulyk', description: 'VQA-339' },
+    { type: 'vulyk', description: 'VUE-113' },
+  ],
+}, async ({ page }) => {
+  await openUpdates(page)
+
+  await page.route('**/api/v1/admin/updates/check', async (route) => {
+    if (route.request().method() !== 'POST') {
+      await route.continue()
+      return
+    }
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        error: {
+          code: 'bad_request',
+          message: 'github releases HTTP 403: API rate limit exceeded',
+        },
+      }),
+    })
+  })
+
+  await page.getByTestId(TestIds.adminUpdatesCheckButton).click()
+
+  const checkError = page.getByTestId(TestIds.adminUpdatesCheckError)
+  await expect(checkError).toBeVisible({ timeout: 15_000 })
+  await expect(checkError).toContainText(/rate limit|403|github/i)
+
+  const status = page.getByTestId(TestIds.adminUpdatesStatus)
+  await expect(status).toBeVisible()
+  await expect(status).toContainText(/failed|не вдалася|Échec|Falló|fehlgeschlagen/i)
+  await expect(status).not.toContainText(
+    /latest checked release|остання перевірена|dernière version vérifiée|última versión comprobada|zuletzt geprüfte/i,
+  )
+  await expect(page.getByTestId(TestIds.adminError)).toBeVisible()
+})
