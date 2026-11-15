@@ -133,7 +133,7 @@ export function ExecutionsPage({ projectId }: Props) {
   }
 
   if (!projectId) {
-    return <div className="empty">Select a project to view executions.</div>
+    return <div className="empty">{t('executions.selectProject')}</div>
   }
 
   return (

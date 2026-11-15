@@ -68,7 +68,7 @@ export function RunsPage({ projectId, suites }: Props) {
     setAbandoningId(runId)
     try {
       const updated = await api.abandonRun(projectId, runId, {
-        message: 'abandoned from runs list',
+        message: t('runs.abandonedFromList'),
       })
       setRuns((prev) => prev.map((r) => (r.id === runId ? updated : r)))
       setError(null)

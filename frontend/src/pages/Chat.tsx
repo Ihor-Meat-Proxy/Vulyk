@@ -32,9 +32,13 @@ function nextTurnId(): string {
   return `turn-${chatTurnSeq}`
 }
 
-function configLabel(c: LlmConfig): string {
-  const scope = c.project_id == null ? 'global' : 'project'
-  const def = c.is_default ? ' · default' : ''
+function configLabel(
+  c: LlmConfig,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  const scope =
+    c.project_id == null ? t('common.scopeGlobal') : t('common.scopeProject')
+  const def = c.is_default ? t('common.defaultBadge') : ''
   return `${c.name} (${c.provider}/${c.model || '—'}, ${scope}${def})`
 }
 
@@ -43,8 +47,9 @@ function folderLabel(
   suites: Suite[],
   reqFolders: RequirementFolder[],
   forRequirements: boolean,
+  t: (key: string, vars?: Record<string, string | number>) => string,
 ): string {
-  if (!id) return 'Unfiled'
+  if (!id) return t('cases.unfiled')
   if (forRequirements) {
     return reqFolders.find((f) => f.id === id)?.name ?? id
   }
@@ -133,6 +138,7 @@ export function Chat({ projectId }: Props) {
           suites,
           reqFolders,
           forRequirements,
+          t,
         )
       }
       return { ...prev, placement }
@@ -345,7 +351,7 @@ export function Chat({ projectId }: Props) {
           )}
           {modelOptions.map((c) => (
             <option key={c.id} value={c.id}>
-              {configLabel(c)}
+              {configLabel(c, t)}
             </option>
           ))}
         </select>
@@ -399,7 +405,7 @@ export function Chat({ projectId }: Props) {
                   updatePlacement({
                     project_id: e.target.value,
                     folder_id: null,
-                    folder_path: 'Unfiled',
+                    folder_path: t('cases.unfiled'),
                   })
                 }
                 aria-label={t('chat.project')}
@@ -505,10 +511,10 @@ export function Chat({ projectId }: Props) {
                     }
                     {...listChildProps(TestIds.chatDraftCase, 'priority')}
                   >
-                    <option value="critical">critical</option>
-                    <option value="high">high</option>
-                    <option value="medium">medium</option>
-                    <option value="low">low</option>
+                    <option value="critical">{t('priority.critical')}</option>
+                    <option value="high">{t('priority.high')}</option>
+                    <option value="medium">{t('priority.medium')}</option>
+                    <option value="low">{t('priority.low')}</option>
                   </select>
                 </label>
                 <label className="field">

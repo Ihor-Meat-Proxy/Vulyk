@@ -1814,7 +1814,7 @@ function SettingsPanel({
     return (
       <div className="panel">
         <p className="muted" {...testIdProps(TestIds.adminLoading)}>
-          Loading settings…
+          {t('admin.loadingSettings')}
         </p>
       </div>
     )
@@ -1912,7 +1912,7 @@ function SettingsPanel({
           </select>
         </label>
         <label className="field">
-          <span>Default project role</span>
+          <span>{t('admin.defaultProjectRole')}</span>
           <select
             value={defaultRole}
             onChange={(e) => setDefaultRole(e.target.value as ProjectRole)}

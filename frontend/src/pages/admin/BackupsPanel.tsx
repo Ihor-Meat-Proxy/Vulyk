@@ -134,7 +134,9 @@ export function BackupsPanel({ projects, onError }: Props) {
     setTestMsg(null)
     try {
       const res = await api.testBackupDestination(id)
-      setTestMsg(res.ok ? res.message : `Failed: ${res.message}`)
+      setTestMsg(
+        res.ok ? res.message : t('admin.backupsFailed', { message: res.message }),
+      )
     } catch (err) {
       onError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -296,7 +298,7 @@ export function BackupsPanel({ projects, onError }: Props) {
             <>
               {destKind === 'github' && (
                 <label>
-                  Owner
+                  {t('admin.backupsOwner')}
                   <input
                     {...testIdProps(TestIds.adminBackupsDestOwner)}
                     value={destOwner}
@@ -306,7 +308,9 @@ export function BackupsPanel({ projects, onError }: Props) {
                 </label>
               )}
               <label>
-                {destKind === 'github' ? 'Repo' : 'Project id'}
+                {destKind === 'github'
+                  ? t('admin.backupsRepo')
+                  : t('admin.backupsProjectId')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestRepo)}
                   value={destRepo}
@@ -315,7 +319,7 @@ export function BackupsPanel({ projects, onError }: Props) {
                 />
               </label>
               <label>
-                Branch
+                {t('admin.automationBranch')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestBranch)}
                   value={destBranch}
@@ -323,7 +327,7 @@ export function BackupsPanel({ projects, onError }: Props) {
                 />
               </label>
               <label>
-                Path
+                {t('admin.backupsPath')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestRemotePath)}
                   value={destRemotePath}
@@ -335,7 +339,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           {destKind === 'nextcloud' && (
             <>
               <label>
-                Base URL
+                {t('admin.backupsBaseUrl')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestBaseUrl)}
                   value={destBaseUrl}
@@ -344,7 +348,7 @@ export function BackupsPanel({ projects, onError }: Props) {
                 />
               </label>
               <label>
-                Username
+                {t('admin.backupsUsername')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestUsername)}
                   value={destUsername}
@@ -353,7 +357,7 @@ export function BackupsPanel({ projects, onError }: Props) {
                 />
               </label>
               <label>
-                Path
+                {t('admin.backupsPath')}
                 <input
                   {...testIdProps(TestIds.adminBackupsDestRemotePath)}
                   value={destRemotePath}
@@ -364,7 +368,7 @@ export function BackupsPanel({ projects, onError }: Props) {
           )}
           {destKind === 'gdrive' && (
             <label>
-              Folder id
+              {t('admin.backupsFolderId')}
               <input
                 {...testIdProps(TestIds.adminBackupsDestFolderId)}
                 value={destFolderId}
@@ -402,8 +406,10 @@ export function BackupsPanel({ projects, onError }: Props) {
             <li key={p.id}>
               {p.schedule} → {p.destination_id.slice(0, 8)}…
               {p.project_id
-                ? ` · project ${p.project_id.slice(0, 8)}`
-                : ' · all'}
+                ? t('admin.backupsScopeProject', {
+                    id: p.project_id.slice(0, 8),
+                  })
+                : t('admin.backupsScopeAll')}
             </li>
           ))}
         </ul>
@@ -430,9 +436,11 @@ export function BackupsPanel({ projects, onError }: Props) {
               value={policySchedule}
               onChange={(e) => setPolicySchedule(e.target.value)}
             >
-              <option value="hourly">hourly</option>
-              <option value="daily">daily</option>
-              <option value="manual_only">manual_only</option>
+              <option value="hourly">{t('admin.backupsScheduleHourly')}</option>
+              <option value="daily">{t('admin.backupsScheduleDaily')}</option>
+              <option value="manual_only">
+                {t('admin.backupsScheduleManual')}
+              </option>
             </select>
           </label>
           <label>
@@ -507,8 +515,8 @@ export function BackupsPanel({ projects, onError }: Props) {
               value={packMode}
               onChange={(e) => setPackMode(e.target.value)}
             >
-              <option value="zip">zip</option>
-              <option value="unpacked">unpacked</option>
+              <option value="zip">{t('admin.backupsPackZip')}</option>
+              <option value="unpacked">{t('admin.backupsPackUnpacked')}</option>
             </select>
           </label>
           <button

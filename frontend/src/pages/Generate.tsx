@@ -21,9 +21,13 @@ type Props = {
   projectId: string | null
 }
 
-function configLabel(c: LlmConfig): string {
-  const scope = c.project_id == null ? 'global' : 'project'
-  const def = c.is_default ? ' · default' : ''
+function configLabel(
+  c: LlmConfig,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  const scope =
+    c.project_id == null ? t('common.scopeGlobal') : t('common.scopeProject')
+  const def = c.is_default ? t('common.defaultBadge') : ''
   return `${c.name} (${c.provider}/${c.model || '—'}, ${scope}${def})`
 }
 
@@ -254,7 +258,7 @@ export function Generate({ projectId }: Props) {
               )}
               {modelOptions.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {configLabel(c)}
+                  {configLabel(c, t)}
                 </option>
               ))}
             </select>
@@ -305,7 +309,7 @@ export function Generate({ projectId }: Props) {
               )}
               {modelOptions.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {configLabel(c)}
+                  {configLabel(c, t)}
                 </option>
               ))}
             </select>

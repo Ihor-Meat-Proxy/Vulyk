@@ -71,4 +71,6 @@ Default **light** and **dark** themes use a muted bee/beehive palette: warm crea
 
 Missing UI translation keys fall back to English, then to the key string. Seeded sample content uses bilingual fields with English fallback for `fr` / `es` / `de` when those locale strings are empty.
 
+The empty-instance **Demo project** auto-seeded by the UI (`App.tsx`) uses the active UI locale via `t('demo.*')` — the same resolution order as the rest of the chrome (signed-in user preference → `localStorage['vulyk.locale']` → instance `default_locale` → `en`). It is written once when there are no projects; changing locale later does not rewrite that seed.
+
 See [user-guide.md](./user-guide.md#appearance) for the UI walkthrough.

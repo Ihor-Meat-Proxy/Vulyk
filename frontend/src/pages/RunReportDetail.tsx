@@ -197,7 +197,7 @@ export function RunReportDetail({ projectId }: Props) {
     setAbandoning(true)
     try {
       await api.abandonRun(projectId, runId, {
-        message: 'abandoned from run report',
+        message: t('runs.abandonedFromReport'),
       })
       await refresh()
       setError(null)
@@ -469,10 +469,10 @@ export function RunReportDetail({ projectId }: Props) {
               {...testIdProps(TestIds.reportsRunFilterPriority)}
             >
               <option value="">{t('reports.filterPriorityAll')}</option>
-              <option value="critical">critical</option>
-              <option value="high">high</option>
-              <option value="medium">medium</option>
-              <option value="low">low</option>
+              <option value="critical">{t('priority.critical')}</option>
+              <option value="high">{t('priority.high')}</option>
+              <option value="medium">{t('priority.medium')}</option>
+              <option value="low">{t('priority.low')}</option>
             </select>
           </label>
           <label>

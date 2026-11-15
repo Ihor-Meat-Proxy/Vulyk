@@ -40,8 +40,8 @@ export function Runs({ projectId }: Props) {
   const [results, setResults] = useState<TestResult[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
-  const [runName, setRunName] = useState('Manual smoke')
-  const [ciName, setCiName] = useState('GitHub Actions')
+  const [runName, setRunName] = useState(() => t('runs.manualSmoke'))
+  const [ciName, setCiName] = useState(() => t('runs.githubActions'))
   const [provider, setProvider] = useState<'github' | 'gitlab'>('github')
   const [ciJson, setCiJson] = useState(
     '{\n  "token": "",\n  "owner": "org",\n  "repo": "repo",\n  "workflow_id": "ci.yml",\n  "ref": "main"\n}',
@@ -132,7 +132,7 @@ export function Runs({ projectId }: Props) {
     setBusy(true)
     try {
       await api.dispatchCi(configId, {
-        run_name: `UI trigger ${new Date().toISOString()}`,
+        run_name: t('runs.uiTrigger', { time: new Date().toISOString() }),
         inputs: {},
       })
       await refresh()
@@ -294,7 +294,9 @@ export function Runs({ projectId }: Props) {
                     const next = e.target.value as 'github' | 'gitlab'
                     setProvider(next)
                     setCiName(
-                      next === 'github' ? 'GitHub Actions' : 'GitLab pipeline',
+                      next === 'github'
+                        ? t('runs.githubActions')
+                        : t('runs.gitlabPipeline'),
                     )
                     setCiJson(
                       next === 'github'
