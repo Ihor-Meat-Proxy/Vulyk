@@ -1376,7 +1376,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                   {t('settings.ciTokenCopyEnv')}
                 </button>
               </div>
-              <pre
+              <div
                 className="token-env-block"
                 tabIndex={0}
                 role="textbox"
@@ -1385,7 +1385,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                 {...testIdProps(TestIds.settingsCiTokenEnvBlock)}
               >
                 {ciTokenEnvBlock(ciSecretOnce)}
-              </pre>
+              </div>
               {ciCopyNotice ? (
                 <p
                   className="muted"
