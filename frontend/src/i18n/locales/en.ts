@@ -173,6 +173,7 @@ const en: Dict = {
   'admin.updates.backupRoles': "Roles",
   'admin.updates.rollingBack': "Rolling back...",
   'admin.subtitle': "Users, roles, lists, custom fields, backups, integrations, LLM providers, API tokens, and config export.",
+  'admin.authOffWarning': "Open mode is active (authentication off). Do not expose this instance on a shared or production network without enabling auth.",
   'admin.title': "Admin",
   'admin.tokens': "API tokens",
   'admin.backups': "Backups",

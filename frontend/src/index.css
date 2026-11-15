@@ -860,6 +860,12 @@ input[type='radio'] {
   word-break: break-all;
 }
 
+.notice.notice-warn {
+  background: color-mix(in srgb, var(--warn) 14%, var(--bg-elevated));
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--line));
+  color: var(--warn);
+}
+
 .chat-page {
   display: flex;
   flex-direction: column;

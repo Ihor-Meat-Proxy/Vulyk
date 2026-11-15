@@ -173,6 +173,7 @@ const de: Dict = {
   'admin.updates.backupRoles': "Rollen",
   'admin.updates.rollingBack': "Rollback läuft...",
   'admin.subtitle': "Benutzer, Rollen, Listen, benutzerdefinierte Felder, Backups, Integrationen, LLM, API-Token und Config-Export.",
+  'admin.authOffWarning': "Offener Modus ist aktiv (Authentifizierung aus). Setzen Sie diese Instanz nicht in einem gemeinsamen oder Produktionsnetzwerk ohne Authentifizierung frei.",
   'admin.title': "Administration",
   'admin.tokens': "API-Tokens",
   'admin.backups': "Backups",

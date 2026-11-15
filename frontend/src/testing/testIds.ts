@@ -541,6 +541,8 @@ export const TestIds = {
 
   // —— Admin ——
   adminPage: 'admin-page',
+  /** Persistent warn when VULYK_AUTH_REQUIRED=false (open mode). */
+  adminAuthOffBanner: 'admin-auth-off-banner',
   adminTabUsers: 'admin-tab-users',
   adminTabRoles: 'admin-tab-roles',
   adminTabProjects: 'admin-tab-projects',

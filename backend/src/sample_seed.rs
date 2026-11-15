@@ -182,6 +182,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "live-run-ui-polling",
         include_str!("../seed/vulyk-qa.d/live-run-ui-polling.json"),
     ),
+    (
+        "auth-off-admin-warning",
+        include_str!("../seed/vulyk-qa.d/auth-off-admin-warning.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

@@ -16,6 +16,7 @@ Examples:
 | Header gear auth mode badge | `header-gear-auth-mode` |
 | Admin Updates status / check error | `admin-updates-status` / `admin-updates-check-error` |
 | Admin custom fields add | `admin-custom-fields-add-button` |
+| Admin open-mode (auth off) warning | `admin-auth-off-banner` |
 
 Every **button**, **input**, **select**, **checkbox**, **link**, **tab**, **menu item**, **dialog**, **toast**, **table header / sort control**, and **empty / loading / error** state gets one id. Ids must be **unique per page** (same string may appear once per mounted page).
 

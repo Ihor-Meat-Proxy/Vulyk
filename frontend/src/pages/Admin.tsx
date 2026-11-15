@@ -77,7 +77,7 @@ type Props = {
 }
 
 export function Admin({ projects, project, onProjectsChanged }: Props) {
-  const { user } = useAuth()
+  const { user, status: authStatus } = useAuth()
   const { t } = useI18n()
   const { can } = useProjectPermissions(project?.id ?? null)
   const [tab, setTab] = useState<Tab>('users')
@@ -160,11 +160,24 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
     void load()
   }, [load])
 
+  const showAuthOffBanner = Boolean(
+    authStatus && !authStatus.auth_required && isSystemAdmin,
+  )
+
   return (
     <div className="admin" {...testIdProps(TestIds.adminPage)}>
       <div className="panel">
         <h2>{t('admin.title')}</h2>
         <p className="muted">{t('admin.subtitle')}</p>
+        {showAuthOffBanner && (
+          <p
+            className="notice notice-warn"
+            role="status"
+            {...testIdProps(TestIds.adminAuthOffBanner)}
+          >
+            {t('admin.authOffWarning')}
+          </p>
+        )}
         <div className="admin-tabs" role="tablist">
           {tabs.map(({ id, label }) => (
             <button

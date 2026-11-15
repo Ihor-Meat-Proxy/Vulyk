@@ -173,6 +173,7 @@ const fr: Dict = {
   'admin.updates.backupRoles': "Roles",
   'admin.updates.rollingBack': "Rollback en cours...",
   'admin.subtitle': "Utilisateurs, roles, listes, champs personnalises, sauvegardes, integrations, LLM, jetons API et export de config.",
+  'admin.authOffWarning': "Le mode ouvert est actif (authentification desactivee). N'exposez pas cette instance sur un reseau partage ou de production sans activer l'authentification.",
   'admin.title': "Administration",
   'admin.tokens': "Jetons API",
   'admin.backups': "Sauvegardes",
