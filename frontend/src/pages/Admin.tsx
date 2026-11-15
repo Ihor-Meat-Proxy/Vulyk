@@ -1490,6 +1490,8 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
       <h3>{t('admin.updates')}</h3>
       <p
         className={checkError ? 'error' : 'muted'}
+        role={checkError ? 'alert' : 'status'}
+        aria-live={checkError ? 'assertive' : 'polite'}
         {...testIdProps(TestIds.adminUpdatesStatus)}
       >
         {statusSummary}
@@ -1498,7 +1500,13 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           : null}
       </p>
       {checkError ? (
-        <p className="error" {...testIdProps(TestIds.adminUpdatesCheckError)}>
+        <p
+          className="error"
+          role="alert"
+          aria-live="assertive"
+          aria-label={t('a11y.updatesCheckError')}
+          {...testIdProps(TestIds.adminUpdatesCheckError)}
+        >
           {checkError}
         </p>
       ) : null}

@@ -104,9 +104,9 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 
 - Case picker: `case-picker-chips`, `case-picker-folders`, `case-picker-list`
 - CI tokens: `settings-ci-token-env-block`, `settings-ci-token-copy-button`,
-  `settings-ci-token-copy-env-button`, `settings-ci-token-created`,
-  `settings-ci-token-last-used`, `runs-ci-tokens-link`,
-  `admin-integrations-ci-tokens-link`
+  `settings-ci-token-copy-env-button`, `settings-ci-token-copy-notice`,
+  `settings-ci-token-created`, `settings-ci-token-last-used`,
+  `runs-ci-tokens-link`, `admin-integrations-ci-tokens-link`
 - Run report: `reports-run-kpi-skipped`, `reports-run-kpi-pass-rate`,
   `reports-run-pass-rate-hint`, `reports-other-legend`
 
@@ -117,3 +117,10 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Run detail abandon button | `run-detail-abandon-button` |
 | Runs list row abandon button | `run-row-abandon` (list child) |
 | Run report abandon button | `reports-run-abandon-button` |
+
+## A11y pass (imp #8)
+
+- Case picker: labelled checkboxes/chips/folders (`aria-pressed`, `aria-live`)
+- CI token secret/env/copy notice: `role` + `aria-live` / `aria-label`
+- Admin updates check error: `role="alert"` + `aria-live="assertive"`
+- Live/in-progress status badges: icon + label + `role="status"`

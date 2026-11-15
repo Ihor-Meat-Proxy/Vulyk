@@ -44,7 +44,7 @@
     {
       "name": "Meta",
       "file": "meta.json",
-      "count": 3
+      "count": 2
     },
     {
       "name": "Plans & runs",
@@ -59,7 +59,7 @@
     {
       "name": "PWA & a11y",
       "file": "pwa-a11y.json",
-      "count": 3
+      "count": 7
     },
     {
       "name": "RBAC",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 135,
-  "generated": "2026-11-15T17:20:00.000Z"
+  "case_count": 139,
+  "generated": "2026-11-15T17:55:00.000Z"
 }

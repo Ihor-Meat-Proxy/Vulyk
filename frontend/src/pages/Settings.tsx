@@ -1342,6 +1342,9 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
           {ciSecretOnce && (
             <div
               className="token-secret"
+              role="status"
+              aria-live="polite"
+              aria-label={t('a11y.ciTokenSecret')}
               {...testIdProps(TestIds.settingsCiTokenSecret)}
             >
               <p style={{ margin: 0 }}>{t('settings.tokenCreated')}</p>
@@ -1353,6 +1356,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                   onClick={() =>
                     void copyText(ciSecretOnce, t('settings.ciTokenCopied'))
                   }
+                  aria-label={t('a11y.ciTokenCopy')}
                   {...testIdProps(TestIds.settingsCiTokenCopyButton)}
                 >
                   {t('settings.ciTokenCopy')}
@@ -1366,6 +1370,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                       t('settings.ciTokenEnvCopied'),
                     )
                   }
+                  aria-label={t('a11y.ciTokenCopyEnv')}
                   {...testIdProps(TestIds.settingsCiTokenCopyEnvButton)}
                 >
                   {t('settings.ciTokenCopyEnv')}
@@ -1373,12 +1378,21 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               </div>
               <pre
                 className="token-env-block"
+                tabIndex={0}
+                role="region"
+                aria-label={t('a11y.ciTokenEnvBlock')}
                 {...testIdProps(TestIds.settingsCiTokenEnvBlock)}
               >
                 {ciTokenEnvBlock(ciSecretOnce)}
               </pre>
               {ciCopyNotice ? (
-                <p className="muted" style={{ marginBottom: 0 }}>
+                <p
+                  className="muted"
+                  style={{ marginBottom: 0 }}
+                  role="status"
+                  aria-live="polite"
+                  {...testIdProps(TestIds.settingsCiTokenCopyNotice)}
+                >
                   {ciCopyNotice}
                 </p>
               ) : null}

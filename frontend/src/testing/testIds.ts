@@ -533,6 +533,7 @@ export const TestIds = {
   settingsCiTokenEnvBlock: 'settings-ci-token-env-block',
   settingsCiTokenCopyButton: 'settings-ci-token-copy-button',
   settingsCiTokenCopyEnvButton: 'settings-ci-token-copy-env-button',
+  settingsCiTokenCopyNotice: 'settings-ci-token-copy-notice',
   settingsCiTokenRow: 'settings-ci-token-row',
   settingsCiTokenCreated: 'settings-ci-token-created',
   settingsCiTokenLastUsed: 'settings-ci-token-last-used',

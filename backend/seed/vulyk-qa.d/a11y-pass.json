@@ -1,0 +1,257 @@
+{
+  "feature": "a11y-pass",
+  "suites": [
+    {
+      "name": {
+        "en": "A11y pass (imp #8)",
+        "uk": "A11y pass (imp #8)",
+        "fr": "A11y pass (imp #8)",
+        "es": "A11y pass (imp #8)",
+        "de": "A11y pass (imp #8)"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-365",
+          "title": {
+            "en": "Generate case picker exposes labels, pressed folders, and focusable chips",
+            "uk": "Generate case picker exposes labels, pressed folders, and focusable chips",
+            "fr": "Generate case picker exposes labels, pressed folders, and focusable chips",
+            "es": "Generate case picker exposes labels, pressed folders, and focusable chips",
+            "de": "Generate case picker exposes labels, pressed folders, and focusable chips"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: a11y-pass.spec.ts — Generate case picker exposes labels, pressed folders, and focusable chips",
+            "uk": "Покриття Playwright e2e: a11y-pass.spec.ts — Generate case picker exposes labels, pressed folders, and focusable chips",
+            "fr": "Playwright e2e coverage: a11y-pass.spec.ts — Generate case picker exposes labels, pressed folders, and focusable chips",
+            "es": "Playwright e2e coverage: a11y-pass.spec.ts — Generate case picker exposes labels, pressed folders, and focusable chips",
+            "de": "Playwright e2e coverage: a11y-pass.spec.ts — Generate case picker exposes labels, pressed folders, and focusable chips"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "a11y"
+          ],
+          "external_key": "e2e:a11y-pass.spec.ts Generate case picker exposes labels, pressed folders, and focusable chips",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test a11y-pass.spec.ts -g \"Generate case picker exposes labels, pressed folders, and focusable chips\"",
+                "uk": "Run npx playwright test a11y-pass.spec.ts -g \"Generate case picker exposes labels, pressed folders, and focusable chips\"",
+                "fr": "Run npx playwright test a11y-pass.spec.ts -g \"Generate case picker exposes labels, pressed folders, and focusable chips\"",
+                "es": "Run npx playwright test a11y-pass.spec.ts -g \"Generate case picker exposes labels, pressed folders, and focusable chips\"",
+                "de": "Run npx playwright test a11y-pass.spec.ts -g \"Generate case picker exposes labels, pressed folders, and focusable chips\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-366",
+          "title": {
+            "en": "CI tokens copy controls and env block are labeled for assistive tech",
+            "uk": "CI tokens copy controls and env block are labeled for assistive tech",
+            "fr": "CI tokens copy controls and env block are labeled for assistive tech",
+            "es": "CI tokens copy controls and env block are labeled for assistive tech",
+            "de": "CI tokens copy controls and env block are labeled for assistive tech"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: a11y-pass.spec.ts — CI tokens copy controls and env block are labeled for assistive tech",
+            "uk": "Покриття Playwright e2e: a11y-pass.spec.ts — CI tokens copy controls and env block are labeled for assistive tech",
+            "fr": "Playwright e2e coverage: a11y-pass.spec.ts — CI tokens copy controls and env block are labeled for assistive tech",
+            "es": "Playwright e2e coverage: a11y-pass.spec.ts — CI tokens copy controls and env block are labeled for assistive tech",
+            "de": "Playwright e2e coverage: a11y-pass.spec.ts — CI tokens copy controls and env block are labeled for assistive tech"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "a11y"
+          ],
+          "external_key": "e2e:a11y-pass.spec.ts CI tokens copy controls and env block are labeled for assistive tech",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test a11y-pass.spec.ts -g \"CI tokens copy controls and env block are labeled for assistive tech\"",
+                "uk": "Run npx playwright test a11y-pass.spec.ts -g \"CI tokens copy controls and env block are labeled for assistive tech\"",
+                "fr": "Run npx playwright test a11y-pass.spec.ts -g \"CI tokens copy controls and env block are labeled for assistive tech\"",
+                "es": "Run npx playwright test a11y-pass.spec.ts -g \"CI tokens copy controls and env block are labeled for assistive tech\"",
+                "de": "Run npx playwright test a11y-pass.spec.ts -g \"CI tokens copy controls and env block are labeled for assistive tech\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-367",
+          "title": {
+            "en": "Updates check error region uses alert live region",
+            "uk": "Updates check error region uses alert live region",
+            "fr": "Updates check error region uses alert live region",
+            "es": "Updates check error region uses alert live region",
+            "de": "Updates check error region uses alert live region"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: a11y-pass.spec.ts — Updates check error region uses alert live region",
+            "uk": "Покриття Playwright e2e: a11y-pass.spec.ts — Updates check error region uses alert live region",
+            "fr": "Playwright e2e coverage: a11y-pass.spec.ts — Updates check error region uses alert live region",
+            "es": "Playwright e2e coverage: a11y-pass.spec.ts — Updates check error region uses alert live region",
+            "de": "Playwright e2e coverage: a11y-pass.spec.ts — Updates check error region uses alert live region"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "a11y"
+          ],
+          "external_key": "e2e:a11y-pass.spec.ts Updates check error region uses alert live region",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test a11y-pass.spec.ts -g \"Updates check error region uses alert live region\"",
+                "uk": "Run npx playwright test a11y-pass.spec.ts -g \"Updates check error region uses alert live region\"",
+                "fr": "Run npx playwright test a11y-pass.spec.ts -g \"Updates check error region uses alert live region\"",
+                "es": "Run npx playwright test a11y-pass.spec.ts -g \"Updates check error region uses alert live region\"",
+                "de": "Run npx playwright test a11y-pass.spec.ts -g \"Updates check error region uses alert live region\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-368",
+          "title": {
+            "en": "In-progress status badge exposes text label not colour alone",
+            "uk": "In-progress status badge exposes text label not colour alone",
+            "fr": "In-progress status badge exposes text label not colour alone",
+            "es": "In-progress status badge exposes text label not colour alone",
+            "de": "In-progress status badge exposes text label not colour alone"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: a11y-pass.spec.ts — In-progress status badge exposes text label not colour alone",
+            "uk": "Покриття Playwright e2e: a11y-pass.spec.ts — In-progress status badge exposes text label not colour alone",
+            "fr": "Playwright e2e coverage: a11y-pass.spec.ts — In-progress status badge exposes text label not colour alone",
+            "es": "Playwright e2e coverage: a11y-pass.spec.ts — In-progress status badge exposes text label not colour alone",
+            "de": "Playwright e2e coverage: a11y-pass.spec.ts — In-progress status badge exposes text label not colour alone"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "medium",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "a11y"
+          ],
+          "external_key": "e2e:a11y-pass.spec.ts In-progress status badge exposes text label not colour alone",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test a11y-pass.spec.ts -g \"In-progress status badge exposes text label not colour alone\"",
+                "uk": "Run npx playwright test a11y-pass.spec.ts -g \"In-progress status badge exposes text label not colour alone\"",
+                "fr": "Run npx playwright test a11y-pass.spec.ts -g \"In-progress status badge exposes text label not colour alone\"",
+                "es": "Run npx playwright test a11y-pass.spec.ts -g \"In-progress status badge exposes text label not colour alone\"",
+                "de": "Run npx playwright test a11y-pass.spec.ts -g \"In-progress status badge exposes text label not colour alone\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

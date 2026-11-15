@@ -202,6 +202,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "run-counters-sot",
         include_str!("../seed/vulyk-qa.d/run-counters-sot.json"),
     ),
+    (
+        "a11y-pass",
+        include_str!("../seed/vulyk-qa.d/a11y-pass.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

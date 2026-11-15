@@ -62,6 +62,7 @@ const FOLDER_FOR_SPEC = {
   'sample-project.spec.ts': 'Sample data',
   'status-sample.spec.ts': 'Sample data',
   'pwa-mobile.spec.ts': 'PWA & a11y',
+  'a11y-pass.spec.ts': 'PWA & a11y',
   'smoke.spec.ts': 'Smoke',
   'api-docs.spec.ts': 'Meta',
   'test-id-audit.spec.ts': 'Meta',

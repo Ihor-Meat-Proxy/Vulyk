@@ -114,43 +114,50 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     return name || t('generate.untitledFolder')
   }
 
-  const renderNode = (node: SuiteNode, depth: number, index: number) => (
-    <li key={node.id} style={{ marginLeft: depth * 12 }}>
-      <div className="picker-folder-row">
-        <button
-          type="button"
-          className={activeSuite === node.id ? 'linkish active' : 'linkish'}
-          onClick={() =>
-            setActiveSuite((cur) => (cur === node.id ? null : node.id))
-          }
-          {...listItemProps(TestIds.casePickerFolder, {
-            entityId: node.id,
-            index,
-            depth,
-          })}
-        >
-          {folderLabel(node)}
-          {typeof node.case_count === 'number' ? ` (${node.case_count})` : ''}
-        </button>
-        <button
-          type="button"
-          className="btn secondary tiny"
-          onClick={() => selectFolder(node.id)}
-          title={t('generate.selectFolder')}
-          {...listChildProps(TestIds.casePickerFolder, 'select')}
-        >
-          {t('generate.selectFolder')}
-        </button>
-      </div>
-      {node.children.length > 0 && (
-        <ul className="plain-list picker-tree">
-          {node.children.map((ch, childIndex) =>
-            renderNode(ch, depth + 1, childIndex),
-          )}
-        </ul>
-      )}
-    </li>
-  )
+  const renderNode = (node: SuiteNode, depth: number, index: number) => {
+    const label = folderLabel(node)
+    const selectedFolder = activeSuite === node.id
+    return (
+      <li key={node.id} style={{ marginLeft: depth * 12 }}>
+        <div className="picker-folder-row">
+          <button
+            type="button"
+            className={selectedFolder ? 'linkish active' : 'linkish'}
+            onClick={() =>
+              setActiveSuite((cur) => (cur === node.id ? null : node.id))
+            }
+            aria-pressed={selectedFolder}
+            aria-label={t('a11y.filterFolder', { folder: label })}
+            {...listItemProps(TestIds.casePickerFolder, {
+              entityId: node.id,
+              index,
+              depth,
+            })}
+          >
+            {label}
+            {typeof node.case_count === 'number' ? ` (${node.case_count})` : ''}
+          </button>
+          <button
+            type="button"
+            className="btn secondary tiny"
+            onClick={() => selectFolder(node.id)}
+            title={t('generate.selectFolder')}
+            aria-label={t('a11y.selectAllInFolder', { folder: label })}
+            {...listChildProps(TestIds.casePickerFolder, 'select')}
+          >
+            {t('generate.selectFolder')}
+          </button>
+        </div>
+        {node.children.length > 0 && (
+          <ul className="plain-list picker-tree">
+            {node.children.map((ch, childIndex) =>
+              renderNode(ch, depth + 1, childIndex),
+            )}
+          </ul>
+        )}
+      </li>
+    )
+  }
 
   const chips = selected.filter((c) => c.id && (c.key || c.title).trim())
 
@@ -158,29 +165,35 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     <div className="case-picker" {...testIdProps(TestIds.casePicker)}>
       <div
         className="case-picker-chips"
+        role="group"
+        aria-label={t('a11y.casePickerSelected')}
         aria-live="polite"
         {...testIdProps(TestIds.casePickerChips)}
       >
         {chips.length === 0 ? (
           <span className="muted">{t('generate.noCasesSelected')}</span>
         ) : (
-          chips.map((c, index) => (
-            <button
-              key={c.id}
-              type="button"
-              className="chip"
-              onClick={() => removeChip(c.id)}
-              title={c.title}
-              {...listItemProps(TestIds.casePickerChip, {
-                entityId: c.id,
-                entityKey: c.key,
-                index,
-              })}
-            >
-              <span className="badge">{c.key || c.title}</span>
-              <span aria-hidden="true"> ×</span>
-            </button>
-          ))
+          chips.map((c, index) => {
+            const chipLabel = c.key || c.title
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className="chip"
+                onClick={() => removeChip(c.id)}
+                title={c.title}
+                aria-label={t('a11y.removeSelectedCase', { key: chipLabel })}
+                {...listItemProps(TestIds.casePickerChip, {
+                  entityId: c.id,
+                  entityKey: c.key,
+                  index,
+                })}
+              >
+                <span className="badge">{chipLabel}</span>
+                <span aria-hidden="true"> ×</span>
+              </button>
+            )
+          })
         )}
       </div>
 
@@ -190,16 +203,22 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={t('generate.searchCasesPlaceholder')}
+          aria-label={t('generate.searchCases')}
           {...testIdProps(TestIds.casePickerSearchInput)}
         />
       </label>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert" aria-live="assertive">
+          {error}
+        </p>
+      )}
       {loading && <p className="muted">{t('common.loading')}</p>}
       {truncated && !loading && (
         <p
           className="notice"
           role="status"
+          aria-live="polite"
           {...testIdProps(TestIds.casePickerTruncatedNotice)}
         >
           {t('generate.casesTruncated', {
@@ -213,6 +232,8 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
       <div className="case-picker-grid">
         <div
           className="case-picker-folders"
+          role="navigation"
+          aria-label={t('a11y.casePickerFolders')}
           {...testIdProps(TestIds.casePickerFolders)}
         >
           <h4>{t('generate.folders')}</h4>
@@ -222,6 +243,8 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                 type="button"
                 className={activeSuite == null ? 'linkish active' : 'linkish'}
                 onClick={() => setActiveSuite(null)}
+                aria-pressed={activeSuite == null}
+                aria-label={t('a11y.filterAllFolders')}
                 {...testIdProps(TestIds.casePickerAllFolders)}
               >
                 {t('generate.allFolders')}
@@ -232,6 +255,8 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
         </div>
         <div
           className="case-picker-list"
+          role="group"
+          aria-label={t('a11y.casePickerCases')}
           {...testIdProps(TestIds.casePickerList)}
         >
           <h4>{t('generate.cases')}</h4>
@@ -250,9 +275,16 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                     type="checkbox"
                     checked={selectedIds.has(c.id)}
                     onChange={() => toggle(c)}
+                    aria-label={t('a11y.selectCase', {
+                      key: c.key,
+                      title: c.title,
+                    })}
                     {...listChildProps(TestIds.casePickerItem, 'checkbox')}
                   />
-                  <span className="badge">{c.key}</span> <span>{c.title}</span>
+                  <span className="badge" aria-hidden="true">
+                    {c.key}
+                  </span>{' '}
+                  <span aria-hidden="true">{c.title}</span>
                 </label>
               </li>
             ))}
