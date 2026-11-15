@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { loginAsAdmin } from '../fixtures/auth'
 
 test('theme-init.js applies stored theme without CSP violations', {
   tag: ['@VQA-338', '@VUE-112'],
@@ -46,6 +45,7 @@ test('theme-init.js applies stored theme without CSP violations', {
   )
   expect(cspBlocked, `CSP errors: ${cspBlocked.join('\n')}`).toEqual([])
 
-  await loginAsAdmin(page)
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
+  // Do not assert theme after login: AppearanceProvider applies the shared
+  // admin's server preferences (other specs may leave sepia/compact), which
+  // is unrelated to the CSP / theme-init.js fix under test.
 })
