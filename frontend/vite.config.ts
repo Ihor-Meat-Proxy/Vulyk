@@ -48,8 +48,8 @@ export default defineConfig({
         short_name: 'Vulyk',
         description:
           'Vulyk — open-source test management. Record results on the go.',
-        theme_color: '#0B6E4F',
-        background_color: '#F7F8FA',
+        theme_color: '#7A5C18',
+        background_color: '#F7F1E6',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',

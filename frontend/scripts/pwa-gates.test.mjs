@@ -18,7 +18,7 @@ describe('lighthouse M14 gates', () => {
       short_name: 'Vulyk',
       start_url: '/',
       display: 'standalone',
-      theme_color: '#0B6E4F',
+      theme_color: '#7A5C18',
       icons: [
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
         {
@@ -58,7 +58,7 @@ describe('lighthouse M14 gates', () => {
       short_name: 'Vulyk',
       start_url: '/',
       display: 'standalone',
-      theme_color: '#0B6E4F',
+      theme_color: '#7A5C18',
       icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }],
     }
     const index = `<!doctype html><html><head>

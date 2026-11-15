@@ -33,6 +33,17 @@ describe('theme token contrast', () => {
     })
   }
 
+  it('honey accent stays distinct from sage pass badge backgrounds', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const t = THEME_TOKENS[theme]
+      expect(t.accentSoft.toLowerCase()).not.toBe(
+        t.statusPassedBg.toLowerCase(),
+      )
+      expect(t.accent.toLowerCase()).not.toBe(t.statusPassedFg.toLowerCase())
+      expect(t.accent.toLowerCase()).not.toBe(t.statusFailedFg.toLowerCase())
+    }
+  })
+
   it('solid status colours are distinguishable from page background', () => {
     for (const theme of THEMES) {
       const t = THEME_TOKENS[theme]
