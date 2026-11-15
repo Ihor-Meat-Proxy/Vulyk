@@ -72,6 +72,7 @@ const FOLDER_FOR_SPEC = {
   'error-pages.spec.ts': 'Edge cases',
   'users-admin.spec.ts': 'Admin',
   'ux-polish-f13-f22.spec.ts': 'Edge cases',
+  'admin-auth-off-banner.spec.ts': 'Admin',
 }
 
 function inferType(title) {

@@ -173,6 +173,7 @@ const uk: Dict = {
   'admin.updates.backupRoles': "Ролі",
   'admin.updates.rollingBack': "Відкат...",
   'admin.subtitle': "Користувачі, ролі, списки, кастомні поля, резервні копії, інтеграції, LLM, API-токени та експорт конфігурації.",
+  'admin.authOffWarning': "Увімкнено відкритий режим (автентифікація вимкнена). Не відкривайте цей екземпляр у спільній чи production-мережі без увімкнення автентифікації.",
   'admin.title': "Адмін",
   'admin.tokens': "Токени API",
   'admin.backups': "Бекапи",

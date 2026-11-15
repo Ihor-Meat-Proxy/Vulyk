@@ -1,0 +1,77 @@
+{
+  "feature": "auth-off-admin-warning",
+  "suites": [
+    {
+      "name": {
+        "en": "Auth-off Admin warning",
+        "uk": "Auth-off Admin warning",
+        "fr": "Auth-off Admin warning",
+        "es": "Auth-off Admin warning",
+        "de": "Auth-off Admin warning"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "uk": "Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "fr": "Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "es": "Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "de": "Admin auth-off banner hidden when auth required; shown when status mocked open"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: admin-auth-off-banner.spec.ts — Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "uk": "Playwright e2e coverage: admin-auth-off-banner.spec.ts — Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "fr": "Playwright e2e coverage: admin-auth-off-banner.spec.ts — Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "es": "Playwright e2e coverage: admin-auth-off-banner.spec.ts — Admin auth-off banner hidden when auth required; shown when status mocked open",
+            "de": "Playwright e2e coverage: admin-auth-off-banner.spec.ts — Admin auth-off banner hidden when auth required; shown when status mocked open"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "auth-off-admin-warning"
+          ],
+          "external_key": "e2e:admin-auth-off-banner.spec.ts Admin auth-off banner hidden when auth required; shown when status mocked open",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test admin-auth-off-banner.spec.ts -g \"Admin auth-off banner hidden when auth required; shown when status mocked open\"",
+                "uk": "Run npx playwright test admin-auth-off-banner.spec.ts -g \"Admin auth-off banner hidden when auth required; shown when status mocked open\"",
+                "fr": "Run npx playwright test admin-auth-off-banner.spec.ts -g \"Admin auth-off banner hidden when auth required; shown when status mocked open\"",
+                "es": "Run npx playwright test admin-auth-off-banner.spec.ts -g \"Admin auth-off banner hidden when auth required; shown when status mocked open\"",
+                "de": "Run npx playwright test admin-auth-off-banner.spec.ts -g \"Admin auth-off banner hidden when auth required; shown when status mocked open\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-358"
+        }
+      ]
+    }
+  ]
+}
