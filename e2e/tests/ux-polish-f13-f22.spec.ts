@@ -276,7 +276,10 @@ test('case edit title input is wide enough; copy link uses sans font', {
   const copy = page.locator('.case-key-copy-link').first()
   if (await copy.isVisible()) {
     const font = await copy.evaluate((el) => getComputedStyle(el).fontFamily)
-    expect(font.toLowerCase()).not.toMatch(/times|georgia|serif/)
+    const lower = font.toLowerCase()
+    // Assert sans body stack; avoid /serif/ which also matches "sans-serif".
+    expect(lower).toMatch(/sans-serif|inter|system-ui/)
+    expect(lower).not.toMatch(/times|georgia/)
   }
 
   await page.setViewportSize({ width: 390, height: 844 })
