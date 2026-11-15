@@ -780,6 +780,9 @@ pub async fn update_run_item(
         .await?;
     }
 
+    // Keep denormalized pass/fail/skip/blocked in sync with run_items SoT.
+    crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
+
     let case_row = sqlx::query_as::<_, (String, String, String)>(
         "SELECT key, title, priority FROM test_cases WHERE id = $1",
     )
@@ -871,6 +874,8 @@ pub async fn ingest_results(
     // All-or-nothing: a mid-batch 400 must not leave earlier rows committed (review #40).
     let mut tx = state.pool.begin().await?;
     let mut out = Vec::with_capacity(body.results.len());
+    // Last status per case wins for run_items SoT (same as CI ingest).
+    let mut matched_statuses: Vec<(Uuid, String)> = Vec::new();
     for item in body.results {
         let case_id = if let Some(id) = item.case_id {
             crate::services::cases::ensure_case_in_project(&state.pool, project_id, id).await?;
@@ -921,11 +926,27 @@ pub async fn ingest_results(
         .bind(case_version)
         .fetch_one(&mut *tx)
         .await?;
+        if let Some(cid) = case_id {
+            matched_statuses.push((cid, status));
+        }
         out.push(row);
     }
     let touched: Vec<Uuid> = out.iter().filter_map(|r| r.case_id).collect();
     crate::services::results::refresh_last_run_status_tx(&mut tx, &touched).await?;
     tx.commit().await?;
+
+    // Keep run_items + denormalized counters aligned with bulk /results
+    // (include_all_cases runs start as Untested; e2e posts here).
+    if !matched_statuses.is_empty() {
+        crate::services::runs::upsert_run_items_for_statuses(
+            &state.pool,
+            run_id,
+            &matched_statuses,
+        )
+        .await?;
+        crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
+    }
+
     Ok(Json(out))
 }
 
@@ -1079,6 +1100,32 @@ pub async fn create_result(
             .bind(&body.message)
             .execute(&mut *tx)
             .await?;
+        } else if let Some(cid) = case_id {
+            // No run_item_id: upsert by case so progress/counters stay aligned.
+            sqlx::query(
+                r#"
+                INSERT INTO run_items (run_id, case_id, status, sort_order, comment, executed_at)
+                VALUES (
+                    $1, $2, $3,
+                    COALESCE((SELECT MAX(sort_order) FROM run_items WHERE run_id = $1), -1) + 1,
+                    $4, NOW()
+                )
+                ON CONFLICT (run_id, case_id) DO UPDATE SET
+                    status = EXCLUDED.status,
+                    comment = CASE
+                        WHEN EXCLUDED.comment <> '' THEN EXCLUDED.comment
+                        ELSE run_items.comment
+                    END,
+                    executed_at = COALESCE(EXCLUDED.executed_at, run_items.executed_at),
+                    updated_at = NOW()
+                "#,
+            )
+            .bind(run_id)
+            .bind(cid)
+            .bind(&status)
+            .bind(&body.message)
+            .execute(&mut *tx)
+            .await?;
         }
     }
 
@@ -1087,6 +1134,8 @@ pub async fn create_result(
     }
 
     tx.commit().await?;
+    // Denormalized counters follow run_items (SoT), not raw test_results rows.
+    crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
     Ok(Json(TestResultDetail { result, steps }))
 }
 

@@ -449,6 +449,33 @@
         "reporter",
         "dx"
       ]
+    },
+    {
+      "id": "run-counters-sot-ci-run-detail-progress-matches-reports-summary-counters",
+      "key": "VUE-217",
+      "title": "CI run detail progress matches Reports summary counters",
+      "type": "positive",
+      "priority": "critical",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\"",
+          "expected": "Test passes; progress, Reports summary, and denormalized counters agree (one status per case)."
+        }
+      ],
+      "spec": "run-counters-sot.spec.ts",
+      "test": "CI run detail progress matches Reports summary counters",
+      "external_key": "e2e:run-counters-sot.spec.ts CI run detail progress matches Reports summary counters",
+      "automation_link": "e2e/tests/run-counters-sot.spec.ts :: CI run detail progress matches Reports summary counters",
+      "vqa_key": "VQA-355",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive",
+        "ci",
+        "reports",
+        "runs"
+      ]
     }
   ]
 }

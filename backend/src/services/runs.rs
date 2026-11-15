@@ -2,7 +2,7 @@ use sqlx::Row;
 use uuid::Uuid;
 
 use crate::error::AppResult;
-use crate::models::{RunItem, RunItemView, RunProgress, TestRun};
+use crate::models::{RunItem, RunItemView, RunProgress, StatusCounts, TestRun};
 
 pub async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> AppResult<TestRun> {
     let run = sqlx::query_as::<_, TestRun>(&format!(
@@ -17,36 +17,62 @@ pub async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> Ap
     Ok(run)
 }
 
-fn progress_from_counts(
-    total: i64,
-    untested: i64,
-    passed: i64,
-    failed: i64,
-    blocked: i64,
-    skipped: i64,
-    retest: i64,
-) -> RunProgress {
-    let completed = total - untested;
-    let percent = if total == 0 {
-        0.0
-    } else {
-        (completed as f64 / total as f64) * 100.0
-    };
-    RunProgress {
-        total,
-        untested,
-        passed,
-        failed,
-        blocked,
-        skipped,
-        retest,
-        completed,
-        percent,
+/// Per-case status aggregates from `run_items` (UI progress + denormalized counters SoT).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct RunStatusCounts {
+    pub total: i64,
+    pub untested: i64,
+    pub passed: i64,
+    pub failed: i64,
+    pub blocked: i64,
+    pub skipped: i64,
+    pub retest: i64,
+    pub other: i64,
+}
+
+impl RunStatusCounts {
+    pub fn to_progress(self) -> RunProgress {
+        let completed = self.total - self.untested;
+        let percent = if self.total == 0 {
+            0.0
+        } else {
+            (completed as f64 / self.total as f64) * 100.0
+        };
+        RunProgress {
+            total: self.total,
+            untested: self.untested,
+            passed: self.passed,
+            failed: self.failed,
+            blocked: self.blocked,
+            skipped: self.skipped,
+            retest: self.retest,
+            completed,
+            percent,
+        }
+    }
+
+    pub fn to_status_counts(self) -> StatusCounts {
+        StatusCounts {
+            total: self.total,
+            passed: self.passed,
+            failed: self.failed,
+            skipped: self.skipped,
+            blocked: self.blocked,
+            error: 0,
+            untested: self.untested,
+            retest: self.retest,
+            other: self.other,
+        }
     }
 }
 
-pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunProgress> {
-    // Ensure CI-ingested results appear as run items (F1).
+/// Aggregate status counts from `run_items` after ensuring historical CI results
+/// are represented (one status per case). This is the single source of truth for
+/// Run detail progress, denormalized `test_runs.*_count`, and Reports summary bars.
+pub async fn compute_run_status_counts(
+    pool: &sqlx::PgPool,
+    run_id: Uuid,
+) -> AppResult<RunStatusCounts> {
     ensure_run_items_from_results(pool, run_id).await?;
 
     let row = sqlx::query(
@@ -55,24 +81,65 @@ pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunPro
              COUNT(*) FILTER (WHERE status = 'Untested')::bigint AS untested,
              COUNT(*) FILTER (WHERE status = 'Passed')::bigint AS passed,
              COUNT(*) FILTER (WHERE status = 'Failed')::bigint AS failed,
-             COUNT(*) FILTER (WHERE status = 'Blocked')::bigint AS blocked,
+             COUNT(*) FILTER (WHERE status IN ('Blocked', 'Untestable'))::bigint AS blocked,
              COUNT(*) FILTER (WHERE status = 'Skipped')::bigint AS skipped,
-             COUNT(*) FILTER (WHERE status = 'Retest')::bigint AS retest
+             COUNT(*) FILTER (WHERE status = 'Retest')::bigint AS retest,
+             COUNT(*) FILTER (
+               WHERE status NOT IN (
+                 'Untested', 'Passed', 'Failed', 'Blocked', 'Untestable', 'Skipped', 'Retest'
+               )
+             )::bigint AS other
            FROM run_items WHERE run_id = $1"#,
     )
     .bind(run_id)
     .fetch_one(pool)
     .await?;
 
-    Ok(progress_from_counts(
-        row.try_get("total")?,
-        row.try_get("untested")?,
-        row.try_get("passed")?,
-        row.try_get("failed")?,
-        row.try_get("blocked")?,
-        row.try_get("skipped")?,
-        row.try_get("retest")?,
-    ))
+    Ok(RunStatusCounts {
+        total: row.try_get("total")?,
+        untested: row.try_get("untested")?,
+        passed: row.try_get("passed")?,
+        failed: row.try_get("failed")?,
+        blocked: row.try_get("blocked")?,
+        skipped: row.try_get("skipped")?,
+        retest: row.try_get("retest")?,
+        other: row.try_get("other")?,
+    })
+}
+
+pub async fn run_progress(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<RunProgress> {
+    Ok(compute_run_status_counts(pool, run_id).await?.to_progress())
+}
+
+/// Refresh denormalized `test_runs` pass/fail/skip/blocked from `run_items`
+/// (after ensure). Duration stays summed from append-only `test_results`.
+pub async fn refresh_run_counters(pool: &sqlx::PgPool, run_id: Uuid) -> AppResult<()> {
+    ensure_run_items_from_results(pool, run_id).await?;
+    sqlx::query(
+        r#"UPDATE test_runs r SET
+             pass_count = COALESCE((
+               SELECT COUNT(*) FILTER (WHERE status = 'Passed') FROM run_items WHERE run_id = r.id
+             ), 0),
+             fail_count = COALESCE((
+               SELECT COUNT(*) FILTER (WHERE status = 'Failed') FROM run_items WHERE run_id = r.id
+             ), 0),
+             skip_count = COALESCE((
+               SELECT COUNT(*) FILTER (WHERE status = 'Skipped') FROM run_items WHERE run_id = r.id
+             ), 0),
+             blocked_count = COALESCE((
+               SELECT COUNT(*) FILTER (WHERE status IN ('Blocked', 'Untestable'))
+               FROM run_items WHERE run_id = r.id
+             ), 0),
+             duration_ms = COALESCE((
+               SELECT SUM(COALESCE(duration_ms, 0))::bigint FROM test_results WHERE run_id = r.id
+             ), 0),
+             updated_at = NOW()
+           WHERE id = $1"#,
+    )
+    .bind(run_id)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// Upsert `run_items` from the latest `test_results` per case when the run has

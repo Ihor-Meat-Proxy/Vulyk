@@ -794,32 +794,10 @@ pub async fn create_automated_suite_run(
     Ok(run)
 }
 
+/// Refresh denormalized run counters from `run_items` (UI progress SoT).
+/// Delegates to [`crate::services::runs::refresh_run_counters`].
 pub async fn refresh_run_counters(pool: &PgPool, run_id: Uuid) -> AppResult<()> {
-    sqlx::query(
-        r#"UPDATE test_runs r SET
-             pass_count = COALESCE((
-               SELECT COUNT(*) FILTER (WHERE status = 'Passed') FROM test_results WHERE run_id = r.id
-             ), 0),
-             fail_count = COALESCE((
-               SELECT COUNT(*) FILTER (WHERE status = 'Failed') FROM test_results WHERE run_id = r.id
-             ), 0),
-             skip_count = COALESCE((
-               SELECT COUNT(*) FILTER (WHERE status = 'Skipped') FROM test_results WHERE run_id = r.id
-             ), 0),
-             blocked_count = COALESCE((
-               SELECT COUNT(*) FILTER (WHERE status IN ('Blocked', 'Untestable'))
-               FROM test_results WHERE run_id = r.id
-             ), 0),
-             duration_ms = COALESCE((
-               SELECT SUM(COALESCE(duration_ms, 0))::bigint FROM test_results WHERE run_id = r.id
-             ), 0),
-             updated_at = NOW()
-           WHERE id = $1"#,
-    )
-    .bind(run_id)
-    .execute(pool)
-    .await?;
-    Ok(())
+    crate::services::runs::refresh_run_counters(pool, run_id).await
 }
 
 /// Sync iteration_items from the latest result per case in this iteration's runs.

@@ -891,6 +891,13 @@
       "key": "VQA-358",
       "external_key": "e2e:admin-auth-off-banner.spec.ts Admin auth-off banner hidden when auth required; shown when status mocked open",
       "source": "fragment-new"
+    },
+    {
+      "file": "run-counters-sot.spec.ts",
+      "title": "CI run detail progress matches Reports summary counters",
+      "key": "VQA-355",
+      "external_key": "e2e:run-counters-sot.spec.ts CI run detail progress matches Reports summary counters",
+      "source": "fragment-new"
     }
   ]
 }
