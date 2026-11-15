@@ -75,7 +75,7 @@
     },
     {
       "id": "a11y-pass-generate-case-picker-exposes-labels-pressed-folders-and-focusable-chips",
-      "key": "VUE-227",
+      "key": "VUE-230",
       "title": "Generate case picker exposes labels, pressed folders, and focusable chips",
       "type": "positive",
       "priority": "high",
@@ -90,7 +90,7 @@
       "test": "Generate case picker exposes labels, pressed folders, and focusable chips",
       "external_key": "e2e:a11y-pass.spec.ts Generate case picker exposes labels, pressed folders, and focusable chips",
       "automation_link": "e2e/tests/a11y-pass.spec.ts :: Generate case picker exposes labels, pressed folders, and focusable chips",
-      "vqa_key": "VQA-365",
+      "vqa_key": "VQA-368",
       "tags": [
         "e2e",
         "playwright",
@@ -100,7 +100,7 @@
     },
     {
       "id": "a11y-pass-ci-tokens-copy-controls-and-env-block-are-labeled-for-assistive-tech",
-      "key": "VUE-228",
+      "key": "VUE-231",
       "title": "CI tokens copy controls and env block are labeled for assistive tech",
       "type": "positive",
       "priority": "high",
@@ -115,7 +115,7 @@
       "test": "CI tokens copy controls and env block are labeled for assistive tech",
       "external_key": "e2e:a11y-pass.spec.ts CI tokens copy controls and env block are labeled for assistive tech",
       "automation_link": "e2e/tests/a11y-pass.spec.ts :: CI tokens copy controls and env block are labeled for assistive tech",
-      "vqa_key": "VQA-366",
+      "vqa_key": "VQA-369",
       "tags": [
         "e2e",
         "playwright",
@@ -125,7 +125,7 @@
     },
     {
       "id": "a11y-pass-updates-check-error-region-uses-alert-live-region",
-      "key": "VUE-229",
+      "key": "VUE-232",
       "title": "Updates check error region uses alert live region",
       "type": "negative",
       "priority": "high",
@@ -140,7 +140,7 @@
       "test": "Updates check error region uses alert live region",
       "external_key": "e2e:a11y-pass.spec.ts Updates check error region uses alert live region",
       "automation_link": "e2e/tests/a11y-pass.spec.ts :: Updates check error region uses alert live region",
-      "vqa_key": "VQA-367",
+      "vqa_key": "VQA-370",
       "tags": [
         "e2e",
         "playwright",
@@ -150,7 +150,7 @@
     },
     {
       "id": "a11y-pass-in-progress-status-badge-exposes-text-label-not-colour-alone",
-      "key": "VUE-230",
+      "key": "VUE-233",
       "title": "In-progress status badge exposes text label not colour alone",
       "type": "positive",
       "priority": "medium",
@@ -165,7 +165,7 @@
       "test": "In-progress status badge exposes text label not colour alone",
       "external_key": "e2e:a11y-pass.spec.ts In-progress status badge exposes text label not colour alone",
       "automation_link": "e2e/tests/a11y-pass.spec.ts :: In-progress status badge exposes text label not colour alone",
-      "vqa_key": "VQA-368",
+      "vqa_key": "VQA-371",
       "tags": [
         "e2e",
         "playwright",

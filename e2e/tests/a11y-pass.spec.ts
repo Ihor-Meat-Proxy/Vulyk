@@ -23,10 +23,10 @@ async function selectProject(page: Page, projectKey: string) {
 }
 
 test('Generate case picker exposes labels, pressed folders, and focusable chips', {
-  tag: ['@VQA-365', '@VUE-227'],
+  tag: ['@VQA-368', '@VUE-230'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-365' },
-    { type: 'vulyk', description: 'VUE-227' },
+    { type: 'vulyk', description: 'VQA-368' },
+    { type: 'vulyk', description: 'VUE-230' },
   ],
 }, async ({ page, request }) => {
   const admin = await ensureAdminSession(request)
@@ -125,10 +125,10 @@ test('Generate case picker exposes labels, pressed folders, and focusable chips'
 })
 
 test('CI tokens copy controls and env block are labeled for assistive tech', {
-  tag: ['@VQA-366', '@VUE-228'],
+  tag: ['@VQA-369', '@VUE-231'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-366' },
-    { type: 'vulyk', description: 'VUE-228' },
+    { type: 'vulyk', description: 'VQA-369' },
+    { type: 'vulyk', description: 'VUE-231' },
   ],
 }, async ({ page, request, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {
@@ -197,10 +197,10 @@ test('CI tokens copy controls and env block are labeled for assistive tech', {
 })
 
 test('Updates check error region uses alert live region', {
-  tag: ['@VQA-367', '@VUE-229'],
+  tag: ['@VQA-370', '@VUE-232'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-367' },
-    { type: 'vulyk', description: 'VUE-229' },
+    { type: 'vulyk', description: 'VQA-370' },
+    { type: 'vulyk', description: 'VUE-232' },
   ],
 }, async ({ page, request }) => {
   await ensureAdminSession(request)
@@ -246,10 +246,10 @@ test('Updates check error region uses alert live region', {
 })
 
 test('In-progress status badge exposes text label not colour alone', {
-  tag: ['@VQA-368', '@VUE-230'],
+  tag: ['@VQA-371', '@VUE-233'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-368' },
-    { type: 'vulyk', description: 'VUE-230' },
+    { type: 'vulyk', description: 'VQA-371' },
+    { type: 'vulyk', description: 'VUE-233' },
   ],
 }, async ({ page, request }) => {
   await ensureAdminSession(request)

@@ -12,7 +12,7 @@
       "children": [],
       "cases": [
         {
-          "key": "VQA-365",
+          "key": "VQA-368",
           "title": {
             "en": "Generate case picker exposes labels, pressed folders, and focusable chips",
             "uk": "Generate case picker exposes labels, pressed folders, and focusable chips",
@@ -72,7 +72,7 @@
           ]
         },
         {
-          "key": "VQA-366",
+          "key": "VQA-369",
           "title": {
             "en": "CI tokens copy controls and env block are labeled for assistive tech",
             "uk": "CI tokens copy controls and env block are labeled for assistive tech",
@@ -132,7 +132,7 @@
           ]
         },
         {
-          "key": "VQA-367",
+          "key": "VQA-370",
           "title": {
             "en": "Updates check error region uses alert live region",
             "uk": "Updates check error region uses alert live region",
@@ -192,7 +192,7 @@
           ]
         },
         {
-          "key": "VQA-368",
+          "key": "VQA-371",
           "title": {
             "en": "In-progress status badge exposes text label not colour alone",
             "uk": "In-progress status badge exposes text label not colour alone",
