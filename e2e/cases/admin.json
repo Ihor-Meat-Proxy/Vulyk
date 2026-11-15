@@ -267,7 +267,7 @@
     },
     {
       "id": "admin-auth-off-banner-admin-auth-off-banner-hidden-when-auth-required-shown-when-status-mocked-open",
-      "key": "VUE-219",
+      "key": "VUE-220",
       "title": "Admin auth-off banner hidden when auth required; shown when status mocked open",
       "type": "positive",
       "priority": "high",
@@ -282,7 +282,7 @@
       "test": "Admin auth-off banner hidden when auth required; shown when status mocked open",
       "external_key": "e2e:admin-auth-off-banner.spec.ts Admin auth-off banner hidden when auth required; shown when status mocked open",
       "automation_link": "e2e/tests/admin-auth-off-banner.spec.ts :: Admin auth-off banner hidden when auth required; shown when status mocked open",
-      "vqa_key": "VQA-357",
+      "vqa_key": "VQA-358",
       "tags": [
         "e2e",
         "playwright",

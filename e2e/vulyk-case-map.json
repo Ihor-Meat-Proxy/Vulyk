@@ -853,7 +853,7 @@
     {
       "file": "admin-auth-off-banner.spec.ts",
       "title": "Admin auth-off banner hidden when auth required; shown when status mocked open",
-      "key": "VQA-357",
+      "key": "VQA-358",
       "external_key": "e2e:admin-auth-off-banner.spec.ts Admin auth-off banner hidden when auth required; shown when status mocked open",
       "source": "fragment-new"
     }

@@ -24,10 +24,10 @@ async function mockAuthStatusOpenMode(page: Page) {
 test(
   "Admin auth-off banner hidden when auth required; shown when status mocked open",
   {
-    tag: ["@VQA-357", "@VUE-219"],
+    tag: ["@VQA-358", "@VUE-220"],
     annotation: [
-      { type: "vulyk", description: "VQA-357" },
-      { type: "vulyk", description: "VUE-219" },
+      { type: "vulyk", description: "VQA-358" },
+      { type: "vulyk", description: "VUE-220" },
     ],
   },
   async ({ page, request }) => {
