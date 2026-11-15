@@ -427,7 +427,11 @@ export function CaseDetail({
     return () => {
       guard.cancel()
     }
-  }, [projectId, caseRef, t])
+    // Intentionally omit `t` — locale changes should not refetch the case.
+    // projectId is only required for UUID routes; key routes resolve globally
+    // and must not refetch when onEnsureProject updates projectId (F21).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  }, [isCaseUuid(caseRef) ? projectId : null, caseRef])
 
   const loadExecutions = async (offset = 0) => {
     const pid = detail?.case.project_id ?? projectId
@@ -838,6 +842,10 @@ export function CaseDetail({
             </span>
             <span>
               {t('cases.version')}: {c.version}
+            </span>
+            <span {...testIdProps(TestIds.caseDetailAutomated)}>
+              {t('cases.colAutomated')}:{' '}
+              {c.automated ? t('cases.automatedYes') : t('cases.automatedNo')}
             </span>
           </div>
 

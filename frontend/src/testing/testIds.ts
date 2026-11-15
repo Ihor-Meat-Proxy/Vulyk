@@ -190,6 +190,7 @@ export const TestIds = {
   caseDetailDeleted: 'case-detail-deleted',
   caseDetailDeletedBack: 'case-detail-deleted-back',
   caseDetailKeyBadge: 'case-detail-key-badge',
+  caseDetailAutomated: 'case-detail-automated',
   caseDetailCopyLink: 'case-detail-copy-link',
   appToasts: 'app-toasts',
   appToast: 'app-toast',

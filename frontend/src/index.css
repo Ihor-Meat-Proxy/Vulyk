@@ -789,6 +789,17 @@ input[type='radio'] {
   font-size: 0.92rem;
 }
 
+/* Checkbox rows must stay inline even inside stack-form (F19 / settings). */
+.stack-form label.check,
+.stack-form label.check-row,
+.stack-form .check,
+.stack-form .check-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+}
+
 .stack-form input,
 .stack-form select,
 .stack-form textarea,
@@ -799,8 +810,10 @@ input[type='radio'] {
   padding: 0.45rem 0.6rem;
 }
 
-.stack-form button,
-.chat-compose button {
+/* Primary CTA styling — skip linkish/chip/tiny controls (Generate folder
+   filters were painted solid green with invisible-looking text — F8). */
+.stack-form button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost),
+.chat-compose button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost) {
   justify-self: start;
   border: 1px solid var(--accent);
   background: var(--accent);
@@ -1176,11 +1189,11 @@ input[type='radio'] {
 }
 
 .case-col-settings-panel {
-  /* Anchor to the left of the toggle so the panel stays inside the list
-     column (opening leftward overlaps the folder tree and steals clicks). */
+  /* Columns sits at the right edge of the toolbar — open leftward so the
+     panel is not clipped by the viewport (demo Columns menu). */
   position: absolute;
-  left: 0;
-  right: auto;
+  left: auto;
+  right: 0;
   top: calc(100% + 0.35rem);
   z-index: 20;
   min-width: 18rem;
@@ -3098,8 +3111,26 @@ button.trend-seg.clickable:focus-visible {
 }
 
 .case-picker-list .check {
+  display: flex;
+  flex-direction: row;
   align-items: flex-start;
+  gap: 0.45rem;
   max-width: 100%;
+}
+
+.case-picker-folders .linkish {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.35rem;
+  text-decoration: none;
+  color: var(--ink);
+  background: transparent;
+}
+
+.case-picker-folders .linkish.active {
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .case-picker-list .check span:not(.badge) {
