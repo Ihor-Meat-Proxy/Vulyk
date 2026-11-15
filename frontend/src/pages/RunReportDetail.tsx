@@ -262,19 +262,17 @@ export function RunReportDetail({ projectId }: Props) {
           >
             {t('reports.refresh')}
           </button>
-          {canAbandon &&
-            detail &&
-            statusIsAbandonable(detail.status) && (
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={abandoning}
-                onClick={() => void onAbandon()}
-                {...testIdProps(TestIds.reportsRunAbandonButton)}
-              >
-                {abandoning ? t('runs.abandoning') : t('runs.abandon')}
-              </button>
-            )}
+          {canAbandon && detail && statusIsAbandonable(detail.status) && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={abandoning}
+              onClick={() => void onAbandon()}
+              {...testIdProps(TestIds.reportsRunAbandonButton)}
+            >
+              {abandoning ? t('runs.abandoning') : t('runs.abandon')}
+            </button>
+          )}
           {canExport && (
             <button
               type="button"

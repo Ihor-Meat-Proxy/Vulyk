@@ -150,8 +150,14 @@ pub async fn create_project(
             Err(sqlx::Error::Database(ref db)) if db.constraint().is_some() => {
                 let constraint = db.constraint().unwrap_or("projects").to_string();
                 last_conflict = Some(constraint.clone());
+                // Only the project *key* unique index is a hard conflict when the
+                // client supplied an explicit key. Do not treat
+                // `projects_case_key_prefix_uidx` as a key conflict — that race
+                // should retry allocation (prefix derived from the name/key).
                 if explicit_key.is_some()
-                    && (constraint.contains("key") || constraint == "projects_pkey")
+                    && (constraint == "projects_key_key"
+                        || constraint == "projects_pkey"
+                        || constraint.ends_with("_key_key"))
                 {
                     return Err(AppError::Conflict(format!(
                         "project key '{key}' already exists"

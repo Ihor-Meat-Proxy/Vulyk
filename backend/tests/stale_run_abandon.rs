@@ -82,10 +82,16 @@ async fn login(client: &reqwest::Client, base: &str, email: &str, password: &str
 
 async fn create_project(client: &reqwest::Client, base: &str, token: &str) -> (String, uuid::Uuid) {
     let key = unique_key("SR");
+    // Unique case_key_prefix avoids parallel-test races on prefix derived from "Stale SR…".
+    let prefix = format!("P{}", &key[key.len().saturating_sub(6)..]);
     let project: Value = client
         .post(format!("{base}/api/v1/projects"))
         .header("Authorization", format!("Bearer {token}"))
-        .json(&json!({ "key": key, "name": format!("Stale {key}") }))
+        .json(&json!({
+            "key": key,
+            "name": format!("Stale {key}"),
+            "case_key_prefix": prefix,
+        }))
         .send()
         .await
         .unwrap()
