@@ -37,10 +37,10 @@ test.beforeAll(async ({ request }) => {
 })
 
 test('open with start leaves run in_progress before results', {
-  tag: ['@VQA-328', '@VUE-207'],
+  tag: ['@VQA-332', '@VUE-106'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-328' },
-    { type: 'vulyk', description: 'VUE-207' },
+    { type: 'vulyk', description: 'VQA-332' },
+    { type: 'vulyk', description: 'VUE-106' },
   ],
 }, async ({ request }) => {
   const opened = await apiJson<{
@@ -66,10 +66,10 @@ test('open with start leaves run in_progress before results', {
 })
 
 test('streaming posts partial results while run stays in_progress', {
-  tag: ['@VQA-329', '@VUE-208'],
+  tag: ['@VQA-333', '@VUE-107'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-329' },
-    { type: 'vulyk', description: 'VUE-208' },
+    { type: 'vulyk', description: 'VQA-333' },
+    { type: 'vulyk', description: 'VUE-107' },
   ],
 }, async ({ request }) => {
   const opened = await apiJson<{ run: { id: string; status: string } }>(
@@ -148,10 +148,10 @@ test('streaming posts partial results while run stays in_progress', {
 })
 
 test('close at end marks run closed', {
-  tag: ['@VQA-330', '@VUE-209'],
+  tag: ['@VQA-334', '@VUE-108'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-330' },
-    { type: 'vulyk', description: 'VUE-209' },
+    { type: 'vulyk', description: 'VQA-334' },
+    { type: 'vulyk', description: 'VUE-108' },
   ],
 }, async ({ request }) => {
   const opened = await apiJson<{ run: { id: string } }>(
@@ -200,10 +200,10 @@ test('close at end marks run closed', {
 })
 
 test('cancelled close shows Cancelled status badge', {
-  tag: ['@VQA-331', '@VUE-210'],
+  tag: ['@VQA-335', '@VUE-109'],
   annotation: [
-    { type: 'vulyk', description: 'VQA-331' },
-    { type: 'vulyk', description: 'VUE-210' },
+    { type: 'vulyk', description: 'VQA-335' },
+    { type: 'vulyk', description: 'VUE-109' },
   ],
 }, async ({ page, request }) => {
   const suiteName = `Live cancel ${projectKey}`

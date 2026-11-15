@@ -219,7 +219,7 @@
     },
     {
       "id": "ci-reporter-live-run-open-with-start-leaves-run-in_progress-before-re",
-      "key": "VUE-207",
+      "key": "VUE-106",
       "title": "open with start leaves run in_progress before results",
       "type": "positive",
       "priority": "high",
@@ -234,7 +234,7 @@
       "test": "open with start leaves run in_progress before results",
       "external_key": "e2e:ci-reporter-live-run.spec.ts open with start leaves run in_progress before results",
       "automation_link": "e2e/tests/ci-reporter-live-run.spec.ts :: open with start leaves run in_progress before results",
-      "vqa_key": "VQA-328",
+      "vqa_key": "VQA-332",
       "tags": [
         "e2e",
         "playwright",
@@ -245,7 +245,7 @@
     },
     {
       "id": "ci-reporter-live-run-streaming-posts-partial-results-while-run-stays-",
-      "key": "VUE-208",
+      "key": "VUE-107",
       "title": "streaming posts partial results while run stays in_progress",
       "type": "positive",
       "priority": "high",
@@ -260,7 +260,7 @@
       "test": "streaming posts partial results while run stays in_progress",
       "external_key": "e2e:ci-reporter-live-run.spec.ts streaming posts partial results while run stays in_progress",
       "automation_link": "e2e/tests/ci-reporter-live-run.spec.ts :: streaming posts partial results while run stays in_progress",
-      "vqa_key": "VQA-329",
+      "vqa_key": "VQA-333",
       "tags": [
         "e2e",
         "playwright",
@@ -271,7 +271,7 @@
     },
     {
       "id": "ci-reporter-live-run-close-at-end-marks-run-closed",
-      "key": "VUE-209",
+      "key": "VUE-108",
       "title": "close at end marks run closed",
       "type": "positive",
       "priority": "high",
@@ -286,7 +286,7 @@
       "test": "close at end marks run closed",
       "external_key": "e2e:ci-reporter-live-run.spec.ts close at end marks run closed",
       "automation_link": "e2e/tests/ci-reporter-live-run.spec.ts :: close at end marks run closed",
-      "vqa_key": "VQA-330",
+      "vqa_key": "VQA-334",
       "tags": [
         "e2e",
         "playwright",
@@ -297,7 +297,7 @@
     },
     {
       "id": "ci-reporter-live-run-cancelled-close-shows-cancelled-status-badge",
-      "key": "VUE-210",
+      "key": "VUE-109",
       "title": "cancelled close shows Cancelled status badge",
       "type": "positive",
       "priority": "high",
@@ -312,7 +312,7 @@
       "test": "cancelled close shows Cancelled status badge",
       "external_key": "e2e:ci-reporter-live-run.spec.ts cancelled close shows Cancelled status badge",
       "automation_link": "e2e/tests/ci-reporter-live-run.spec.ts :: cancelled close shows Cancelled status badge",
-      "vqa_key": "VQA-331",
+      "vqa_key": "VQA-335",
       "tags": [
         "e2e",
         "playwright",
