@@ -1,13 +1,18 @@
 # Vulyk API
 
-Interactive OpenAPI docs are served by the API process:
+Interactive OpenAPI docs are served by the API process (self-hosted Scalar —
+no CDN; works offline / air-gapped):
 
 | Environment | URL |
 |-------------|-----|
 | Local / Compose | http://localhost:8080/api/docs |
 | Behind the UI proxy | http://localhost:5173/api/docs (dev) or same-origin `/api/docs` |
+| OpenAPI JSON | http://localhost:8080/api/openapi.json |
 
-The machine-readable OpenAPI document is embedded via **utoipa** (`ApiDoc` in `backend/src/openapi.rs`).
+The machine-readable OpenAPI document is generated via **utoipa** (`ApiDoc` in
+`backend/src/openapi.rs`) and exposed at **`GET /api/openapi.json`**. The docs
+UI loads a vendored `@scalar/api-reference` bundle from
+`/api/docs/assets/scalar.js` under a path-scoped CSP (`script-src 'self'`).
 
 ## Conventions
 

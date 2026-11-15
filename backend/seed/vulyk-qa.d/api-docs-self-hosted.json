@@ -1,0 +1,70 @@
+{
+  "feature": "api-docs-self-hosted",
+  "suites": [
+    {
+      "name": {
+        "en": "API docs",
+        "uk": "API-документація",
+        "fr": "Docs API",
+        "es": "Docs API",
+        "de": "API-Docs"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "API docs and OpenAPI JSON are self-hosted",
+            "uk": "API-документація та OpenAPI JSON самохостяться",
+            "fr": "Les docs API et le JSON OpenAPI sont auto-hébergés",
+            "es": "Las docs API y el JSON OpenAPI son autoalojados",
+            "de": "API-Docs und OpenAPI-JSON sind selbst gehostet"
+          },
+          "description": {
+            "en": "/api/docs loads Scalar without a CDN; /api/openapi.json returns the OpenAPI document.",
+            "uk": "/api/docs завантажує Scalar без CDN; /api/openapi.json повертає OpenAPI.",
+            "fr": "/api/docs loads Scalar without a CDN; /api/openapi.json returns the OpenAPI document.",
+            "es": "/api/docs loads Scalar without a CDN; /api/openapi.json returns the OpenAPI document.",
+            "de": "/api/docs loads Scalar without a CDN; /api/openapi.json returns the OpenAPI document."
+          },
+          "precondition": {
+            "en": "API process running.",
+            "uk": "API-процес запущено.",
+            "fr": "API process running.",
+            "es": "API process running.",
+            "de": "API process running."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "api",
+            "openapi",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:api-docs.spec.ts#self-hosted",
+          "steps": [
+            {
+              "action": {
+                "en": "GET /api/docs and /api/openapi.json; confirm HTML references /api/docs/assets/scalar.js and does not mention cdn.jsdelivr.net.",
+                "uk": "GET /api/docs і /api/openapi.json; HTML посилається на /api/docs/assets/scalar.js і не згадує cdn.jsdelivr.net.",
+                "fr": "GET /api/docs and /api/openapi.json; confirm HTML references /api/docs/assets/scalar.js and does not mention cdn.jsdelivr.net.",
+                "es": "GET /api/docs and /api/openapi.json; confirm HTML references /api/docs/assets/scalar.js and does not mention cdn.jsdelivr.net.",
+                "de": "GET /api/docs and /api/openapi.json; confirm HTML references /api/docs/assets/scalar.js and does not mention cdn.jsdelivr.net."
+              },
+              "expected_result": {
+                "en": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors.",
+                "uk": "Docs UI завантажується; OpenAPI JSON має openapi + paths; немає CSP/CDN помилок у консолі.",
+                "fr": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors.",
+                "es": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors.",
+                "de": "Docs UI loads; OpenAPI JSON has openapi + paths; no CSP/CDN console errors."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -39,8 +39,31 @@ fn hsts_enabled_from_env() -> bool {
     )
 }
 
-/// Insert baseline security headers. API responses are JSON-only so CSP is strict.
+/// CSP for JSON API responses (and accidental HTML error pages).
+pub const API_CSP: &str = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+
+/// CSP for self-hosted OpenAPI docs (`/api/docs*`) — same-origin Scalar only, no CDN.
+pub const DOCS_CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'";
+
+fn csp_for_path(path: &str) -> &'static str {
+    if path == "/api/docs"
+        || path == "/api/docs/"
+        || path.starts_with("/api/docs/")
+        || path == "/api/openapi.json"
+    {
+        DOCS_CSP
+    } else {
+        API_CSP
+    }
+}
+
+/// Insert baseline security headers. JSON API uses a strict CSP; docs paths allow
+/// same-origin scripts/styles for the vendored Scalar UI.
 pub fn insert_security_headers(headers: &mut HeaderMap, enable_hsts: bool) {
+    insert_security_headers_for_path(headers, enable_hsts, "");
+}
+
+pub fn insert_security_headers_for_path(headers: &mut HeaderMap, enable_hsts: bool, path: &str) {
     headers.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
@@ -54,10 +77,9 @@ pub fn insert_security_headers(headers: &mut HeaderMap, enable_hsts: bool) {
         header::HeaderName::from_static("permissions-policy"),
         HeaderValue::from_static("camera=(), microphone=(), geolocation=()"),
     );
-    // API is not an HTML document surface — lock down any accidental HTML error pages.
     headers.insert(
         header::CONTENT_SECURITY_POLICY,
-        HeaderValue::from_static("default-src 'none'; frame-ancestors 'none'; base-uri 'none'"),
+        HeaderValue::from_static(csp_for_path(path)),
     );
     if enable_hsts {
         headers.insert(
@@ -68,8 +90,9 @@ pub fn insert_security_headers(headers: &mut HeaderMap, enable_hsts: bool) {
 }
 
 pub async fn security_headers_middleware(req: Request, next: Next) -> Response {
+    let path = req.uri().path().to_string();
     let mut res = next.run(req).await;
-    insert_security_headers(res.headers_mut(), hsts_enabled_from_env());
+    insert_security_headers_for_path(res.headers_mut(), hsts_enabled_from_env(), &path);
     res
 }
 
@@ -93,12 +116,30 @@ mod tests {
             "strict-origin-when-cross-origin"
         );
         assert!(headers.get(header::STRICT_TRANSPORT_SECURITY).is_none());
-        assert!(headers
+        assert_eq!(
+            headers
+                .get(header::CONTENT_SECURITY_POLICY)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            API_CSP
+        );
+    }
+
+    #[test]
+    fn docs_paths_get_self_hosted_script_csp() {
+        let mut headers = HeaderMap::new();
+        insert_security_headers_for_path(&mut headers, false, "/api/docs");
+        let csp = headers
             .get(header::CONTENT_SECURITY_POLICY)
             .unwrap()
             .to_str()
-            .unwrap()
-            .contains("frame-ancestors 'none'"));
+            .unwrap();
+        assert!(csp.contains("script-src 'self'"));
+        assert!(!csp.contains("cdn.jsdelivr"));
+        assert_eq!(csp_for_path("/api/docs/assets/scalar.js"), DOCS_CSP);
+        assert_eq!(csp_for_path("/api/openapi.json"), DOCS_CSP);
+        assert_eq!(csp_for_path("/api/v1/projects"), API_CSP);
     }
 
     #[test]

@@ -56,6 +56,7 @@ const FOLDER_FOR_SPEC = {
   'status-sample.spec.ts': 'Sample data',
   'pwa-mobile.spec.ts': 'PWA & a11y',
   'smoke.spec.ts': 'Smoke',
+  'api-docs.spec.ts': 'Meta',
   'test-id-audit.spec.ts': 'Meta',
   // Gap-fill specs (created alongside this work)
   'settings-profile-tokens.spec.ts': 'Settings',

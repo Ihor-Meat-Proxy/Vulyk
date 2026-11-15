@@ -16,7 +16,7 @@ This document describes the **current** system shape. Operator and user workflow
 | Admin | Users, RBAC, SSO, LLM, lists/fields, config export/import, content backups, in-app updates/rollback |
 | Scale | Bulk ingest, Postgres FTS + `pg_trgm`, background jobs (`SKIP LOCKED`) |
 | LLM / MCP | Multi-provider LLM; `vulyk-mcp` over the HTTP API |
-| API | OpenAPI 3 (utoipa) + Scalar at `/api/docs` |
+| API | OpenAPI 3 (utoipa) + self-hosted Scalar at `/api/docs` (JSON at `/api/openapi.json`) |
 
 **Non-goal:** Do not open PRs or commits against OpenProject upstream. Document the integration contract only in this repo ([integrations/openproject.md](integrations/openproject.md)).
 

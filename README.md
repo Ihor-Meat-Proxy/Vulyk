@@ -43,7 +43,8 @@ Then open the UI at http://localhost:5173. Full install options (prod Compose, H
 |---------|-----|
 | UI | http://localhost:5173 |
 | API | http://localhost:8080 |
-| OpenAPI (Scalar) | http://localhost:8080/api/docs |
+| OpenAPI (Scalar, self-hosted) | http://localhost:8080/api/docs |
+| OpenAPI JSON | http://localhost:8080/api/openapi.json |
 | Health | http://localhost:8080/health |
 
 **Seeded local credentials** (when `VULYK_SEED_DEMO=1`, the Compose default):

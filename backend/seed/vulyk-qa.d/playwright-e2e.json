@@ -6146,6 +6146,65 @@
             }
           ],
           "key": "VQA-328"
+        },
+        {
+          "title": {
+            "en": "API docs and openapi.json are self-hosted",
+            "uk": "API docs and openapi.json are self-hosted",
+            "fr": "API docs and openapi.json are self-hosted",
+            "es": "API docs and openapi.json are self-hosted",
+            "de": "API docs and openapi.json are self-hosted"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: api-docs.spec.ts — API docs and openapi.json are self-hosted",
+            "uk": "Покриття Playwright e2e: api-docs.spec.ts — API docs and openapi.json are self-hosted",
+            "fr": "Playwright e2e coverage: api-docs.spec.ts — API docs and openapi.json are self-hosted",
+            "es": "Playwright e2e coverage: api-docs.spec.ts — API docs and openapi.json are self-hosted",
+            "de": "Playwright e2e coverage: api-docs.spec.ts — API docs and openapi.json are self-hosted"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:api-docs.spec.ts API docs and openapi.json are self-hosted",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\"",
+                "uk": "Run npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\"",
+                "fr": "Run npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\"",
+                "es": "Run npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\"",
+                "de": "Run npx playwright test api-docs.spec.ts -g \"API docs and openapi.json are self-hosted\""
+              },
+              "expected_result": {
+                "en": "Test passes; docs load without CDN; /api/openapi.json returns OpenAPI.",
+                "uk": "Test passes; docs load without CDN; /api/openapi.json returns OpenAPI.",
+                "fr": "Test passes; docs load without CDN; /api/openapi.json returns OpenAPI.",
+                "es": "Test passes; docs load without CDN; /api/openapi.json returns OpenAPI.",
+                "de": "Test passes; docs load without CDN; /api/openapi.json returns OpenAPI."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-329"
         }
       ]
     }
