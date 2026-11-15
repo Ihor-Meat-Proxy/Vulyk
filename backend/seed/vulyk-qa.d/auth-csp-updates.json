@@ -1,0 +1,177 @@
+{
+  "feature": "auth-csp-updates",
+  "suites": [
+    {
+      "name": {
+        "en": "Auth, CSP, and Updates (audit F5–F7)",
+        "uk": "Auth, CSP і Updates (аудит F5–F7)",
+        "fr": "Auth, CSP et Updates (audit F5–F7)",
+        "es": "Auth, CSP y Updates (auditoría F5–F7)",
+        "de": "Auth, CSP und Updates (Audit F5–F7)"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "New installs require auth by default",
+            "uk": "Нові інсталяції вимагають auth за замовчуванням",
+            "fr": "Les nouvelles installations exigent l'auth par défaut",
+            "es": "Las instalaciones nuevas exigen auth por defecto",
+            "de": "Neue Installationen erfordern Auth standardmäßig"
+          },
+          "description": {
+            "en": "install.sh / .env.example / Compose default VULYK_AUTH_REQUIRED=true; anonymous project APIs return 401; upgrades never overwrite an existing false.",
+            "uk": "install.sh / .env.example / Compose за замовчуванням VULYK_AUTH_REQUIRED=true; анонімні project API → 401; upgrade не перезаписує існуючий false.",
+            "fr": "install.sh / .env.example / Compose default VULYK_AUTH_REQUIRED=true; anonymous project APIs return 401; upgrades never overwrite an existing false.",
+            "es": "install.sh / .env.example / Compose default VULYK_AUTH_REQUIRED=true; anonymous project APIs return 401; upgrades never overwrite an existing false.",
+            "de": "install.sh / .env.example / Compose default VULYK_AUTH_REQUIRED=true; anonymous project APIs return 401; upgrades never overwrite an existing false."
+          },
+          "precondition": {
+            "en": "Fresh install or e2e stack with auth required.",
+            "uk": "Свіжа інсталяція або e2e стек з auth required.",
+            "fr": "Fresh install or e2e stack with auth required.",
+            "es": "Fresh install or e2e stack with auth required.",
+            "de": "Fresh install or e2e stack with auth required."
+          },
+          "priority": "critical",
+          "status": "ready",
+          "tags": [
+            "smoke",
+            "regression",
+            "e2e",
+            "auth",
+            "security",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:auth-required-default.spec.ts#auth-required-default",
+          "steps": [
+            {
+              "action": {
+                "en": "Call GET /api/v1/projects without credentials; open gear menu after login.",
+                "uk": "Викликати GET /api/v1/projects без credentials; відкрити gear після логіну.",
+                "fr": "Call GET /api/v1/projects without credentials; open gear menu after login.",
+                "es": "Call GET /api/v1/projects without credentials; open gear menu after login.",
+                "de": "Call GET /api/v1/projects without credentials; open gear menu after login."
+              },
+              "expected_result": {
+                "en": "401 from projects API; gear mode badge shows Auth required (not Open mode).",
+                "uk": "401 від projects API; badge показує Auth required (не Open mode).",
+                "fr": "401 from projects API; gear mode badge shows Auth required (not Open mode).",
+                "es": "401 from projects API; gear mode badge shows Auth required (not Open mode).",
+                "de": "401 from projects API; gear mode badge shows Auth required (not Open mode)."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Theme init is external and CSP-safe",
+            "uk": "Theme init зовнішній і CSP-safe",
+            "fr": "Theme init is external and CSP-safe",
+            "es": "Theme init is external and CSP-safe",
+            "de": "Theme init is external and CSP-safe"
+          },
+          "description": {
+            "en": "Pre-paint theme bootstrap lives at /theme-init.js so nginx CSP script-src 'self' does not block it; stored dark theme applies without flash.",
+            "uk": "Pre-paint theme bootstrap у /theme-init.js, щоб CSP script-src 'self' не блокував; збережена dark тема без flash.",
+            "fr": "Pre-paint theme bootstrap lives at /theme-init.js so nginx CSP script-src 'self' does not block it; stored dark theme applies without flash.",
+            "es": "Pre-paint theme bootstrap lives at /theme-init.js so nginx CSP script-src 'self' does not block it; stored dark theme applies without flash.",
+            "de": "Pre-paint theme bootstrap lives at /theme-init.js so nginx CSP script-src 'self' does not block it; stored dark theme applies without flash."
+          },
+          "precondition": {
+            "en": "UI served with CSP script-src 'self'; localStorage theme=dark.",
+            "uk": "UI з CSP script-src 'self'; localStorage theme=dark.",
+            "fr": "UI served with CSP script-src 'self'; localStorage theme=dark.",
+            "es": "UI served with CSP script-src 'self'; localStorage theme=dark.",
+            "de": "UI served with CSP script-src 'self'; localStorage theme=dark."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "csp",
+            "appearance",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:theme-csp.spec.ts#theme-init-csp",
+          "steps": [
+            {
+              "action": {
+                "en": "Set localStorage appearance to dark, load the app, watch console for CSP errors.",
+                "uk": "Встановити appearance=dark у localStorage, відкрити застосунок, перевірити console на CSP.",
+                "fr": "Set localStorage appearance to dark, load the app, watch console for CSP errors.",
+                "es": "Set localStorage appearance to dark, load the app, watch console for CSP errors.",
+                "de": "Set localStorage appearance to dark, load the app, watch console for CSP errors."
+              },
+              "expected_result": {
+                "en": "html data-theme=dark; script src=/theme-init.js present; no CSP inline-script violations.",
+                "uk": "html data-theme=dark; script src=/theme-init.js; без CSP inline-script порушень.",
+                "fr": "html data-theme=dark; script src=/theme-init.js present; no CSP inline-script violations.",
+                "es": "html data-theme=dark; script src=/theme-init.js present; no CSP inline-script violations.",
+                "de": "html data-theme=dark; script src=/theme-init.js present; no CSP inline-script violations."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Failed update check does not claim latest",
+            "uk": "Невдала перевірка оновлень не стверджує latest",
+            "fr": "Failed update check does not claim latest",
+            "es": "Failed update check does not claim latest",
+            "de": "Failed update check does not claim latest"
+          },
+          "description": {
+            "en": "When POST /admin/updates/check returns 400 (e.g. GitHub rate limit), Admin → Updates must show the error and must not say the instance is on the latest checked release.",
+            "uk": "Коли POST /admin/updates/check повертає 400 (наприклад rate limit), Admin → Updates показує помилку і не каже, що це latest.",
+            "fr": "When POST /admin/updates/check returns 400 (e.g. GitHub rate limit), Admin → Updates must show the error and must not say the instance is on the latest checked release.",
+            "es": "When POST /admin/updates/check returns 400 (e.g. GitHub rate limit), Admin → Updates must show the error and must not say the instance is on the latest checked release.",
+            "de": "When POST /admin/updates/check returns 400 (e.g. GitHub rate limit), Admin → Updates must show the error and must not say the instance is on the latest checked release."
+          },
+          "precondition": {
+            "en": "Admin signed in; Updates tab reachable.",
+            "uk": "Admin увійшов; вкладка Updates доступна.",
+            "fr": "Admin signed in; Updates tab reachable.",
+            "es": "Admin signed in; Updates tab reachable.",
+            "de": "Admin signed in; Updates tab reachable."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "regression",
+            "e2e",
+            "admin",
+            "updates",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:admin-updates-rollback.spec.ts#check-failed-no-latest",
+          "steps": [
+            {
+              "action": {
+                "en": "Mock POST /admin/updates/check → 400 rate limit; click Check for updates.",
+                "uk": "Мокнути POST /admin/updates/check → 400 rate limit; натиснути Check for updates.",
+                "fr": "Mock POST /admin/updates/check → 400 rate limit; click Check for updates.",
+                "es": "Mock POST /admin/updates/check → 400 rate limit; click Check for updates.",
+                "de": "Mock POST /admin/updates/check → 400 rate limit; click Check for updates."
+              },
+              "expected_result": {
+                "en": "admin-updates-check-error shows the failure; status does not claim latest checked release.",
+                "uk": "admin-updates-check-error показує помилку; status не стверджує latest.",
+                "fr": "admin-updates-check-error shows the failure; status does not claim latest checked release.",
+                "es": "admin-updates-check-error shows the failure; status does not claim latest checked release.",
+                "de": "admin-updates-check-error shows the failure; status does not claim latest checked release."
+              },
+              "data": { "en": "", "uk": "", "fr": "", "es": "", "de": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

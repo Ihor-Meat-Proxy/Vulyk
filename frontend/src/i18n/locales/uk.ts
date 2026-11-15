@@ -147,6 +147,8 @@ const uk: Dict = {
   'admin.updates.manualHint': "Оновлення в один клік потребує sidecar updater у Compose. Використайте цю команду:",
   'admin.updates.available': "Доступне оновлення.",
   'admin.updates.uptoDate': "У вас остання перевірена версія.",
+  'admin.updates.notChecked': "Успішної перевірки оновлень ще не було.",
+  'admin.updates.checkFailed': "Перевірка оновлень не вдалася.",
   'admin.updates.interval': "Інтервал періодичної перевірки (години, 0 = вимк.)",
   'admin.updates.intervalSave': "Зберегти інтервал",
   'admin.updates.progress': "Прогрес оновлення",

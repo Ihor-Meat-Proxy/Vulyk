@@ -1248,6 +1248,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const [status, setStatus] = useState<UpdatesStatus | null>(null)
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [checking, setChecking] = useState(false)
+  const [checkError, setCheckError] = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
   const [rollingBack, setRollingBack] = useState(false)
   const [intervalHours, setIntervalHours] = useState(24)
@@ -1312,12 +1313,17 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
 
   const onCheck = async () => {
     setChecking(true)
+    setCheckError(null)
     try {
       const s = await api.checkAdminUpdates()
       setStatus(s)
       setActiveJob(s.active_job)
+      setCheckError(null)
     } catch (err) {
-      onError(err instanceof Error ? err.message : String(err))
+      const msg = err instanceof Error ? err.message : String(err)
+      // Do not claim "latest" when the check failed (audit F7).
+      setCheckError(msg)
+      onError(msg)
     } finally {
       setChecking(false)
     }
@@ -1440,17 +1446,31 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     !rollingBack &&
     !jobBusy
 
+  const statusSummary = checkError
+    ? t('admin.updates.checkFailed')
+    : status.update_available
+      ? t('admin.updates.available')
+      : status.last_checked_at
+        ? t('admin.updates.uptoDate')
+        : t('admin.updates.notChecked')
+
   return (
     <div className="panel" {...testIdProps(TestIds.adminUpdatesPanel)}>
       <h3>{t('admin.updates')}</h3>
-      <p className="muted">
-        {status.update_available
-          ? t('admin.updates.available')
-          : t('admin.updates.uptoDate')}
-        {status.last_checked_at
+      <p
+        className={checkError ? 'error' : 'muted'}
+        {...testIdProps(TestIds.adminUpdatesStatus)}
+      >
+        {statusSummary}
+        {!checkError && status.last_checked_at
           ? ` · ${t('admin.updates.lastChecked')}: ${status.last_checked_at}`
           : null}
       </p>
+      {checkError ? (
+        <p className="error" {...testIdProps(TestIds.adminUpdatesCheckError)}>
+          {checkError}
+        </p>
+      ) : null}
 
       <dl className="admin-updates-meta">
         <div>

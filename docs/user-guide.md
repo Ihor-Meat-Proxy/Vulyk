@@ -9,7 +9,7 @@ Vulyk is a test management system: organize cases into nested folders, plan and 
 3. Later visits use **Sign in** with email/password.
 4. Personal API tokens for CLI/MCP live under gear → **My settings** (or **Admin settings → Tokens** for admins managing others).
 
-When auth is disabled (`VULYK_AUTH_REQUIRED=false`, local compose default), the UI runs in open mode without a login wall unless bootstrap is still available. The gear menu shows an **Open mode** badge.
+When auth is disabled (`VULYK_AUTH_REQUIRED=false`), the UI runs in open mode without a login wall unless bootstrap is still available. The gear menu shows an **Open mode** badge. New installs default to auth required; set `false` only for intentional open-mode DX (upgrades never overwrite an existing value).
 
 ## Demo sample data
 

@@ -147,6 +147,8 @@ const en: Dict = {
   'admin.updates.manualHint': "One-click update needs the Compose updater sidecar. Use this command instead:",
   'admin.updates.available': "An update is available.",
   'admin.updates.uptoDate': "You are on the latest checked release.",
+  'admin.updates.notChecked': "No successful update check yet.",
+  'admin.updates.checkFailed': "Update check failed.",
   'admin.updates.interval': "Periodic check interval (hours, 0 = off)",
   'admin.updates.intervalSave': "Save interval",
   'admin.updates.progress': "Update progress",

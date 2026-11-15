@@ -147,6 +147,8 @@ const fr: Dict = {
   'admin.updates.manualHint': "La mise à jour en un clic nécessite le sidecar updater Compose. Utilisez cette commande :",
   'admin.updates.available': "Une mise à jour est disponible.",
   'admin.updates.uptoDate': "Vous avez la dernière version vérifiée.",
+  'admin.updates.notChecked': "Aucune vérification réussie pour le moment.",
+  'admin.updates.checkFailed': "Échec de la vérification des mises à jour.",
   'admin.updates.interval': "Intervalle de vérification périodique (heures, 0 = désactivé)",
   'admin.updates.intervalSave': "Enregistrer l'intervalle",
   'admin.updates.progress': "Progression de la mise à jour",

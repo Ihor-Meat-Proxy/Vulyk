@@ -149,7 +149,11 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
           </div>
 
           <div className="user-menu-mode" role="presentation">
-            <span className="mode-badge" title={t('nav.modeInfo')}>
+            <span
+              className="mode-badge"
+              title={t('nav.modeInfo')}
+              {...testIdProps(TestIds.headerGearAuthMode)}
+            >
               {modeLabel}
             </span>
           </div>

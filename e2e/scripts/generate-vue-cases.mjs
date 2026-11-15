@@ -24,6 +24,7 @@ const TEST_RE =
 /** Map spec filename → VUE folder name */
 const FOLDER_FOR_SPEC = {
   'auth.spec.ts': 'Auth',
+  'auth-required-default.spec.ts': 'Auth',
   'forced-password-change.spec.ts': 'Auth',
   'password-policy-lockout.spec.ts': 'Auth',
   'registration-sso.spec.ts': 'Auth',
@@ -31,6 +32,7 @@ const FOLDER_FOR_SPEC = {
   'header-menu.spec.ts': 'Shell',
   'locale-switch.spec.ts': 'Settings',
   'appearance.spec.ts': 'Settings',
+  'theme-csp.spec.ts': 'Settings',
   'projects-cases.spec.ts': 'Projects & cases',
   'case-list-columns.spec.ts': 'Projects & cases',
   'case-edit-keyboard.spec.ts': 'Projects & cases',

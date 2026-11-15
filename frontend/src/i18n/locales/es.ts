@@ -147,6 +147,8 @@ const es: Dict = {
   'admin.updates.manualHint': "La actualización en un clic requiere el sidecar updater de Compose. Use este comando:",
   'admin.updates.available': "Hay una actualización disponible.",
   'admin.updates.uptoDate': "Está en la última versión comprobada.",
+  'admin.updates.notChecked': "Aún no hay una comprobación de actualizaciones correcta.",
+  'admin.updates.checkFailed': "Falló la comprobación de actualizaciones.",
   'admin.updates.interval': "Intervalo de comprobación periódica (horas, 0 = off)",
   'admin.updates.intervalSave': "Guardar intervalo",
   'admin.updates.progress': "Progreso de la actualización",

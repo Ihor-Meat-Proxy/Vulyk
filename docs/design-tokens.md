@@ -14,7 +14,7 @@ Vulyk uses CSS custom properties (design tokens) for colour, spacing, and typogr
 
 Resolved theme is set on `<html data-theme="…">`. The user’s choice is `data-theme-choice`. Density is `data-density="comfortable|compact"`. Font scale is `--font-scale` (percent / 100). UI body font is `data-ui-font` / `--font-body` (self-hosted `@fontsource` families; default Inter).
 
-Token source of truth for tests: [`frontend/src/theme/tokens.ts`](../frontend/src/theme/tokens.ts). Runtime apply: [`frontend/src/theme/applyAppearance.ts`](../frontend/src/theme/applyAppearance.ts). An inline script in `frontend/index.html` reads `localStorage` key `vulyk.appearance` before paint to avoid a wrong-theme flash.
+Token source of truth for tests: [`frontend/src/theme/tokens.ts`](../frontend/src/theme/tokens.ts). Runtime apply: [`frontend/src/theme/applyAppearance.ts`](../frontend/src/theme/applyAppearance.ts). Pre-paint bootstrap: [`frontend/public/theme-init.js`](../frontend/public/theme-init.js) (loaded from `index.html` / `offline.html`) reads `localStorage` key `vulyk.appearance` before paint to avoid a wrong-theme flash without violating CSP `script-src 'self'`.
 
 ## Core tokens
 

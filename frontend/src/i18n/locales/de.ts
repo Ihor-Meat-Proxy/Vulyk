@@ -147,6 +147,8 @@ const de: Dict = {
   'admin.updates.manualHint': "Ein-Klick-Update braucht den Compose-Updater-Sidecar. Nutzen Sie diesen Befehl:",
   'admin.updates.available': "Ein Update ist verfügbar.",
   'admin.updates.uptoDate': "Sie haben die zuletzt geprüfte Version.",
+  'admin.updates.notChecked': "Noch keine erfolgreiche Update-Prüfung.",
+  'admin.updates.checkFailed': "Update-Prüfung fehlgeschlagen.",
   'admin.updates.interval': "Intervall für periodische Prüfung (Stunden, 0 = aus)",
   'admin.updates.intervalSave': "Intervall speichern",
   'admin.updates.progress': "Update-Fortschritt",
