@@ -44,8 +44,17 @@ import {
 } from '../lib/staleGuard'
 import { isApplePlatform, modKeyLabel } from '../platform'
 import { cacheCase, getCachedCase } from '../pwa/offlineDb'
+import { friendlyErrorMessage } from '../friendlyError'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
+
+function planTypeLabel(planType: string, t: (key: string) => string): string {
+  const key = planType.trim().toLowerCase()
+  if (key === 'ci' || key === 'ci run') return t('executions.planTypeCi')
+  if (key === 'iteration') return t('executions.planTypeIteration')
+  if (key === 'run') return t('executions.planTypeRun')
+  return planType
+}
 
 type Props = {
   projectId: string | null
@@ -404,7 +413,13 @@ export function CaseDetail({
       })
       .catch((err: Error) => {
         if (isAbortError(err) || guard.isCancelled()) return
-        applyUnlessCancelled(guard, () => setError(err.message))
+        applyUnlessCancelled(guard, () => {
+          if (err instanceof ApiError && err.status === 404) {
+            setError(t('cases.notFound'))
+          } else {
+            setError(friendlyErrorMessage(err, t, 'notFound'))
+          }
+        })
       })
       .finally(() => {
         applyUnlessCancelled(guard, () => setLoading(false))
@@ -412,7 +427,7 @@ export function CaseDetail({
     return () => {
       guard.cancel()
     }
-  }, [projectId, caseRef])
+  }, [projectId, caseRef, t])
 
   const loadExecutions = async (offset = 0) => {
     const pid = detail?.case.project_id ?? projectId
@@ -605,14 +620,38 @@ export function CaseDetail({
 
   if (error && !detail) {
     return (
-      <p className="error" {...testIdProps(TestIds.caseDetailError)}>
-        {error}
-      </p>
+      <div className="panel" {...testIdProps(TestIds.caseDetailNotFound)}>
+        <p className="error" {...testIdProps(TestIds.caseDetailError)}>
+          {error}
+        </p>
+        <p>
+          <Link
+            to="/"
+            className="btn secondary"
+            {...testIdProps(TestIds.caseDetailBackLink)}
+          >
+            {t('cases.backToCases')}
+          </Link>
+        </p>
+      </div>
     )
   }
 
   if (!detail) {
-    return <p className="muted">{t('cases.notFound')}</p>
+    return (
+      <div className="panel" {...testIdProps(TestIds.caseDetailNotFound)}>
+        <p className="muted">{t('cases.notFound')}</p>
+        <p>
+          <Link
+            to="/"
+            className="btn secondary"
+            {...testIdProps(TestIds.caseDetailBackLink)}
+          >
+            {t('cases.backToCases')}
+          </Link>
+        </p>
+      </div>
+    )
   }
 
   const { case: c, tags } = detail
@@ -1184,7 +1223,13 @@ export function CaseDetail({
               <div className="meta-row results-summary">
                 <span>
                   {t('executions.passRate')}:{' '}
-                  <strong>{execPage.pass_rate.toFixed(0)}%</strong>
+                  <strong
+                    {...testIdProps(TestIds.caseDetailExecutionsPassRate)}
+                  >
+                    {execPage.total === 0
+                      ? '—'
+                      : `${execPage.pass_rate.toFixed(0)}%`}
+                  </strong>
                 </span>
                 <span>
                   {t('common.total')}: {execPage.total}
@@ -1219,7 +1264,7 @@ export function CaseDetail({
                               {row.path}
                             </Link>
                           </td>
-                          <td>{row.plan_type}</td>
+                          <td>{planTypeLabel(row.plan_type, t)}</td>
                           <td>{row.exec_number}</td>
                           <td>{row.mode}</td>
                           <td>
@@ -1253,10 +1298,16 @@ export function CaseDetail({
                 >
                   {t('common.previous')}
                 </button>
-                <span className="muted">
-                  {execOffset + 1}–
-                  {Math.min(execOffset + execLimit, execPage.total)}{' '}
-                  {t('common.of')} {execPage.total}
+                <span
+                  className="muted"
+                  {...testIdProps(TestIds.caseDetailExecutionsPager)}
+                >
+                  {execPage.total === 0
+                    ? `0 ${t('common.of')} 0`
+                    : `${execOffset + 1}–${Math.min(
+                        execOffset + execLimit,
+                        execPage.total,
+                      )} ${t('common.of')} ${execPage.total}`}
                 </span>
                 <button
                   type="button"

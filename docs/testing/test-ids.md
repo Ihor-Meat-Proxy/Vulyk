@@ -80,4 +80,17 @@ If an environment still prefers zero test markup, build with `VITE_STRIP_TEST_ID
 1. Add a constant to `TestIds` (or reuse a list-item child pattern).
 2. Spread `{...testIdProps(TestIds.…)}` (or `listItemProps`) on the element.
 3. Use `page.getByTestId(TestIds.…)` in Playwright / page objects.
+
+## UX polish (F13–F22)
+
+Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
+
+| Element | Test id |
+| --- | --- |
+| App 404 page | `not-found-page` / `not-found-title` / `not-found-back-link` |
+| Case executions pass rate / pager | `case-detail-executions-pass-rate` / `case-detail-executions-pager` |
+| Case not-found panel | `case-detail-not-found` |
+| Forced password policy note / disabled hint | `change-password-policy-note` / `change-password-disabled-hint` |
+| Runs upload disabled hint | `runs-upload-disabled-hint` |
+| Coverage uncovered empty | `reports-coverage-uncovered-empty` |
 4. Reference the id in seeded Vulyk QA steps when the case is UI-driven.

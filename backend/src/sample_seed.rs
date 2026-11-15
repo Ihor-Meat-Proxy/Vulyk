@@ -174,6 +174,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "auth-csp-updates",
         include_str!("../seed/vulyk-qa.d/auth-csp-updates.json"),
     ),
+    (
+        "ux-polish-f13-f22",
+        include_str!("../seed/vulyk-qa.d/ux-polish-f13-f22.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

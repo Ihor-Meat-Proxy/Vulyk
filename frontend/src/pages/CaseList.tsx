@@ -143,6 +143,8 @@ export function CaseList({
   const [customFields, setCustomFields] = useState<CustomField[]>([])
   const [columnConfig, setColumnConfig] =
     useState<CaseListColumnsConfig>(defaultConfig)
+  /** Gate list fetches until column prefs settle (avoids duplicate limit=200). */
+  const [listReady, setListReady] = useState(false)
   const [sort, setSort] = useState<string>('default')
   const [order, setOrder] = useState<'asc' | 'desc'>('asc')
   const [dragColId, setDragColId] = useState<string | null>(null)
@@ -331,9 +333,11 @@ export function CaseList({
     if (!projectId) {
       setCustomFields([])
       setColumnConfig(defaultConfig())
+      setListReady(false)
       return
     }
     let cancelled = false
+    setListReady(false)
     const local = readLocalConfig(projectId)
     api
       .listCustomFields(projectId, 'test_case')
@@ -354,6 +358,7 @@ export function CaseList({
           if (sanitized.order === 'asc' || sanitized.order === 'desc') {
             setOrder(sanitized.order)
           }
+          setListReady(true)
         }
         if (userId) {
           api
@@ -380,6 +385,7 @@ export function CaseList({
               extendWithCustomFields([]),
             ),
           )
+          setListReady(true)
         }
       })
     return () => {
@@ -414,6 +420,7 @@ export function CaseList({
       setProjectCaseTotal(0)
       return
     }
+    if (!listReady) return
     const ac = new AbortController()
     setLoading(true)
     api
@@ -438,7 +445,7 @@ export function CaseList({
     return () => {
       ac.abort()
     }
-  }, [projectId, listParams, offset])
+  }, [projectId, listParams, offset, listReady])
 
   useEffect(() => {
     if (!projectId) return

@@ -757,14 +757,16 @@ pub async fn list_project_repos(
     path = "/api/v1/projects/{project_id}/automation-repo",
     tag = "automation-repo",
     params(("project_id" = Uuid, Path, description = "Project id")),
-    responses((status = 200, body = AutomationRepoPublic), (status = 404, description = "Not configured")),
+    responses(
+        (status = 200, description = "Configured repo, or null when none", body = Option<AutomationRepoPublic>),
+    ),
     security(("bearer_auth" = []))
 )]
 pub async fn get_repo(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
     Path(project_id): Path<Uuid>,
-) -> AppResult<Json<AutomationRepoPublic>> {
+) -> AppResult<Json<Option<AutomationRepoPublic>>> {
     require_permission(
         &state.pool,
         &auth,
@@ -774,10 +776,10 @@ pub async fn get_repo(
     )
     .await?;
     ensure_project(&state.pool, project_id).await?;
-    let row = repo_svc::load_repo_for_project(&state.pool, project_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
-    Ok(Json(to_public(&state.pool, &row).await?))
+    match repo_svc::load_repo_for_project(&state.pool, project_id).await? {
+        Some(row) => Ok(Json(Some(to_public(&state.pool, &row).await?))),
+        None => Ok(Json(None)),
+    }
 }
 
 #[utoipa::path(

@@ -250,19 +250,33 @@ export function RunsPage({ projectId, suites }: Props) {
                 </option>
               ))}
             </select>
-            <input
-              type="file"
-              accept=".xml,text/xml,application/xml"
-              aria-label={t('a11y.junitXmlFile')}
-              disabled={!uploadRunId || uploading}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) void uploadJunit(file)
-                e.target.value = ''
-              }}
-              {...testIdProps(TestIds.runsUploadFileInput)}
-            />
+            <label
+              className={`file-input-label${!uploadRunId || uploading ? ' is-disabled' : ''}`}
+            >
+              <span className="btn secondary">{t('runs.chooseJunitFile')}</span>
+              <input
+                type="file"
+                className="file-input"
+                accept=".xml,text/xml,application/xml"
+                aria-label={t('a11y.junitXmlFile')}
+                disabled={!uploadRunId || uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void uploadJunit(file)
+                  e.target.value = ''
+                }}
+                {...testIdProps(TestIds.runsUploadFileInput)}
+              />
+            </label>
           </div>
+          {!uploadRunId && (
+            <p
+              className="muted"
+              {...testIdProps(TestIds.runsUploadDisabledHint)}
+            >
+              {t('runs.uploadSelectRunHint')}
+            </p>
+          )}
           {uploadMessage && <p className="muted">{uploadMessage}</p>}
         </section>
       )}

@@ -70,6 +70,7 @@ const FOLDER_FOR_SPEC = {
   'execution-steps.spec.ts': 'Executions',
   'error-pages.spec.ts': 'Edge cases',
   'users-admin.spec.ts': 'Admin',
+  'ux-polish-f13-f22.spec.ts': 'Edge cases',
 }
 
 function inferType(title) {

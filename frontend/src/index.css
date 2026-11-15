@@ -430,13 +430,18 @@ select.project-select {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
   border: 1px solid var(--line);
   border-radius: 0.45rem;
   background: var(--bg-elevated);
   color: var(--ink);
   cursor: pointer;
+}
+
+.icon-menu .icon-btn svg {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
 .icon-btn:hover,
@@ -626,6 +631,30 @@ select.project-select {
   border-radius: 0.4rem;
   padding: var(--control-pad-y) var(--control-pad-x);
   color: var(--ink);
+}
+
+/* Text/select padding must not inflate checkboxes (settings, Generate picker). */
+.field input[type='checkbox'],
+.field input[type='radio'],
+.stack-form input[type='checkbox'],
+.stack-form input[type='radio'],
+.check input[type='checkbox'],
+.check-row input[type='checkbox'],
+.checkbox-row input[type='checkbox'],
+.case-picker input[type='checkbox'],
+input[type='checkbox'],
+input[type='radio'] {
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  min-height: 1rem;
+  padding: 0;
+  margin: 0;
+  border-radius: 0.2rem;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  background: var(--surface-input);
+  vertical-align: middle;
 }
 
 .admin {
@@ -985,6 +1014,21 @@ select.project-select {
 .title-input {
   min-width: min(100%, 18rem);
   flex: 1;
+}
+
+.detail-header h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.detail-header .title-input {
+  flex: 1 1 18rem;
+  min-width: min(100%, 18rem);
+  width: min(100%, 42rem);
+  max-width: 100%;
 }
 
 .area {
@@ -2325,7 +2369,7 @@ button.trend-seg.clickable:focus-visible {
 .folder-tree-root,
 .folder-tree-folder-btn,
 .folder-tree-twistie,
-.icon-btn {
+.folder-tree .icon-btn {
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -2454,19 +2498,19 @@ button.trend-seg.clickable:focus-visible {
   opacity: 1;
 }
 
-.icon-btn {
+.folder-tree .icon-btn {
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
 }
 
-.icon-btn:hover {
+.folder-tree .icon-btn:hover {
   background: var(--bg-elevated);
   color: var(--ink);
 }
 
-.icon-btn.danger:hover {
+.folder-tree .icon-btn.danger:hover {
   color: var(--danger);
 }
 
@@ -3357,7 +3401,9 @@ button.trend-seg.clickable:focus-visible {
   background: none;
   padding: 0;
   color: var(--ink-muted);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
+  font-family: var(--font-body);
+  font-weight: 500;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -3457,6 +3503,36 @@ button.trend-seg.clickable:focus-visible {
 
 .case-deleted h2 {
   margin-top: 0;
+}
+
+.file-input-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.file-input-label.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.file-input-label .file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 640px), (pointer: coarse) {
+  .case-detail-back .shortcut-hint {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {

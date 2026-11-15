@@ -1,0 +1,557 @@
+{
+  "feature": "ux-polish-f13-f22",
+  "suites": [
+    {
+      "name": {
+        "en": "UX polish F13–F22",
+        "uk": "UX polish F13–F22",
+        "fr": "UX polish F13–F22",
+        "es": "UX polish F13–F22",
+        "de": "UX polish F13–F22"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "unknown route shows 404 page with back link",
+            "uk": "unknown route shows 404 page with back link",
+            "fr": "unknown route shows 404 page with back link",
+            "es": "unknown route shows 404 page with back link",
+            "de": "unknown route shows 404 page with back link"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — unknown route shows 404 page with back link",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — unknown route shows 404 page with back link",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — unknown route shows 404 page with back link",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — unknown route shows 404 page with back link",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — unknown route shows 404 page with back link"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts unknown route shows 404 page with back link",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"unknown route shows 404 page with back link\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"unknown route shows 404 page with back link\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"unknown route shows 404 page with back link\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"unknown route shows 404 page with back link\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"unknown route shows 404 page with back link\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-345"
+        },
+        {
+          "title": {
+            "en": "bad password login shows friendly message",
+            "uk": "bad password login shows friendly message",
+            "fr": "bad password login shows friendly message",
+            "es": "bad password login shows friendly message",
+            "de": "bad password login shows friendly message"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — bad password login shows friendly message",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — bad password login shows friendly message",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — bad password login shows friendly message",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — bad password login shows friendly message",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — bad password login shows friendly message"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts bad password login shows friendly message",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"bad password login shows friendly message\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"bad password login shows friendly message\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"bad password login shows friendly message\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"bad password login shows friendly message\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"bad password login shows friendly message\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-346"
+        },
+        {
+          "title": {
+            "en": "empty case executions show dash pass rate and 0 of 0 pager",
+            "uk": "empty case executions show dash pass rate and 0 of 0 pager",
+            "fr": "empty case executions show dash pass rate and 0 of 0 pager",
+            "es": "empty case executions show dash pass rate and 0 of 0 pager",
+            "de": "empty case executions show dash pass rate and 0 of 0 pager"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — empty case executions show dash pass rate and 0 of 0 pager",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — empty case executions show dash pass rate and 0 of 0 pager",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — empty case executions show dash pass rate and 0 of 0 pager",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — empty case executions show dash pass rate and 0 of 0 pager",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — empty case executions show dash pass rate and 0 of 0 pager"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts empty case executions show dash pass rate and 0 of 0 pager",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-347"
+        },
+        {
+          "title": {
+            "en": "CI lifecycle run is labeled CI run on case executions tab",
+            "uk": "CI lifecycle run is labeled CI run on case executions tab",
+            "fr": "CI lifecycle run is labeled CI run on case executions tab",
+            "es": "CI lifecycle run is labeled CI run on case executions tab",
+            "de": "CI lifecycle run is labeled CI run on case executions tab"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — CI lifecycle run is labeled CI run on case executions tab",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — CI lifecycle run is labeled CI run on case executions tab",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — CI lifecycle run is labeled CI run on case executions tab",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — CI lifecycle run is labeled CI run on case executions tab",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — CI lifecycle run is labeled CI run on case executions tab"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts CI lifecycle run is labeled CI run on case executions tab",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"CI lifecycle run is labeled CI run on case executions tab\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"CI lifecycle run is labeled CI run on case executions tab\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"CI lifecycle run is labeled CI run on case executions tab\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"CI lifecycle run is labeled CI run on case executions tab\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"CI lifecycle run is labeled CI run on case executions tab\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-348"
+        },
+        {
+          "title": {
+            "en": "Admin opens on Users tab for system admin",
+            "uk": "Admin opens on Users tab for system admin",
+            "fr": "Admin opens on Users tab for system admin",
+            "es": "Admin opens on Users tab for system admin",
+            "de": "Admin opens on Users tab for system admin"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Admin opens on Users tab for system admin",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Admin opens on Users tab for system admin",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Admin opens on Users tab for system admin",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Admin opens on Users tab for system admin",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Admin opens on Users tab for system admin"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts Admin opens on Users tab for system admin",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Admin opens on Users tab for system admin\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Admin opens on Users tab for system admin\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Admin opens on Users tab for system admin\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Admin opens on Users tab for system admin\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Admin opens on Users tab for system admin\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-349"
+        },
+        {
+          "title": {
+            "en": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "uk": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "fr": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "es": "settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "de": "settings timezone normalizes Europe/Kiev to Europe/Kyiv"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — settings timezone normalizes Europe/Kiev to Europe/Kyiv"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts settings timezone normalizes Europe/Kiev to Europe/Kyiv",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"settings timezone normalizes Europe/Kiev to Europe/Kyiv\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-350"
+        },
+        {
+          "title": {
+            "en": "Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "uk": "Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "fr": "Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "es": "Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "de": "Runs JUnit upload shows hint while disabled; header icons are tappable size"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Runs JUnit upload shows hint while disabled; header icons are tappable size",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — Runs JUnit upload shows hint while disabled; header icons are tappable size"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts Runs JUnit upload shows hint while disabled; header icons are tappable size",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Runs JUnit upload shows hint while disabled; header icons are tappable size\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Runs JUnit upload shows hint while disabled; header icons are tappable size\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Runs JUnit upload shows hint while disabled; header icons are tappable size\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Runs JUnit upload shows hint while disabled; header icons are tappable size\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"Runs JUnit upload shows hint while disabled; header icons are tappable size\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-351"
+        },
+        {
+          "title": {
+            "en": "automation-repo returns 200 null when none configured",
+            "uk": "automation-repo returns 200 null when none configured",
+            "fr": "automation-repo returns 200 null when none configured",
+            "es": "automation-repo returns 200 null when none configured",
+            "de": "automation-repo returns 200 null when none configured"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — automation-repo returns 200 null when none configured",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — automation-repo returns 200 null when none configured",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — automation-repo returns 200 null when none configured",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — automation-repo returns 200 null when none configured",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — automation-repo returns 200 null when none configured"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts automation-repo returns 200 null when none configured",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"automation-repo returns 200 null when none configured\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-352"
+        },
+        {
+          "title": {
+            "en": "case edit title input is wide enough; copy link uses sans font",
+            "uk": "case edit title input is wide enough; copy link uses sans font",
+            "fr": "case edit title input is wide enough; copy link uses sans font",
+            "es": "case edit title input is wide enough; copy link uses sans font",
+            "de": "case edit title input is wide enough; copy link uses sans font"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — case edit title input is wide enough; copy link uses sans font",
+            "uk": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — case edit title input is wide enough; copy link uses sans font",
+            "fr": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — case edit title input is wide enough; copy link uses sans font",
+            "es": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — case edit title input is wide enough; copy link uses sans font",
+            "de": "Playwright e2e coverage: ux-polish-f13-f22.spec.ts — case edit title input is wide enough; copy link uses sans font"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ux-polish"
+          ],
+          "external_key": "e2e:ux-polish-f13-f22.spec.ts case edit title input is wide enough; copy link uses sans font",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\"",
+                "uk": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\"",
+                "fr": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\"",
+                "es": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\"",
+                "de": "Run npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-353"
+        }
+      ]
+    }
+  ]
+}

@@ -408,6 +408,54 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "ux-polish-f13-f22-empty-case-executions-show-dash-pass-rate-and-0-of-0-pager",
+      "key": "VUE-209",
+      "title": "empty case executions show dash pass rate and 0 of 0 pager",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ux-polish-f13-f22.spec.ts -g \"empty case executions show dash pass rate and 0 of 0 pager\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ux-polish-f13-f22.spec.ts",
+      "test": "empty case executions show dash pass rate and 0 of 0 pager",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts empty case executions show dash pass rate and 0 of 0 pager",
+      "automation_link": "e2e/tests/ux-polish-f13-f22.spec.ts :: empty case executions show dash pass rate and 0 of 0 pager",
+      "vqa_key": "VQA-347",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "ux-polish-f13-f22-case-edit-title-input-is-wide-enough-copy-link-uses-sans-font",
+      "key": "VUE-215",
+      "title": "case edit title input is wide enough; copy link uses sans font",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ux-polish-f13-f22.spec.ts -g \"case edit title input is wide enough; copy link uses sans font\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ux-polish-f13-f22.spec.ts",
+      "test": "case edit title input is wide enough; copy link uses sans font",
+      "external_key": "e2e:ux-polish-f13-f22.spec.ts case edit title input is wide enough; copy link uses sans font",
+      "automation_link": "e2e/tests/ux-polish-f13-f22.spec.ts :: case edit title input is wide enough; copy link uses sans font",
+      "vqa_key": "VQA-353",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }

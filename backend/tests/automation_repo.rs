@@ -547,6 +547,35 @@ async fn github_archive_indexes_without_git_and_is_incremental() {
 }
 
 #[tokio::test]
+async fn get_legacy_automation_repo_returns_null_when_none() {
+    let base = spawn_api().await;
+    let client = reqwest::Client::new();
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&json!({ "name": "No Automation Repo Yet" }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let res = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/automation-repo"
+        ))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let body: Value = res.json().await.unwrap();
+    assert!(body.is_null(), "expected null JSON, got {body}");
+}
+
+#[tokio::test]
 async fn generic_test_reports_missing_git_clearly_when_unavailable() {
     // Unit-level: when git binary is absent the helper surfaces a clear message.
     // Integration environments usually have git; skip the live call if present.

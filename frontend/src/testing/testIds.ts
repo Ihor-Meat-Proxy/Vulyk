@@ -83,7 +83,13 @@ export const TestIds = {
   changePasswordSubmitButton: 'change-password-submit-button',
   changePasswordSignOutButton: 'change-password-sign-out-button',
   changePasswordError: 'change-password-error',
+  changePasswordPolicyNote: 'change-password-policy-note',
+  changePasswordDisabledHint: 'change-password-disabled-hint',
   passwordRequirements: 'password-requirements',
+
+  notFoundPage: 'not-found-page',
+  notFoundTitle: 'not-found-title',
+  notFoundBackLink: 'not-found-back-link',
 
   // —— Case list ——
   caseListPanel: 'case-list-panel',
@@ -223,6 +229,9 @@ export const TestIds = {
   caseDetailExecutionLink: 'case-detail-execution-link',
   caseDetailExecutionsPrevButton: 'case-detail-executions-prev-button',
   caseDetailExecutionsNextButton: 'case-detail-executions-next-button',
+  caseDetailExecutionsPassRate: 'case-detail-executions-pass-rate',
+  caseDetailExecutionsPager: 'case-detail-executions-pager',
+  caseDetailNotFound: 'case-detail-not-found',
   caseDetailResultsStatusFilter: 'case-detail-results-status-filter',
   caseDetailResultsRunFilter: 'case-detail-results-run-filter',
   caseDetailResultsApplyButton: 'case-detail-results-apply-button',
@@ -237,6 +246,7 @@ export const TestIds = {
   runsSuiteSelect: 'runs-suite-select',
   runsUploadRunSelect: 'runs-upload-run-select',
   runsUploadFileInput: 'runs-upload-file-input',
+  runsUploadDisabledHint: 'runs-upload-disabled-hint',
   runsPlanNameInput: 'runs-plan-name-input',
   runsPlanAddButton: 'runs-plan-add-button',
   runsCiProviderSelect: 'runs-ci-provider-select',
@@ -438,6 +448,7 @@ export const TestIds = {
   reportsCoverageRefresh: 'reports-coverage-refresh',
   reportsCoverageCovered: 'reports-coverage-covered',
   reportsCoverageUncovered: 'reports-coverage-uncovered',
+  reportsCoverageUncoveredEmpty: 'reports-coverage-uncovered-empty',
   reportsCoverageReq: 'reports-coverage-req',
 
   // —— Appearance ——

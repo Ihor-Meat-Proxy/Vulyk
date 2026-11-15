@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { formatTimestamp, normalizeTimeZone } from '../timezone'
 import de from './locales/de'
 import en from './locales/en'
 import es from './locales/es'
@@ -128,21 +129,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     (
       value: string | Date | null | undefined,
       opts?: Intl.DateTimeFormatOptions,
-    ) => {
-      if (value == null || value === '') return '—'
-      const date = value instanceof Date ? value : new Date(value)
-      if (Number.isNaN(date.getTime())) return '—'
-      try {
-        return new Intl.DateTimeFormat(intl, {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-          ...opts,
-        }).format(date)
-      } catch {
-        return date.toLocaleString()
-      }
-    },
-    [intl],
+    ) =>
+      formatTimestamp(value, {
+        locale: intl,
+        timeZone: normalizeTimeZone(user?.timezone),
+        instanceTimeZone: normalizeTimeZone(status?.default_timezone),
+        dateStyle: opts?.dateStyle ?? 'medium',
+        timeStyle: opts?.timeStyle ?? 'short',
+      }),
+    [intl, user?.timezone, status?.default_timezone],
   )
 
   const value = useMemo(
