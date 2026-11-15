@@ -36,19 +36,42 @@ e2e/
 
 ## Vulyk case keys + reporter
 
-Every test must declare a Vulyk QA case key:
+Every test must declare Vulyk case keys (`@VQA-N` sample seed **and** `@VUE-N`
+UI e2e project):
 
 ```ts
 test('…', {
-  tag: '@VQA-236',
-  annotation: { type: 'vulyk', description: 'VQA-236' },
+  tag: ['@VQA-236', '@VUE-1'],
+  annotation: [
+    { type: 'vulyk', description: 'VQA-236' },
+    { type: 'vulyk', description: 'VUE-1' },
+  ],
 }, async ({ page }) => { /* … */ })
 ```
 
-`npm run check:vulyk-case-links` (also via `./scripts/check.sh`) fails when a
-test is missing the annotation. Seed cases + automation links:
-`backend/seed/vulyk-qa.d/playwright-e2e.json`. Full guide:
+### Adding a test (feature branches)
+
+**NEVER** run `node e2e/scripts/sync-vulyk-case-links.mjs` or
+`generate-vue-cases.mjs --annotate` on a parallel feature branch — those tools
+rebuild inventories and can renumber unrelated keys. Instead:
+
+1. Append one case to `backend/seed/vulyk-qa.d/playwright-e2e.json` with the
+   next free `VQA-N` (keep the range contiguous — no gaps).
+2. Append one case to `e2e/cases/<folder>.json` with the next free `VUE-N` and
+   bump `manifest.json`.
+3. Prefer a narrative fragment under `backend/seed/vulyk-qa.d/` with **keys
+   omitted** for non-e2e sample coverage.
+4. Run `./scripts/check-seed-keys.sh` and `./scripts/check-e2e-case-keys.sh`
+   (both run under `./scripts/check.sh --quick`).
+
+`npm run check:vulyk-case-links` fails when a test is missing the annotation.
+`./scripts/check-e2e-case-keys.sh` fails on playwright-e2e VQA gaps, duplicate
+`external_key` across seed fragments, or tags that reference missing keys.
+Seed cases: `backend/seed/vulyk-qa.d/playwright-e2e.json`. Full guide:
 [`docs/testing/playwright-vulyk.md`](../docs/testing/playwright-vulyk.md).
+
+Default sync is **additive** (preserves keys); pass `--force-renumber` only
+when you intentionally own a full regen.
 
 To publish results into a local Vulyk project, set `VULYK_URL`,
 `VULYK_CI_TOKEN`, and `VULYK_PROJECT` before `npx playwright test` (reporter is

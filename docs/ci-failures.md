@@ -23,6 +23,7 @@ flowchart TD
   backend --> fmt[cargo fmt]
   backend --> clippy[cargo clippy -D warnings]
   backend --> seedCheck[check-seed-keys.sh]
+  backend --> e2eKeys[check-e2e-case-keys.sh]
   backend --> tests[cargo test]
   migrations --> migCheck[check-migrations.sh]
   migrations --> seedCheck2[check-seed-keys.sh]
@@ -74,7 +75,7 @@ sequenceDiagram
 | **Symptoms** | `all_sample_seeds_parse_and_keys_unique` fails; DB `23505` on `test_cases_project_id_key_key`; API never becomes healthy; Playwright fails waiting for `/health` or sample UI |
 | **Why** | Parallel PRs each append the “next” `VQA-16x` range to `vulyk-qa.json` / `generate_vulyk_qa.py`. After rebase both ranges collide. |
 | **Fix** | Deduplicate keys; regenerate; or omit keys and let allocation assign the next free number. |
-| **Prevent** | Feature fragments in `backend/seed/vulyk-qa.d/` with keys omitted + register in `VULYK_QA_FRAGMENTS`. CI: `./scripts/check-seed-keys.sh` (clear duplicate error). Runtime `prepare_case_keys` before insert. |
+| **Prevent** | Feature fragments in `backend/seed/vulyk-qa.d/` with keys omitted + register in `VULYK_QA_FRAGMENTS`. CI: `./scripts/check-seed-keys.sh` + `./scripts/check-e2e-case-keys.sh` (duplicates, playwright-e2e gaps, missing tags). Runtime `prepare_case_keys` before insert. Never run `sync-vulyk-case-links.mjs --force-renumber` on feature branches. |
 | **Seen on** | PRs #27, #28, #29, #30, #31, #33 (primary on several failed runs) |
 
 ### 2. Lighthouse Chrome-for-Testing download flake

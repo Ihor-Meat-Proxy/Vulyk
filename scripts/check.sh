@@ -30,6 +30,10 @@ echo "==> seed keys"
 chmod +x scripts/check-seed-keys.sh
 ./scripts/check-seed-keys.sh
 
+echo "==> e2e case-key hygiene"
+chmod +x scripts/check-e2e-case-keys.sh
+./scripts/check-e2e-case-keys.sh
+
 echo "==> migrations"
 chmod +x scripts/check-migrations.sh
 ./scripts/check-migrations.sh

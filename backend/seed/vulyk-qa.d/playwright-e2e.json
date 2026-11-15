@@ -6207,6 +6207,126 @@
           "key": "VQA-329"
         },
         {
+          "key": "VQA-330",
+          "title": {
+            "en": "e2e seed hygiene: contiguous playwright-e2e keys and unique external_key",
+            "uk": "e2e seed hygiene: contiguous playwright-e2e keys and unique external_key",
+            "fr": "e2e seed hygiene: contiguous playwright-e2e keys and unique external_key",
+            "es": "e2e seed hygiene: contiguous playwright-e2e keys and unique external_key",
+            "de": "e2e seed hygiene: contiguous playwright-e2e keys and unique external_key"
+          },
+          "description": {
+            "en": "Narrative: ./scripts/check-e2e-case-keys.sh fails when playwright-e2e.json VQA keys have gaps or when two seed fragments claim the same external_key. Closes historical hole left when parallel audit PRs skipped VQA-330.",
+            "uk": "Narrative: ./scripts/check-e2e-case-keys.sh fails when playwright-e2e.json VQA keys have gaps or when two seed fragments claim the same external_key. Closes historical hole left when parallel audit PRs skipped VQA-330.",
+            "fr": "Narrative: ./scripts/check-e2e-case-keys.sh fails when playwright-e2e.json VQA keys have gaps or when two seed fragments claim the same external_key. Closes historical hole left when parallel audit PRs skipped VQA-330.",
+            "es": "Narrative: ./scripts/check-e2e-case-keys.sh fails when playwright-e2e.json VQA keys have gaps or when two seed fragments claim the same external_key. Closes historical hole left when parallel audit PRs skipped VQA-330.",
+            "de": "Narrative: ./scripts/check-e2e-case-keys.sh fails when playwright-e2e.json VQA keys have gaps or when two seed fragments claim the same external_key. Closes historical hole left when parallel audit PRs skipped VQA-330."
+          },
+          "precondition": {
+            "en": "Repo checkout; run ./scripts/check-e2e-case-keys.sh (also via ./scripts/check.sh --quick).",
+            "uk": "Repo checkout; run ./scripts/check-e2e-case-keys.sh (also via ./scripts/check.sh --quick).",
+            "fr": "Repo checkout; run ./scripts/check-e2e-case-keys.sh (also via ./scripts/check.sh --quick).",
+            "es": "Repo checkout; run ./scripts/check-e2e-case-keys.sh (also via ./scripts/check.sh --quick).",
+            "de": "Repo checkout; run ./scripts/check-e2e-case-keys.sh (also via ./scripts/check.sh --quick)."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "seed-hygiene",
+            "type:functional",
+            "vulyk-qa",
+            "meta"
+          ],
+          "external_key": "meta:e2e-seed-hygiene:gaps-and-external-key",
+          "steps": [
+            {
+              "action": {
+                "en": "Run ./scripts/check-e2e-case-keys.sh",
+                "uk": "Run ./scripts/check-e2e-case-keys.sh",
+                "fr": "Run ./scripts/check-e2e-case-keys.sh",
+                "es": "Run ./scripts/check-e2e-case-keys.sh",
+                "de": "Run ./scripts/check-e2e-case-keys.sh"
+              },
+              "expected_result": {
+                "en": "Exits 0; reports contiguous playwright-e2e VQA keys and unique external_key values.",
+                "uk": "Exits 0; reports contiguous playwright-e2e VQA keys and unique external_key values.",
+                "fr": "Exits 0; reports contiguous playwright-e2e VQA keys and unique external_key values.",
+                "es": "Exits 0; reports contiguous playwright-e2e VQA keys and unique external_key values.",
+                "de": "Exits 0; reports contiguous playwright-e2e VQA keys and unique external_key values."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-331",
+          "title": {
+            "en": "e2e seed hygiene: additive sync unless --force-renumber",
+            "uk": "e2e seed hygiene: additive sync unless --force-renumber",
+            "fr": "e2e seed hygiene: additive sync unless --force-renumber",
+            "es": "e2e seed hygiene: additive sync unless --force-renumber",
+            "de": "e2e seed hygiene: additive sync unless --force-renumber"
+          },
+          "description": {
+            "en": "Narrative: node e2e/scripts/sync-vulyk-case-links.mjs must not rewrite existing playwright-e2e keys on feature branches. Default is additive (append missing tests only). Use --force-renumber only when intentionally owning a full regen. Closes historical hole left when parallel audit PRs skipped VQA-331.",
+            "uk": "Narrative: node e2e/scripts/sync-vulyk-case-links.mjs must not rewrite existing playwright-e2e keys on feature branches. Default is additive (append missing tests only). Use --force-renumber only when intentionally owning a full regen. Closes historical hole left when parallel audit PRs skipped VQA-331.",
+            "fr": "Narrative: node e2e/scripts/sync-vulyk-case-links.mjs must not rewrite existing playwright-e2e keys on feature branches. Default is additive (append missing tests only). Use --force-renumber only when intentionally owning a full regen. Closes historical hole left when parallel audit PRs skipped VQA-331.",
+            "es": "Narrative: node e2e/scripts/sync-vulyk-case-links.mjs must not rewrite existing playwright-e2e keys on feature branches. Default is additive (append missing tests only). Use --force-renumber only when intentionally owning a full regen. Closes historical hole left when parallel audit PRs skipped VQA-331.",
+            "de": "Narrative: node e2e/scripts/sync-vulyk-case-links.mjs must not rewrite existing playwright-e2e keys on feature branches. Default is additive (append missing tests only). Use --force-renumber only when intentionally owning a full regen. Closes historical hole left when parallel audit PRs skipped VQA-331."
+          },
+          "precondition": {
+            "en": "Feature branch with new Playwright tests; do not run sync with --force-renumber.",
+            "uk": "Feature branch with new Playwright tests; do not run sync with --force-renumber.",
+            "fr": "Feature branch with new Playwright tests; do not run sync with --force-renumber.",
+            "es": "Feature branch with new Playwright tests; do not run sync with --force-renumber.",
+            "de": "Feature branch with new Playwright tests; do not run sync with --force-renumber."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "seed-hygiene",
+            "type:functional",
+            "vulyk-qa",
+            "meta"
+          ],
+          "external_key": "meta:e2e-seed-hygiene:additive-sync",
+          "steps": [
+            {
+              "action": {
+                "en": "Append a case manually to playwright-e2e.json (next free VQA) or run sync without --force-renumber",
+                "uk": "Append a case manually to playwright-e2e.json (next free VQA) or run sync without --force-renumber",
+                "fr": "Append a case manually to playwright-e2e.json (next free VQA) or run sync without --force-renumber",
+                "es": "Append a case manually to playwright-e2e.json (next free VQA) or run sync without --force-renumber",
+                "de": "Append a case manually to playwright-e2e.json (next free VQA) or run sync without --force-renumber"
+              },
+              "expected_result": {
+                "en": "Existing @VQA-N tags stay stable; only new tests get new keys.",
+                "uk": "Existing @VQA-N tags stay stable; only new tests get new keys.",
+                "fr": "Existing @VQA-N tags stay stable; only new tests get new keys.",
+                "es": "Existing @VQA-N tags stay stable; only new tests get new keys.",
+                "de": "Existing @VQA-N tags stay stable; only new tests get new keys."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
           "title": {
             "en": "open with start leaves run in_progress before results",
             "uk": "open with start leaves run in_progress before results",

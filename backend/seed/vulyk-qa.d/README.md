@@ -55,6 +55,10 @@ feature — that is what caused CI collisions on PRs #27–#33.
 - Prefer omitting keys so allocation stays collision-proof under parallel PRs.
 - After rebase onto latest `main`, re-run `./scripts/check-seed-keys.sh`.
 - Exception: `playwright-e2e.json` keeps stable `VQA-N` keys so Playwright
-  `@VQA-N` tags stay aligned; regenerate with
-  `node e2e/scripts/sync-vulyk-case-links.mjs --annotate` after rebase if keys
-  collide, then update tags.
+  `@VQA-N` tags stay aligned. **Do not** regenerate it from a feature branch.
+  Append the next free `VQA-N` by hand (and the matching `@VQA-N` tag). Default
+  `node e2e/scripts/sync-vulyk-case-links.mjs` is additive only; full rebuild
+  needs `--force-renumber` (owned regen, not parallel PRs).
+- Run `./scripts/check-e2e-case-keys.sh` as well — it fails on VQA gaps inside
+  `playwright-e2e.json`, duplicate `external_key` across fragments, and spec
+  tags that reference missing `VQA`/`VUE` keys.

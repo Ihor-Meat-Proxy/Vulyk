@@ -77,10 +77,15 @@ local script). See also [playwright-vulyk.md](../testing/playwright-vulyk.md) an
 ## Add a test + case
 
 1. Add/extend a spec under `e2e/tests/` using page objects + `TestIds`.
-2. Run `node e2e/scripts/sync-vulyk-case-links.mjs` then `./scripts/check-seed-keys.sh`
-   so the VQA seed fragment stays allocated.
-3. Run `node e2e/scripts/generate-vue-cases.mjs --annotate` to refresh `e2e/cases/`
-   and dual-tag the test with `@VUE-N`.
+2. **On feature branches:** append the next free `VQA-N` to
+   `backend/seed/vulyk-qa.d/playwright-e2e.json` and the next free `VUE-N` to
+   `e2e/cases/<folder>.json` + `manifest.json` by hand. Prefer a narrative
+   fragment with **keys omitted** for non-e2e sample cases. Then run
+   `./scripts/check-seed-keys.sh` and `./scripts/check-e2e-case-keys.sh`.
+   Do **not** run `sync-vulyk-case-links.mjs` / `generate-vue-cases.mjs` to
+   renumber (additive sync is OK; `--force-renumber` is not for parallel PRs).
+3. Optional owned regen only: `node e2e/scripts/sync-vulyk-case-links.mjs --annotate`
+   (additive) or `--force-renumber` when you intentionally rebuild inventories.
 4. Optionally `./scripts/e2e-local.sh --sync` against a running stack.
 5. Cover positive, negative, and edge paths for the feature.
 
