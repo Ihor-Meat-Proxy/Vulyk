@@ -11,10 +11,7 @@ import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
-import {
-  isLiveRunStatus,
-  LIVE_RUN_POLL_MS,
-} from '../lib/liveRun'
+import { isLiveRunStatus, LIVE_RUN_POLL_MS } from '../lib/liveRun'
 import {
   applyUnlessCancelled,
   createStaleGuard,

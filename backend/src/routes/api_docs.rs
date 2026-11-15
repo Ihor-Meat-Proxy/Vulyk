@@ -132,7 +132,10 @@ mod tests {
         assert_eq!(cfg["hideSearch"], false);
         assert_eq!(cfg["hideTestRequestButton"], false);
         assert_eq!(cfg["searchHotKey"], "k");
-        assert_eq!(cfg["authentication"]["preferredSecurityScheme"], "bearer_auth");
+        assert_eq!(
+            cfg["authentication"]["preferredSecurityScheme"],
+            "bearer_auth"
+        );
         assert_eq!(cfg["servers"][0]["url"], "/");
         assert!(
             !SCALAR_CONFIGURATION.contains('\''),

@@ -14,10 +14,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { isLiveRunStatus, LIVE_RUN_POLL_MS } from '../lib/liveRun'
-import {
-  applyUnlessCancelled,
-  createStaleGuard,
-} from '../lib/staleGuard'
+import { applyUnlessCancelled, createStaleGuard } from '../lib/staleGuard'
 import { TestIds, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
 

@@ -121,15 +121,11 @@ async fn openapi_json_and_self_hosted_docs() {
         "docs HTML should embed the OpenAPI spec"
     );
     assert!(
-        body
-            .pointer("/servers/0/url")
-            .and_then(|v| v.as_str())
-            == Some("/"),
+        body.pointer("/servers/0/url").and_then(|v| v.as_str()) == Some("/"),
         "OpenAPI servers[0].url should be same-origin /"
     );
     assert!(
-        body
-            .pointer("/components/securitySchemes/bearer_auth")
+        body.pointer("/components/securitySchemes/bearer_auth")
             .is_some(),
         "OpenAPI must expose bearer_auth for Scalar Auth"
     );
