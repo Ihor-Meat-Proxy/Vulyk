@@ -4,13 +4,22 @@
  *
  * - Parses e2e/tests/*.spec.ts for test() titles
  * - Ensures a seed case exists with external_key `e2e:{file} {title}`
- * - Writes/updates backend/seed/vulyk-qa.d/playwright-e2e.json (keys omitted)
+ * - Writes/updates backend/seed/vulyk-qa.d/playwright-e2e.json
  * - Patches each test() with tag + annotation `@VQA-N` after allocation
  *
+ * SAFE DEFAULT (additive):
+ *   Preserves existing playwright-e2e.json keys and cases. Only appends
+ *   cases for new tests (keys omitted → allocated after current max).
+ *   Does NOT renumber or drop existing keys / meta cases.
+ *
+ * NEVER run --force-renumber on a parallel feature branch. Prefer appending
+ * keys manually (see AGENTS.md / e2e/README.md).
+ *
  * Usage:
- *   node e2e/scripts/sync-vulyk-case-links.mjs           # write fragment + dry report
- *   node e2e/scripts/sync-vulyk-case-links.mjs --annotate # also patch specs (needs allocated keys)
- *   node e2e/scripts/sync-vulyk-case-links.mjs --check    # fail if a test lacks vulyk annotation
+ *   node e2e/scripts/sync-vulyk-case-links.mjs                 # additive write + dry report
+ *   node e2e/scripts/sync-vulyk-case-links.mjs --annotate      # also patch specs missing tags
+ *   node e2e/scripts/sync-vulyk-case-links.mjs --check         # fail if a test lacks annotation
+ *   node e2e/scripts/sync-vulyk-case-links.mjs --force-renumber  # FULL rebuild (dangerous)
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -27,6 +36,7 @@ const FRAG_DIR = path.join(ROOT, 'backend/seed/vulyk-qa.d')
 const args = new Set(process.argv.slice(2))
 const DO_ANNOTATE = args.has('--annotate')
 const DO_CHECK = args.has('--check')
+const FORCE_RENUMBER = args.has('--force-renumber')
 
 const TEST_RE =
   /\btest(?:\.(?:only|skip|fix|fix\.only|fix\.skip))?\(\s*(?:\/\*[\s\S]*?\*\/\s*)?(['"`])([^'"`]+)\1/g
@@ -41,15 +51,23 @@ function walkCases(suite, out) {
   for (const ch of suite.children || []) walkCases(ch, out)
 }
 
-function loadAllCases() {
+function loadAllCases({ includePlaywrightFrag = false } = {}) {
   const cases = []
   const base = JSON.parse(fs.readFileSync(BASE_SEED, 'utf8'))
   for (const s of base.suites || []) walkCases(s, cases)
   for (const f of fs.readdirSync(FRAG_DIR).filter((x) => x.endsWith('.json'))) {
-    if (f === 'playwright-e2e.json') continue // rebuilt below
+    if (!includePlaywrightFrag && f === 'playwright-e2e.json') continue
     const d = JSON.parse(fs.readFileSync(path.join(FRAG_DIR, f), 'utf8'))
     for (const s of d.suites || []) walkCases(s, cases)
   }
+  return cases
+}
+
+function loadPlaywrightFragCases() {
+  if (!fs.existsSync(FRAG_PATH)) return []
+  const d = JSON.parse(fs.readFileSync(FRAG_PATH, 'utf8'))
+  const cases = []
+  for (const s of d.suites || []) walkCases(s, cases)
   return cases
 }
 
@@ -200,12 +218,22 @@ function annotateFile(filePath, titleToKey) {
       const body = text.slice(optsStart + 1, end)
       if (
         body.includes(`description: '${key}'`) ||
-        body.includes(`description: "${key}"`)
+        body.includes(`description: "${key}"`) ||
+        body.includes(`@${key}`)
       ) {
         continue // already annotated with this key
       }
-      const cleaned = stripExistingVulykOptions(body)
-      const newBody = cleaned ? `\n  ${inject},\n  ${cleaned.trim()}\n` : `\n  ${inject},\n`
+      // Additive annotate: keep existing VQA tags unless --force-renumber.
+      if (
+        !replaceExisting &&
+        (/@VQA-\d+/.test(body) || /description\s*:\s*['"]VQA-\d+['"]/.test(body))
+      ) {
+        continue
+      }
+      const cleaned = replaceExisting ? stripExistingVulykOptions(body) : body
+      const newBody = cleaned.trim()
+        ? `\n  ${inject},\n  ${cleaned.trim()}\n`
+        : `\n  ${inject},\n`
       edits.push({ start: optsStart, end: end + 1, text: `{${newBody}}` })
     } else {
       edits.push({
@@ -221,7 +249,8 @@ function annotateFile(filePath, titleToKey) {
   for (const e of edits) {
     text = text.slice(0, e.start) + e.text + text.slice(e.end)
   }
-  fs.writeFileSync(filePath, text)
+  if (edits.length) fs.writeFileSync(filePath, text)
+  return edits.length
 }
 
 function checkAnnotations(tests) {
@@ -252,101 +281,21 @@ function checkAnnotations(tests) {
   console.log(`OK: ${tests.length} Playwright tests have Vulyk case-key annotations`)
 }
 
-function main() {
-  const tests = parseTests()
-  if (DO_CHECK) {
-    checkAnnotations(tests)
-    return
-  }
-
-  const existing = loadAllCases()
-  const byExt = new Map()
-  for (const c of existing) {
-    const ek = (c.external_key || '').trim()
-    if (ek) byExt.set(ek, c)
-  }
-
-  const fragCases = []
-  const mapping = [] // {file, title, key?, external_key, source}
-
-  for (const t of tests) {
-    const ek = externalKey(t.file, t.title)
-    const hit = byExt.get(ek)
-    if (hit && (hit.key || '').trim()) {
-      mapping.push({
-        file: t.file,
-        title: t.title,
-        key: hit.key.trim(),
-        external_key: ek,
-        source: 'existing',
-      })
-      continue
-    }
-    // Reuse empty-key existing with same external_key
-    if (hit) {
-      fragCases.push(buildCase(t.file, t.title, null))
-      mapping.push({
-        file: t.file,
-        title: t.title,
-        key: null,
-        external_key: ek,
-        source: 'fragment-from-existing-ext',
-      })
-      continue
-    }
-    fragCases.push(buildCase(t.file, t.title, null))
-    mapping.push({
-      file: t.file,
-      title: t.title,
-      key: null,
-      external_key: ek,
-      source: 'fragment-new',
-    })
-  }
-
+function writeFragment(cases) {
   const fragment = {
     feature: 'playwright-e2e',
     suites: [
       {
         name: loc('Playwright e2e', 'Playwright e2e'),
         children: [],
-        cases: fragCases,
+        cases,
       },
     ],
   }
-
-  // Allocate across base+other frags+this fragment, then bake keys into the
-  // fragment so Playwright @VQA-N tags stay stable across rebases.
-  const all = [...existing, ...fragCases]
-  allocateKeys(all)
-
-  const fragByExt = new Map(fragCases.map((c) => [c.external_key, c]))
-  for (const row of mapping) {
-    if (row.key) continue
-    const c = fragByExt.get(row.external_key)
-    if (c?.key) row.key = c.key
-  }
-
-  // Prefer omitting keys in other feature PRs; this fragment owns a 1:1 e2e map
-  // so keys are intentional and checked for uniqueness by check-seed-keys.sh.
   fs.writeFileSync(FRAG_PATH, JSON.stringify(fragment, null, 2) + '\n')
-  const registered = ensureFragmentRegistered()
+}
 
-  console.log(
-    `Wrote ${fragCases.length} cases → ${path.relative(ROOT, FRAG_PATH)} (registered=${registered})`,
-  )
-  console.log(
-    `Mapping: ${mapping.filter((m) => m.source === 'existing').length} existing, ${fragCases.length} fragment`,
-  )
-
-  const titleToKey = new Map(mapping.map((m) => [`${m.file}\0${m.title}`, m.key]))
-  const missingKeys = mapping.filter((m) => !m.key)
-  if (missingKeys.length) {
-    console.error('error: failed to allocate keys for', missingKeys.length, 'tests')
-    process.exit(1)
-  }
-
-  // Persist mapping for docs / CI
+function writeMap(mapping) {
   const mapPath = path.join(ROOT, 'e2e/vulyk-case-map.json')
   fs.writeFileSync(
     mapPath,
@@ -362,19 +311,217 @@ function main() {
     ) + '\n',
   )
   console.log(`Wrote ${path.relative(ROOT, mapPath)}`)
+}
+
+function syncForceRenumber(tests) {
+  console.warn(
+    'WARNING: --force-renumber rebuilds playwright-e2e.json and may change keys. '
+      + 'Do not use on parallel feature branches.',
+  )
+  const existing = loadAllCases({ includePlaywrightFrag: false })
+  const byExt = new Map()
+  for (const c of existing) {
+    const ek = (c.external_key || '').trim()
+    if (ek) byExt.set(ek, c)
+  }
+
+  const fragCases = []
+  const mapping = []
+
+  for (const t of tests) {
+    const ek = externalKey(t.file, t.title)
+    const hit = byExt.get(ek)
+    if (hit && (hit.key || '').trim()) {
+      mapping.push({
+        file: t.file,
+        title: t.title,
+        key: hit.key.trim(),
+        external_key: ek,
+        source: 'existing',
+      })
+      continue
+    }
+    fragCases.push(buildCase(t.file, t.title, null))
+    mapping.push({
+      file: t.file,
+      title: t.title,
+      key: null,
+      external_key: ek,
+      source: hit ? 'fragment-from-existing-ext' : 'fragment-new',
+    })
+  }
+
+  const all = [...existing, ...fragCases]
+  allocateKeys(all)
+
+  const fragByExt = new Map(fragCases.map((c) => [c.external_key, c]))
+  for (const row of mapping) {
+    if (row.key) continue
+    const c = fragByExt.get(row.external_key)
+    if (c?.key) row.key = c.key
+  }
+
+  writeFragment(fragCases)
+  const registered = ensureFragmentRegistered()
+  console.log(
+    `Wrote ${fragCases.length} cases → ${path.relative(ROOT, FRAG_PATH)} (registered=${registered}, force-renumber)`,
+  )
+  return mapping
+}
+
+function syncAdditive(tests) {
+  const existingFrag = loadPlaywrightFragCases()
+  const byExt = new Map()
+  for (const c of existingFrag) {
+    const ek = (c.external_key || '').trim()
+    if (ek) byExt.set(ek, c)
+  }
+
+  const others = loadAllCases({ includePlaywrightFrag: false })
+  const othersByExt = new Map()
+  for (const c of others) {
+    const ek = (c.external_key || '').trim()
+    if (ek) othersByExt.set(ek, c)
+  }
+
+  const kept = [...existingFrag]
+  const mapping = []
+  const newCases = []
+  let reused = 0
+
+  for (const t of tests) {
+    const ek = externalKey(t.file, t.title)
+    const inFrag = byExt.get(ek)
+    if (inFrag && (inFrag.key || '').trim()) {
+      reused += 1
+      mapping.push({
+        file: t.file,
+        title: t.title,
+        key: inFrag.key.trim(),
+        external_key: ek,
+        source: 'playwright-e2e',
+      })
+      continue
+    }
+    const elsewhere = othersByExt.get(ek)
+    if (elsewhere && (elsewhere.key || '').trim()) {
+      mapping.push({
+        file: t.file,
+        title: t.title,
+        key: elsewhere.key.trim(),
+        external_key: ek,
+        source: 'existing-other-seed',
+      })
+      continue
+    }
+    if (inFrag) {
+      mapping.push({
+        file: t.file,
+        title: t.title,
+        key: null,
+        external_key: ek,
+        source: 'fragment-empty-key',
+      })
+      continue
+    }
+    const created = buildCase(t.file, t.title, null)
+    newCases.push(created)
+    kept.push(created)
+    byExt.set(ek, created)
+    mapping.push({
+      file: t.file,
+      title: t.title,
+      key: null,
+      external_key: ek,
+      source: 'fragment-new',
+    })
+  }
+
+  const testExt = new Set(tests.map((t) => externalKey(t.file, t.title)))
+  const preservedMeta = existingFrag.filter((c) => {
+    const ek = (c.external_key || '').trim()
+    return ek && !testExt.has(ek) && !ek.startsWith('e2e:')
+  }).length
+
+  // Only allocate empty keys inside the playwright fragment. Other fragments
+  // with omitted keys are filled at seed / check-seed-keys time; counting them
+  // here would steal numbers and create playwright-e2e gaps.
+  let maxN = 0
+  const KEY_RE = /^([A-Z][A-Z0-9]{1,7})-([0-9]+)$/
+  for (const c of [...others, ...kept]) {
+    const raw = (c.key || '').trim()
+    if (!raw) continue
+    const m = KEY_RE.exec(raw.toUpperCase())
+    if (!m || m[1] !== 'VQA') continue
+    maxN = Math.max(maxN, Number(m[2]))
+  }
+  let next = maxN + 1
+  let allocated = 0
+  for (const c of kept) {
+    if ((c.key || '').trim()) continue
+    c.key = `VQA-${next}`
+    next += 1
+    allocated += 1
+  }
+
+  for (const row of mapping) {
+    if (row.key) continue
+    const c = byExt.get(row.external_key)
+    if (c?.key) row.key = c.key
+  }
+
+  writeFragment(kept)
+  const registered = ensureFragmentRegistered()
+  console.log(
+    `Additive sync → ${path.relative(ROOT, FRAG_PATH)}: `
+      + `${kept.length} cases (reused=${reused}, new=${newCases.length}, `
+      + `allocated=${allocated}, preserved_meta=${preservedMeta}, registered=${registered})`,
+  )
+  console.log(
+    'Existing keys left unchanged. Pass --force-renumber to rebuild from specs '
+      + '(do not use on parallel feature branches).',
+  )
+  return mapping
+}
+
+function main() {
+  const tests = parseTests()
+  if (DO_CHECK) {
+    checkAnnotations(tests)
+    return
+  }
+
+  const mapping = FORCE_RENUMBER ? syncForceRenumber(tests) : syncAdditive(tests)
+
+  const missingKeys = mapping.filter((m) => !m.key)
+  if (missingKeys.length) {
+    console.error('error: failed to allocate keys for', missingKeys.length, 'tests')
+    process.exit(1)
+  }
+
+  writeMap(mapping)
 
   if (DO_ANNOTATE) {
+    const titleToKey = new Map(mapping.map((m) => [`${m.file}\0${m.title}`, m.key]))
     const byFile = new Map()
     for (const t of tests) {
       if (!byFile.has(t.full)) byFile.set(t.full, titleToKey)
     }
+    let edited = 0
     for (const filePath of byFile.keys()) {
-      annotateFile(filePath, titleToKey)
+      edited += annotateFile(filePath, titleToKey, {
+        replaceExisting: FORCE_RENUMBER,
+      })
     }
-    console.log(`Annotated ${byFile.size} spec files`)
+    console.log(
+      FORCE_RENUMBER
+        ? `Annotated ${byFile.size} spec files (force replace)`
+        : `Annotated specs as needed (${edited} test option block(s) changed; existing VQA tags kept)`,
+    )
   } else {
     console.log('Dry run for annotations; re-run with --annotate to patch specs.')
   }
 }
+
 
 main()

@@ -1,0 +1,107 @@
+{
+  "feature": "e2e-seed-hygiene",
+  "suites": [
+    {
+      "name": {
+        "en": "E2E seed hygiene",
+        "uk": "Гігієна e2e seed",
+        "fr": "E2E seed hygiene",
+        "es": "E2E seed hygiene",
+        "de": "E2E seed hygiene"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "CI/local check fails on playwright-e2e gaps, external_key collisions, and missing tags",
+            "uk": "CI/local check fails on playwright-e2e gaps, external_key collisions, and missing tags",
+            "fr": "CI/local check fails on playwright-e2e gaps, external_key collisions, and missing tags",
+            "es": "CI/local check fails on playwright-e2e gaps, external_key collisions, and missing tags",
+            "de": "CI/local check fails on playwright-e2e gaps, external_key collisions, and missing tags"
+          },
+          "description": {
+            "en": "scripts/check-e2e-case-keys.sh (wired into ./scripts/check.sh --quick) rejects VQA gaps in playwright-e2e.json, duplicate external_key across seed fragments, and @VQA/@VUE tags that do not resolve.",
+            "uk": "scripts/check-e2e-case-keys.sh відхиляє прогалини VQA у playwright-e2e.json, дублікати external_key та невідомі @VQA/@VUE теги.",
+            "fr": "scripts/check-e2e-case-keys.sh rejects VQA gaps, duplicate external_key, and unresolved @VQA/@VUE tags.",
+            "es": "scripts/check-e2e-case-keys.sh rejects VQA gaps, duplicate external_key, and unresolved @VQA/@VUE tags.",
+            "de": "scripts/check-e2e-case-keys.sh rejects VQA gaps, duplicate external_key, and unresolved @VQA/@VUE tags."
+          },
+          "precondition": {
+            "en": "Clean checkout; sample seed fragments registered in VULYK_QA_FRAGMENTS.",
+            "uk": "Чистий checkout; фрагменти sample seed зареєстровані в VULYK_QA_FRAGMENTS.",
+            "fr": "Clean checkout; sample seed fragments registered in VULYK_QA_FRAGMENTS.",
+            "es": "Clean checkout; sample seed fragments registered in VULYK_QA_FRAGMENTS.",
+            "de": "Clean checkout; sample seed fragments registered in VULYK_QA_FRAGMENTS."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["e2e", "seed-hygiene", "ci", "type:functional", "vulyk-qa"],
+          "steps": [
+            {
+              "action": {
+                "en": "Run ./scripts/check-e2e-case-keys.sh and ./scripts/check-seed-keys.sh",
+                "uk": "Запустити ./scripts/check-e2e-case-keys.sh та ./scripts/check-seed-keys.sh",
+                "fr": "Run ./scripts/check-e2e-case-keys.sh and ./scripts/check-seed-keys.sh",
+                "es": "Run ./scripts/check-e2e-case-keys.sh and ./scripts/check-seed-keys.sh",
+                "de": "Run ./scripts/check-e2e-case-keys.sh and ./scripts/check-seed-keys.sh"
+              },
+              "expected_result": {
+                "en": "Both exit 0 on a healthy tree; intentional gap/collision/missing-tag fixtures fail with a clear error.",
+                "uk": "Обидва завершуються з 0 на здоровому дереві; навмисні gap/collision/missing-tag фікстури падають з зрозумілою помилкою.",
+                "fr": "Both exit 0 on a healthy tree; intentional fixtures fail clearly.",
+                "es": "Both exit 0 on a healthy tree; intentional fixtures fail clearly.",
+                "de": "Both exit 0 on a healthy tree; intentional fixtures fail clearly."
+              },
+              "data": {"en": "", "uk": "", "fr": "", "es": "", "de": ""}
+            }
+          ]
+        },
+        {
+          "title": {
+            "en": "Feature branches append e2e keys manually; never renumber via sync",
+            "uk": "Feature branches append e2e keys manually; never renumber via sync",
+            "fr": "Feature branches append e2e keys manually; never renumber via sync",
+            "es": "Feature branches append e2e keys manually; never renumber via sync",
+            "de": "Feature branches append e2e keys manually; never renumber via sync"
+          },
+          "description": {
+            "en": "NEVER run node e2e/scripts/sync-vulyk-case-links.mjs on a parallel feature branch (it historically skipped reading playwright-e2e.json and rewrote keys). Append the next free VQA to playwright-e2e.json and the next free VUE to e2e/cases/; prefer other sample cases in fragments with keys omitted. sync is additive unless --force-renumber.",
+            "uk": "НІКОЛИ не запускайте sync-vulyk-case-links.mjs на feature branch. Додавайте наступний вільний VQA/VUE вручну; інші sample cases — у фрагментах без ключів. sync адитивний, окрім --force-renumber.",
+            "fr": "NEVER run sync-vulyk-case-links.mjs on a feature branch; append keys manually; sync is additive unless --force-renumber.",
+            "es": "NEVER run sync-vulyk-case-links.mjs on a feature branch; append keys manually; sync is additive unless --force-renumber.",
+            "de": "NEVER run sync-vulyk-case-links.mjs on a feature branch; append keys manually; sync is additive unless --force-renumber."
+          },
+          "precondition": {
+            "en": "Parallel PR workflow; AGENTS.md recurring pitfalls read.",
+            "uk": "Паралельний PR workflow; прочитані recurring pitfalls у AGENTS.md.",
+            "fr": "Parallel PR workflow; AGENTS.md recurring pitfalls read.",
+            "es": "Parallel PR workflow; AGENTS.md recurring pitfalls read.",
+            "de": "Parallel PR workflow; AGENTS.md recurring pitfalls read."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["e2e", "seed-hygiene", "process", "type:functional", "vulyk-qa"],
+          "steps": [
+            {
+              "action": {
+                "en": "Add a Playwright test; append VQA/VUE keys by hand; run check-e2e-case-keys.sh",
+                "uk": "Додати Playwright тест; додати VQA/VUE ключі вручну; запустити check-e2e-case-keys.sh",
+                "fr": "Add a Playwright test; append VQA/VUE keys by hand; run check-e2e-case-keys.sh",
+                "es": "Add a Playwright test; append VQA/VUE keys by hand; run check-e2e-case-keys.sh",
+                "de": "Add a Playwright test; append VQA/VUE keys by hand; run check-e2e-case-keys.sh"
+              },
+              "expected_result": {
+                "en": "No renumber of unrelated @VQA/@VUE tags; hygiene check stays green.",
+                "uk": "Немає перенумерації чужих @VQA/@VUE; hygiene check лишається зеленим.",
+                "fr": "No renumber of unrelated tags; hygiene check stays green.",
+                "es": "No renumber of unrelated tags; hygiene check stays green.",
+                "de": "No renumber of unrelated tags; hygiene check stays green."
+              },
+              "data": {"en": "", "uk": "", "fr": "", "es": "", "de": ""}
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -52,6 +52,10 @@ jobs:
         run: |
           chmod +x scripts/check-seed-keys.sh
           ./scripts/check-seed-keys.sh
+      - name: E2E case-key hygiene
+        run: |
+          chmod +x scripts/check-e2e-case-keys.sh
+          ./scripts/check-e2e-case-keys.sh
       - name: cargo test
         run: cargo test --workspace
       - name: migrate CLI help
@@ -116,6 +120,10 @@ jobs:
         run: |
           chmod +x scripts/check-seed-keys.sh
           ./scripts/check-seed-keys.sh
+      - name: E2E case-key hygiene
+        run: |
+          chmod +x scripts/check-e2e-case-keys.sh
+          ./scripts/check-e2e-case-keys.sh
 
   upgrade-test:
     name: Upgrade (base → PR)
@@ -322,6 +330,7 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/check-seed-keys.sh
+          bash -n scripts/check-e2e-case-keys.sh
           bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
           bash -n scripts/ci-env-upgrade-test.sh
@@ -333,7 +342,7 @@ jobs:
           bash -n scripts/githooks/pre-commit
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
-            scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check.sh \
+            scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check-e2e-case-keys.sh scripts/check.sh \
             scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/check-version.sh \
             scripts/check-security.sh scripts/check-quality.sh scripts/check-api-coverage.sh \
             scripts/e2e-local.sh
@@ -373,6 +382,7 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/check-seed-keys.sh
+          bash -n scripts/check-e2e-case-keys.sh
           bash -n scripts/check.sh
           bash -n scripts/ci-upgrade-test.sh
           bash -n scripts/ci-env-upgrade-test.sh

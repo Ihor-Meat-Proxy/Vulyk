@@ -50,7 +50,8 @@ git config core.hooksPath scripts/githooks
 | --- | --- |
 | Add a fragment under `backend/seed/vulyk-qa.d/<feature>.json` with **keys omitted**, register it in `VULYK_QA_FRAGMENTS` in `backend/src/sample_seed.rs` | Append hardcoded `VQA-16x` blocks to `vulyk-qa.json` / `generate_vulyk_qa.py` from multiple PRs |
 | Leave `"key"` empty so seed time / `./scripts/check-seed-keys.sh` allocates the next free `VQA-N` | Copy keys from another open PR |
-| Run `./scripts/check-seed-keys.sh` after every rebase | Assume uniqueness because your branch was green yesterday |
+| Run `./scripts/check-seed-keys.sh` **and** `./scripts/check-e2e-case-keys.sh` after every rebase | Assume uniqueness because your branch was green yesterday |
+| For Playwright e2e: **append** one case + next free `VQA-N` to `playwright-e2e.json` by hand | Run `sync-vulyk-case-links.mjs` / `generate-vue-cases.mjs` on a feature branch (renumbers / rebuilds inventories) |
 
 See `backend/seed/vulyk-qa.d/README.md` and `docs/ci-failures.md`.
 
@@ -69,26 +70,33 @@ When a PR adds or changes a **user-visible UI flow**:
 1. Add or update a Playwright spec under `e2e/tests/` (page objects in `e2e/pages/`).
 2. Tag the test with Vulyk case keys (`@VQA-N` for the sample seed **and** `@VUE-N` for the dedicated UI e2e project).
 3. Refresh case sources carefully (see pitfall below):
+   - **NEVER** run `node e2e/scripts/sync-vulyk-case-links.mjs` on a feature
+     branch to “pick up” one new test — even a dry run historically rewrote
+     `playwright-e2e.json` and renumbered unrelated `@VQA-*` tags. Default sync
+     is now **additive** (preserves keys); full rebuild requires
+     `--force-renumber` and must not land from parallel PRs.
    - Prefer **appending** one case to `backend/seed/vulyk-qa.d/playwright-e2e.json`
      with the next free `VQA-N`, and appending to `e2e/cases/<folder>.json` with
      the next free `VUE-N` (check `manifest.json` / highest key). Register a
      narrative fragment under `vulyk-qa.d/` with **keys omitted** when the sample
      project should show the case too.
-   - `node e2e/scripts/sync-vulyk-case-links.mjs` / `generate-vue-cases.mjs --annotate`
-     rebuild whole inventories and can renumber unrelated keys — avoid on
-     parallel-PR branches unless you intentionally own a full regen.
+   - `generate-vue-cases.mjs --annotate` still rebuilds / renumbers `VUE-*` —
+     append manually instead on feature branches.
 4. Prefer local Docker: `./scripts/e2e-local.sh` (see [docs/guides/e2e-local.md](docs/guides/e2e-local.md)). Do **not** add new required CI jobs for this suite without an explicit decision.
 
 ### Recurring CI pitfalls
 
-- **`sync-vulyk-case-links.mjs` skips reading `playwright-e2e.json` when loading
-  existing keys**, then rewrites that file from every spec. A dry run can
-  reallocate every `VQA-N` and break committed `@VQA-*` tags. Prefer manual
-  append of the new case + key; restore the fragment from `main` if you ran the
-  script by mistake.
+- **NEVER run `sync-vulyk-case-links.mjs` on feature branches** to allocate one
+  key. Prefer manual append of the new case + key. The script’s default mode is
+  additive (keeps existing keys); `--force-renumber` rebuilds the inventory and
+  can still churn tags — restore `playwright-e2e.json` from `main` if you ran it
+  by mistake.
 - **`generate-vue-cases.mjs` renumbers all `VUE-N` keys** in sorted file/title
   order. Adding one test mid-alphabet shifts later keys. Append the new `VUE-N`
   (next after the current max) to `e2e/cases/*.json` + `manifest.json` instead.
+- **`./scripts/check-e2e-case-keys.sh`** (also in `./scripts/check.sh --quick`)
+  fails on: gaps in `playwright-e2e.json` VQA numbers, duplicate `external_key`
+  across seed files, or spec `@VQA`/`@VUE` tags that do not resolve.
 
 ## API route coverage
 
@@ -155,6 +163,7 @@ Details: [`docs/ci-checks.md`](docs/ci-checks.md).
 ./scripts/check-security.sh  # CVE / license / npm audit
 ./scripts/check-quality.sh   # machete, eslint, prettier, knip, coverage
 ./scripts/check-seed-keys.sh
+./scripts/check-e2e-case-keys.sh
 ./scripts/check-migrations.sh
 ./scripts/check-api-coverage.sh
 cargo fmt --all -- --check

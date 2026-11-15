@@ -148,7 +148,7 @@
             "type:functional",
             "vulyk-qa"
           ],
-          "external_key": "e2e:case-key-urls.spec.ts",
+          "external_key": "e2e:case-key-urls.spec.ts Case key URL breadcrumbs use test ids",
           "steps": [
             {
               "action": {
@@ -200,7 +200,7 @@
             "type:functional",
             "vulyk-qa"
           ],
-          "external_key": "e2e:reports-drilldown.spec.ts",
+          "external_key": "e2e:reports-drilldown.spec.ts Reports drill-down filters rows by entity key",
           "steps": [
             {
               "action": {

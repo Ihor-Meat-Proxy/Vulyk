@@ -22,11 +22,23 @@ test('login with seeded admin succeeds', {
   `e2e:{spec file} {exact test title}` (automation link).
 - `./scripts/check.sh` (and `npm run check:vulyk-case-links` in `e2e/`) **fails**
   when a spec test is missing the annotation.
-- To refresh after adding a test:
+- `./scripts/check-e2e-case-keys.sh` **fails** on VQA gaps in
+  `playwright-e2e.json`, duplicate `external_key` across seed files, or tags
+  that reference missing `VQA`/`VUE` keys.
+- **Feature branches:** append the next free `VQA-N` / `VUE-N` by hand. Do
+  **not** run sync/generate scripts to renumber. Default sync is additive;
+  `--force-renumber` is for owned full regenerations only.
 
 ```bash
-node e2e/scripts/sync-vulyk-case-links.mjs --annotate
+# After a manual append (preferred on feature branches):
 ./scripts/check-seed-keys.sh
+./scripts/check-e2e-case-keys.sh
+
+# Additive sync (safe: preserves existing keys):
+node e2e/scripts/sync-vulyk-case-links.mjs --annotate
+
+# Full rebuild — do NOT use on parallel feature branches:
+# node e2e/scripts/sync-vulyk-case-links.mjs --force-renumber --annotate
 ```
 
 ## Reporter (optional)
