@@ -874,6 +874,8 @@ pub async fn ingest_results(
     // All-or-nothing: a mid-batch 400 must not leave earlier rows committed (review #40).
     let mut tx = state.pool.begin().await?;
     let mut out = Vec::with_capacity(body.results.len());
+    // Last status per case wins for run_items SoT (same as CI ingest).
+    let mut matched_statuses: Vec<(Uuid, String)> = Vec::new();
     for item in body.results {
         let case_id = if let Some(id) = item.case_id {
             crate::services::cases::ensure_case_in_project(&state.pool, project_id, id).await?;
@@ -924,11 +926,27 @@ pub async fn ingest_results(
         .bind(case_version)
         .fetch_one(&mut *tx)
         .await?;
+        if let Some(cid) = case_id {
+            matched_statuses.push((cid, status));
+        }
         out.push(row);
     }
     let touched: Vec<Uuid> = out.iter().filter_map(|r| r.case_id).collect();
     crate::services::results::refresh_last_run_status_tx(&mut tx, &touched).await?;
     tx.commit().await?;
+
+    // Keep run_items + denormalized counters aligned with bulk /results
+    // (include_all_cases runs start as Untested; e2e posts here).
+    if !matched_statuses.is_empty() {
+        crate::services::runs::upsert_run_items_for_statuses(
+            &state.pool,
+            run_id,
+            &matched_statuses,
+        )
+        .await?;
+        crate::services::runs::refresh_run_counters(&state.pool, run_id).await?;
+    }
+
     Ok(Json(out))
 }
 

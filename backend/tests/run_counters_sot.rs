@@ -224,6 +224,113 @@ async fn create_result_refreshes_counters_and_upserts_run_item() {
 }
 
 #[tokio::test]
+async fn bulk_results_ingest_updates_run_items_and_counters() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app().await;
+    let client = reqwest::Client::new();
+    let key = unique_key("B");
+
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": format!("Bulk SoT {key}"),
+            "case_key_prefix": key
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let mut case_ids = Vec::new();
+    for title in ["Pass", "Fail", "Skip"] {
+        let case: Value = client
+            .post(format!("{base}/api/v1/projects/{project_id}/cases"))
+            .json(&serde_json::json!({ "title": title, "status": "ready" }))
+            .send()
+            .await
+            .unwrap()
+            .error_for_status()
+            .unwrap()
+            .json()
+            .await
+            .unwrap();
+        case_ids.push(case["case"]["id"].as_str().unwrap().to_string());
+    }
+
+    let run: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/runs"))
+        .json(&serde_json::json!({
+            "name": "Bulk mixed",
+            "include_all_cases": true,
+            "start": true,
+            "source": "ci"
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run_id = run["run"]["id"].as_str().unwrap();
+    let run_uuid = uuid::Uuid::parse_str(run_id).unwrap();
+
+    client
+        .post(format!(
+            "{base}/api/v1/projects/{project_id}/runs/{run_id}/results"
+        ))
+        .json(&serde_json::json!({
+            "results": [
+                { "case_id": case_ids[0], "status": "passed" },
+                { "case_id": case_ids[1], "status": "failed" },
+                { "case_id": case_ids[2], "status": "skipped" }
+            ]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+
+    let row = sqlx::query_as::<_, (i32, i32, i32)>(
+        r#"SELECT pass_count, fail_count, skip_count FROM test_runs WHERE id = $1"#,
+    )
+    .bind(run_uuid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(row, (1, 1, 1));
+
+    let summary: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/reports/runs/{run_id}/summary"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(summary["counts"]["passed"], 1);
+    assert_eq!(summary["counts"]["failed"], 1);
+    assert_eq!(summary["counts"]["skipped"], 1);
+    assert_eq!(summary["pass_rate"], 50.0);
+}
+
+#[tokio::test]
 async fn ci_ingest_reports_summary_matches_run_detail_progress() {
     if std::env::var("DATABASE_URL").is_err() {
         eprintln!("skipping: DATABASE_URL not set");
