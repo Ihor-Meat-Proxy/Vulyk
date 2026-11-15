@@ -55,10 +55,11 @@ export function VirtualList<T>({
 
   const slice = items.slice(start, end)
 
+  // Keep row clicks hittable under the sticky header (Playwright scrollIntoView
+  // would otherwise park the target under the header and miss the download).
   const rowStyle: CSSProperties = {
     height: rowHeight,
-    contentVisibility: 'auto',
-    containIntrinsicSize: `auto ${rowHeight}px`,
+    scrollMarginTop: header ? '3rem' : undefined,
   }
 
   return (
