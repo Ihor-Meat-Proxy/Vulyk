@@ -144,6 +144,13 @@ pub struct UpdateRun {
     pub finished_at: Option<DateTime<Utc>>,
 }
 
+/// Admin abandon of a stuck `in_progress` / `running` run.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct AbandonRunRequest {
+    /// Optional reason stored in `meta.cancel_message`.
+    pub message: Option<String>,
+}
+
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateRunItem {
     pub status: Option<String>,

@@ -267,6 +267,7 @@ export const TestIds = {
   runDetailBackLink: 'run-detail-back-link',
   runDetailStartButton: 'run-detail-start-button',
   runDetailCompleteButton: 'run-detail-complete-button',
+  runDetailAbandonButton: 'run-detail-abandon-button',
   runDetailProgress: 'run-detail-progress',
   runDetailLiveBadge: 'run-detail-live-badge',
   runDetailCases: 'run-detail-cases',
@@ -274,6 +275,9 @@ export const TestIds = {
   runDetailAddCasesButton: 'run-detail-add-cases-button',
   runDetailError: 'run-detail-error',
   runsLiveBadge: 'runs-live-badge',
+  /** List-row child (`listChildProps(runRow, 'abandon')`). */
+  runRowAbandonButton: 'run-row-abandon',
+  reportsRunAbandonButton: 'reports-run-abandon-button',
   runDetailsDrawer: 'run-details-drawer',
   runDetailsDrawerClose: 'run-details-drawer-close',
   runDetailsDrawerBackdrop: 'run-details-drawer-backdrop',

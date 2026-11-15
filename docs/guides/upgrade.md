@@ -259,6 +259,14 @@ Forward migration `20261028102013_automation_repo_archive_sync.sql` adds
 Optional env `VULYK_AUTOMATION_REPO_POLL_TICK_SECS` (default 60) is appended
 from `.env.example` on upgrade if missing — existing values are never overwritten.
 
+### Stale run auto-cancel TTL
+
+`VULYK_STALE_RUN_TTL_HOURS` (default **24**, sync marker `@vulyk:sync`) controls
+how long an `in_progress` / `running` test run may sit without activity before the
+API job worker (and list/get lazy path) marks it `cancelled`. Set `0` to disable.
+Appended on upgrade if missing; existing operator values are never overwritten.
+Admins can also abandon a stuck run from Runs → run detail.
+
 ## Versioning
 
 - Canonical semver is the root [`VERSION`](../../VERSION) file; Rust crates inherit

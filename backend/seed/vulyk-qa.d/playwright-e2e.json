@@ -6985,6 +6985,68 @@
             }
           ],
           "key": "VQA-344"
+        },
+        {
+          "title": {
+            "en": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "uk": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "fr": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "es": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "de": "admin abandon cancels in-progress run; StatusBadge shows Cancelled"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "uk": "Покриття Playwright e2e: ci-reporter-live-run.spec.ts — admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "fr": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "es": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+            "de": "Playwright e2e coverage: ci-reporter-live-run.spec.ts — admin abandon cancels in-progress run; StatusBadge shows Cancelled"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ci",
+            "reporter",
+            "runs"
+          ],
+          "external_key": "e2e:ci-reporter-live-run.spec.ts admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\"",
+                "uk": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\"",
+                "fr": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\"",
+                "es": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\"",
+                "de": "Run npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-354"
         }
       ]
     }

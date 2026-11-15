@@ -105,3 +105,11 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
   `admin-integrations-ci-tokens-link`
 - Run report: `reports-run-kpi-skipped`, `reports-run-kpi-pass-rate`,
   `reports-run-pass-rate-hint`, `reports-other-legend`
+
+## Stale run auto-cancel / admin abandon
+
+| Element | Test id |
+| --- | --- |
+| Run detail abandon button | `run-detail-abandon-button` |
+| Runs list row abandon button | `run-row-abandon` (list child) |
+| Run report abandon button | `reports-run-abandon-button` |

@@ -322,6 +322,33 @@
       ]
     },
     {
+      "id": "ci-reporter-live-run-admin-abandon-cancels-in-progress-run-statusbadge-shows-cancelled",
+      "key": "VUE-216",
+      "title": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ci-reporter-live-run.spec.ts -g \"admin abandon cancels in-progress run\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ci-reporter-live-run.spec.ts",
+      "test": "admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+      "external_key": "e2e:ci-reporter-live-run.spec.ts admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+      "automation_link": "e2e/tests/ci-reporter-live-run.spec.ts :: admin abandon cancels in-progress run; StatusBadge shows Cancelled",
+      "vqa_key": "VQA-354",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive",
+        "ci",
+        "reporter",
+        "runs"
+      ]
+    },
+    {
       "id": "ux-polish-f13-f22-automation-repo-returns-200-null-when-none-configured",
       "key": "VUE-214",
       "title": "automation-repo returns 200 null when none configured",

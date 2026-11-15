@@ -8,6 +8,7 @@ import {
   type TestRunDetail,
 } from '../api'
 import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
+import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
@@ -47,9 +48,16 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
+function isAbandonableStatus(status: string): boolean {
+  const s = status.toLowerCase()
+  return s === 'in_progress' || s === 'running'
+}
+
 export function RunDetail({ projectId }: Props) {
   const { runId } = useParams()
   const { t } = useI18n()
+  const { can } = useProjectPermissions(projectId)
+  const canAbandon = can('delete_project')
   const [detail, setDetail] = useState<TestRunDetail | null>(null)
   const [active, setActive] = useState<RunItemExecution | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +68,7 @@ export function RunDetail({ projectId }: Props) {
   const [comment, setComment] = useState('')
   const [stepStatuses, setStepStatuses] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [abandoning, setAbandoning] = useState(false)
   const [mobileStep, setMobileStep] = useState(0)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   /** Skip poll apply while a local save is in flight (avoids clobbering edits). */
@@ -250,6 +259,29 @@ export function RunDetail({ projectId }: Props) {
     }
   }
 
+  const abandonRun = async () => {
+    if (!projectId || !runId || !detail) return
+    if (!window.confirm(t('runs.abandonConfirm'))) return
+    setAbandoning(true)
+    setNotice(null)
+    try {
+      const updated = await api.abandonRun(projectId, runId, {
+        message: 'abandoned from UI',
+      })
+      setDetail((prev) => (prev ? { ...prev, run: updated } : prev))
+      setNotice(t('runs.abandoned'))
+      setError(null)
+      void cacheRun(projectId, runId, {
+        ...detail,
+        run: updated,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setAbandoning(false)
+    }
+  }
+
   const attachNote = async () => {
     if (!projectId || !active?.latest_result) return
     const text = window.btoa(unescape(encodeURIComponent(comment || 'note')))
@@ -344,6 +376,17 @@ export function RunDetail({ projectId }: Props) {
             })}
           </span>
           {fromCache && <span className="badge">{t('runs.cachedBadge')}</span>}
+          {canAbandon && isAbandonableStatus(run.status) && (
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={abandoning}
+              onClick={() => void abandonRun()}
+              {...testIdProps(TestIds.runDetailAbandonButton)}
+            >
+              {abandoning ? t('runs.abandoning') : t('runs.abandon')}
+            </button>
+          )}
         </div>
         <div className="progress-track" aria-label={t('a11y.runProgress')}>
           <div

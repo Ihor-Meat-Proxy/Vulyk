@@ -250,3 +250,53 @@ test('cancelled close shows Cancelled status badge', {
   expect(label.toLowerCase()).toContain('cancel')
   expect(label).not.toMatch(/^(closed|passed)$/i)
 })
+
+test('admin abandon cancels in-progress run; StatusBadge shows Cancelled', {
+  tag: ['@VQA-354', '@VUE-216'],
+  annotation: [
+    { type: 'vulyk', description: 'VQA-354' },
+    { type: 'vulyk', description: 'VUE-216' },
+  ],
+}, async ({ page, request }) => {
+  const suiteName = `Live abandon ${projectKey}`
+  const opened = await apiJson<{ run: { id: string; status: string } }>(
+    request,
+    'POST',
+    `/api/v1/projects/${projectId}/ci/runs`,
+    {
+      token: adminToken,
+      data: {
+        provider: 'other',
+        suite_name: suiteName,
+        name: suiteName,
+        external_ref: `live-abandon-${uniqueKey('')}`,
+        start: true,
+      },
+    },
+  )
+  expect(opened.run.status).toBe('in_progress')
+
+  await loginAsAdmin(page)
+  const select = page.locator('.project-select')
+  await expect
+    .poll(async () => select.locator('option').count())
+    .toBeGreaterThan(0)
+  const options = await select.locator('option').allTextContents()
+  const idx = options.findIndex((o) => o.includes(projectKey))
+  if (idx >= 0) await select.selectOption({ index: idx })
+
+  await page.goto(`/runs/${opened.run.id}`)
+  const abandon = page.getByTestId('run-detail-abandon-button')
+  await expect(abandon).toBeVisible({ timeout: 20_000 })
+
+  page.once('dialog', (dialog) => dialog.accept())
+  await abandon.click()
+
+  const badge = page.getByTestId('run-detail-status-badge')
+  await expect(badge).toHaveAttribute('data-status', 'cancelled', {
+    timeout: 20_000,
+  })
+  const label = (await badge.innerText()).trim()
+  expect(label.toLowerCase()).toContain('cancel')
+  await expect(abandon).toHaveCount(0)
+})
