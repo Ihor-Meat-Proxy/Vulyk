@@ -9,6 +9,8 @@
  *   VULYK_RUN_ID       — optional existing Vulyk run id (from workflow_dispatch /
  *                        Run in CI). When set, skips open and attaches results
  *                        to that run instead of creating a new one.
+ *   VULYK_REPORTER_DRY_RUN — when `1`/`true`/`yes`, log open/start/results/close
+ *                        without POSTing to the API (local DX / CI dry-run).
  *
  * Case keys are read from each test's Playwright annotation
  * `{ type: 'vulyk', description: 'VQA-123' }` (or tag `@VQA-123`).
@@ -31,6 +33,11 @@ import {
   RESULT_FLUSH_MS,
   closeCancelled,
   dedupePendingResults,
+  dryRunApiResponse,
+  formatDryRunLog,
+  formatMissingAnnotationWarning,
+  formatUnmatchedKeysWarning,
+  isReporterDryRun,
   mapTestStatus,
   shouldFlushNow,
   takeFlushBatch,
@@ -70,6 +77,7 @@ function caseKeyFromTest(test: TestCase): string | null {
 
 export default class VulykReporter implements Reporter {
   private enabled = false
+  private dryRun = false
   private baseUrl = ''
   private token = ''
   private projectRef = ''
@@ -77,7 +85,9 @@ export default class VulykReporter implements Reporter {
   private projectId = ''
   private runId = ''
   private pending: PendingResult[] = []
-  private warned = false
+  private missingAnnotationTitles: string[] = []
+  private missingAnnotationWarned = false
+  private unmatchedWarned = new Set<string>()
   private pipelineUrl: string | undefined
   private openReady: Promise<void> = Promise.resolve()
   private flushChain: Promise<void> = Promise.resolve()
@@ -92,10 +102,16 @@ export default class VulykReporter implements Reporter {
     this.token = env('VULYK_CI_TOKEN', 'VULYK_API_TOKEN')
     this.projectRef = env('VULYK_PROJECT', 'VULYK_PROJECT_KEY', 'VULYK_PROJECT_ID')
     this.runName = env('VULYK_RUN_NAME') || 'Playwright e2e'
+    this.dryRun = isReporterDryRun()
     this.enabled = Boolean(this.baseUrl && this.token && this.projectRef)
     if (!this.enabled) {
       // Intentional no-op when unset so CI / local runs stay unaffected.
       return
+    }
+    if (this.dryRun) {
+      console.log(
+        '[vulyk-reporter] dry-run enabled — logging open/start/results/close without POSTing',
+      )
     }
     this.pipelineUrl = process.env.GITHUB_SERVER_URL
       ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
@@ -114,12 +130,7 @@ export default class VulykReporter implements Reporter {
     if (result.retry < test.results.length - 1) return
     const key = caseKeyFromTest(test)
     if (!key) {
-      if (!this.warned) {
-        this.warned = true
-        console.warn(
-          '[vulyk-reporter] test(s) missing vulyk annotation; results for those tests are skipped',
-        )
-      }
+      this.missingAnnotationTitles.push(test.title)
       return
     }
     const rel =
@@ -139,16 +150,37 @@ export default class VulykReporter implements Reporter {
   }
 
   async onEnd(result: FullResult): Promise<void> {
-    if (!this.enabled && !this.runId) return
+    if (!this.enabled && !this.runId) {
+      this.warnMissingAnnotations()
+      return
+    }
     try {
       await this.openReady
-      if (!this.enabled || !this.runId) return
+      if (!this.enabled || !this.runId) {
+        this.warnMissingAnnotations()
+        return
+      }
       this.clearFlushTimer()
       await this.enqueueFlush(true)
       await this.closeRun(result)
     } catch (err) {
       console.error('[vulyk-reporter] failed to publish results:', err)
+    } finally {
+      this.warnMissingAnnotations()
     }
+  }
+
+  private warnMissingAnnotations(): void {
+    if (this.missingAnnotationWarned || this.missingAnnotationTitles.length === 0) {
+      return
+    }
+    this.missingAnnotationWarned = true
+    console.warn(
+      formatMissingAnnotationWarning(
+        this.missingAnnotationTitles,
+        this.missingAnnotationTitles.length,
+      ),
+    )
   }
 
   private scheduleFlush(): void {
@@ -196,11 +228,13 @@ export default class VulykReporter implements Reporter {
       }>('POST', `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/results`, {
         results,
       })
-      if (resp.unmatched_case_keys?.length) {
-        console.warn(
-          '[vulyk-reporter] unmatched case keys:',
-          resp.unmatched_case_keys.join(', '),
-        )
+      const unmatched = formatUnmatchedKeysWarning(
+        resp.unmatched_case_keys ?? [],
+        this.unmatchedWarned,
+      )
+      if (unmatched.message) {
+        for (const k of unmatched.newlyWarned) this.unmatchedWarned.add(k)
+        console.warn(unmatched.message)
       }
       console.log(
         `[vulyk-reporter] posted ${results.length} results (inserted=${resp.inserted})`,
@@ -214,6 +248,27 @@ export default class VulykReporter implements Reporter {
     path: string,
     body?: unknown,
   ): Promise<T> {
+    if (this.dryRun) {
+      const phase =
+        path.endsWith('/results')
+          ? 'results'
+          : path.endsWith('/close')
+            ? 'close'
+            : path.endsWith('/start')
+              ? 'start'
+              : path.endsWith('/ci/runs') || /\/ci\/runs$/.test(path)
+                ? 'open'
+                : path === '/api/v1/projects'
+                  ? 'resolve-project'
+                  : 'open'
+      const detail =
+        body !== undefined
+          ? `${method} ${path} ${JSON.stringify(body).slice(0, 400)}`
+          : `${method} ${path}`
+      console.log(formatDryRunLog(phase, detail))
+      return dryRunApiResponse(method, path, body) as T
+    }
+
     const res = await fetch(`${this.baseUrl}${path}`, {
       method,
       headers: {
@@ -236,6 +291,15 @@ export default class VulykReporter implements Reporter {
     if (idEnv && /^[0-9a-f-]{36}$/i.test(idEnv)) return idEnv
     const ref = this.projectRef
     if (/^[0-9a-f-]{36}$/i.test(ref)) return ref
+    if (this.dryRun) {
+      console.log(
+        formatDryRunLog(
+          'resolve-project',
+          `skip project list; using dry-run id for key ${ref}`,
+        ),
+      )
+      return 'dry-run-project-00000000-0000-4000-8000-000000000099'
+    }
     const projects = await this.api<Array<{ id: string; key: string }>>(
       'GET',
       '/api/v1/projects',

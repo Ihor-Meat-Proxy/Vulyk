@@ -1,0 +1,139 @@
+{
+  "feature": "reporter-dx",
+  "suites": [
+    {
+      "name": {
+        "en": "Playwright reporter DX",
+        "uk": "Playwright reporter DX",
+        "fr": "Playwright reporter DX",
+        "es": "Playwright reporter DX",
+        "de": "Playwright reporter DX"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-363",
+          "title": {
+            "en": "dry-run helper logs open/start/results/close without POSTing",
+            "uk": "dry-run helper logs open/start/results/close without POSTing",
+            "fr": "dry-run helper logs open/start/results/close without POSTing",
+            "es": "dry-run helper logs open/start/results/close without POSTing",
+            "de": "dry-run helper logs open/start/results/close without POSTing"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 dry-run helper logs open/start/results/close without POSTing",
+            "uk": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 dry-run helper logs open/start/results/close without POSTing",
+            "fr": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 dry-run helper logs open/start/results/close without POSTing",
+            "es": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 dry-run helper logs open/start/results/close without POSTing",
+            "de": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 dry-run helper logs open/start/results/close without POSTing"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "reporter",
+            "dx"
+          ],
+          "external_key": "e2e:ci-reporter-dx.spec.ts dry-run helper logs open/start/results/close without POSTing",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\"",
+                "uk": "Run npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\"",
+                "fr": "Run npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\"",
+                "es": "Run npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\"",
+                "de": "Run npx playwright test ci-reporter-dx.spec.ts -g \"dry-run helper logs open/start/results/close without POSTing\""
+              },
+              "expected_result": {
+                "en": "Test passes; dry-run helper formats lifecycle logs; dryRunApiResponse synthesizes open/results without HTTP.",
+                "uk": "Test passes; dry-run helper formats lifecycle logs; dryRunApiResponse synthesizes open/results without HTTP.",
+                "fr": "Test passes; dry-run helper formats lifecycle logs; dryRunApiResponse synthesizes open/results without HTTP.",
+                "es": "Test passes; dry-run helper formats lifecycle logs; dryRunApiResponse synthesizes open/results without HTTP.",
+                "de": "Test passes; dry-run helper formats lifecycle logs; dryRunApiResponse synthesizes open/results without HTTP."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-364",
+          "title": {
+            "en": "unmatched-key warning lists sample + count and warns once per key",
+            "uk": "unmatched-key warning lists sample + count and warns once per key",
+            "fr": "unmatched-key warning lists sample + count and warns once per key",
+            "es": "unmatched-key warning lists sample + count and warns once per key",
+            "de": "unmatched-key warning lists sample + count and warns once per key"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 unmatched-key warning lists sample + count and warns once per key",
+            "uk": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 unmatched-key warning lists sample + count and warns once per key",
+            "fr": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 unmatched-key warning lists sample + count and warns once per key",
+            "es": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 unmatched-key warning lists sample + count and warns once per key",
+            "de": "Playwright e2e coverage: ci-reporter-dx.spec.ts \u2014 unmatched-key warning lists sample + count and warns once per key"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "reporter",
+            "dx"
+          ],
+          "external_key": "e2e:ci-reporter-dx.spec.ts unmatched-key warning lists sample + count and warns once per key",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\"",
+                "uk": "Run npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\"",
+                "fr": "Run npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\"",
+                "es": "Run npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\"",
+                "de": "Run npx playwright test ci-reporter-dx.spec.ts -g \"unmatched-key warning lists sample + count and warns once per key\""
+              },
+              "expected_result": {
+                "en": "Test passes; unmatched-key warning includes sample + count, once per key; missing-annotation warning points at docs.",
+                "uk": "Test passes; unmatched-key warning includes sample + count, once per key; missing-annotation warning points at docs.",
+                "fr": "Test passes; unmatched-key warning includes sample + count, once per key; missing-annotation warning points at docs.",
+                "es": "Test passes; unmatched-key warning includes sample + count, once per key; missing-annotation warning points at docs.",
+                "de": "Test passes; unmatched-key warning includes sample + count, once per key; missing-annotation warning points at docs."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

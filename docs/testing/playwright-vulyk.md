@@ -40,19 +40,83 @@ node e2e/scripts/sync-vulyk-case-links.mjs --annotate
 | `VULYK_CI_TOKEN` | Project CI token (`vulyk_ci_…`). Alias: `VULYK_API_TOKEN` |
 | `VULYK_PROJECT` | Project **key** (e.g. `VQA`) or UUID. Aliases: `VULYK_PROJECT_KEY`, `VULYK_PROJECT_ID` |
 | `VULYK_RUN_NAME` | Optional suite display name (default `Playwright e2e`) |
+| `VULYK_RUN_ID` | Optional: attach to an existing run (Run in CI / `workflow_dispatch`) instead of opening a new one |
+| `VULYK_REPORTER_DRY_RUN` | Optional: `1` / `true` / `yes` — log open/start/results/close **without POSTing** (local DX) |
 
-Lifecycle against the CI ingest API (live, not end-buffered):
+### Live lifecycle (`onBegin` → stream → `onEnd`)
 
-1. **`onBegin`** — open with `start: true` (run is `in_progress` immediately;
-   or attach to `VULYK_RUN_ID` and call start).
-2. **`onTestEnd`** — buffer results and flush in small batches (or on a short
-   timer) so Executions shows progress during a long suite.
-3. **`onEnd`** — flush remaining results, then close. If Playwright reports
+The reporter is **live**, not end-buffered. Against the CI ingest API:
+
+```mermaid
+sequenceDiagram
+  participant PW as Playwright
+  participant R as vulyk-reporter
+  participant API as Vulyk CI API
+  PW->>R: onBegin
+  alt VULYK_RUN_ID set
+    R->>API: POST …/ci/runs/{id}/start
+  else new run
+    R->>API: POST …/ci/runs (start: true)
+  end
+  Note over API: Run status = in_progress (visible in Executions)
+  loop each finished test
+    PW->>R: onTestEnd
+    R->>API: POST …/results (batched / timed flush)
+  end
+  PW->>R: onEnd
+  R->>API: flush remaining + POST …/close
+  Note over API: closed (or cancelled if interrupted)
+```
+
+1. **`onBegin`** — resolve project id, then **open + start** in one step
+   (`start: true` on create) so the run is `in_progress` **before** any test
+   finishes. If `VULYK_RUN_ID` is set, skip open and call **start** on that run
+   (two-way **Run in CI** attach). Failures here disable the reporter for the
+   rest of the suite (tests still run).
+2. **`onTestEnd`** — map the case key from annotation / tag / title, buffer the
+   result, and flush in small batches (or on a short timer) so Executions shows
+   progress during a long suite. Retries keep only the last attempt.
+3. **`onEnd`** — flush remaining results, then **close**. If Playwright reports
    `interrupted`, close with `cancelled: true` (run status `cancelled`).
 
 A hard-killed runner that never reaches `onEnd` leaves the run visible as
-`in_progress`. Unmatched keys are logged; they do not fail the Playwright
-process.
+`in_progress`.
+
+### Dry-run
+
+```bash
+export VULYK_URL=http://127.0.0.1:8080
+export VULYK_CI_TOKEN=vulyk_ci_…   # still required to enable the reporter
+export VULYK_PROJECT=VQA
+export VULYK_REPORTER_DRY_RUN=1
+npx playwright test
+```
+
+Stdout shows `[vulyk-reporter] dry-run open|start|results|close: …` lines; no
+HTTP traffic is sent. Helper coverage: `npm run test:reporter-helpers` in `e2e/`.
+
+### Unmatched keys and missing annotations
+
+- **Unmatched keys** (case key not in the project): one warning **per key**
+  (sample list + total count). Create the case or fix the annotation; unmatched
+  keys do **not** fail the Playwright process.
+- **Missing annotation**: one warning with a **sample of test titles** + count.
+  Annotate every test:
+
+```ts
+test('login with seeded admin succeeds', {
+  tag: ['@VQA-236', '@VUE-12'],
+  annotation: [
+    { type: 'vulyk', description: 'VQA-236' },
+    { type: 'vulyk', description: 'VUE-12' },
+  ],
+}, async ({ page }) => {
+  // …
+})
+```
+
+Also accepted: a single `{ type: 'vulyk', description: 'VQA-236' }`, tag
+`@VQA-236`, or `VQA-236` in the title. See [CI integration](../guides/ci-integration.md).
 
 ## Run e2e against a local Vulyk and see real results
 

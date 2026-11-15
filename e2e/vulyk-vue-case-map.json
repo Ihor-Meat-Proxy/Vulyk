@@ -1145,12 +1145,12 @@
       "key": "VUE-191",
       "case_id": "dd05f440-c771-4baa-b228-f430458afd19",
       "file": "result-history.spec.ts",
-      "title": "mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
+      "title": "mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
       "type": "positive",
       "folder": "Executions",
-      "external_key": "e2e:result-history.spec.ts mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab",
+      "external_key": "e2e:result-history.spec.ts mark Passed→Failed→Blocked→Skipped; timeline and case History tab",
       "vqa_key": "VQA-312",
-      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed\u2192Failed\u2192Blocked\u2192Skipped; timeline and case History tab"
+      "automation_link": "e2e/tests/result-history.spec.ts :: mark Passed→Failed→Blocked→Skipped; timeline and case History tab"
     },
     {
       "id": "sample-project-kyiv-concert-sample-project-suites-cases-and-two-runs-exist",
@@ -1249,12 +1249,12 @@
       "key": "VUE-199",
       "case_id": "1a34bda9-15a7-4fdb-9b8a-a7387c35aa94",
       "file": "smoke.spec.ts",
-      "title": "smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
+      "title": "smoke: login → case → run → junit → import → report",
       "type": "positive",
       "folder": "Smoke",
-      "external_key": "e2e:smoke.spec.ts smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report",
+      "external_key": "e2e:smoke.spec.ts smoke: login → case → run → junit → import → report",
       "vqa_key": "VQA-320",
-      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login \u2192 case \u2192 run \u2192 junit \u2192 import \u2192 report"
+      "automation_link": "e2e/tests/smoke.spec.ts :: smoke: login → case → run → junit → import → report"
     },
     {
       "id": "status-sample-admin-sample-data-section-is-visible-under-settings",
@@ -1502,6 +1502,45 @@
       "external_key": "e2e:admin-auth-off-banner.spec.ts Admin auth-off banner hidden when auth required; shown when status mocked open",
       "vqa_key": "VQA-358",
       "automation_link": "e2e/tests/admin-auth-off-banner.spec.ts :: Admin auth-off banner hidden when auth required; shown when status mocked open"
+    },
+    {
+      "id": "api-docs-api-docs-scalar-search-try-it-and-auth-stay-interactive-without-cdn",
+      "preferred_key": "VUE-221",
+      "key": "VUE-221",
+      "case_id": null,
+      "file": "api-docs.spec.ts",
+      "title": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "type": "positive",
+      "folder": "Meta",
+      "external_key": "e2e:api-docs.spec.ts API docs Scalar search, Try it, and Auth stay interactive without CDN",
+      "vqa_key": "VQA-359",
+      "automation_link": "e2e/tests/api-docs.spec.ts :: API docs Scalar search, Try it, and Auth stay interactive without CDN"
+    },
+    {
+      "id": "ci-reporter-dx-dry-run-helper-logs-open/start/results/close-without-posting",
+      "preferred_key": "VUE-225",
+      "key": "VUE-225",
+      "case_id": "00000000-0000-4000-8000-000000000225",
+      "file": "ci-reporter-dx.spec.ts",
+      "title": "dry-run helper logs open/start/results/close without POSTing",
+      "type": "positive",
+      "folder": "Automation & CI",
+      "external_key": "e2e:ci-reporter-dx.spec.ts dry-run helper logs open/start/results/close without POSTing",
+      "vqa_key": "VQA-363",
+      "automation_link": "e2e/tests/ci-reporter-dx.spec.ts :: dry-run helper logs open/start/results/close without POSTing"
+    },
+    {
+      "id": "ci-reporter-dx-unmatched-key-warning-lists-sample--count-and-warns-once-per-key",
+      "preferred_key": "VUE-226",
+      "key": "VUE-226",
+      "case_id": "00000000-0000-4000-8000-000000000226",
+      "file": "ci-reporter-dx.spec.ts",
+      "title": "unmatched-key warning lists sample + count and warns once per key",
+      "type": "positive",
+      "folder": "Automation & CI",
+      "external_key": "e2e:ci-reporter-dx.spec.ts unmatched-key warning lists sample + count and warns once per key",
+      "vqa_key": "VQA-364",
+      "automation_link": "e2e/tests/ci-reporter-dx.spec.ts :: unmatched-key warning lists sample + count and warns once per key"
     }
   ]
 }
