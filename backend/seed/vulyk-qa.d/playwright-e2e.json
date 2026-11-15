@@ -7167,6 +7167,124 @@
             }
           ],
           "key": "VQA-354"
+        },
+        {
+          "title": {
+            "en": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "uk": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "fr": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "es": "API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "de": "API docs Scalar search, Try it, and Auth stay interactive without CDN"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: api-docs.spec.ts — API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "uk": "Покриття Playwright e2e: api-docs.spec.ts — API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "fr": "Playwright e2e coverage: api-docs.spec.ts — API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "es": "Playwright e2e coverage: api-docs.spec.ts — API docs Scalar search, Try it, and Auth stay interactive without CDN",
+            "de": "Playwright e2e coverage: api-docs.spec.ts — API docs Scalar search, Try it, and Auth stay interactive without CDN"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:api-docs.spec.ts API docs Scalar search, Try it, and Auth stay interactive without CDN",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\"",
+                "uk": "Run npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\"",
+                "fr": "Run npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\"",
+                "es": "Run npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\"",
+                "de": "Run npx playwright test api-docs.spec.ts -g \"API docs Scalar search, Try it, and Auth stay interactive without CDN\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-365"
+        },
+        {
+          "title": {
+            "en": "CI run detail progress matches Reports summary counters",
+            "uk": "CI run detail progress matches Reports summary counters",
+            "fr": "CI run detail progress matches Reports summary counters",
+            "es": "CI run detail progress matches Reports summary counters",
+            "de": "CI run detail progress matches Reports summary counters"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: run-counters-sot.spec.ts — CI run detail progress matches Reports summary counters",
+            "uk": "Покриття Playwright e2e: run-counters-sot.spec.ts — CI run detail progress matches Reports summary counters",
+            "fr": "Playwright e2e coverage: run-counters-sot.spec.ts — CI run detail progress matches Reports summary counters",
+            "es": "Playwright e2e coverage: run-counters-sot.spec.ts — CI run detail progress matches Reports summary counters",
+            "de": "Playwright e2e coverage: run-counters-sot.spec.ts — CI run detail progress matches Reports summary counters"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa"
+          ],
+          "external_key": "e2e:run-counters-sot.spec.ts CI run detail progress matches Reports summary counters",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\"",
+                "uk": "Run npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\"",
+                "fr": "Run npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\"",
+                "es": "Run npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\"",
+                "de": "Run npx playwright test run-counters-sot.spec.ts -g \"CI run detail progress matches Reports summary counters\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-366"
         }
       ]
     }

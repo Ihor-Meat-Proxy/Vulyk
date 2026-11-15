@@ -4,10 +4,12 @@
  *
  * - Creates project key=VUE (case_key_prefix=VUE) when missing
  * - Creates/updates folder suites mirroring feature areas
- * - Upserts cases by external_key (create or PATCH)
+ * - Upserts cases by external_key, then preferred key, then title (PUT, never PATCH)
+ * - Handles paginated list responses (`{items,total,limit,offset}`)
  * - Writes e2e/vulyk-vue-case-map.json
  * - Optionally annotates specs with @VUE-N tags (keeps existing @VQA-N)
- * - Optionally mints a project CI token (--mint-ci-token) and prints VULYK_CI_TOKEN=…
+ * - Optionally mints a project CI token (--mint-ci-token)
+ * - Optional --repair: delete duplicate cases (same external_key/title) before sync
  *
  * Env:
  *   VULYK_API_URL / VULYK_URL
@@ -18,6 +20,7 @@
  *   node e2e/scripts/sync-vue-project.mjs --annotate
  *   node e2e/scripts/sync-vue-project.mjs --mint-ci-token
  *   node e2e/scripts/sync-vue-project.mjs --check
+ *   node e2e/scripts/sync-vue-project.mjs --repair
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -33,6 +36,7 @@ const args = new Set(process.argv.slice(2))
 const DO_ANNOTATE = args.has('--annotate')
 const DO_MINT = args.has('--mint-ci-token')
 const DO_CHECK = args.has('--check')
+const DO_REPAIR = args.has('--repair')
 
 function env(...names) {
   for (const n of names) {
@@ -54,6 +58,7 @@ const CASE_KEY_RE = /^(?:VUE|VQA)-\d+$/
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const SPEC_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]*\.spec\.ts$/
+const PAGE_LIMIT = 200
 
 /** Rebuild a trusted string so CodeQL treats it as local/sanitized. */
 function trustStr(value, max = 2000) {
@@ -101,10 +106,46 @@ async function api(method, p, { token, body, ok } = {}) {
   const text = await res.text()
   const allowed = ok || [200, 201, 204]
   if (!allowed.includes(res.status)) {
-    throw new Error(`${method} ${p} → ${res.status}: ${text.slice(0, 500)}`)
+    throw new Error(`${method} ${p} -> ${res.status}: ${text.slice(0, 500)}`)
   }
   if (!text || res.status === 204) return null
   return JSON.parse(text)
+}
+
+/** Normalize list endpoints that may return an array or a Page `{items,total}`. */
+function pageItems(payload) {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.items)) return payload.items
+  if (Array.isArray(payload?.cases)) return payload.cases
+  if (Array.isArray(payload?.suites)) return payload.suites
+  return []
+}
+
+async function fetchAllPages(token, basePath) {
+  const sep = basePath.includes('?') ? '&' : '?'
+  let offset = 0
+  let total = Infinity
+  const all = []
+  while (offset < total) {
+    const payload = await api(
+      'GET',
+      `${basePath}${sep}limit=${PAGE_LIMIT}&offset=${offset}`,
+      { token },
+    )
+    const items = pageItems(payload)
+    all.push(...items)
+    if (Array.isArray(payload)) {
+      // Unpaged array response.
+      break
+    }
+    const reported =
+      typeof payload?.total === 'number' ? payload.total : all.length
+    total = reported
+    if (!items.length) break
+    offset += items.length
+    if (items.length < PAGE_LIMIT) break
+  }
+  return all
 }
 
 function loadCases() {
@@ -117,15 +158,6 @@ function loadCases() {
     folders.push({ name: data.folder, cases: data.cases || [] })
   }
   return { manifest, folders }
-}
-
-function stripVueTags(optionsBody) {
-  return optionsBody
-    .replace(/,?\s*tag\s*:\s*\[\s*[^\]]*\]/g, (m) => {
-      // keep non-VUE tags inside arrays — simplified: rebuild later
-      return m
-    })
-    .trim()
 }
 
 function ensureVueAnnotation(filePath, title, vueKey, vqaKey) {
@@ -165,7 +197,12 @@ function ensureVueAnnotation(filePath, title, vueKey, vqaKey) {
     }
     if (end < 0) continue
     let body = text.slice(optsStart + 1, end)
-    if (body.includes(`@${safeVue}`) && body.includes(`'${safeVue}'`)) continue
+    if (
+      body.includes(`@${safeVue}`) &&
+      (body.includes(`'${safeVue}'`) || body.includes(`"${safeVue}"`))
+    ) {
+      continue
+    }
 
     // Remove prior tag / annotation lines so we can rewrite cleanly.
     body = body
@@ -216,7 +253,10 @@ function checkVueAnnotations(folders) {
         continue
       }
       const window = text.slice(idx, idx + 800)
-      if (!window.includes(`@${c.key}`) || !window.includes(`'${c.key}'`)) {
+      const hasAt = window.includes(`@${c.key}`)
+      const hasQuoted =
+        window.includes(`'${c.key}'`) || window.includes(`"${c.key}"`)
+      if (!hasAt || !hasQuoted) {
         missing.push(`${c.spec} :: ${c.test} (missing ${c.key})`)
       }
     }
@@ -227,6 +267,139 @@ function checkVueAnnotations(folders) {
     process.exit(1)
   }
   console.log('OK: all VUE cases have matching Playwright annotations')
+}
+
+function buildIndexes(existing) {
+  const byExt = new Map()
+  const byKey = new Map()
+  const byTitle = new Map()
+  for (const c of existing) {
+    if (c.external_key) {
+      const list = byExt.get(c.external_key) || []
+      list.push(c)
+      byExt.set(c.external_key, list)
+    }
+    if (c.key) byKey.set(String(c.key).toUpperCase(), c)
+    if (c.title) {
+      const list = byTitle.get(c.title) || []
+      list.push(c)
+      byTitle.set(c.title, list)
+    }
+  }
+  return { byExt, byKey, byTitle }
+}
+
+/** Prefer external_key, then preferred key, then unique title match. */
+function findExisting(c, indexes) {
+  const extHits = c.external_key ? indexes.byExt.get(c.external_key) || [] : []
+  if (extHits.length === 1) return extHits[0]
+  if (extHits.length > 1) {
+    // Prefer the one whose key matches preferred, else lowest key number.
+    const preferred = extHits.find(
+      (h) => String(h.key || '').toUpperCase() === String(c.key || '').toUpperCase(),
+    )
+    if (preferred) return preferred
+    return [...extHits].sort((a, b) =>
+      String(a.key || '').localeCompare(String(b.key || ''), undefined, {
+        numeric: true,
+      }),
+    )[0]
+  }
+  if (c.key) {
+    const byKey = indexes.byKey.get(String(c.key).toUpperCase())
+    if (byKey) return byKey
+  }
+  const titleHits = indexes.byTitle.get(c.title) || []
+  if (titleHits.length === 1) return titleHits[0]
+  return null
+}
+
+async function repairDuplicates(token, projectId, ordered, existing) {
+  const wantedExt = new Set(
+    ordered.map((c) => c.external_key).filter(Boolean),
+  )
+  const wantedTitles = new Set(ordered.map((c) => c.title).filter(Boolean))
+  const preferredKeys = new Set(
+    ordered.map((c) => String(c.key || '').toUpperCase()).filter(Boolean),
+  )
+
+  // Group live cases by external_key and by title.
+  const byExt = new Map()
+  const byTitle = new Map()
+  for (const c of existing) {
+    if (c.external_key && wantedExt.has(c.external_key)) {
+      const list = byExt.get(c.external_key) || []
+      list.push(c)
+      byExt.set(c.external_key, list)
+    }
+    if (c.title && wantedTitles.has(c.title)) {
+      const list = byTitle.get(c.title) || []
+      list.push(c)
+      byTitle.set(c.title, list)
+    }
+  }
+
+  const deleteIds = new Set()
+  const pickKeep = (hits, preferredKey) => {
+    if (hits.length <= 1) return hits[0] || null
+    const pref = hits.find(
+      (h) => String(h.key || '').toUpperCase() === preferredKey,
+    )
+    if (pref) return pref
+    return [...hits].sort((a, b) =>
+      String(a.key || '').localeCompare(String(b.key || ''), undefined, {
+        numeric: true,
+      }),
+    )[0]
+  }
+
+  for (const c of ordered) {
+    const extHits = c.external_key ? byExt.get(c.external_key) || [] : []
+    if (extHits.length > 1) {
+      const keep = pickKeep(extHits, String(c.key || '').toUpperCase())
+      for (const h of extHits) {
+        if (h.id !== keep.id) deleteIds.add(h.id)
+      }
+    }
+    const titleHits = byTitle.get(c.title) || []
+    if (titleHits.length > 1) {
+      // Only delete title dupes that lack the wanted external_key / preferred key.
+      const keep =
+        pickKeep(
+          titleHits.filter((h) => !deleteIds.has(h.id)),
+          String(c.key || '').toUpperCase(),
+        ) || titleHits[0]
+      for (const h of titleHits) {
+        if (h.id === keep.id) continue
+        // Keep a title sibling that holds the preferred key and a different ext.
+        if (
+          preferredKeys.has(String(h.key || '').toUpperCase()) &&
+          h.external_key &&
+          h.external_key !== c.external_key
+        ) {
+          continue
+        }
+        deleteIds.add(h.id)
+      }
+    }
+  }
+
+  let deleted = 0
+  for (const id of deleteIds) {
+    await api('DELETE', `/api/v1/projects/${projectId}/cases/${requireUuid(id)}`, {
+      token,
+      ok: [200, 204],
+    })
+    deleted += 1
+  }
+  if (deleted) {
+    console.log(
+      `Repair: deleted ${deleted} duplicate case(s). Note: retired keys are not reused; preferred VUE-N may still drift.`,
+    )
+  } else {
+    console.log('Repair: no duplicate cases to delete')
+  }
+  return deleted
 }
 
 async function main() {
@@ -242,8 +415,8 @@ async function main() {
   })
   const token = login.token
 
-  let projects = await api('GET', '/api/v1/projects', { token })
-  let project = (projects || []).find(
+  const projects = await fetchAllPages(token, '/api/v1/projects')
+  let project = projects.find(
     (p) => p.key?.toUpperCase() === manifest.project.key.toUpperCase(),
   )
   if (!project) {
@@ -262,39 +435,25 @@ async function main() {
   }
 
   // Suites (folders)
-  let suites = await api('GET', `/api/v1/projects/${project.id}/suites`, { token })
-  if (!Array.isArray(suites)) suites = suites?.suites || []
+  let suites = await fetchAllPages(token, `/api/v1/projects/${project.id}/suites`)
   const suiteByName = new Map(suites.map((s) => [s.name, s]))
 
   for (const folder of folders) {
     if (!suiteByName.has(folder.name)) {
-      const created = await api('POST', `/api/v1/projects/${project.id}/suites`, {
+      const createdSuite = await api('POST', `/api/v1/projects/${project.id}/suites`, {
         token,
         body: { name: folder.name, sort_order: 0 },
       })
-      suiteByName.set(folder.name, created)
+      suiteByName.set(folder.name, createdSuite)
       console.log(`  + suite ${folder.name}`)
     }
   }
 
-  // Existing cases by external_key
-  let casesPayload = await api('GET', `/api/v1/projects/${project.id}/cases`, {
+  let existing = await fetchAllPages(
     token,
-  })
-  let existing = Array.isArray(casesPayload)
-    ? casesPayload
-    : casesPayload?.cases || []
-  // list may be summary — fetch enough fields; if thin, re-query detail later
-  const byExt = new Map()
-  for (const c of existing) {
-    if (c.external_key) byExt.set(c.external_key, c)
-  }
+    `/api/v1/projects/${project.id}/cases`,
+  )
 
-  const mapping = []
-  let created = 0
-  let updated = 0
-
-  // Create in preferred key order so first sync gets VUE-1..N
   const ordered = folders.flatMap((f) =>
     f.cases.map((c) => ({ ...c, folder: f.name })),
   )
@@ -303,6 +462,20 @@ async function main() {
     const nb = Number(String(b.key).replace(/\D/g, '')) || 0
     return na - nb
   })
+
+  if (DO_REPAIR) {
+    await repairDuplicates(token, project.id, ordered, existing)
+    existing = await fetchAllPages(
+      token,
+      `/api/v1/projects/${project.id}/cases`,
+    )
+  }
+
+  let indexes = buildIndexes(existing)
+
+  const mapping = []
+  let created = 0
+  let updated = 0
 
   for (const c of ordered) {
     const suite = suiteByName.get(c.folder)
@@ -333,7 +506,7 @@ async function main() {
       external_key: trustStr(c.external_key, 120),
     }
 
-    const hit = byExt.get(c.external_key)
+    const hit = findExisting(c, indexes)
     let key
     let id
     if (hit) {
@@ -344,7 +517,7 @@ async function main() {
       )
       const caseId = detail?.case?.id || hit.id
       const patched = await api(
-        'PATCH',
+        'PUT',
         `/api/v1/projects/${project.id}/cases/${caseId}`,
         {
           token,
@@ -364,6 +537,12 @@ async function main() {
       key = patched?.case?.key || detail?.case?.key || hit.key
       id = caseId
       updated += 1
+      // Refresh indexes so a later preferred-key match sees this row.
+      const live = { ...hit, ...patched?.case, id: caseId, key, title: body.title, external_key: body.external_key }
+      indexes = buildIndexes(
+        [...existing.filter((x) => x.id !== caseId), live],
+      )
+      existing = existing.map((x) => (x.id === caseId ? live : x))
     } else {
       const createdCase = await api('POST', `/api/v1/projects/${project.id}/cases`, {
         token,
@@ -372,7 +551,10 @@ async function main() {
       key = createdCase?.case?.key
       id = createdCase?.case?.id
       created += 1
-      if (c.external_key) byExt.set(c.external_key, createdCase.case)
+      if (createdCase?.case) {
+        existing.push(createdCase.case)
+        indexes = buildIndexes(existing)
+      }
     }
 
     const safePreferred = requireCaseKey(c.key)
@@ -414,7 +596,7 @@ async function main() {
   // codeql[js/http-to-file-access] Local map of validated case keys/ids after sync.
   fs.writeFileSync(MAP_OUT, `${JSON.stringify(out, null, 2)}\n`)
   console.log(
-    `Synced ${mapping.length} cases (created=${created}, updated=${updated}) → e2e/vulyk-vue-case-map.json`,
+    `Synced ${mapping.length} cases (created=${created}, updated=${updated}) -> e2e/vulyk-vue-case-map.json`,
   )
 
   if (DO_ANNOTATE) {
@@ -439,7 +621,7 @@ async function main() {
   const drift = mapping.filter((m) => m.preferred_key && m.key && m.preferred_key !== m.key)
   if (drift.length) {
     console.warn(
-      `warning: ${drift.length} case(s) have allocated keys different from preferred VUE-N in e2e/cases (project was not empty). Annotations use allocated keys.`,
+      `warning: ${drift.length} case(s) have allocated keys different from preferred VUE-N in e2e/cases (project was not empty). Annotations use allocated keys. Re-run with --repair to drop duplicates; retired keys cannot be reclaimed.`,
     )
   }
 }
