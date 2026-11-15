@@ -1,45 +1,60 @@
 import { ApiError } from './api'
 
-/** Map raw API errors to short, user-facing copy (login / not-found / generic). */
+export type FriendlyErrorKind = 'login' | 'generic' | 'notFound'
+
+/**
+ * Map API errors to translated UI copy via stable `error.code` values.
+ * English `error.message` stays on the wire for API clients / logs — the UI
+ * must not surface those strings to end users.
+ */
 export function friendlyErrorMessage(
   err: unknown,
   t: (key: string, vars?: Record<string, string | number>) => string,
-  kind: 'login' | 'generic' | 'notFound' = 'generic',
+  kind: FriendlyErrorKind = 'generic',
 ): string {
   if (err instanceof ApiError) {
-    if (err.status === 404 || err.code === 'not_found') {
+    const code = (err.code || '').toLowerCase()
+
+    if (code === 'not_found' || err.status === 404) {
       return kind === 'login' ? t('login.genericError') : t('notFound.resource')
     }
-    if (err.status === 401 || err.code === 'unauthorized') {
-      return t('login.invalidCredentials')
+    if (code === 'case_deleted' || err.status === 410) {
+      return t('errors.caseDeleted')
     }
-    if (err.status === 429 || err.code === 'rate_limited') {
-      return t('login.rateLimited')
+    if (code === 'unauthorized' || err.status === 401) {
+      return kind === 'login'
+        ? t('login.invalidCredentials')
+        : t('errors.unauthorized')
     }
-    const raw = err.message.trim()
+    if (code === 'forbidden' || err.status === 403) {
+      return t('errors.forbidden')
+    }
     if (
-      /^bad request:/i.test(raw) ||
-      /^not found:/i.test(raw) ||
-      /^internal/i.test(raw) ||
-      /^forbidden:/i.test(raw)
+      code === 'too_many_requests' ||
+      code === 'rate_limited' ||
+      code === 'git_host_rate_limit' ||
+      err.status === 429
     ) {
+      return kind === 'login' ? t('login.rateLimited') : t('errors.rateLimited')
+    }
+    if (code === 'conflict' || err.status === 409) {
+      return t('errors.conflict')
+    }
+    if (code === 'bad_request' || err.status === 400) {
       return kind === 'login'
         ? t('login.genericError')
-        : t('common.unexpectedError')
+        : t('errors.badRequest')
     }
-    // Prefer short API messages that are already human-readable.
-    if (raw && raw.length < 120 && !raw.includes('{')) {
-      return raw
+    if (code === 'internal' || err.status >= 500) {
+      return t('common.unexpectedError')
     }
+
+    // Unknown code: never echo English API message into the UI.
+    return kind === 'login'
+      ? t('login.genericError')
+      : t('common.unexpectedError')
   }
-  if (err instanceof Error && err.message && err.message.length < 120) {
-    const raw = err.message.trim()
-    if (/^bad request:|^not found:|^internal/i.test(raw)) {
-      return kind === 'login'
-        ? t('login.genericError')
-        : t('common.unexpectedError')
-    }
-  }
+
   return kind === 'login'
     ? t('login.genericError')
     : t('common.unexpectedError')
