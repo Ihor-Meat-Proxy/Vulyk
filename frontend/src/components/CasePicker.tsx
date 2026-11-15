@@ -109,6 +109,11 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     onChange(selected.filter((c) => c.id !== id))
   }
 
+  const folderLabel = (node: SuiteNode) => {
+    const name = node.name?.trim()
+    return name || t('generate.untitledFolder')
+  }
+
   const renderNode = (node: SuiteNode, depth: number, index: number) => (
     <li key={node.id} style={{ marginLeft: depth * 12 }}>
       <div className="picker-folder-row">
@@ -124,7 +129,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
             depth,
           })}
         >
-          {node.name}
+          {folderLabel(node)}
           {typeof node.case_count === 'number' ? ` (${node.case_count})` : ''}
         </button>
         <button
@@ -147,13 +152,19 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
     </li>
   )
 
+  const chips = selected.filter((c) => c.id && (c.key || c.title).trim())
+
   return (
     <div className="case-picker" {...testIdProps(TestIds.casePicker)}>
-      <div className="case-picker-chips" aria-live="polite">
-        {selected.length === 0 ? (
+      <div
+        className="case-picker-chips"
+        aria-live="polite"
+        {...testIdProps(TestIds.casePickerChips)}
+      >
+        {chips.length === 0 ? (
           <span className="muted">{t('generate.noCasesSelected')}</span>
         ) : (
-          selected.map((c, index) => (
+          chips.map((c, index) => (
             <button
               key={c.id}
               type="button"
@@ -166,7 +177,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                 index,
               })}
             >
-              <span className="badge">{c.key}</span>
+              <span className="badge">{c.key || c.title}</span>
               <span aria-hidden="true"> ×</span>
             </button>
           ))
@@ -200,7 +211,10 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
       )}
 
       <div className="case-picker-grid">
-        <div className="case-picker-folders">
+        <div
+          className="case-picker-folders"
+          {...testIdProps(TestIds.casePickerFolders)}
+        >
           <h4>{t('generate.folders')}</h4>
           <ul className="plain-list picker-tree">
             <li>
@@ -216,7 +230,10 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
             {tree.map((n, index) => renderNode(n, 0, index))}
           </ul>
         </div>
-        <div className="case-picker-list">
+        <div
+          className="case-picker-list"
+          {...testIdProps(TestIds.casePickerList)}
+        >
           <h4>{t('generate.cases')}</h4>
           <ul className="plain-list">
             {visibleCases.map((c, index) => (
@@ -235,7 +252,8 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                     onChange={() => toggle(c)}
                     {...listChildProps(TestIds.casePickerItem, 'checkbox')}
                   />
-                  <span className="badge">{c.key}</span> {c.title}
+                  <span className="badge">{c.key}</span>{' '}
+                  <span>{c.title}</span>
                 </label>
               </li>
             ))}

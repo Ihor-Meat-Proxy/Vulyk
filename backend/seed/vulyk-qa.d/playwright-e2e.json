@@ -6685,6 +6685,306 @@
             }
           ],
           "key": "VQA-339"
+        },
+        {
+          "title": {
+            "en": "Generate case picker uses compact checkboxes and scrollable list",
+            "uk": "Generate case picker uses compact checkboxes and scrollable list",
+            "fr": "Generate case picker uses compact checkboxes and scrollable list",
+            "es": "Generate case picker uses compact checkboxes and scrollable list",
+            "de": "Generate case picker uses compact checkboxes and scrollable list"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ui-layout-polish.spec.ts — Generate case picker uses compact checkboxes and scrollable list",
+            "uk": "Покриття Playwright e2e: ui-layout-polish.spec.ts — Generate case picker uses compact checkboxes and scrollable list",
+            "fr": "Playwright e2e coverage: ui-layout-polish.spec.ts — Generate case picker uses compact checkboxes and scrollable list",
+            "es": "Playwright e2e coverage: ui-layout-polish.spec.ts — Generate case picker uses compact checkboxes and scrollable list",
+            "de": "Playwright e2e coverage: ui-layout-polish.spec.ts — Generate case picker uses compact checkboxes and scrollable list"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ui-layout"
+          ],
+          "external_key": "e2e:ui-layout-polish.spec.ts Generate case picker uses compact checkboxes and scrollable list",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ui-layout-polish.spec.ts -g \"Generate case picker uses compact checkboxes and scrollable list\"",
+                "uk": "Run npx playwright test ui-layout-polish.spec.ts -g \"Generate case picker uses compact checkboxes and scrollable list\"",
+                "fr": "Run npx playwright test ui-layout-polish.spec.ts -g \"Generate case picker uses compact checkboxes and scrollable list\"",
+                "es": "Run npx playwright test ui-layout-polish.spec.ts -g \"Generate case picker uses compact checkboxes and scrollable list\"",
+                "de": "Run npx playwright test ui-layout-polish.spec.ts -g \"Generate case picker uses compact checkboxes and scrollable list\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-340"
+        },
+        {
+          "title": {
+            "en": "Reports and Runs stay within viewport at 390px width",
+            "uk": "Reports and Runs stay within viewport at 390px width",
+            "fr": "Reports and Runs stay within viewport at 390px width",
+            "es": "Reports and Runs stay within viewport at 390px width",
+            "de": "Reports and Runs stay within viewport at 390px width"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ui-layout-polish.spec.ts — Reports and Runs stay within viewport at 390px width",
+            "uk": "Покриття Playwright e2e: ui-layout-polish.spec.ts — Reports and Runs stay within viewport at 390px width",
+            "fr": "Playwright e2e coverage: ui-layout-polish.spec.ts — Reports and Runs stay within viewport at 390px width",
+            "es": "Playwright e2e coverage: ui-layout-polish.spec.ts — Reports and Runs stay within viewport at 390px width",
+            "de": "Playwright e2e coverage: ui-layout-polish.spec.ts — Reports and Runs stay within viewport at 390px width"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ui-layout"
+          ],
+          "external_key": "e2e:ui-layout-polish.spec.ts Reports and Runs stay within viewport at 390px width",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\"",
+                "uk": "Run npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\"",
+                "fr": "Run npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\"",
+                "es": "Run npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\"",
+                "de": "Run npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-341"
+        },
+        {
+          "title": {
+            "en": "Case list long titles ellipsize without overlapping columns",
+            "uk": "Case list long titles ellipsize without overlapping columns",
+            "fr": "Case list long titles ellipsize without overlapping columns",
+            "es": "Case list long titles ellipsize without overlapping columns",
+            "de": "Case list long titles ellipsize without overlapping columns"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ui-layout-polish.spec.ts — Case list long titles ellipsize without overlapping columns",
+            "uk": "Покриття Playwright e2e: ui-layout-polish.spec.ts — Case list long titles ellipsize without overlapping columns",
+            "fr": "Playwright e2e coverage: ui-layout-polish.spec.ts — Case list long titles ellipsize without overlapping columns",
+            "es": "Playwright e2e coverage: ui-layout-polish.spec.ts — Case list long titles ellipsize without overlapping columns",
+            "de": "Playwright e2e coverage: ui-layout-polish.spec.ts — Case list long titles ellipsize without overlapping columns"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ui-layout"
+          ],
+          "external_key": "e2e:ui-layout-polish.spec.ts Case list long titles ellipsize without overlapping columns",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\"",
+                "uk": "Run npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\"",
+                "fr": "Run npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\"",
+                "es": "Run npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\"",
+                "de": "Run npx playwright test ui-layout-polish.spec.ts -g \"Case list long titles ellipsize without overlapping columns\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-342"
+        },
+        {
+          "title": {
+            "en": "CI tokens: links, active project default, copy + env block, timestamps",
+            "uk": "CI tokens: links, active project default, copy + env block, timestamps",
+            "fr": "CI tokens: links, active project default, copy + env block, timestamps",
+            "es": "CI tokens: links, active project default, copy + env block, timestamps",
+            "de": "CI tokens: links, active project default, copy + env block, timestamps"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ui-layout-polish.spec.ts — CI tokens: links, active project default, copy + env block, timestamps",
+            "uk": "Покриття Playwright e2e: ui-layout-polish.spec.ts — CI tokens: links, active project default, copy + env block, timestamps",
+            "fr": "Playwright e2e coverage: ui-layout-polish.spec.ts — CI tokens: links, active project default, copy + env block, timestamps",
+            "es": "Playwright e2e coverage: ui-layout-polish.spec.ts — CI tokens: links, active project default, copy + env block, timestamps",
+            "de": "Playwright e2e coverage: ui-layout-polish.spec.ts — CI tokens: links, active project default, copy + env block, timestamps"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ui-layout"
+          ],
+          "external_key": "e2e:ui-layout-polish.spec.ts CI tokens: links, active project default, copy + env block, timestamps",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ui-layout-polish.spec.ts -g \"CI tokens: links, active project default, copy + env block, timestamps\"",
+                "uk": "Run npx playwright test ui-layout-polish.spec.ts -g \"CI tokens: links, active project default, copy + env block, timestamps\"",
+                "fr": "Run npx playwright test ui-layout-polish.spec.ts -g \"CI tokens: links, active project default, copy + env block, timestamps\"",
+                "es": "Run npx playwright test ui-layout-polish.spec.ts -g \"CI tokens: links, active project default, copy + env block, timestamps\"",
+                "de": "Run npx playwright test ui-layout-polish.spec.ts -g \"CI tokens: links, active project default, copy + env block, timestamps\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-343"
+        },
+        {
+          "title": {
+            "en": "Run report shows Skipped tile and Pass % excludes skipped",
+            "uk": "Run report shows Skipped tile and Pass % excludes skipped",
+            "fr": "Run report shows Skipped tile and Pass % excludes skipped",
+            "es": "Run report shows Skipped tile and Pass % excludes skipped",
+            "de": "Run report shows Skipped tile and Pass % excludes skipped"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: ui-layout-polish.spec.ts — Run report shows Skipped tile and Pass % excludes skipped",
+            "uk": "Покриття Playwright e2e: ui-layout-polish.spec.ts — Run report shows Skipped tile and Pass % excludes skipped",
+            "fr": "Playwright e2e coverage: ui-layout-polish.spec.ts — Run report shows Skipped tile and Pass % excludes skipped",
+            "es": "Playwright e2e coverage: ui-layout-polish.spec.ts — Run report shows Skipped tile and Pass % excludes skipped",
+            "de": "Playwright e2e coverage: ui-layout-polish.spec.ts — Run report shows Skipped tile and Pass % excludes skipped"
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI запущені; seed admin / fixtures за вимогами спеки.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "ui-layout"
+          ],
+          "external_key": "e2e:ui-layout-polish.spec.ts Run report shows Skipped tile and Pass % excludes skipped",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\"",
+                "uk": "Run npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\"",
+                "fr": "Run npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\"",
+                "es": "Run npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\"",
+                "de": "Run npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ],
+          "key": "VQA-344"
         }
       ]
     }

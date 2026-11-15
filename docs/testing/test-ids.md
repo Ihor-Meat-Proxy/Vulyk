@@ -94,3 +94,13 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Runs upload disabled hint | `runs-upload-disabled-hint` |
 | Coverage uncovered empty | `reports-coverage-uncovered-empty` |
 4. Reference the id in seeded Vulyk QA steps when the case is UI-driven.
+
+## Recent additions (F8–F12)
+
+- Case picker: `case-picker-chips`, `case-picker-folders`, `case-picker-list`
+- CI tokens: `settings-ci-token-env-block`, `settings-ci-token-copy-button`,
+  `settings-ci-token-copy-env-button`, `settings-ci-token-created`,
+  `settings-ci-token-last-used`, `runs-ci-tokens-link`,
+  `admin-integrations-ci-tokens-link`
+- Run report: `reports-run-kpi-skipped`, `reports-run-kpi-pass-rate`,
+  `reports-run-pass-rate-hint`, `reports-other-legend`

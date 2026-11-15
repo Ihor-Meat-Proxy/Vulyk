@@ -310,8 +310,11 @@ export function Generate({ projectId }: Props) {
               ))}
             </select>
           </label>
-          <div className="field" {...testIdProps(TestIds.generateCasePicker)}>
-            <span>{t('generate.pickCases')}</span>
+          <div
+            className="generate-case-picker"
+            {...testIdProps(TestIds.generateCasePicker)}
+          >
+            <span className="field-label">{t('generate.pickCases')}</span>
             <CasePicker
               projectId={projectId}
               selected={picked}

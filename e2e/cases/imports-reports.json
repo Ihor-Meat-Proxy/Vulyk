@@ -192,6 +192,54 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "ui-layout-polish-reports-and-runs-stay-within-viewport-at-390px-width",
+      "key": "VUE-115",
+      "title": "Reports and Runs stay within viewport at 390px width",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ui-layout-polish.spec.ts -g \"Reports and Runs stay within viewport at 390px width\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ui-layout-polish.spec.ts",
+      "test": "Reports and Runs stay within viewport at 390px width",
+      "external_key": "e2e:ui-layout-polish.spec.ts Reports and Runs stay within viewport at 390px width",
+      "automation_link": "e2e/tests/ui-layout-polish.spec.ts :: Reports and Runs stay within viewport at 390px width",
+      "vqa_key": "VQA-341",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "ui-layout-polish-run-report-shows-skipped-tile-and-pass-pct-excludes-skipped",
+      "key": "VUE-118",
+      "title": "Run report shows Skipped tile and Pass % excludes skipped",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test ui-layout-polish.spec.ts -g \"Run report shows Skipped tile and Pass % excludes skipped\"",
+          "expected": "Test passes; reporter posts result by VUE case key when configured."
+        }
+      ],
+      "spec": "ui-layout-polish.spec.ts",
+      "test": "Run report shows Skipped tile and Pass % excludes skipped",
+      "external_key": "e2e:ui-layout-polish.spec.ts Run report shows Skipped tile and Pass % excludes skipped",
+      "automation_link": "e2e/tests/ui-layout-polish.spec.ts :: Run report shows Skipped tile and Pass % excludes skipped",
+      "vqa_key": "VQA-344",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }

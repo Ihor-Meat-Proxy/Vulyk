@@ -117,7 +117,21 @@ function formatRepoStatus(
     .join(' · ')
 }
 
-export function Settings() {
+type SettingsProps = {
+  /** Active project from the shell selector — preferred default for CI tokens. */
+  activeProjectId?: string | null
+}
+
+function ciTokenEnvBlock(secret: string): string {
+  return [
+    `# Vulyk project CI token (shown once)`,
+    `VULYK_CI_TOKEN=${secret}`,
+    `# Alias accepted by the Playwright reporter:`,
+    `# VULYK_API_TOKEN=${secret}`,
+  ].join('\n')
+}
+
+export function Settings({ activeProjectId = null }: SettingsProps) {
   const {
     user,
     status,
@@ -159,6 +173,7 @@ export function Settings() {
   const [ciTokens, setCiTokens] = useState<ProjectCiToken[]>([])
   const [ciTokenName, setCiTokenName] = useState('github-main')
   const [ciSecretOnce, setCiSecretOnce] = useState<string | null>(null)
+  const [ciCopyNotice, setCiCopyNotice] = useState<string | null>(null)
   const [canCiTokens, setCanCiTokens] = useState(false)
 
   useEffect(() => {
@@ -232,14 +247,22 @@ export function Settings() {
         if (isAdmin || anyAutomation) {
           await refreshRepos()
         }
-        const firstCi = list.find((p) =>
+        const eligible = list.filter((p) =>
           can(
             { role: roles[p.id] ?? null, isSystemAdmin: isAdmin },
             'manage_api_tokens',
           ),
         )
-        if (firstCi) {
-          setCiProjectId((cur) => cur || firstCi.id)
+        const preferred =
+          (activeProjectId &&
+            eligible.find((p) => p.id === activeProjectId)?.id) ||
+          eligible[0]?.id ||
+          ''
+        if (preferred) {
+          setCiProjectId((cur) => {
+            if (cur && eligible.some((p) => p.id === cur)) return cur
+            return preferred
+          })
         }
       } catch {
         if (!cancelled) {
@@ -252,12 +275,38 @@ export function Settings() {
     return () => {
       cancelled = true
     }
-  }, [user?.id])
+  }, [user?.id, activeProjectId])
 
   useEffect(() => {
     if (!ciProjectId || !canCiTokens) return
     void refreshCiTokens(ciProjectId)
   }, [ciProjectId, canCiTokens])
+
+  useEffect(() => {
+    if (!canCiTokens) return
+    if (typeof window === 'undefined') return
+    if (window.location.hash !== '#ci-tokens') return
+    const el = document.getElementById('ci-tokens')
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [canCiTokens, ciTokens.length])
+
+  useEffect(() => {
+    if (!activeProjectId || !canCiTokens || projects.length === 0) return
+    const eligible = projects.some(
+      (p) =>
+        p.id === activeProjectId &&
+        can(
+          {
+            role: projectRoles[p.id] ?? null,
+            isSystemAdmin: Boolean(user?.is_system_admin),
+          },
+          'manage_api_tokens',
+        ),
+    )
+    if (eligible) setCiProjectId(activeProjectId)
+    // Only re-default when the shell active project changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- projects/roles loaded in parallel
+  }, [activeProjectId, canCiTokens])
 
   const projectsForCi = useMemo(
     () =>
@@ -578,6 +627,7 @@ export function Settings() {
     e.preventDefault()
     if (!ciProjectId) return
     setError(null)
+    setCiCopyNotice(null)
     try {
       const res = await api.createProjectCiToken(
         ciProjectId,
@@ -590,9 +640,27 @@ export function Settings() {
     }
   }
 
+  const copyText = async (text: string, notice: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCiCopyNotice(notice)
+    } catch {
+      setCiCopyNotice(t('cases.copyFailed'))
+    }
+  }
+
   const projectLabel = (id: string) => {
     const p = projects.find((x) => x.id === id)
     return p ? `${p.key} — ${p.name}` : id.slice(0, 8)
+  }
+
+  const fmtTs = (value: string | null | undefined) => {
+    if (!value) return t('settings.ciTokenNeverUsed')
+    try {
+      return new Date(value).toLocaleString()
+    } catch {
+      return value
+    }
   }
 
   return (
@@ -1232,7 +1300,11 @@ export function Settings() {
       ) : null}
 
       {canCiTokens ? (
-        <section className="panel" {...testIdProps(TestIds.settingsCiPanel)}>
+        <section
+          id="ci-tokens"
+          className="panel"
+          {...testIdProps(TestIds.settingsCiPanel)}
+        >
           <h3>{t('settings.ciTokens')}</h3>
           <p className="muted">
             {t('settings.ciTokensHelp')}{' '}
@@ -1252,6 +1324,7 @@ export function Settings() {
               onChange={(e) => {
                 setCiProjectId(e.target.value)
                 setCiSecretOnce(null)
+                setCiCopyNotice(null)
               }}
               aria-label={t('settings.ciTokensProject')}
               {...testIdProps(TestIds.settingsCiProjectSelect)}
@@ -1267,12 +1340,49 @@ export function Settings() {
             </select>
           </label>
           {ciSecretOnce && (
-            <p
+            <div
               className="token-secret"
               {...testIdProps(TestIds.settingsCiTokenSecret)}
             >
-              {t('settings.tokenCreated')} <code>{ciSecretOnce}</code>
-            </p>
+              <p style={{ margin: 0 }}>{t('settings.tokenCreated')}</p>
+              <code>{ciSecretOnce}</code>
+              <div className="token-secret-actions">
+                <button
+                  type="button"
+                  className="btn secondary tiny"
+                  onClick={() =>
+                    void copyText(ciSecretOnce, t('settings.ciTokenCopied'))
+                  }
+                  {...testIdProps(TestIds.settingsCiTokenCopyButton)}
+                >
+                  {t('settings.ciTokenCopy')}
+                </button>
+                <button
+                  type="button"
+                  className="btn secondary tiny"
+                  onClick={() =>
+                    void copyText(
+                      ciTokenEnvBlock(ciSecretOnce),
+                      t('settings.ciTokenEnvCopied'),
+                    )
+                  }
+                  {...testIdProps(TestIds.settingsCiTokenCopyEnvButton)}
+                >
+                  {t('settings.ciTokenCopyEnv')}
+                </button>
+              </div>
+              <pre
+                className="token-env-block"
+                {...testIdProps(TestIds.settingsCiTokenEnvBlock)}
+              >
+                {ciTokenEnvBlock(ciSecretOnce)}
+              </pre>
+              {ciCopyNotice ? (
+                <p className="muted" style={{ marginBottom: 0 }}>
+                  {ciCopyNotice}
+                </p>
+              ) : null}
+            </div>
           )}
           {!ciProjectId ? null : ciTokens.length === 0 ? (
             <p className="muted">{t('settings.ciTokenEmpty')}</p>
@@ -1286,7 +1396,22 @@ export function Settings() {
                     index,
                   })}
                 >
-                  <strong>{tok.name}</strong> · {tok.token_prefix}…
+                  <div>
+                    <strong>{tok.name}</strong> · {tok.token_prefix}…
+                    <div className="ci-token-meta">
+                      <span {...testIdProps(TestIds.settingsCiTokenCreated)}>
+                        {t('settings.ciTokenCreated', {
+                          time: fmtTs(tok.created_at),
+                        })}
+                      </span>
+                      {' · '}
+                      <span {...testIdProps(TestIds.settingsCiTokenLastUsed)}>
+                        {t('settings.ciTokenLastUsed', {
+                          time: fmtTs(tok.last_used_at),
+                        })}
+                      </span>
+                    </div>
+                  </div>
                   {tok.revoked_at ? null : (
                     <button
                       type="button"
@@ -1296,6 +1421,7 @@ export function Settings() {
                           .revokeProjectCiToken(ciProjectId, tok.id)
                           .then(() => {
                             setCiSecretOnce(null)
+                            setCiCopyNotice(null)
                             void refreshCiTokens(ciProjectId)
                           })
                       }

@@ -372,9 +372,25 @@ export function RunReportDetail({ projectId }: Props) {
               <span className="kpi-label">{t('status.failed')}</span>
               <span className="kpi-value">{detail.counts.failed}</span>
             </div>
-            <div className="kpi">
+            <div
+              className="kpi"
+              {...testIdProps(TestIds.reportsRunKpiSkipped)}
+            >
+              <span className="kpi-label">{t('status.skipped')}</span>
+              <span className="kpi-value">{detail.counts.skipped}</span>
+            </div>
+            <div
+              className="kpi"
+              {...testIdProps(TestIds.reportsRunKpiPassRate)}
+            >
               <span className="kpi-label">{t('reports.passRate')}</span>
               <span className="kpi-value">{detail.pass_rate.toFixed(1)}%</span>
+              <span
+                className="kpi-hint"
+                {...testIdProps(TestIds.reportsRunPassRateHint)}
+              >
+                {t('reports.passRateHint')}
+              </span>
             </div>
           </section>
         </section>

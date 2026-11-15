@@ -101,7 +101,11 @@ function CountsBar({
           <span className="progress-legend-swatch failed" aria-hidden />
           {t('status.failed')} {failed}
         </span>
-        <span className="progress-legend-item">
+        <span
+          className="progress-legend-item"
+          title={t('reports.otherHint')}
+          {...testIdProps(TestIds.reportsOtherLegend)}
+        >
           <span className="progress-legend-swatch skipped" aria-hidden />
           {t('reports.other')} {other}
         </span>
@@ -307,7 +311,11 @@ export function Reports({ projectId }: Props) {
                 >
                   <strong>{s.name}</strong>
                   <span className="muted">
-                    {pct(s.pass_rate)} · {s.counts.passed}P / {s.counts.failed}F
+                    {pct(s.pass_rate)} {t('reports.passRateShortHint')} ·{' '}
+                    {s.counts.passed}P / {s.counts.failed}F
+                    {s.counts.skipped > 0
+                      ? ` · ${s.counts.skipped} ${t('status.skipped')}`
+                      : ''}
                   </span>
                   <CountsBar
                     passed={s.counts.passed}

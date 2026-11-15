@@ -19,7 +19,7 @@
     {
       "name": "Automation & CI",
       "file": "automation-ci.json",
-      "count": 14
+      "count": 15
     },
     {
       "name": "Edge cases",
@@ -34,7 +34,7 @@
     {
       "name": "Imports & reports",
       "file": "imports-reports.json",
-      "count": 8
+      "count": 10
     },
     {
       "name": "LLM & chat",
@@ -54,7 +54,7 @@
     {
       "name": "Projects & cases",
       "file": "projects-cases.json",
-      "count": 19
+      "count": 20
     },
     {
       "name": "PWA & a11y",
@@ -79,7 +79,7 @@
     {
       "name": "Settings",
       "file": "settings.json",
-      "count": 15
+      "count": 16
     },
     {
       "name": "Shell",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 122,
+  "case_count": 127,
   "generated": "2026-11-15T08:55:00.000Z"
 }
