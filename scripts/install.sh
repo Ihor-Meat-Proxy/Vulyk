@@ -30,9 +30,25 @@ PREV_API_IMAGE=""
 PREV_WEB_IMAGE=""
 VERSION_BACKUPS_PY="${ROOT}/scripts/version_backups.py"
 
-log() { printf '==> %s\n' "$*"; }
+# Progress logs always go to stderr so command substitutions like
+# `path="$(run_full_backup ...)"` only capture the function's intentional stdout
+# (the backup bundle path). Mixing log+path on stdout previously broke upgrade
+# rollback registration and auto-rollback.
+log() { printf '==> %s\n' "$*" >&2; }
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 warn() { printf 'warning: %s\n' "$*" >&2; }
+
+# Capture a single-line path from a producer that may also write logs to stdout
+# (defense in depth if a future helper regresses). Prefer the last non-empty line.
+capture_stdout_path() {
+  local out last=""
+  out="$("$@")" || return $?
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ -n "${line}" ]] || continue
+    last="${line}"
+  done <<<"${out}"
+  printf '%s' "${last}"
+}
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
@@ -1220,6 +1236,12 @@ auto_rollback_upgrade() {
     print_restore_hint ""
     die "${reason} (no backup available for automatic rollback)"
   fi
+  # Refuse polluted $() captures (multi-line log+path) and missing dumps so we
+  # never pass garbage into restore_db_from_dump.
+  if [[ ! -d "${backup_path}" || ! -f "${backup_path}/db.sql.gz" ]]; then
+    print_restore_hint "${backup_path}"
+    die "${reason}; backup path is not a valid bundle directory (got: ${backup_path})"
+  fi
   if [[ -n "${PREV_API_IMAGE}" ]]; then
     export VULYK_API_IMAGE="${PREV_API_IMAGE}"
   fi
@@ -1356,7 +1378,18 @@ version_backups_cmd() {
 # + version retention snapshot, then prune.
 register_post_upgrade_version_backups() {
   local pre_bundle="$1" from_ver="$2" to_ver="$3"
-  [[ -n "${pre_bundle}" && -d "${pre_bundle}" ]] || return 0
+  if [[ -z "${pre_bundle}" ]]; then
+    warn "Skipping version-backup registration: empty backup path"
+    return 0
+  fi
+  if [[ ! -d "${pre_bundle}" ]]; then
+    warn "Skipping version-backup registration: not a directory: ${pre_bundle}"
+    return 0
+  fi
+  if [[ ! -f "${pre_bundle}/db.sql.gz" ]]; then
+    warn "Skipping version-backup registration: missing db.sql.gz in ${pre_bundle}"
+    return 0
+  fi
   mkdir -p "${VERSION_BACKUP_DIR}"
   local api_img web_img
   api_img="${PREV_API_IMAGE:-${VULYK_API_IMAGE:-}}"
@@ -1477,7 +1510,10 @@ raise SystemExit(1)
   log "Taking fresh backup of current state before rollback..."
   compose_cmd up -d db
   wait_for_db
-  fresh_backup="$(run_full_backup "${cur}-pre-rollback")"
+  fresh_backup="$(capture_stdout_path run_full_backup "${cur}-pre-rollback")"
+  if [[ -z "${fresh_backup}" || ! -d "${fresh_backup}" ]]; then
+    warn "pre-rollback backup path looks invalid: ${fresh_backup:-empty}"
+  fi
 
   if [[ -n "${api_img}" ]]; then
     export VULYK_API_IMAGE="${api_img}"
@@ -1655,7 +1691,11 @@ cmd_upgrade() {
   if [[ "${NO_BACKUP}" -eq 1 ]]; then
     warn "Skipping backup (--no-backup) - data loss risk if migrate/health fails"
   else
-    backup_file="$(run_full_backup "${ver}")"
+    backup_file="$(capture_stdout_path run_full_backup "${ver}")"
+    if [[ -z "${backup_file}" || ! -d "${backup_file}" || ! -f "${backup_file}/db.sql.gz" ]]; then
+      die "upgrade backup did not produce a valid bundle directory (got: ${backup_file:-empty})"
+    fi
+    log "Verified upgrade backup bundle at ${backup_file}"
   fi
 
   if [[ -n "${RELEASE_VERSION}" ]]; then
