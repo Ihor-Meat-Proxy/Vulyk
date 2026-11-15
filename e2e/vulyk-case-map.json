@@ -798,6 +798,27 @@
       "key": "VQA-364",
       "external_key": "e2e:ci-reporter-dx.spec.ts unmatched-key warning lists sample + count and warns once per key",
       "source": "existing"
+    },
+    {
+      "file": "case-list-density.spec.ts",
+      "title": "case list sticky header remains visible while scrolling virtual rows",
+      "key": "VQA-360",
+      "external_key": "e2e:case-list-density.spec.ts case list sticky header remains visible while scrolling virtual rows",
+      "source": "fragment-new"
+    },
+    {
+      "file": "case-list-density.spec.ts",
+      "title": "column visibility toggle does not refetch cases?limit=200",
+      "key": "VQA-361",
+      "external_key": "e2e:case-list-density.spec.ts column visibility toggle does not refetch cases?limit=200",
+      "source": "fragment-new"
+    },
+    {
+      "file": "case-list-density.spec.ts",
+      "title": "virtualized case list reveals a known case after scroll",
+      "key": "VQA-362",
+      "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
+      "source": "fragment-new"
     }
   ],
   "cases": [

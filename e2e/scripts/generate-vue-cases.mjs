@@ -35,6 +35,7 @@ const FOLDER_FOR_SPEC = {
   'theme-csp.spec.ts': 'Settings',
   'projects-cases.spec.ts': 'Projects & cases',
   'case-list-columns.spec.ts': 'Projects & cases',
+  'case-list-density.spec.ts': 'Projects & cases',
   'case-edit-keyboard.spec.ts': 'Projects & cases',
   'case-key-urls.spec.ts': 'Projects & cases',
   'case-export-pdf.spec.ts': 'Projects & cases',

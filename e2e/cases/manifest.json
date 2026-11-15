@@ -54,7 +54,7 @@
     {
       "name": "Projects & cases",
       "file": "projects-cases.json",
-      "count": 20
+      "count": 23
     },
     {
       "name": "PWA & a11y",
@@ -92,6 +92,6 @@
       "count": 1
     }
   ],
-  "case_count": 132,
-  "generated": "2026-11-15T15:52:17.000Z"
+  "case_count": 135,
+  "generated": "2026-11-15T17:20:00.000Z"
 }

@@ -1,0 +1,197 @@
+{
+  "feature": "case-list-density",
+  "suites": [
+    {
+      "name": {
+        "en": "Case list density",
+        "uk": "Щільність списку кейсів",
+        "fr": "Densité de la liste des cas",
+        "es": "Densidad de la lista de casos",
+        "de": "Falllisten-Dichte"
+      },
+      "children": [],
+      "cases": [
+        {
+          "key": "VQA-360",
+          "title": {
+            "en": "case list sticky header remains visible while scrolling virtual rows",
+            "uk": "case list sticky header remains visible while scrolling virtual rows",
+            "fr": "case list sticky header remains visible while scrolling virtual rows",
+            "es": "case list sticky header remains visible while scrolling virtual rows",
+            "de": "case list sticky header remains visible while scrolling virtual rows"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: case-list-density.spec.ts — sticky header stays pinned while scrolling the virtualized case list.",
+            "uk": "Playwright e2e coverage: case-list-density.spec.ts — sticky header stays pinned while scrolling the virtualized case list.",
+            "fr": "Playwright e2e coverage: case-list-density.spec.ts — sticky header stays pinned while scrolling the virtualized case list.",
+            "es": "Playwright e2e coverage: case-list-density.spec.ts — sticky header stays pinned while scrolling the virtualized case list.",
+            "de": "Playwright e2e coverage: case-list-density.spec.ts — sticky header stays pinned while scrolling the virtualized case list."
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "case-list-density"
+          ],
+          "external_key": "e2e:case-list-density.spec.ts case list sticky header remains visible while scrolling virtual rows",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\"",
+                "uk": "Run npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\"",
+                "fr": "Run npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\"",
+                "es": "Run npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\"",
+                "de": "Run npx playwright test case-list-density.spec.ts -g \"case list sticky header remains visible while scrolling virtual rows\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-361",
+          "title": {
+            "en": "column visibility toggle does not refetch cases?limit=200",
+            "uk": "column visibility toggle does not refetch cases?limit=200",
+            "fr": "column visibility toggle does not refetch cases?limit=200",
+            "es": "column visibility toggle does not refetch cases?limit=200",
+            "de": "column visibility toggle does not refetch cases?limit=200"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: case-list-density.spec.ts — toggling/reordering columns must not fire a new cases?limit=200 request.",
+            "uk": "Playwright e2e coverage: case-list-density.spec.ts — toggling/reordering columns must not fire a new cases?limit=200 request.",
+            "fr": "Playwright e2e coverage: case-list-density.spec.ts — toggling/reordering columns must not fire a new cases?limit=200 request.",
+            "es": "Playwright e2e coverage: case-list-density.spec.ts — toggling/reordering columns must not fire a new cases?limit=200 request.",
+            "de": "Playwright e2e coverage: case-list-density.spec.ts — toggling/reordering columns must not fire a new cases?limit=200 request."
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "case-list-density"
+          ],
+          "external_key": "e2e:case-list-density.spec.ts column visibility toggle does not refetch cases?limit=200",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\"",
+                "uk": "Run npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\"",
+                "fr": "Run npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\"",
+                "es": "Run npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\"",
+                "de": "Run npx playwright test case-list-density.spec.ts -g \"column visibility toggle does not refetch cases?limit=200\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        },
+        {
+          "key": "VQA-362",
+          "title": {
+            "en": "virtualized case list reveals a known case after scroll",
+            "uk": "virtualized case list reveals a known case after scroll",
+            "fr": "virtualized case list reveals a known case after scroll",
+            "es": "virtualized case list reveals a known case after scroll",
+            "de": "virtualized case list reveals a known case after scroll"
+          },
+          "description": {
+            "en": "Playwright e2e coverage: case-list-density.spec.ts — scrolling the virtual list brings a known lower row into view.",
+            "uk": "Playwright e2e coverage: case-list-density.spec.ts — scrolling the virtual list brings a known lower row into view.",
+            "fr": "Playwright e2e coverage: case-list-density.spec.ts — scrolling the virtual list brings a known lower row into view.",
+            "es": "Playwright e2e coverage: case-list-density.spec.ts — scrolling the virtual list brings a known lower row into view.",
+            "de": "Playwright e2e coverage: case-list-density.spec.ts — scrolling the virtual list brings a known lower row into view."
+          },
+          "precondition": {
+            "en": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "uk": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "fr": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "es": "API + UI running; seeded admin / fixtures as required by the spec.",
+            "de": "API + UI running; seeded admin / fixtures as required by the spec."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": [
+            "e2e",
+            "playwright",
+            "regression",
+            "type:functional",
+            "vulyk-qa",
+            "case-list-density"
+          ],
+          "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
+          "steps": [
+            {
+              "action": {
+                "en": "Run npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\"",
+                "uk": "Run npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\"",
+                "fr": "Run npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\"",
+                "es": "Run npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\"",
+                "de": "Run npx playwright test case-list-density.spec.ts -g \"virtualized case list reveals a known case after scroll\""
+              },
+              "expected_result": {
+                "en": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "uk": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "fr": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "es": "Test passes; Vulyk reporter posts result by case key when configured.",
+                "de": "Test passes; Vulyk reporter posts result by case key when configured."
+              },
+              "data": {
+                "en": "",
+                "uk": "",
+                "fr": "",
+                "es": "",
+                "de": ""
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

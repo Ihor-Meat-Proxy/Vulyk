@@ -96,6 +96,10 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Coverage uncovered empty | `reports-coverage-uncovered-empty` |
 4. Reference the id in seeded Vulyk QA steps when the case is UI-driven.
 
+## Recent additions (case list density)
+
+- Case list virtual scrollport: `case-list-virtual-scroll` (sticky header lives inside)
+
 ## Recent additions (F8–F12)
 
 - Case picker: `case-picker-chips`, `case-picker-folders`, `case-picker-list`

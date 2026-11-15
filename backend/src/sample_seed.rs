@@ -194,6 +194,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         "stale-run-auto-cancel",
         include_str!("../seed/vulyk-qa.d/stale-run-auto-cancel.json"),
     ),
+    (
+        "case-list-density",
+        include_str!("../seed/vulyk-qa.d/case-list-density.json"),
+    ),
 ];
 
 #[derive(Debug, Default, Deserialize, Serialize, Clone)]

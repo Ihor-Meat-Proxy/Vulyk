@@ -1541,6 +1541,45 @@
       "external_key": "e2e:ci-reporter-dx.spec.ts unmatched-key warning lists sample + count and warns once per key",
       "vqa_key": "VQA-364",
       "automation_link": "e2e/tests/ci-reporter-dx.spec.ts :: unmatched-key warning lists sample + count and warns once per key"
+    },
+    {
+      "id": "case-list-density-case-list-sticky-header-remains-visible-while-scrolling-virtual",
+      "preferred_key": "VUE-222",
+      "key": "VUE-222",
+      "case_id": null,
+      "file": "case-list-density.spec.ts",
+      "title": "case list sticky header remains visible while scrolling virtual rows",
+      "type": "positive",
+      "folder": "Projects & cases",
+      "external_key": "e2e:case-list-density.spec.ts case list sticky header remains visible while scrolling virtual rows",
+      "vqa_key": "VQA-360",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: case list sticky header remains visible while scrolling virtual rows"
+    },
+    {
+      "id": "case-list-density-column-visibility-toggle-does-not-refetch-cases-limit-200",
+      "preferred_key": "VUE-223",
+      "key": "VUE-223",
+      "case_id": null,
+      "file": "case-list-density.spec.ts",
+      "title": "column visibility toggle does not refetch cases?limit=200",
+      "type": "positive",
+      "folder": "Projects & cases",
+      "external_key": "e2e:case-list-density.spec.ts column visibility toggle does not refetch cases?limit=200",
+      "vqa_key": "VQA-361",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: column visibility toggle does not refetch cases?limit=200"
+    },
+    {
+      "id": "case-list-density-virtualized-case-list-reveals-a-known-case-after-scroll",
+      "preferred_key": "VUE-224",
+      "key": "VUE-224",
+      "case_id": null,
+      "file": "case-list-density.spec.ts",
+      "title": "virtualized case list reveals a known case after scroll",
+      "type": "edge",
+      "folder": "Projects & cases",
+      "external_key": "e2e:case-list-density.spec.ts virtualized case list reveals a known case after scroll",
+      "vqa_key": "VQA-362",
+      "automation_link": "e2e/tests/case-list-density.spec.ts :: virtualized case list reveals a known case after scroll"
     }
   ]
 }
