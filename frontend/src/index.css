@@ -812,8 +812,10 @@ input[type='radio'] {
 
 /* Primary CTA styling — skip linkish/chip/tiny controls (Generate folder
    filters were painted solid green with invisible-looking text — F8). */
-.stack-form button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost),
-.chat-compose button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost) {
+.stack-form
+  button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost),
+.chat-compose
+  button:not(.linkish):not(.chip):not(.tiny):not(.secondary):not(.ghost) {
   justify-self: start;
   border: 1px solid var(--accent);
   background: var(--accent);
