@@ -255,10 +255,11 @@ test('CI run detail shows progress and cases after results', {
   await expect(page.getByTestId(TestIds.runDetailProgress)).toContainText(
     /1\/1|Progress:\s*1\/1/i,
   )
+  // data-entity-key is on the row itself (listItemProps), not a descendant.
   await expect(
-    page
-      .getByTestId(TestIds.runDetailCaseRow)
-      .filter({ has: page.locator(`[data-entity-key="${caseKey}"]`) }),
+    page.locator(
+      `[data-testid="${TestIds.runDetailCaseRow}"][data-entity-key="${caseKey}"]`,
+    ),
   ).toBeVisible()
 })
 
