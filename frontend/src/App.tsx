@@ -71,34 +71,35 @@ export default function App() {
     return token ? { Authorization: `Bearer ${token}` } : {}
   }
 
+  // Auto-seed uses the active UI locale (user → localStorage → instance default → en).
   const refreshProjects = useCallback(async () => {
     let list = await api.listProjects()
     if (list.length === 0 && (!status?.auth_required || status.authenticated)) {
       const demo = await api.createProject({
-        name: 'Demo project',
-        description: 'Seeded by the Vulyk UI for local exploration.',
+        name: t('demo.projectName'),
+        description: t('demo.projectDescription'),
       })
       const suite = await fetch(`/api/v1/projects/${demo.id}/suites`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
-        body: JSON.stringify({ name: 'Smoke', sort_order: 0 }),
+        body: JSON.stringify({ name: t('demo.suiteName'), sort_order: 0 }),
       }).then((r) => r.json())
       await fetch(`/api/v1/projects/${demo.id}/cases`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
         credentials: 'include',
         body: JSON.stringify({
-          title: 'Health endpoint responds',
+          title: t('demo.caseTitle'),
           suite_id: suite.id,
-          description: 'Verify API liveness.',
+          description: t('demo.caseDescription'),
           priority: 'high',
           status: 'ready',
           tag_names: ['smoke'],
           steps: [
             {
-              action: 'GET /health',
-              expected_result: 'HTTP 200 with status ok',
+              action: t('demo.stepAction'),
+              expected_result: t('demo.stepExpected'),
             },
           ],
         }),
@@ -109,7 +110,7 @@ export default function App() {
     const stored = localStorage.getItem(PROJECT_KEY)
     const initial = list.find((p) => p.id === stored)?.id ?? list[0]?.id ?? null
     setProjectId(initial)
-  }, [status?.auth_required, status?.authenticated])
+  }, [status?.auth_required, status?.authenticated, t])
 
   useEffect(() => {
     if (authLoading || needsSetup || needsLogin || needsPasswordChange) return
@@ -192,7 +193,7 @@ export default function App() {
     <>
       {bootError && (
         <p className="error" style={{ margin: '0.75rem 1rem' }}>
-          API unavailable: {bootError}
+          {t('common.apiUnavailable', { error: bootError })}
         </p>
       )}
       <Routes>

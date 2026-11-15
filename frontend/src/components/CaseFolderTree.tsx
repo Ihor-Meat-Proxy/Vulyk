@@ -59,8 +59,12 @@ function buildTree(suites: Suite[]): FolderNode[] {
   return roots
 }
 
-function countTooltip(recursive: number, direct: number): string {
-  return `${recursive} (${direct} direct)`
+function countTooltip(
+  recursive: number,
+  direct: number,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  return t('cases.folderDirectCount', { recursive, direct })
 }
 
 export function CaseFolderTree({
@@ -324,7 +328,7 @@ export function CaseFolderTree({
             type="button"
             className="folder-tree-folder-btn"
             onClick={() => onSelectSuite(node.id)}
-            title={countTooltip(recursive, direct)}
+            title={countTooltip(recursive, direct, t)}
             {...testIdProps(TestIds.folderNodeButton)}
           >
             <span className="folder-icon" aria-hidden />
@@ -336,7 +340,7 @@ export function CaseFolderTree({
             </span>
             <span
               className="folder-tree-count"
-              title={countTooltip(recursive, direct)}
+              title={countTooltip(recursive, direct, t)}
               {...testIdProps(TestIds.folderNodeCount)}
             >
               {recursive}

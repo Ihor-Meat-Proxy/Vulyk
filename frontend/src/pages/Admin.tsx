@@ -683,17 +683,24 @@ function AutomationRepoPanel({
     has_token: boolean
   }) => {
     const indexed = repo.last_indexed_at
-      ? ` · last indexed ${formatTimestamp(repo.last_indexed_at)}`
+      ? ` · ${t('settings.automationLastIndexed', {
+          time: formatTimestamp(repo.last_indexed_at),
+        })}`
       : ''
     const trigger = repo.last_index_trigger
-      ? ` · via ${repo.last_index_trigger}`
+      ? ` · ${t('settings.automationTriggerLabel', {
+          trigger: repo.last_index_trigger,
+        })}`
       : ''
     return (
-      `${repo.index_status} · files ${repo.file_count} · chunks ${repo.chunk_count}` +
+      `${repo.index_status} · ${t('settings.automationFilesChunks', {
+        files: repo.file_count,
+        chunks: repo.chunk_count,
+      })}` +
       indexed +
       (repo.commit_sha ? ` · ${repo.commit_sha.slice(0, 8)}` : '') +
       trigger +
-      (repo.has_token ? ' · token set' : '')
+      (repo.has_token ? ` · ${t('settings.automationTokenSet')}` : '')
     )
   }
 
@@ -792,7 +799,10 @@ function AutomationRepoPanel({
       setInfo(
         res.error
           ? res.error
-          : `Indexed ${res.file_count} files / ${res.chunk_count} chunks`,
+          : t('settings.automationIndexed', {
+              files: res.file_count,
+              chunks: res.chunk_count,
+            }),
       )
       await load()
     } catch (err) {
@@ -818,7 +828,7 @@ function AutomationRepoPanel({
           >
             <option value="github">GitHub</option>
             <option value="gitlab">GitLab</option>
-            <option value="generic">Generic HTTPS Git</option>
+            <option value="generic">{t('admin.genericHttpsGit')}</option>
           </select>
         </label>
         <label className="field">
@@ -932,7 +942,7 @@ function IntegrationsPanel({
   return (
     <div className="panel admin-grid">
       <div>
-        <h3>Integrations</h3>
+        <h3>{t('admin.integrations')}</h3>
         <p className="muted">
           {t('admin.integrationsCiTokensHelp')}{' '}
           <Link
@@ -946,9 +956,9 @@ function IntegrationsPanel({
         <table className="table" {...testIdProps(TestIds.adminIntegrationList)}>
           <thead>
             <tr>
-              <th>Kind</th>
-              <th>Name</th>
-              <th>Enabled</th>
+              <th>{t('admin.integrationsKind')}</th>
+              <th>{t('admin.integrationsName')}</th>
+              <th>{t('admin.integrationsEnabled')}</th>
             </tr>
           </thead>
           <tbody>
@@ -963,13 +973,13 @@ function IntegrationsPanel({
               >
                 <td>{row.kind}</td>
                 <td>{row.name}</td>
-                <td>{row.enabled ? 'yes' : 'no'}</td>
+                <td>{row.enabled ? t('admin.yes') : t('admin.no')}</td>
               </tr>
             ))}
             {items.length === 0 && (
               <tr>
                 <td colSpan={3} className="muted">
-                  No integration settings yet
+                  {t('admin.integrationsEmpty')}
                 </td>
               </tr>
             )}
@@ -977,21 +987,25 @@ function IntegrationsPanel({
         </table>
       </div>
       <form className="stack-form" onSubmit={(e) => void onSubmit(e)}>
-        <h3>Add placeholder</h3>
+        <h3>{t('admin.integrationsAddPlaceholder')}</h3>
         <label className="field">
-          <span>Kind</span>
+          <span>{t('admin.integrationsKind')}</span>
           <select
             value={kind}
             onChange={(e) => setKind(e.target.value)}
             {...testIdProps(TestIds.adminIntegrationKindSelect)}
           >
-            <option value="openproject">openproject</option>
-            <option value="jira_cloud">jira_cloud</option>
-            <option value="jira_dc">jira_dc</option>
+            <option value="openproject">
+              {t('admin.integrationsKindOpenProject')}
+            </option>
+            <option value="jira_cloud">
+              {t('admin.integrationsKindJiraCloud')}
+            </option>
+            <option value="jira_dc">{t('admin.integrationsKindJiraDc')}</option>
           </select>
         </label>
         <label className="field">
-          <span>Name</span>
+          <span>{t('admin.integrationsName')}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -1004,7 +1018,7 @@ function IntegrationsPanel({
           type="submit"
           {...testIdProps(TestIds.adminIntegrationCreateButton)}
         >
-          Save
+          {t('common.save')}
         </button>
       </form>
     </div>
@@ -1026,7 +1040,7 @@ function LlmPanel({
 }) {
   const { t } = useI18n()
   const [provider, setProvider] = useState('mock')
-  const [name, setName] = useState('Default mock')
+  const [name, setName] = useState(() => t('admin.defaultMock'))
   const [model, setModel] = useState('mock-1')
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -1446,7 +1460,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
         credentials: 'include',
       })
       if (!res.ok) {
-        throw new Error(`download failed (${res.status})`)
+        throw new Error(t('admin.downloadFailed', { status: res.status }))
       }
       const blob = await res.blob()
       const objectUrl = URL.createObjectURL(blob)
@@ -1477,7 +1491,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     return (
       <div className="panel" {...testIdProps(TestIds.adminUpdatesPanel)}>
         <p className="muted" {...testIdProps(TestIds.adminLoading)}>
-          Loading…
+          {t('common.loading')}
         </p>
       </div>
     )
@@ -1652,7 +1666,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
             {...testIdProps(TestIds.adminUpdatesProgress)}
           />
           <pre {...testIdProps(TestIds.adminUpdatesJobLog)}>
-            {activeJob.log_text || '(no log yet)'}
+            {activeJob.log_text || t('admin.noLogYet')}
           </pre>
         </div>
       ) : null}
@@ -1800,7 +1814,7 @@ function SettingsPanel({
     return (
       <div className="panel">
         <p className="muted" {...testIdProps(TestIds.adminLoading)}>
-          Loading settings…
+          {t('admin.loadingSettings')}
         </p>
       </div>
     )
@@ -1898,7 +1912,7 @@ function SettingsPanel({
           </select>
         </label>
         <label className="field">
-          <span>Default project role</span>
+          <span>{t('admin.defaultProjectRole')}</span>
           <select
             value={defaultRole}
             onChange={(e) => setDefaultRole(e.target.value as ProjectRole)}

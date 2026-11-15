@@ -522,8 +522,8 @@ export function CaseList({
         priority: 'medium',
         steps: [
           {
-            action: 'Execute the scenario',
-            expected_result: 'Expected outcome observed',
+            action: t('cases.defaultStepAction'),
+            expected_result: t('cases.defaultStepExpected'),
           },
         ],
       })
@@ -768,11 +768,7 @@ export function CaseList({
   }
 
   if (!projectId) {
-    return (
-      <div className="empty">
-        Create a project via the API to get started, then refresh.
-      </div>
-    )
+    return <div className="empty">{t('cases.noProjectsHint')}</div>
   }
 
   return (
@@ -883,9 +879,9 @@ export function CaseList({
             {...testIdProps(TestIds.caseListStatusFilter)}
           >
             <option value="">{t('cases.allStatuses')}</option>
-            <option value="draft">draft</option>
-            <option value="ready">ready</option>
-            <option value="deprecated">deprecated</option>
+            <option value="draft">{t('status.draft')}</option>
+            <option value="ready">{t('status.ready')}</option>
+            <option value="deprecated">{t('status.deprecated')}</option>
           </select>
           <select
             className="filter-input"
@@ -914,8 +910,8 @@ export function CaseList({
                 })}
               >
                 <option value="">{f.name}</option>
-                <option value="true">yes</option>
-                <option value="false">no</option>
+                <option value="true">{t('common.yes')}</option>
+                <option value="false">{t('common.no')}</option>
               </select>
             ) : f.field_type === 'dropdown' && Array.isArray(f.options) ? (
               <select
@@ -1038,8 +1034,8 @@ export function CaseList({
                           onChange={(e) => setBulkFieldValue(e.target.value)}
                           {...testIdProps(TestIds.caseListBulkCustomFieldValue)}
                         >
-                          <option value="true">yes</option>
-                          <option value="false">no</option>
+                          <option value="true">{t('common.yes')}</option>
+                          <option value="false">{t('common.no')}</option>
                         </select>
                       ) : (
                         <input
@@ -1201,7 +1197,7 @@ export function CaseList({
                         type="checkbox"
                         checked={selected.has(c.id)}
                         onChange={() => toggle(c.id)}
-                        aria-label={`Select ${c.key}`}
+                        aria-label={t('cases.selectRow', { key: c.key })}
                         {...testIdProps(TestIds.caseRowCheckbox)}
                       />
                     ) : null}

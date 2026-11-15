@@ -124,14 +124,15 @@ type SettingsProps = {
 
 function ciTokenEnvBlock(
   secret: string,
+  t: (key: string, vars?: Record<string, string | number>) => string,
   opts: { baseUrl?: string; projectId?: string; caseKeyPrefix?: string } = {},
 ): string {
   const baseUrl = (opts.baseUrl || '').replace(/\/$/, '')
   const lines = [
-    `# Vulyk project CI token (shown once)`,
+    t('settings.ciTokenComment'),
     `VULYK_CI_TOKEN=${secret}`,
-    `# Alias accepted by the Playwright reporter:`,
-    `# VULYK_API_TOKEN=${secret}`,
+    t('settings.ciTokenAliasComment'),
+    t('settings.ciTokenAliasLine', { secret }),
   ]
   if (baseUrl) {
     lines.push(`VULYK_URL=${baseUrl}`)
@@ -685,7 +686,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
 
   const ciEnvBlockText = (secret: string) => {
     const selected = projects.find((p) => p.id === ciProjectId)
-    return ciTokenEnvBlock(secret, {
+    return ciTokenEnvBlock(secret, t, {
       baseUrl: typeof window !== 'undefined' ? window.location.origin : '',
       projectId: ciProjectId || undefined,
       caseKeyPrefix: selected?.case_key_prefix || selected?.key || undefined,
@@ -1057,7 +1058,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               >
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
-                <option value="generic">Generic HTTPS Git</option>
+                <option value="generic">{t('admin.genericHttpsGit')}</option>
               </select>
             </label>
             <label className="field">

@@ -498,7 +498,7 @@ export function CaseDetail({
         status,
         steps: stepsForApi(steps),
         tag_names: tagNames,
-        change_summary: 'edited in UI',
+        change_summary: t('cases.editedInUi'),
         expected_version: detail.case.version,
       })
       // Only persist values the editor touched / loaded into state. Sending every
@@ -1439,12 +1439,12 @@ export function CaseDetail({
                   }
                   {...testIdProps(TestIds.caseDetailResultsPrevButton)}
                 >
-                  Previous
+                  {t('common.previous')}
                 </button>
                 <span className="muted">
                   {resultsOffset + 1}–
-                  {Math.min(resultsOffset + resultsLimit, resultsPage.total)} of{' '}
-                  {resultsPage.total}
+                  {Math.min(resultsOffset + resultsLimit, resultsPage.total)}{' '}
+                  {t('common.of')} {resultsPage.total}
                 </span>
                 <button
                   type="button"
@@ -1456,7 +1456,7 @@ export function CaseDetail({
                   onClick={() => void loadResults(resultsOffset + resultsLimit)}
                   {...testIdProps(TestIds.caseDetailResultsNextButton)}
                 >
-                  Next
+                  {t('common.next')}
                 </button>
               </div>
             </>

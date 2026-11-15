@@ -102,7 +102,7 @@ function Donut({ counts }: { counts: Dashboard['status_counts'] }) {
           className="exec-donut-label"
           fill="var(--ink-muted)"
         >
-          total
+          {t('common.totalLower')}
         </text>
       </svg>
       <ul className="exec-donut-legend">
@@ -291,7 +291,7 @@ export function IterationDashboard({
                 value={cadence}
                 disabled={!canEdit}
                 onChange={(e) => setCadence(e.target.value)}
-                placeholder="daily / on-push / manual"
+                placeholder={t('executions.cadencePlaceholder')}
                 {...testIdProps(TestIds.iterationCadenceInput)}
               />
             </label>

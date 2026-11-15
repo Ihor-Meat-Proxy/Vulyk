@@ -366,9 +366,13 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
             onChange={(e) => setForm({ ...form, entity: e.target.value })}
             {...testIdProps(TestIds.adminCustomFieldsEntitySelect)}
           >
-            <option value="test_case">test_case</option>
-            <option value="requirement">requirement</option>
-            <option value="both">both</option>
+            <option value="test_case">
+              {t('admin.customFields.entityTestCase')}
+            </option>
+            <option value="requirement">
+              {t('admin.customFields.entityRequirement')}
+            </option>
+            <option value="both">{t('admin.customFields.entityBoth')}</option>
           </select>
         </label>
         {needsList && (

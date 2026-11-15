@@ -84,19 +84,21 @@ test('import TestLink, Xray, Squash TM samples', {
   if (idx >= 0) await select.selectOption({ index: idx })
 
   const nav = page.getByTestId(TestIds.primaryNav)
-  await nav.getByRole('link', { name: /Import|Імпорт/i }).click()
-  await expect(page.getByRole('heading', { name: 'Import cases' })).toBeVisible()
+  await nav.getByRole('link', { name: /Import|Імпорт|Importer|Importar/i }).click()
+  await expect(page.getByTestId(TestIds.importPage)).toBeVisible()
 
   async function importWith(
     importerLabel: string,
     format: string,
     content: string,
   ) {
-    await page.getByLabel('Importer').selectOption({ label: importerLabel })
-    await page.getByLabel('Format').selectOption(format)
-    await page.getByLabel('Source content').fill(content)
-    await page.getByRole('button', { name: 'Import', exact: true }).click()
-    await expect(page.getByText(/Created \d+ cases/i)).toBeVisible({
+    await page.getByTestId(TestIds.importImporterSelect).selectOption({
+      label: importerLabel,
+    })
+    await page.getByTestId(TestIds.importFormatSelect).selectOption(format)
+    await page.getByTestId(TestIds.importFileInput).fill(content)
+    await page.getByTestId(TestIds.importSubmitButton).click()
+    await expect(page.getByTestId(TestIds.importSuccess)).toBeVisible({
       timeout: 30_000,
     })
   }

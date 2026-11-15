@@ -266,7 +266,7 @@ export function RunDetail({ projectId }: Props) {
     setNotice(null)
     try {
       const updated = await api.abandonRun(projectId, runId, {
-        message: 'abandoned from UI',
+        message: t('runs.abandonedFromUi'),
       })
       setDetail((prev) => (prev ? { ...prev, run: updated } : prev))
       setNotice(t('runs.abandoned'))

@@ -82,7 +82,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             <span className="brand-mark" id={drawerTitleId}>
               {status?.instance_name || 'Vulyk'}
             </span>
-            <span className="brand-tag">Test management</span>
+            <span className="brand-tag">{t('layout.tag')}</span>
           </div>
           <button
             type="button"
@@ -215,11 +215,13 @@ export function Layout({ projects, project, onSelectProject }: Props) {
                 disabled={projects.length === 0}
                 {...testIdProps(TestIds.headerProjectSelect)}
               >
-                {projects.length === 0 && <option value="">No projects</option>}
+                {projects.length === 0 && (
+                  <option value="">{t('layout.noProjects')}</option>
+                )}
                 {projects.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.key} — {p.name}
-                    {p.is_sample ? ' (Sample)' : ''}
+                    {p.is_sample ? ` ${t('layout.sampleBadge')}` : ''}
                   </option>
                 ))}
               </select>

@@ -186,7 +186,7 @@ export function ExecutionPage({ projectId }: Props) {
     }
   }, [projectId, runId, isLive])
 
-  if (!projectId) return <p className="muted">Select a project first.</p>
+  if (!projectId) return <p className="muted">{t('cases.selectProject')}</p>
   if (loading) {
     return (
       <p className="muted" {...testIdProps(TestIds.executionsLoading)}>
@@ -201,7 +201,8 @@ export function ExecutionPage({ projectId }: Props) {
       </p>
     )
   }
-  if (!runDetail || !runId) return <p className="muted">Run not found.</p>
+  if (!runDetail || !runId)
+    return <p className="muted">{t('executions.runNotFound')}</p>
 
   const run = runDetail.run
   const backHref = run.iteration_id
@@ -305,13 +306,13 @@ export function ExecutionPage({ projectId }: Props) {
                       <div className="step-num">{idx + 1}</div>
                       <div>
                         <div className="muted" style={{ fontSize: '0.78rem' }}>
-                          Action
+                          {t('cases.stepAction')}
                         </div>
                         <div style={{ whiteSpace: 'pre-wrap' }}>{action}</div>
                       </div>
                       <div>
                         <div className="muted" style={{ fontSize: '0.78rem' }}>
-                          Expected
+                          {t('cases.stepExpected')}
                         </div>
                         <div style={{ whiteSpace: 'pre-wrap' }}>{expected}</div>
                         <div style={{ marginTop: '0.35rem' }}>
@@ -364,7 +365,8 @@ export function ExecutionPage({ projectId }: Props) {
                 <li key={a.id}>
                   {a.filename}{' '}
                   <span className="muted">
-                    ({a.content_type}, {a.size_bytes}b)
+                    ({a.content_type}, {a.size_bytes}
+                    {t('common.bytesSuffix')})
                   </span>
                 </li>
               ))}

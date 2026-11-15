@@ -10,6 +10,7 @@ import {
   syncOfflineQueue,
   type SyncState,
 } from '../pwa/offlineSync'
+import { useI18n } from '../i18n'
 import { TestIds, testIdProps } from '../testing'
 
 type BeforeInstallPromptEvent = Event & {
@@ -20,6 +21,7 @@ type BeforeInstallPromptEvent = Event & {
 const INSTALL_DISMISS_KEY = 'vulyk.pwa.installDismissed'
 
 export function PwaToasts() {
+  const { t } = useI18n()
   const [pwa, setPwa] = useState<PwaUpdateApi>(getPwaState)
   const [sync, setSync] = useState<SyncState>(getSyncState)
   const [installEvent, setInstallEvent] =
@@ -73,18 +75,18 @@ export function PwaToasts() {
           className="pwa-toast pwa-toast-warn"
           {...testIdProps(TestIds.pwaToastOffline)}
         >
-          <span>Offline — showing cached cases/runs when available.</span>
+          <span>{t('pwa.offline')}</span>
         </div>
       )}
       {showPending && (
         <div className="pwa-toast" {...testIdProps(TestIds.pwaToastPending)}>
           <span>
-            {sync.pending} result{sync.pending === 1 ? '' : 's'} queued
+            {t('pwa.queued', { count: sync.pending })}
             {sync.syncing
-              ? ' — syncing…'
+              ? ` ${t('pwa.syncing')}`
               : sync.online
                 ? ''
-                : ' (waiting for network)'}
+                : ` ${t('pwa.waitingNetwork')}`}
           </span>
           {sync.online && !sync.syncing && (
             <button
@@ -93,7 +95,7 @@ export function PwaToasts() {
               onClick={() => void syncOfflineQueue()}
               {...testIdProps(TestIds.pwaSyncNowButton)}
             >
-              Sync now
+              {t('pwa.syncNow')}
             </button>
           )}
         </div>
@@ -103,14 +105,14 @@ export function PwaToasts() {
           className="pwa-toast pwa-toast-accent"
           {...testIdProps(TestIds.pwaToastUpdate)}
         >
-          <span>A new Vulyk version is ready.</span>
+          <span>{t('pwa.updateReady')}</span>
           <button
             type="button"
             className="btn"
             onClick={() => pwa.update()}
             {...testIdProps(TestIds.pwaUpdateButton)}
           >
-            Update
+            {t('pwa.update')}
           </button>
         </div>
       )}
@@ -119,14 +121,14 @@ export function PwaToasts() {
           className="pwa-toast"
           {...testIdProps(TestIds.pwaToastOfflineReady)}
         >
-          <span>App shell cached — ready for offline use.</span>
+          <span>{t('pwa.offlineReady')}</span>
           <button
             type="button"
             className="btn secondary"
             onClick={() => setOfflineReadyAck(true)}
             {...testIdProps(TestIds.pwaDismissButton)}
           >
-            Dismiss
+            {t('pwa.dismiss')}
           </button>
         </div>
       )}
@@ -135,7 +137,7 @@ export function PwaToasts() {
           className="pwa-toast pwa-toast-accent"
           {...testIdProps(TestIds.pwaToastInstall)}
         >
-          <span>Install Vulyk for quick access on this device.</span>
+          <span>{t('pwa.installPrompt')}</span>
           <button
             type="button"
             className="btn"
@@ -149,7 +151,7 @@ export function PwaToasts() {
             }}
             {...testIdProps(TestIds.pwaInstallButton)}
           >
-            Install
+            {t('pwa.install')}
           </button>
           <button
             type="button"
@@ -164,7 +166,7 @@ export function PwaToasts() {
             }}
             {...testIdProps(TestIds.pwaInstallDismissButton)}
           >
-            Not now
+            {t('pwa.notNow')}
           </button>
         </div>
       )}
