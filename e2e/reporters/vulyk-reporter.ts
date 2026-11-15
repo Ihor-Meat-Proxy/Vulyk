@@ -13,7 +13,10 @@
  * Case keys are read from each test's Playwright annotation
  * `{ type: 'vulyk', description: 'VQA-123' }` (or tag `@VQA-123`).
  *
- * Lifecycle: open (unless VULYK_RUN_ID) → start (in_progress) → POST results → close.
+ * Lifecycle (live): onBegin open+start (in_progress) → onTestEnd streams
+ * batched results → onEnd flushes remaining and closes. Interrupted suites
+ * close with cancelled=true (run status `cancelled`). A hard-killed runner
+ * that never reaches onEnd leaves the run visible as `in_progress`.
  */
 import type {
   FullConfig,
@@ -23,14 +26,16 @@ import type {
   TestCase,
   TestResult,
 } from '@playwright/test/reporter'
-
-type PendingResult = {
-  case_key: string
-  status: string
-  message?: string
-  duration_ms?: number
-  external_id: string
-}
+import {
+  RESULT_BATCH_SIZE,
+  RESULT_FLUSH_MS,
+  closeCancelled,
+  dedupePendingResults,
+  mapTestStatus,
+  shouldFlushNow,
+  takeFlushBatch,
+  type PendingResult,
+} from './vulyk-reporter-helpers'
 
 function env(...names: string[]): string {
   for (const n of names) {
@@ -63,21 +68,6 @@ function caseKeyFromTest(test: TestCase): string | null {
   return keys[0] ?? null
 }
 
-function mapStatus(result: TestResult): string {
-  switch (result.status) {
-    case 'passed':
-      return 'passed'
-    case 'failed':
-    case 'timedOut':
-    case 'interrupted':
-      return 'failed'
-    case 'skipped':
-      return 'skipped'
-    default:
-      return 'failed'
-  }
-}
-
 export default class VulykReporter implements Reporter {
   private enabled = false
   private baseUrl = ''
@@ -88,12 +78,16 @@ export default class VulykReporter implements Reporter {
   private runId = ''
   private pending: PendingResult[] = []
   private warned = false
+  private pipelineUrl: string | undefined
+  private openReady: Promise<void> = Promise.resolve()
+  private flushChain: Promise<void> = Promise.resolve()
+  private flushTimer: ReturnType<typeof setTimeout> | null = null
 
   printsToStdio(): boolean {
     return false
   }
 
-  onBegin(_config: FullConfig, _suite: Suite): void {
+  async onBegin(_config: FullConfig, _suite: Suite): Promise<void> {
     this.baseUrl = env('VULYK_URL', 'VULYK_API_URL').replace(/\/$/, '')
     this.token = env('VULYK_CI_TOKEN', 'VULYK_API_TOKEN')
     this.projectRef = env('VULYK_PROJECT', 'VULYK_PROJECT_KEY', 'VULYK_PROJECT_ID')
@@ -103,6 +97,15 @@ export default class VulykReporter implements Reporter {
       // Intentional no-op when unset so CI / local runs stay unaffected.
       return
     }
+    this.pipelineUrl = process.env.GITHUB_SERVER_URL
+      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+      : undefined
+
+    this.openReady = this.openAndStart().catch((err) => {
+      console.error('[vulyk-reporter] failed to open/start run:', err)
+      this.enabled = false
+    })
+    await this.openReady
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
@@ -127,19 +130,82 @@ export default class VulykReporter implements Reporter {
         : result.errors.map((e) => e.message || String(e)).join('\n').slice(0, 4000)
     this.pending.push({
       case_key: key,
-      status: mapStatus(result),
+      status: mapTestStatus(result.status),
       message,
       duration_ms: Math.round(result.duration),
       external_id: `${rel}::${test.title}`,
     })
+    this.scheduleFlush()
   }
 
   async onEnd(result: FullResult): Promise<void> {
-    if (!this.enabled) return
+    if (!this.enabled && !this.runId) return
     try {
-      await this.publish(result)
+      await this.openReady
+      if (!this.enabled || !this.runId) return
+      this.clearFlushTimer()
+      await this.enqueueFlush(true)
+      await this.closeRun(result)
     } catch (err) {
       console.error('[vulyk-reporter] failed to publish results:', err)
+    }
+  }
+
+  private scheduleFlush(): void {
+    if (shouldFlushNow(this.pending.length, RESULT_BATCH_SIZE)) {
+      this.clearFlushTimer()
+      void this.enqueueFlush(false)
+      return
+    }
+    if (this.flushTimer) return
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null
+      void this.enqueueFlush(false)
+    }, RESULT_FLUSH_MS)
+  }
+
+  private clearFlushTimer(): void {
+    if (this.flushTimer) {
+      clearTimeout(this.flushTimer)
+      this.flushTimer = null
+    }
+  }
+
+  private enqueueFlush(drainAll: boolean): Promise<void> {
+    this.flushChain = this.flushChain
+      .then(() => this.flushPending(drainAll))
+      .catch((err) => {
+        console.error('[vulyk-reporter] flush failed:', err)
+      })
+    return this.flushChain
+  }
+
+  private async flushPending(drainAll: boolean): Promise<void> {
+    await this.openReady
+    if (!this.enabled || !this.runId || !this.projectId) return
+
+    while (this.pending.length > 0) {
+      const slice = drainAll
+        ? takeFlushBatch(this.pending, this.pending.length)
+        : takeFlushBatch(this.pending, RESULT_BATCH_SIZE)
+      if (slice.length === 0) break
+      const results = dedupePendingResults(slice)
+      const resp = await this.api<{
+        inserted: number
+        unmatched_case_keys: string[]
+      }>('POST', `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/results`, {
+        results,
+      })
+      if (resp.unmatched_case_keys?.length) {
+        console.warn(
+          '[vulyk-reporter] unmatched case keys:',
+          resp.unmatched_case_keys.join(', '),
+        )
+      }
+      console.log(
+        `[vulyk-reporter] posted ${results.length} results (inserted=${resp.inserted})`,
+      )
+      if (!drainAll) break
     }
   }
 
@@ -184,16 +250,22 @@ export default class VulykReporter implements Reporter {
     return hit.id
   }
 
-  private async publish(result: FullResult): Promise<void> {
+  private async openAndStart(): Promise<void> {
     this.projectId = await this.resolveProjectId()
-    const pipelineUrl = process.env.GITHUB_SERVER_URL
-      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-      : undefined
     const existingRunId = env('VULYK_RUN_ID')
 
     if (existingRunId) {
       this.runId = existingRunId
       console.log(`[vulyk-reporter] attaching to existing run ${this.runId}`)
+      await this.api(
+        'POST',
+        `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/start`,
+        {
+          pipeline_url: this.pipelineUrl,
+          branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
+          commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
+        },
+      )
     } else {
       const externalRef =
         env('VULYK_EXTERNAL_REF') ||
@@ -208,62 +280,31 @@ export default class VulykReporter implements Reporter {
         external_ref: externalRef,
         branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
         commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
-        pipeline_url: pipelineUrl,
-        start: false,
+        pipeline_url: this.pipelineUrl,
+        // Create already in_progress so the UI shows the run during the suite.
+        start: true,
       })
       this.runId = opened.run.id
-      console.log(`[vulyk-reporter] opened run ${this.runId} (${opened.run.status})`)
+      console.log(
+        `[vulyk-reporter] opened run ${this.runId} (${opened.run.status})`,
+      )
     }
-
-    await this.api(
-      'POST',
-      `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/start`,
-      {
-        pipeline_url: pipelineUrl,
-        branch: process.env.GITHUB_REF_NAME || process.env.CI_COMMIT_REF_NAME,
-        commit: process.env.GITHUB_SHA || process.env.CI_COMMIT_SHA,
-      },
-    )
     console.log(`[vulyk-reporter] run ${this.runId} → in_progress`)
+  }
 
-    // Dedupe by case_key (last result wins) for serial retries / shared keys.
-    const byKey = new Map<string, PendingResult>()
-    for (const row of this.pending) byKey.set(row.case_key, row)
-    const results = [...byKey.values()]
-
-    if (results.length > 0) {
-      // Chunk to keep payloads modest
-      const CHUNK = 200
-      for (let i = 0; i < results.length; i += CHUNK) {
-        const slice = results.slice(i, i + CHUNK)
-        const resp = await this.api<{
-          inserted: number
-          unmatched_case_keys: string[]
-        }>('POST', `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/results`, {
-          results: slice,
-        })
-        if (resp.unmatched_case_keys?.length) {
-          console.warn(
-            '[vulyk-reporter] unmatched case keys:',
-            resp.unmatched_case_keys.join(', '),
-          )
-        }
-        console.log(
-          `[vulyk-reporter] posted ${slice.length} results (inserted=${resp.inserted})`,
-        )
-      }
-    } else {
-      console.warn('[vulyk-reporter] no annotated results to post')
-    }
-
+  private async closeRun(result: FullResult): Promise<void> {
+    if (!this.runId || !this.projectId) return
+    const cancelled = closeCancelled(result.status)
     await this.api(
       'POST',
       `/api/v1/projects/${this.projectId}/ci/runs/${this.runId}/close`,
       {
-        cancelled: result.status === 'interrupted',
-        message: `playwright ${result.status}; ${results.length} result(s)`,
+        cancelled,
+        message: `playwright ${result.status}; streamed results`,
       },
     )
-    console.log(`[vulyk-reporter] closed run ${this.runId}`)
+    console.log(
+      `[vulyk-reporter] closed run ${this.runId}${cancelled ? ' (cancelled)' : ''}`,
+    )
   }
 }

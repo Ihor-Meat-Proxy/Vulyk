@@ -41,9 +41,18 @@ node e2e/scripts/sync-vulyk-case-links.mjs --annotate
 | `VULYK_PROJECT` | Project **key** (e.g. `VQA`) or UUID. Aliases: `VULYK_PROJECT_KEY`, `VULYK_PROJECT_ID` |
 | `VULYK_RUN_NAME` | Optional suite display name (default `Playwright e2e`) |
 
-Lifecycle against the CI ingest API: **open → start (in_progress) → POST results
-by `case_key` → close**. Unmatched keys are logged; they do not fail the
-Playwright process.
+Lifecycle against the CI ingest API (live, not end-buffered):
+
+1. **`onBegin`** — open with `start: true` (run is `in_progress` immediately;
+   or attach to `VULYK_RUN_ID` and call start).
+2. **`onTestEnd`** — buffer results and flush in small batches (or on a short
+   timer) so Executions shows progress during a long suite.
+3. **`onEnd`** — flush remaining results, then close. If Playwright reports
+   `interrupted`, close with `cancelled: true` (run status `cancelled`).
+
+A hard-killed runner that never reaches `onEnd` leaves the run visible as
+`in_progress`. Unmatched keys are logged; they do not fail the Playwright
+process.
 
 ## Run e2e against a local Vulyk and see real results
 

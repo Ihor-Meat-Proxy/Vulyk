@@ -204,12 +204,17 @@ async fn load_ci_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> App
 
 fn assert_ci_writable(run: &TestRun) -> AppResult<()> {
     let status = normalize_ci_status(&run.status);
-    if status == "closed" {
+    // `cancelled` is a terminal close outcome (distinct from passed-looking `closed`).
+    if status == "closed" || status == "cancelled" {
         return Err(AppError::Conflict(
             "run is closed; further results are rejected".into(),
         ));
     }
     Ok(())
+}
+
+fn is_ci_terminal(status: &str) -> bool {
+    matches!(normalize_ci_status(status), "closed" | "cancelled")
 }
 
 #[utoipa::path(
@@ -629,8 +634,8 @@ pub async fn close_ci_run(
     )
     .await?;
     let run = load_ci_run(&state.pool, project_id, run_id).await?;
-    // Closing an already-closed run is idempotent.
-    if normalize_ci_status(&run.status) == "closed" {
+    // Closing an already-terminal run is idempotent.
+    if is_ci_terminal(&run.status) {
         return Ok(Json(run));
     }
 
@@ -653,9 +658,17 @@ pub async fn close_ci_run(
         }
     }
 
+    // Prefer status=`cancelled` (not `closed` + meta only) so StatusBadge /
+    // Executions show Cancelled instead of the passed-looking Closed chip.
+    let next_status = if body.cancelled {
+        "cancelled"
+    } else {
+        "closed"
+    };
+
     let updated = sqlx::query_as::<_, TestRun>(&format!(
         r#"UPDATE test_runs SET
-             status = 'closed',
+             status = $3,
              finished_at = COALESCE(finished_at, NOW()),
              meta = $2,
              updated_at = NOW()
@@ -664,6 +677,7 @@ pub async fn close_ci_run(
     ))
     .bind(run_id)
     .bind(&meta)
+    .bind(next_status)
     .fetch_one(&state.pool)
     .await?;
     let _ = crate::services::campaigns::refresh_run_counters(&state.pool, run_id).await;

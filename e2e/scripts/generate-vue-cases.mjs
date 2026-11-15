@@ -45,6 +45,7 @@ const FOLDER_FOR_SPEC = {
   'generate-automation.spec.ts': 'Automation & CI',
   'automation-repos-ci.settings.spec.ts': 'Automation & CI',
   'multi-repo-ci-ingest.spec.ts': 'Automation & CI',
+  'ci-reporter-live-run.spec.ts': 'Automation & CI',
   'integrations-llm.spec.ts': 'LLM & chat',
   'llm-chat.spec.ts': 'LLM & chat',
   'chat-propose.spec.ts': 'LLM & chat',
