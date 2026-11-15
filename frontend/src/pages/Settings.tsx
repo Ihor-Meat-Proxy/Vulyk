@@ -1379,7 +1379,8 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               <pre
                 className="token-env-block"
                 tabIndex={0}
-                role="region"
+                role="textbox"
+                aria-readonly="true"
                 aria-label={t('a11y.ciTokenEnvBlock')}
                 {...testIdProps(TestIds.settingsCiTokenEnvBlock)}
               >
