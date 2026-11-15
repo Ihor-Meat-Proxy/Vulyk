@@ -15,7 +15,7 @@ jobs:
     name: Version alignment
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: check-version.sh
         run: |
           chmod +x scripts/check-version.sh
@@ -39,7 +39,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -80,7 +80,7 @@ jobs:
     env:
       DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: OpenAPI inventory, router parity, and endpoint coverage
@@ -89,7 +89,7 @@ jobs:
           ./scripts/check-api-coverage.sh
       - name: Upload API coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: api-coverage-report
           path: |
@@ -101,7 +101,7 @@ jobs:
     name: Migration integrity
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Check immutable migrations + unique versions
@@ -140,7 +140,7 @@ jobs:
       BIND_ADDR: 127.0.0.1:8080
       PERF_CASES: "200"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
@@ -169,8 +169,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -186,7 +186,7 @@ jobs:
     name: Docker build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build API image
         run: docker build -f backend/Dockerfile -t vulyk-api:ci .
       - name: Build web image
@@ -214,7 +214,7 @@ jobs:
       VULYK_API_URL: http://127.0.0.1:8080
       BIND_ADDR: 127.0.0.1:8080
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build API and CLI
@@ -310,7 +310,7 @@ jobs:
     name: Install script check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Install shellcheck
@@ -355,11 +355,11 @@ jobs:
     name: Install script check (macOS)
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: check under UTF-8 locale (system bash 3.2)
@@ -390,8 +390,8 @@ jobs:
     name: Helm chart template
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: azure/setup-helm@v4
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
         with:
           version: v3.16.2
       - name: Render chart
@@ -436,10 +436,10 @@ jobs:
       # Lab-only: allow API to fetch mock OIDC JWKS from http://127.0.0.1:9090
       VULYK_EGRESS_ALLOW_PRIVATE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -497,7 +497,7 @@ jobs:
         run: npx playwright test
       - name: Upload Playwright report
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: e2e/playwright-report
@@ -518,8 +518,8 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -531,7 +531,7 @@ jobs:
           npm run build
       - name: Install Chrome for Lighthouse
         id: chrome
-        uses: browser-actions/setup-chrome@v1
+        uses: browser-actions/setup-chrome@v2
         with:
           chrome-version: stable
       - name: Start preview
@@ -570,7 +570,7 @@ jobs:
           fi
       - name: Upload Lighthouse report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lighthouse-report
           path: frontend/lighthouse-report.json
