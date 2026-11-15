@@ -252,8 +252,7 @@ export function CasePicker({ projectId, selected, onChange }: Props) {
                     onChange={() => toggle(c)}
                     {...listChildProps(TestIds.casePickerItem, 'checkbox')}
                   />
-                  <span className="badge">{c.key}</span>{' '}
-                  <span>{c.title}</span>
+                  <span className="badge">{c.key}</span> <span>{c.title}</span>
                 </label>
               </li>
             ))}

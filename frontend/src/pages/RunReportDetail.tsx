@@ -372,10 +372,7 @@ export function RunReportDetail({ projectId }: Props) {
               <span className="kpi-label">{t('status.failed')}</span>
               <span className="kpi-value">{detail.counts.failed}</span>
             </div>
-            <div
-              className="kpi"
-              {...testIdProps(TestIds.reportsRunKpiSkipped)}
-            >
+            <div className="kpi" {...testIdProps(TestIds.reportsRunKpiSkipped)}>
               <span className="kpi-label">{t('status.skipped')}</span>
               <span className="kpi-value">{detail.counts.skipped}</span>
             </div>
