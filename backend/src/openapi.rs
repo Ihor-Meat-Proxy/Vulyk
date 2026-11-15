@@ -730,7 +730,10 @@ mod tests {
             .as_ref()
             .into_iter()
             .flatten()
-            .map(|p| p.name.as_str())
+            .filter_map(|p| match p {
+                utoipa::openapi::RefOr::T(param) => Some(param.name.as_str()),
+                utoipa::openapi::RefOr::Ref(_) => None,
+            })
             .collect();
         assert!(
             names.contains(&"limit") && names.contains(&"offset"),
