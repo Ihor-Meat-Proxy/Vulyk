@@ -152,13 +152,13 @@ def check_playwright_e2e_gaps() -> list[str]:
             f"{PE_PATH}: VQA key gaps ({len(gaps)} range(s)): {', '.join(gaps)}. "
             "Do not skip numbers when appending; claim the next free VQA after "
             "max(playwright-e2e) (or fill an existing hole). "
-            "NEVER run sync-vulyk-case-links.mjs on a feature branch — it can "
+            "NEVER run sync-vulyk-case-links.mjs on a feature branch - it can "
             "renumber. Append keys manually; prefer feature fragments with keys "
             "omitted for non-e2e sample cases."
         )
     else:
         print(
-            f"OK: {PE_PATH.name} — {len(nums_sorted)} contiguous VQA keys "
+            f"OK: {PE_PATH.name} - {len(nums_sorted)} contiguous VQA keys "
             f"(VQA-{nums_sorted[0]:03d}..VQA-{nums_sorted[-1]:03d})"
         )
     return errors
