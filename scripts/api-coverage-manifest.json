@@ -22,6 +22,15 @@
     "GET /api/v1/setup/status": {
       "justification": "First-run setup status must be available before an administrator exists."
     },
+    "GET /api/docs": {
+      "justification": "Self-hosted OpenAPI UI must be reachable without auth (same as historical Scalar route)."
+    },
+    "GET /api/docs/assets/scalar.js": {
+      "justification": "Vendored Scalar JS for /api/docs; public static asset, no CDN."
+    },
+    "GET /api/openapi.json": {
+      "justification": "Machine-readable OpenAPI document for tools/clients; intentionally public."
+    },
     "GET /health": {
       "justification": "Liveness probe is intentionally public."
     },

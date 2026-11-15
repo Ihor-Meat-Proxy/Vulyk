@@ -20,12 +20,20 @@ const SCALAR_JS: &[u8] = include_bytes!("../../assets/scalar/standalone.js");
 pub fn router() -> Router<crate::routes::AppState> {
     Router::new()
         .route("/api/docs", get(docs_html))
-        .route("/api/docs/", get(docs_html))
         .route("/api/docs/assets/scalar.js", get(scalar_js))
         .route("/api/openapi.json", get(openapi_json))
 }
 
-async fn docs_html() -> Response {
+#[utoipa::path(
+    get,
+    path = "/api/docs",
+    tag = "system",
+    responses(
+        (status = 200, description = "Self-hosted Scalar OpenAPI UI (HTML)"),
+        (status = 500, description = "Failed to render OpenAPI document")
+    )
+)]
+pub async fn docs_html() -> Response {
     let spec = match serde_json::to_string(&ApiDoc::openapi()) {
         Ok(s) => s,
         Err(e) => {
@@ -43,7 +51,13 @@ async fn docs_html() -> Response {
     Html(html).into_response()
 }
 
-async fn scalar_js() -> Response {
+#[utoipa::path(
+    get,
+    path = "/api/docs/assets/scalar.js",
+    tag = "system",
+    responses((status = 200, description = "Vendored Scalar API Reference standalone bundle"))
+)]
+pub async fn scalar_js() -> Response {
     let mut headers = HeaderMap::new();
     headers.insert(
         header::CONTENT_TYPE,
@@ -56,7 +70,13 @@ async fn scalar_js() -> Response {
     (headers, SCALAR_JS).into_response()
 }
 
-async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
+#[utoipa::path(
+    get,
+    path = "/api/openapi.json",
+    tag = "system",
+    responses((status = 200, description = "OpenAPI 3 document (JSON)"))
+)]
+pub async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
     Json(ApiDoc::openapi())
 }
 
@@ -77,6 +97,10 @@ mod tests {
         assert!(
             !DOCS_HTML_TEMPLATE.contains("https://"),
             "docs HTML must not load remote assets"
+        );
+        assert!(
+            DOCS_HTML_TEMPLATE.contains("withDefaultFonts"),
+            "docs must disable Scalar CDN fonts"
         );
     }
 
