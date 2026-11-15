@@ -11,7 +11,9 @@ describe('i18n locale parity', () => {
   })
 
   it('identical-to-English allowlist only references known keys', () => {
-    const unknown = [...IDENTICAL_TO_EN_ALLOWLIST].filter((k) => !enKeys.includes(k))
+    const unknown = [...IDENTICAL_TO_EN_ALLOWLIST].filter(
+      (k) => !enKeys.includes(k),
+    )
     expect(unknown).toEqual([])
   })
 
