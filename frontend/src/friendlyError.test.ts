@@ -21,7 +21,10 @@ const t = (key: string) => en[key] ?? key
 describe('friendlyErrorMessage', () => {
   it('maps stable API codes to translated keys', () => {
     expect(
-      friendlyErrorMessage(new ApiError('bad request: x', 400, 'bad_request'), t),
+      friendlyErrorMessage(
+        new ApiError('bad request: x', 400, 'bad_request'),
+        t,
+      ),
     ).toBe('bad-request')
     expect(
       friendlyErrorMessage(new ApiError('conflict: y', 409, 'conflict'), t),
@@ -48,7 +51,11 @@ describe('friendlyErrorMessage', () => {
 
   it('never returns raw English API messages', () => {
     const msg = friendlyErrorMessage(
-      new ApiError('bad request: preferred key already exists', 400, 'bad_request'),
+      new ApiError(
+        'bad request: preferred key already exists',
+        400,
+        'bad_request',
+      ),
       t,
     )
     expect(msg).toBe('bad-request')

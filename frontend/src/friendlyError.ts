@@ -41,9 +41,7 @@ export function friendlyErrorMessage(
       return t('errors.conflict')
     }
     if (code === 'bad_request' || err.status === 400) {
-      return kind === 'login'
-        ? t('login.genericError')
-        : t('errors.badRequest')
+      return kind === 'login' ? t('login.genericError') : t('errors.badRequest')
     }
     if (code === 'internal' || err.status >= 500) {
       return t('common.unexpectedError')
