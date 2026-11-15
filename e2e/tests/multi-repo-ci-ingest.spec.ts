@@ -255,11 +255,14 @@ test('CI run detail shows progress and cases after results', {
   await expect(page.getByTestId(TestIds.runDetailProgress)).toContainText(
     /1\/1|Progress:\s*1\/1/i,
   )
-  // data-entity-key is on the row itself (listItemProps), not a descendant.
+  // data-entity-key is on the row itself; scope under runDetailCases so the
+  // duplicate desktop <tr> with the same testid does not trip strict mode.
   await expect(
-    page.locator(
-      `[data-testid="${TestIds.runDetailCaseRow}"][data-entity-key="${caseKey}"]`,
-    ),
+    page
+      .getByTestId(TestIds.runDetailCases)
+      .locator(
+        `[data-testid="${TestIds.runDetailCaseRow}"][data-entity-key="${caseKey}"]`,
+      ),
   ).toBeVisible()
 })
 
