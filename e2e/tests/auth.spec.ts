@@ -45,10 +45,10 @@ test('logout returns to login panel', {
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await logout(page)
-  await expect(page.getByLabel(/^Email$/i)).toHaveValue(/.*/)
+  await expect(page.getByTestId(TestIds.loginEmailInput)).toHaveValue(/.*/)
   // Can sign back in
-  await page.getByLabel(/^Email$/i).fill(ADMIN_EMAIL)
-  await page.getByLabel(/Password|Пароль/i).fill(ADMIN_PASSWORD)
-  await page.locator('.login-panel button[type="submit"]').click()
+  await page.getByTestId(TestIds.loginEmailInput).fill(ADMIN_EMAIL)
+  await page.getByTestId(TestIds.loginPasswordInput).fill(ADMIN_PASSWORD)
+  await page.getByTestId(TestIds.loginSubmitButton).click()
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 })

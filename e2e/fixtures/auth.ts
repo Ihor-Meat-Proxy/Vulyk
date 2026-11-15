@@ -88,12 +88,14 @@ export async function loginAs(
 
   const panel = page.locator('.login-panel')
   await expect(panel).toBeVisible({ timeout: 30_000 })
-  const submit = panel.locator('button[type="submit"]')
-  if ((await submit.textContent())?.match(/Create admin|Створити/i)) {
-    await page.getByLabel(/Display name|Ім'я|Імʼя/i).fill('E2E Admin')
+  const submit = panel.getByTestId(TestIds.loginSubmitButton)
+  // Prefer test ids — login labels are localized (uk/fr/es/de no longer leave
+  // English "Email" as a leftover string).
+  if (await panel.getByTestId(TestIds.loginDisplayNameInput).isVisible().catch(() => false)) {
+    await panel.getByTestId(TestIds.loginDisplayNameInput).fill('E2E Admin')
   }
-  await page.getByLabel(/^Email$/i).fill(email)
-  await page.getByLabel(/Password|Пароль/i).fill(password)
+  await panel.getByTestId(TestIds.loginEmailInput).fill(email)
+  await panel.getByTestId(TestIds.loginPasswordInput).fill(password)
   await submit.click()
   await expect(page.locator('.app-shell')).toBeVisible({ timeout: 60_000 })
 }
