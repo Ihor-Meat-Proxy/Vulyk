@@ -288,6 +288,8 @@ export const TestIds = {
   runsError: 'runs-error',
   runRow: 'run-row',
   runRowName: 'run-row-name',
+  /** List-row child (`listChildProps(runRow, 'link')`) — click this to open the run. */
+  runRowLink: 'run-row-link',
   runRowStatus: 'run-row-status',
   runDetailPanel: 'run-detail-panel',
   runDetailBackLink: 'run-detail-back-link',

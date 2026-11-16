@@ -207,13 +207,9 @@ async fn resolve_by_uuid_display_id_and_slug() {
 
     // Resolve UUID via the library (avoid CodeQL cleartext-HTTP false positive on
     // loopback test traffic). HTTP paths use display_id / slug only.
-    let by_uuid = vulyk_api::services::display_ids::resolve_run_id(
-        &pool,
-        Some(project_uuid),
-        uuid,
-    )
-    .await
-    .unwrap();
+    let by_uuid = vulyk_api::services::display_ids::resolve_run_id(&pool, Some(project_uuid), uuid)
+        .await
+        .unwrap();
     assert_eq!(by_uuid.to_string(), uuid);
 
     for key in [display_id, slug] {
