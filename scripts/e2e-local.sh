@@ -110,17 +110,27 @@ ensure_env() {
   mkdir -p "$ARTDIR/html-report" "$ARTDIR/test-results" "$ARTDIR/traces"
 }
 
-# Some Cloud / nested-Docker hosts drop bridge forwards unless DOCKER-USER allows them.
+# Some Cloud / nested-Docker hosts drop bridge forwards unless DOCKER-USER allows
+# them. When iptables-nft and iptables-legacy both exist, Docker may write nft
+# rules while the kernel still enforces a legacy FORWARD DROP — fix both.
 ensure_docker_forward() {
-  if command -v iptables >/dev/null 2>&1; then
-    if ! iptables -C DOCKER-USER -j ACCEPT 2>/dev/null; then
-      if iptables -I DOCKER-USER -j ACCEPT 2>/dev/null; then
-        echo "Inserted iptables DOCKER-USER ACCEPT (bridge forward)"
-      elif command -v sudo >/dev/null 2>&1 && sudo iptables -I DOCKER-USER -j ACCEPT 2>/dev/null; then
-        echo "Inserted iptables DOCKER-USER ACCEPT via sudo (bridge forward)"
+  local ipt
+  for ipt in iptables iptables-nft iptables-legacy; do
+    command -v "$ipt" >/dev/null 2>&1 || continue
+    if ! "$ipt" -C DOCKER-USER -j ACCEPT 2>/dev/null; then
+      if "$ipt" -I DOCKER-USER -j ACCEPT 2>/dev/null; then
+        echo "Inserted $ipt DOCKER-USER ACCEPT (bridge forward)"
+      elif command -v sudo >/dev/null 2>&1 && sudo "$ipt" -I DOCKER-USER -j ACCEPT 2>/dev/null; then
+        echo "Inserted $ipt DOCKER-USER ACCEPT via sudo (bridge forward)"
       fi
     fi
-  fi
+    # Accept forwarded traffic even when the table policy defaults to DROP.
+    if "$ipt" -P FORWARD ACCEPT 2>/dev/null; then
+      :
+    elif command -v sudo >/dev/null 2>&1; then
+      sudo "$ipt" -P FORWARD ACCEPT 2>/dev/null || true
+    fi
+  done
 }
 
 compose_up() {
