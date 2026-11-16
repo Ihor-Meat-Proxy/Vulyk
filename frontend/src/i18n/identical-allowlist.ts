@@ -104,6 +104,7 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'import.format',
   'import.importer',
   'login.email',
+  'login.emailPlaceholder',
   'nav.admin',
   'nav.chat',
   'nav.ci',

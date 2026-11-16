@@ -45,7 +45,10 @@ test('logout returns to login panel', {
 }, async ({ page }) => {
   await loginAsAdmin(page)
   await logout(page)
-  await expect(page.getByTestId(TestIds.loginEmailInput)).toHaveValue(/.*/)
+  // Successful login remembers the email in localStorage (vulyk.lastLoginEmail).
+  await expect(page.getByTestId(TestIds.loginEmailInput)).toHaveValue(
+    ADMIN_EMAIL,
+  )
   // Can sign back in
   await page.getByTestId(TestIds.loginEmailInput).fill(ADMIN_EMAIL)
   await page.getByTestId(TestIds.loginPasswordInput).fill(ADMIN_PASSWORD)
