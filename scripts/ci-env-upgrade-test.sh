@@ -18,7 +18,9 @@ need_cmd git
 PREV_TAG="${VULYK_PREV_RELEASE_TAG:-}"
 if [[ -z "${PREV_TAG}" ]]; then
   # Default: last published release train tag present in the clone.
-  if git rev-parse -q --verify refs/tags/v0.3.0 >/dev/null; then
+  if git rev-parse -q --verify refs/tags/v0.4.0 >/dev/null; then
+    PREV_TAG="v0.4.0"
+  elif git rev-parse -q --verify refs/tags/v0.3.0 >/dev/null; then
     PREV_TAG="v0.3.0"
   elif git rev-parse -q --verify refs/tags/v0.2.0 >/dev/null; then
     PREV_TAG="v0.2.0"

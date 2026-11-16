@@ -155,24 +155,26 @@ pub async fn persist_results(
         if let Err(e) = crate::services::campaigns::refresh_run_counters(pool, run_id).await {
             tracing::warn!(error = %e, %run_id, "refresh_run_counters after ingest failed");
         }
-        if let Some(iteration_id) = sqlx::query_scalar::<_, Option<Uuid>>(
-            "SELECT iteration_id FROM test_runs WHERE id = $1",
-        )
-        .bind(run_id)
-        .fetch_optional(pool)
-        .await?
-        .flatten()
+    }
+
+    // Always recompute iteration status (including zero-match / empty ingest)
+    // so find-or-create no longer leaves a stuck Running shell.
+    if let Some(iteration_id) =
+        sqlx::query_scalar::<_, Option<Uuid>>("SELECT iteration_id FROM test_runs WHERE id = $1")
+            .bind(run_id)
+            .fetch_optional(pool)
+            .await?
+            .flatten()
+    {
+        if let Err(e) =
+            crate::services::campaigns::sync_iteration_item_statuses(pool, iteration_id).await
         {
-            if let Err(e) =
-                crate::services::campaigns::sync_iteration_item_statuses(pool, iteration_id).await
-            {
-                tracing::warn!(
-                    error = %e,
-                    %run_id,
-                    %iteration_id,
-                    "sync_iteration_item_statuses after ingest failed"
-                );
-            }
+            tracing::warn!(
+                error = %e,
+                %run_id,
+                %iteration_id,
+                "sync_iteration_item_statuses after ingest failed"
+            );
         }
     }
 
