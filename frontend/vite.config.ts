@@ -12,22 +12,23 @@ const pkgVersion = (
   }
 ).version
 
-const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512] as const
+const iconSizes = [72, 96, 128, 144, 152, 180, 192, 384, 512] as const
+const maskableSizes = [72, 96, 128, 144, 152, 180, 192, 384, 512] as const
 
-const icons = iconSizes.flatMap((size) => [
-  {
+const icons = [
+  ...iconSizes.map((size) => ({
     src: `/icons/icon-${size}.png`,
     sizes: `${size}x${size}`,
     type: 'image/png',
     purpose: 'any' as const,
-  },
-  {
+  })),
+  ...maskableSizes.map((size) => ({
     src: `/icons/icon-maskable-${size}.png`,
     sizes: `${size}x${size}`,
     type: 'image/png',
     purpose: 'maskable' as const,
-  },
-])
+  })),
+]
 
 export default defineConfig({
   define: {
@@ -40,7 +41,10 @@ export default defineConfig({
       includeAssets: [
         'favicon.svg',
         'offline.html',
+        'brand/vulyk-mark.svg',
+        'brand/vulyk-logo.svg',
         'icons/bee.svg',
+        'icons/mark.svg',
         'icons/*.png',
       ],
       manifest: {
@@ -60,7 +64,12 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api/, /^\/health/, /^\/ready/, /^\/offline\.html$/],
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /^\/health/,
+          /^\/ready/,
+          /^\/offline\.html$/,
+        ],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest}'],
         additionalManifestEntries: [{ url: '/offline.html', revision: null }],
         runtimeCaching: [

@@ -1,5 +1,9 @@
 # Vulyk
 
+<p align="left">
+  <img src="docs/assets/vulyk-logo.svg" alt="Vulyk" height="48" />
+</p>
+
 **Self-hosted test management that stays under your control.**
 
 *Vulyk* (вулик) is Ukrainian for *beehive*.

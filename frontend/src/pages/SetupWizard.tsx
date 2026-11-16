@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api, type RegistrationMode } from '../api'
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
+import { VulykLogo } from '../components/VulykLogo'
 import { LOCALES, normalizeLocale, useI18n, type Locale } from '../i18n'
 import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
@@ -65,7 +66,7 @@ export function SetupWizard() {
       <div className="login-shell">
         <div className="login-panel" {...testIdProps(TestIds.setupSuccess)}>
           <div className="brand">
-            <span className="brand-mark">Vulyk</span>
+            <VulykLogo />
             <span className="brand-tag">{t('setup.title')}</span>
           </div>
           <p>{t('setup.success')}</p>
@@ -82,7 +83,7 @@ export function SetupWizard() {
         {...testIdProps(TestIds.setupPanel)}
       >
         <div className="brand">
-          <span className="brand-mark">Vulyk</span>
+          <VulykLogo />
           <span className="brand-tag">{t('setup.title')}</span>
         </div>
         <p className="muted">{t('setup.subtitle')}</p>

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
+import { VulykLogo } from '../components/VulykLogo'
 import { useI18n } from '../i18n'
 import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { TestIds, testIdProps } from '../testing'
@@ -51,7 +52,7 @@ export function ChangePassword() {
         {...testIdProps(TestIds.changePasswordPanel)}
       >
         <div className="brand">
-          <span className="brand-mark">Vulyk</span>
+          <VulykLogo />
           <span className="brand-tag">{t('password.title')}</span>
         </div>
         <p className="muted" {...testIdProps(TestIds.changePasswordSubtitle)}>

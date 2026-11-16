@@ -1,5 +1,9 @@
 # Vulyk documentation
 
+<p align="left">
+  <img src="assets/vulyk-mark.svg" alt="Vulyk" height="40" />
+</p>
+
 Index of guides and references. Prefer these over outdated workstream notes.
 
 ## Start here

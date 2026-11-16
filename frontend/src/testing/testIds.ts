@@ -13,6 +13,9 @@ export const TestIds = {
   // —— App shell / header / nav ——
   appShell: 'app-shell',
   appVersion: 'app-version',
+  brandLogo: 'brand-logo',
+  brandLogoLink: 'brand-logo-link',
+  headerBrandLogo: 'header-brand-logo',
   headerMenuToggle: 'header-menu-toggle',
   headerProjectSelect: 'header-project-select',
   headerLanguageMenu: 'header-language-menu',

@@ -11,6 +11,7 @@ import { LanguageMenu } from './LanguageMenu'
 import { PwaToasts } from './PwaToasts'
 import { SampleBadge } from './SampleBadge'
 import { UserMenu } from './UserMenu'
+import { VulykLogo } from './VulykLogo'
 
 type Props = {
   projects: Project[]
@@ -78,10 +79,8 @@ export function Layout({ projects, project, onSelectProject }: Props) {
         {...testIdProps(TestIds.navDrawer)}
       >
         <div className="brand-row">
-          <div className="brand">
-            <span className="brand-mark" id={drawerTitleId}>
-              {status?.instance_name || 'Vulyk'}
-            </span>
+          <div className="brand" id={drawerTitleId}>
+            <VulykLogo linkHome />
             <span className="brand-tag">{t('layout.tag')}</span>
           </div>
           <button
@@ -182,6 +181,9 @@ export function Layout({ projects, project, onSelectProject }: Props) {
       <div className="main">
         <header className="topbar">
           <div className="topbar-lead">
+            <div className="topbar-brand">
+              <VulykLogo markOnly linkHome testId={TestIds.headerBrandLogo} />
+            </div>
             <button
               type="button"
               className="btn secondary menu-toggle"

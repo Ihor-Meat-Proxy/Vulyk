@@ -61,6 +61,7 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'appearance.fontFamily.noto_sans',
   'appearance.fontFamily.sample',
   'appearance.fontFamily.source_sans_3',
+  'brand.name',
   'cases.automatedNo',
   'cases.backspaceKey',
   'cases.colStatus',

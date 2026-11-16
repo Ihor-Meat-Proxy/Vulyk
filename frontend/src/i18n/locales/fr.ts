@@ -1,6 +1,7 @@
 import type { Dict } from '../types'
 
 const fr: Dict = {
+  'a11y.brandHome': "Accueil Vulyk",
   'a11y.assignee': "Assigné",
   'a11y.attachPhoto': "Joindre une photo depuis la caméra",
   'a11y.caseExecutions': "Exécutions du cas",
@@ -984,6 +985,7 @@ const fr: Dict = {
   'pwa.installPrompt': "Installez Vulyk pour un accès rapide sur cet appareil.",
   'pwa.install': "Installer",
   'pwa.notNow': "Pas maintenant",
+  'brand.name': "Vulyk",
   'layout.tag': "Gestion des tests",
   'layout.noProjects': "Aucun projet",
   'layout.sampleBadge': "(Exemple)",

@@ -42,7 +42,7 @@ export function AppVersion() {
       title={t('common.appVersion')}
       {...testIdProps(TestIds.appVersion)}
     >
-      Vulyk {version}
+      {t('brand.name')} {version}
     </p>
   )
 }
