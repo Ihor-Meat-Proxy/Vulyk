@@ -89,7 +89,7 @@ pub fn normalize_job_path(raw: &str) -> AppResult<String> {
     Ok(out)
 }
 
-pub fn parse_target(cfg: &Value) -> AppResult<JenkinsTarget> {
+pub fn parse_target(cfg: &Value, policy: &egress::CiUrlPolicy) -> AppResult<JenkinsTarget> {
     let base_url = require_str(cfg, "base_url")?
         .trim_end_matches('/')
         .to_string();
@@ -107,7 +107,7 @@ pub fn parse_target(cfg: &Value) -> AppResult<JenkinsTarget> {
         .unwrap_or(true);
 
     // SSRF: only after field shape is valid so unit tests can assert missing keys.
-    egress::validate_public_https_url(&base_url)?;
+    egress::validate_ci_url(&base_url, policy)?;
 
     Ok(JenkinsTarget {
         base_url,
@@ -177,8 +177,11 @@ fn apply_crumb(mut req: reqwest::RequestBuilder, crumb: &Option<Crumb>) -> reqwe
 }
 
 /// Probe Jenkins credentials + job existence (crumb → whoAmI → job API).
-pub async fn test_connection(cfg: &Value) -> AppResult<(bool, String)> {
-    let target = parse_target(cfg)?;
+pub async fn test_connection(
+    cfg: &Value,
+    policy: &egress::CiUrlPolicy,
+) -> AppResult<(bool, String)> {
+    let target = parse_target(cfg, policy)?;
     let http = client()?;
     let crumb = fetch_crumb(&http, &target).await?;
 
@@ -246,8 +249,12 @@ pub async fn test_connection(cfg: &Value) -> AppResult<(bool, String)> {
 }
 
 /// Trigger a Jenkins build and follow the queue item to a concrete build number when possible.
-pub async fn dispatch(cfg: &Value, inputs: &Value) -> AppResult<CiDispatchHandle> {
-    let target = parse_target(cfg)?;
+pub async fn dispatch(
+    cfg: &Value,
+    inputs: &Value,
+    policy: &egress::CiUrlPolicy,
+) -> AppResult<CiDispatchHandle> {
+    let target = parse_target(cfg, policy)?;
     let http = client()?;
     let crumb = fetch_crumb(&http, &target).await?;
 
@@ -485,12 +492,49 @@ mod tests {
 
     #[test]
     fn parse_target_requires_fields() {
-        let err = parse_target(&json!({
-            "base_url": "https://jenkins.example",
-            "job_path": "demo"
-        }))
+        let err = parse_target(
+            &json!({
+                "base_url": "https://jenkins.example",
+                "job_path": "demo"
+            }),
+            &egress::CiUrlPolicy::strict(),
+        )
         .unwrap_err();
         assert!(err.to_string().contains("username"));
+    }
+
+    #[test]
+    fn parse_target_rejects_localhost_by_default() {
+        let prev = std::env::var("VULYK_EGRESS_ALLOW_PRIVATE").ok();
+        std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE");
+        let err = parse_target(
+            &json!({
+                "base_url": "http://localhost:8090",
+                "job_path": "demo",
+                "username": "bot",
+                "token": "t"
+            }),
+            &egress::CiUrlPolicy::strict(),
+        )
+        .unwrap_err();
+        assert!(
+            err.to_string().contains("https") || err.to_string().contains("private"),
+            "{err}"
+        );
+        let ok = parse_target(
+            &json!({
+                "base_url": "http://localhost:8090",
+                "job_path": "demo",
+                "username": "bot",
+                "token": "t"
+            }),
+            &egress::CiUrlPolicy::from_parts(true, Vec::<String>::new()),
+        );
+        assert!(ok.is_ok());
+        match prev {
+            Some(v) => std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", v),
+            None => std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE"),
+        }
     }
 
     #[test]

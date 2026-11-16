@@ -86,8 +86,11 @@ Executions **Run in CI** button via an automation repo; Jenkins/GitLab use
 ### Jenkins (Dispatch)
 
 1. Under **CI triggers**, choose **Jenkins** and save:
-   - **Base URL** — `https://jenkins.example.com` (HTTPS; private hosts need
-     `VULYK_EGRESS_ALLOW_PRIVATE=1` on the API)
+   - **Base URL** — `https://jenkins.example.com` (public HTTPS works by default).
+     For `http://localhost:8090` or LAN Jenkins, an admin must enable
+     **Allow http and private-network CI hosts** under **Admin → Settings**
+     (optionally with a host/CIDR allowlist). See
+     [Private / HTTP CI URLs](#private--http-ci-urls-j10).
    - **Job path** — `folder/job-name`, `/job/folder/job/job-name`, or a full job URL
    - **Username** + **API token** (Jenkins user token; redacted in API responses)
    - **Use CSRF crumb** — on by default (`crumbIssuer`; skipped when CSRF is off)
@@ -263,9 +266,34 @@ export VULYK_PROJECT_KEY=KOC
   --pipeline-url "${BUILD_URL}"
 ```
 
-Private Jenkins controllers reached from Vulyk (Dispatch / Test connection)
-require `VULYK_EGRESS_ALLOW_PRIVATE=1` on the API process — the same SSRF escape
-hatch used for local automation remotes.
+## Private / HTTP CI URLs (J10)
+
+By default Vulyk only allows **public `https://`** destinations for CI
+(Jenkins base URL, GitHub-compatible API bases including Forgejo, GitLab
+`base_url`, and automation-repo remotes used for Run in CI). That blocks
+self-hosted controllers on localhost or RFC1918 LANs.
+
+**Admin → Settings** (system admin only):
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| **Allow http and private-network CI hosts** | Off | When on, CI may use `http://` and private / loopback / link-local hosts |
+| **CI URL allowlist** | Empty | Empty + opt-in = any private/localhost. Non-empty = only listed hosts/CIDRs for those relaxed destinations. Public `https://` remotes stay allowed either way |
+
+Env overrides (deploy-time; win over DB when set):
+
+```bash
+VULYK_CI_ALLOW_PRIVATE_URLS=1
+VULYK_CI_URL_ALLOWLIST=localhost,10.0.0.0/8,jenkins.lan
+```
+
+This opt-in is **CI-scoped** — backup destinations, SSO JWKS, and other egress
+still use the strict public-HTTPS guard. The lab-only
+`VULYK_EGRESS_ALLOW_PRIVATE=1` hatch (also allows `file://` git) remains for
+tests/mocks and should not be used in production.
+
+Prefer a tight allowlist on any instance that can reach cloud metadata or
+sensitive internal HTTP services.
 
 ## GitLab CI
 

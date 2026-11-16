@@ -587,6 +587,7 @@ async fn generic_test_reports_missing_git_clearly_when_unavailable() {
         "https://example.com/acme/demo.git",
         "main",
         None,
+        &vulyk_api::services::egress::CiUrlPolicy::strict(),
     )
     .unwrap();
     assert!(!ok);

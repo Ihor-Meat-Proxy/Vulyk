@@ -120,8 +120,9 @@ pub fn sync_repo(
     remote_url: &str,
     branch: &str,
     token: Option<&str>,
+    policy: &crate::services::egress::CiUrlPolicy,
 ) -> AppResult<String> {
-    crate::services::egress::validate_public_https_url(remote_url)?;
+    crate::services::egress::validate_git_remote_url(remote_url, policy)?;
     let dir = repo_workdir(repo_id);
     let url = auth_remote_url(remote_url, token);
     if dir.join(".git").is_dir() {
@@ -161,8 +162,9 @@ pub fn test_connection(
     remote_url: &str,
     branch: &str,
     token: Option<&str>,
+    policy: &crate::services::egress::CiUrlPolicy,
 ) -> AppResult<(bool, String, Option<String>)> {
-    if let Err(e) = crate::services::egress::validate_public_https_url(remote_url) {
+    if let Err(e) = crate::services::egress::validate_git_remote_url(remote_url, policy) {
         return Ok((false, e.to_string(), None));
     }
     let url = auth_remote_url(remote_url, token);

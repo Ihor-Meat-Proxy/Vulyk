@@ -7,6 +7,7 @@ use utoipa::ToSchema;
 
 use crate::auth::ProjectRole;
 use crate::error::{AppError, AppResult};
+use crate::services::egress::CiUrlPolicy;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -57,6 +58,16 @@ pub struct InstanceSettings {
     pub registration_mode: RegistrationMode,
     pub default_role: ProjectRole,
     pub allowed_email_domains: Vec<String>,
+    /// Admin opt-in: allow plain HTTP and private/LAN/localhost CI destinations.
+    /// Off by default. Prefer a non-empty [`Self::ci_url_allowlist`] in production.
+    /// (Avoid scheme literals here — OpenAPI is inlined into /api/docs HTML.)
+    #[serde(default)]
+    pub ci_allow_private_urls: bool,
+    /// Optional hosts / CIDRs that may use the private CI opt-in.
+    /// Empty + opt-in = any private/localhost; non-empty = only these entries
+    /// (public HTTPS remotes remain allowed either way).
+    #[serde(default)]
+    pub ci_url_allowlist: Vec<String>,
 }
 
 impl Default for InstanceSettings {
@@ -71,6 +82,8 @@ impl Default for InstanceSettings {
             registration_mode: RegistrationMode::Disabled,
             default_role: ProjectRole::Viewer,
             allowed_email_domains: vec![],
+            ci_allow_private_urls: false,
+            ci_url_allowlist: vec![],
         }
     }
 }
@@ -123,6 +136,8 @@ pub async fn load_settings(pool: &PgPool) -> AppResult<InstanceSettings> {
         Vec::new()
     };
 
+    let ci_url_allowlist = load_ci_url_allowlist(pool).await?;
+
     let mut settings = InstanceSettings {
         setup_completed: get_bool(pool, "setup_completed", false).await?,
         instance_name: get_string(pool, "instance_name", "Vulyk").await?,
@@ -133,6 +148,8 @@ pub async fn load_settings(pool: &PgPool) -> AppResult<InstanceSettings> {
         registration_mode: mode.parse().unwrap_or(RegistrationMode::Disabled),
         default_role: role.parse().unwrap_or(ProjectRole::Viewer),
         allowed_email_domains,
+        ci_allow_private_urls: get_bool(pool, "ci_allow_private_urls", false).await?,
+        ci_url_allowlist,
     };
 
     // Env overrides for registration mode (deploy-time).
@@ -142,7 +159,58 @@ pub async fn load_settings(pool: &PgPool) -> AppResult<InstanceSettings> {
         }
     }
 
+    apply_ci_url_env_overrides(&mut settings);
+
     Ok(settings)
+}
+
+async fn load_ci_url_allowlist(pool: &PgPool) -> AppResult<Vec<String>> {
+    let value: Option<Value> =
+        sqlx::query_scalar("SELECT value FROM system_settings WHERE key = $1")
+            .bind("ci_url_allowlist")
+            .fetch_optional(pool)
+            .await?;
+    Ok(match value {
+        Some(Value::Array(arr)) => arr
+            .into_iter()
+            .filter_map(|v| v.as_str().map(|s| s.trim().to_string()))
+            .filter(|s| !s.is_empty())
+            .collect(),
+        Some(Value::String(s)) => parse_allowlist_csv(&s),
+        _ => Vec::new(),
+    })
+}
+
+fn parse_allowlist_csv(raw: &str) -> Vec<String> {
+    raw.split([',', '\n', ';'])
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+fn env_flag_true(raw: &str) -> bool {
+    matches!(raw.to_lowercase().as_str(), "1" | "true" | "yes" | "on")
+}
+
+fn apply_ci_url_env_overrides(settings: &mut InstanceSettings) {
+    if let Ok(v) = std::env::var("VULYK_CI_ALLOW_PRIVATE_URLS") {
+        if !v.trim().is_empty() {
+            settings.ci_allow_private_urls = env_flag_true(&v);
+        }
+    }
+    if let Ok(v) = std::env::var("VULYK_CI_URL_ALLOWLIST") {
+        // Empty string clears; non-empty replaces DB allowlist.
+        settings.ci_url_allowlist = parse_allowlist_csv(&v);
+    }
+}
+
+/// Load the CI egress policy (DB settings + env overrides).
+pub async fn load_ci_url_policy(pool: &PgPool) -> AppResult<CiUrlPolicy> {
+    let settings = load_settings(pool).await?;
+    Ok(CiUrlPolicy::from_parts(
+        settings.ci_allow_private_urls,
+        settings.ci_url_allowlist,
+    ))
 }
 
 pub async fn save_settings(pool: &PgPool, settings: &InstanceSettings) -> AppResult<()> {
@@ -197,6 +265,26 @@ pub async fn save_settings(pool: &PgPool, settings: &InstanceSettings) -> AppRes
                 .allowed_email_domains
                 .iter()
                 .map(|d| Value::String(d.clone()))
+                .collect(),
+        ),
+    )
+    .await?;
+    set_value(
+        pool,
+        "ci_allow_private_urls",
+        Value::Bool(settings.ci_allow_private_urls),
+    )
+    .await?;
+    set_value(
+        pool,
+        "ci_url_allowlist",
+        Value::Array(
+            settings
+                .ci_url_allowlist
+                .iter()
+                .map(|d| d.trim().to_string())
+                .filter(|d| !d.is_empty())
+                .map(Value::String)
                 .collect(),
         ),
     )

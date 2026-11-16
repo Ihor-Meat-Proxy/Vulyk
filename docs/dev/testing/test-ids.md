@@ -289,6 +289,9 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `admin-role-user-select` | `adminRoleUserSelect` |
 | `admin-rollback-dialog-input` | `adminRollbackDialogInput` |
 | `admin-settings-base-url-input` | `adminSettingsBaseUrlInput` |
+| `admin-settings-ci-allow-private-checkbox` | `adminSettingsCiAllowPrivateCheckbox` |
+| `admin-settings-ci-allowlist-input` | `adminSettingsCiAllowlistInput` |
+| `admin-settings-ci-private-warning` | `adminSettingsCiPrivateWarning` |
 | `admin-settings-default-role-select` | `adminSettingsDefaultRoleSelect` |
 | `admin-settings-instance-name-input` | `adminSettingsInstanceNameInput` |
 | `admin-settings-locale-select` | `adminSettingsLocaleSelect` |

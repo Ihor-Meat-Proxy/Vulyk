@@ -174,7 +174,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
             "config": {
                 "project_id": "42",
                 "trigger_token": "glptt-test",
-                "base_url": "https://gitlab.example.com",
+                "base_url": "https://gitlab.com",
                 "ref": "main"
             }
         }))
@@ -227,7 +227,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
             "object_attributes": {
                 "id": 999001,
                 "status": "success",
-                "url": "https://gitlab.example.com/pipelines/999001"
+                "url": "https://gitlab.com/pipelines/999001"
             }
         }))
         .send()
@@ -281,7 +281,7 @@ async fn webhook_without_secret_is_rejected() {
             "config": {
                 "project_id": "42",
                 "trigger_token": "glptt-test",
-                "base_url": "https://gitlab.example.com",
+                "base_url": "https://gitlab.com",
                 "ref": "main"
             }
         }))
@@ -302,7 +302,7 @@ async fn webhook_without_secret_is_rejected() {
             "object_attributes": {
                 "id": 1,
                 "status": "success",
-                "url": "https://gitlab.example.com/pipelines/1"
+                "url": "https://gitlab.com/pipelines/1"
             }
         }))
         .send()

@@ -41,8 +41,10 @@ Production-oriented defaults and controls:
   missing (fail-closed). Project CI tokens are scoped for result upload, not
   admin surfaces.
 - **Egress.** Outbound URLs (git remotes, backup destinations, ALM, LLM, SSO,
-  CI APIs) go through shared SSRF / private-IP guards. Local content-backup
-  paths stay under `VULYK_CONTENT_BACKUP_DIR`.
+  CI APIs) go through shared SSRF / private-IP guards. Admins may opt in to
+  `http` / private CI hosts (Jenkins, Forgejo, GitLab) via Settings or
+  `VULYK_CI_ALLOW_PRIVATE_URLS` with an optional allowlist — other egress stays
+  strict. Local content-backup paths stay under `VULYK_CONTENT_BACKUP_DIR`.
 - **Sessions.** Password change and admin disable/reset invalidate server
   sessions. Cookie sessions use Secure / CSRF controls when TLS or production
   markers are set.

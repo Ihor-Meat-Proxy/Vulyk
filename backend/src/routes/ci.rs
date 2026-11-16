@@ -123,7 +123,8 @@ pub async fn create_ci_config(
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name is required".into()));
     }
-    validate_config(&provider, &body.config)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    validate_config(&provider, &body.config, &ci_policy)?;
 
     let row = sqlx::query_as::<_, CiConfig>(
         r#"INSERT INTO ci_configs (project_id, provider, name, config, webhook_secret, enabled)
@@ -196,7 +197,8 @@ pub async fn update_ci_config(
         Some(incoming) => merge_ci_config(&existing.config, incoming),
         None => existing.config.clone(),
     };
-    validate_config(&existing.provider, &config)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    validate_config(&existing.provider, &config, &ci_policy)?;
     // Empty string clears webhook secret; omit preserves.
     let webhook_secret = match body.webhook_secret {
         Some(s) if s.is_empty() => None,
@@ -279,8 +281,9 @@ pub async fn test_ci_config(
     if !cfg.enabled {
         return Err(AppError::BadRequest("CI config is disabled".into()));
     }
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let result = match cfg.provider.as_str() {
-        "jenkins" => match jenkins::test_connection(&cfg.config).await {
+        "jenkins" => match jenkins::test_connection(&cfg.config, &ci_policy).await {
             Ok((ok, message)) => CiConfigTestResult { ok, message },
             Err(err) => CiConfigTestResult {
                 ok: false,
@@ -451,10 +454,11 @@ pub async fn dispatch_ci(
     .fetch_one(&state.pool)
     .await?;
 
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let handle = match cfg.provider.as_str() {
         "github" => github::dispatch(&cfg.config, &inputs).await,
         "gitlab" => gitlab::dispatch(&cfg.config, &inputs).await,
-        "jenkins" => jenkins::dispatch(&cfg.config, &inputs).await,
+        "jenkins" => jenkins::dispatch(&cfg.config, &inputs, &ci_policy).await,
         other => Err(AppError::BadRequest(format!("unknown provider {other}"))),
     };
 
@@ -635,11 +639,12 @@ pub async fn run_in_ci(
         repo.ci_workflow_ref.trim()
     };
 
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let HostKind::GitHub {
         api_base,
         owner,
         repo: gh_repo,
-    } = parse_remote("github", &repo.remote_url)?
+    } = parse_remote("github", &repo.remote_url, &ci_policy)?
     else {
         return Err(AppError::BadRequest(
             "could not parse GitHub owner/repo from remote URL".into(),
@@ -906,7 +911,8 @@ async fn upsert_github_dispatch_config(
         "ref": workflow_ref,
         "api_base": api_base,
     });
-    validate_config("github", &config)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    validate_config("github", &config, &ci_policy)?;
 
     if let Some(existing) = sqlx::query_as::<_, CiConfig>(
         r#"SELECT id, project_id, provider, name, config, webhook_secret, enabled,
@@ -970,7 +976,11 @@ async fn ensure_project(state: &AppState, project_id: Uuid) -> AppResult<()> {
     Ok(())
 }
 
-fn validate_config(provider: &str, config: &serde_json::Value) -> AppResult<()> {
+fn validate_config(
+    provider: &str,
+    config: &serde_json::Value,
+    policy: &crate::services::egress::CiUrlPolicy,
+) -> AppResult<()> {
     match provider {
         "github" => {
             for key in ["token", "owner", "repo", "workflow_id"] {
@@ -985,6 +995,14 @@ fn validate_config(provider: &str, config: &serde_json::Value) -> AppResult<()> 
                     )));
                 }
             }
+            if let Some(api_base) = config
+                .get("api_base")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                crate::services::egress::validate_ci_url(api_base, policy)?;
+            }
         }
         "gitlab" => {
             for key in ["project_id", "trigger_token"] {
@@ -998,6 +1016,14 @@ fn validate_config(provider: &str, config: &serde_json::Value) -> AppResult<()> 
                         "gitlab config requires '{key}'"
                     )));
                 }
+            }
+            if let Some(base) = config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                crate::services::egress::validate_ci_url(base, policy)?;
             }
         }
         "jenkins" => {
@@ -1028,13 +1054,13 @@ fn validate_config(provider: &str, config: &serde_json::Value) -> AppResult<()> 
                     "jenkins config requires 'job_path' or 'job_url'".into(),
                 ));
             }
-            // SSRF check at save time (same policy as automation remotes).
+            // SSRF check at save time (CI policy — may allow http/LAN when admin opt-in).
             let base = config
                 .get("base_url")
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .trim_end_matches('/');
-            crate::services::egress::validate_public_https_url(base)?;
+            crate::services::egress::validate_ci_url(base, policy)?;
         }
         _ => {}
     }

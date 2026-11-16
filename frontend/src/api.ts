@@ -965,6 +965,10 @@ export type InstanceSettings = {
   registration_mode: RegistrationMode
   default_role: ProjectRole
   allowed_email_domains: string[]
+  /** Admin opt-in: allow http:// and private/LAN/localhost CI destinations. */
+  ci_allow_private_urls: boolean
+  /** Optional hosts/CIDRs for the private CI opt-in (empty = any private). */
+  ci_url_allowlist: string[]
 }
 
 export type UpdateInstanceSettings = {
@@ -976,6 +980,8 @@ export type UpdateInstanceSettings = {
   registration_mode?: RegistrationMode
   default_role?: ProjectRole
   allowed_email_domains?: string[]
+  ci_allow_private_urls?: boolean
+  ci_url_allowlist?: string[]
 }
 
 export type UpdatesCapability = 'compose_updater' | 'manual_only'

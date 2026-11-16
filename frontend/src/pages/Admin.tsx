@@ -1891,6 +1891,8 @@ function SettingsPanel({
   const [registrationMode, setRegistrationMode] =
     useState<RegistrationMode>('disabled')
   const [defaultRole, setDefaultRole] = useState<ProjectRole>('viewer')
+  const [ciAllowPrivate, setCiAllowPrivate] = useState(false)
+  const [ciAllowlistText, setCiAllowlistText] = useState('')
 
   useEffect(() => {
     if (!settings) return
@@ -1905,6 +1907,8 @@ function SettingsPanel({
     setDefaultTheme(settings.default_theme || 'system')
     setRegistrationMode(settings.registration_mode)
     setDefaultRole(settings.default_role)
+    setCiAllowPrivate(Boolean(settings.ci_allow_private_urls))
+    setCiAllowlistText((settings.ci_url_allowlist ?? []).join('\n'))
   }, [settings])
 
   if (!settings) {
@@ -1920,6 +1924,10 @@ function SettingsPanel({
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     try {
+      const ci_url_allowlist = ciAllowlistText
+        .split(/[\n,;]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
       await api.updateAdminSettings({
         instance_name: instanceName,
         base_url: baseUrl,
@@ -1928,6 +1936,8 @@ function SettingsPanel({
         default_theme: defaultTheme,
         registration_mode: registrationMode,
         default_role: defaultRole,
+        ci_allow_private_urls: ciAllowPrivate,
+        ci_url_allowlist,
       })
       onChanged()
     } catch (err) {
@@ -2022,6 +2032,40 @@ function SettingsPanel({
             ))}
           </select>
         </label>
+        <fieldset className="field">
+          <legend>{t('admin.ciPrivateUrls')}</legend>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={ciAllowPrivate}
+              onChange={(e) => setCiAllowPrivate(e.target.checked)}
+              {...testIdProps(TestIds.adminSettingsCiAllowPrivateCheckbox)}
+            />
+            <span>{t('admin.ciAllowPrivateUrls')}</span>
+          </label>
+          {ciAllowPrivate ? (
+            <p
+              className="muted"
+              style={{ color: 'var(--danger)' }}
+              role="status"
+              {...testIdProps(TestIds.adminSettingsCiPrivateWarning)}
+            >
+              {t('admin.ciAllowPrivateUrlsWarning')}
+            </p>
+          ) : null}
+          <label className="field">
+            <span>{t('admin.ciUrlAllowlist')}</span>
+            <textarea
+              rows={3}
+              value={ciAllowlistText}
+              onChange={(e) => setCiAllowlistText(e.target.value)}
+              placeholder={t('admin.ciUrlAllowlistPlaceholder')}
+              disabled={!ciAllowPrivate}
+              {...testIdProps(TestIds.adminSettingsCiAllowlistInput)}
+            />
+            <span className="muted">{t('admin.ciUrlAllowlistHelp')}</span>
+          </label>
+        </fieldset>
         <button
           className="btn"
           type="submit"
