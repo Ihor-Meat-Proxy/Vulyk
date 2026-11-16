@@ -118,6 +118,16 @@ test.describe('folder tree lazy load + numeric sort', () => {
     await cases.open()
     await expect(cases.folderTree()).toBeVisible({ timeout: 20_000 })
 
+    // Label and count must not sit flush ("All cases35") — flex row with a gap.
+    const allCases = cases.folderTree().getByTestId(TestIds.folderAllCases)
+    const allLabel = allCases.locator('span').first()
+    const allCount = allCases.locator('.folder-tree-count')
+    await expect(allCount).toBeVisible()
+    const labelBox = await allLabel.boundingBox()
+    const countBox = await allCount.boundingBox()
+    expect(labelBox && countBox).toBeTruthy()
+    expect(countBox!.x).toBeGreaterThan(labelBox!.x + labelBox!.width + 4)
+
     // Recursive badge on parent (visible at root); leaf only appears after expand.
     const parentCount = cases
       .folderTree()
