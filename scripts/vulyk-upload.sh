@@ -50,7 +50,7 @@ Options:
 
 Capture the opened run id with --print-run-id (same shell) or --run-id-file /
 --dotenv-file. On GitHub Actions, --open-run also appends VULYK_RUN_ID to
-$GITHUB_ENV for *later* steps only — it is not visible to the next command in
+$GITHUB_ENV for *later* steps only - it is not visible to the next command in
 the same step. Prefer:
 
   VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id ...)"
