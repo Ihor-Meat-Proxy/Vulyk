@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { IDENTICAL_TO_EN_ALLOWLIST } from './identical-allowlist'
+import {
+  LATIN_IN_CYRILLIC_ALLOWLIST,
+  latinTokensInValue,
+} from './latin-allowlist'
 import { LOCALE_CODES, localeDictionaries } from './index'
+
+/** Locales written primarily in Cyrillic — Latin tokens need an allowlist. */
+const CYRILLIC_LOCALES = new Set(['uk'])
 
 describe('i18n locale parity', () => {
   const enKeys = Object.keys(localeDictionaries.en).sort()
@@ -41,5 +48,21 @@ describe('i18n locale parity', () => {
       )
       expect(identical).toEqual([])
     })
+
+    if (CYRILLIC_LOCALES.has(code)) {
+      it(`${code} has no unexpected Latin-script words (allowlist brands/tech)`, () => {
+        const dict = localeDictionaries[code]
+        const offenders: { key: string; tokens: string[] }[] = []
+        for (const key of enKeys) {
+          const tokens = latinTokensInValue(String(dict[key] ?? '')).filter(
+            (t) => !LATIN_IN_CYRILLIC_ALLOWLIST.has(t),
+          )
+          if (tokens.length) {
+            offenders.push({ key, tokens: [...new Set(tokens)] })
+          }
+        }
+        expect(offenders).toEqual([])
+      })
+    }
   }
 })

@@ -538,7 +538,7 @@ const de: Dict = {
   'generate.casesFromRequirements': "Fälle aus Anforderungen",
   'generate.casesNotice': "{count} Entwurf/Entwürfe via {provider}/{model} generiert; persistiert {persisted}.",
   'generate.casesTruncated': "Es werden {shown} von {total} Fällen angezeigt (Limit {limit}). Nutzen Sie Suche oder Ordner — nicht alle Fälle sind geladen.",
-  'generate.casesTruncatedPrefill': "Das Projekt hat {total} Fälle; der Picker lädt jeweils {limit}. Prefill hat ausgewählte IDs jenseits der ersten Seite nach Möglichkeit aufgelöst.",
+  'generate.casesTruncatedPrefill': "Das Projekt hat {total} Fälle; der Picker lädt jeweils {limit}. Die Vorausfüllung hat ausgewählte IDs jenseits der ersten Seite nach Möglichkeit aufgelöst.",
   'generate.codeNotice': "Code von {provider}/{model}",
   'generate.contextFiles': "Verwendeter Repository-Kontext",
   'generate.download': "Code herunterladen",
