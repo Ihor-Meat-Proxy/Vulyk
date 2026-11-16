@@ -88,6 +88,16 @@ JUnit XML shape Vulyk maps:
 
 Compatible with common property names such as `test_key` and `test_id`. Unknown keys appear in `unmatched_case_keys` in the API response — fix the test or create the case, then re-run.
 
+**Accepted key shapes** (case-insensitive; stored as `PREFIX-N`):
+
+| Form | Example |
+|------|---------|
+| Hyphenated | `VQA-110`, `@VQA-110`, `@vulyk:VQA-110`, `key=VQA-110`, `[VQA-110]` |
+| Underscore | `VQA_110`, `test_VQA_110_login` |
+| Compact (needs project key) | project `VQA` also accepts `vqa110` / `VQA110` in the name or body |
+
+Skipped tests still map when the key is in a property, the test name, or `<system-out>` / skip message — they count toward `skip_count` once matched.
+
 ### pytest
 
 Put the key in the node id / test name, or set metadata for pytest-json-report:

@@ -20,6 +20,15 @@ const SYNC_BATCH: usize = 500;
 /// Threshold above which ingest prefers the job queue.
 pub const ASYNC_THRESHOLD: usize = 200;
 
+/// Project key used to resolve compact JUnit names like `vqa110` → `VQA-110`.
+pub async fn project_key(pool: &PgPool, project_id: Uuid) -> AppResult<String> {
+    sqlx::query_scalar::<_, String>("SELECT key FROM projects WHERE id = $1")
+        .bind(project_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or_else(|| AppError::NotFound(format!("project {project_id}")))
+}
+
 pub async fn persist_results(
     pool: &PgPool,
     run_id: Uuid,

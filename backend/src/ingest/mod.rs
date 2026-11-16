@@ -6,7 +6,9 @@ mod playwright_json;
 mod pytest_json;
 mod vulyk_json;
 
-pub use case_key::{extract_case_key, resolve_case_key};
+pub use case_key::{
+    extract_case_key, extract_case_key_with_project, resolve_case_key, resolve_case_key_with_project,
+};
 pub use junit::parse_junit;
 pub use playwright_json::parse_playwright_json;
 pub use pytest_json::parse_pytest_json;
@@ -21,10 +23,19 @@ pub struct ParsedIngest {
 }
 
 pub fn parse_payload(format: &str, content: &str) -> Result<ParsedIngest, String> {
+    parse_payload_with_project(format, content, None)
+}
+
+/// Parse an ingest payload and resolve case keys (including compact `{projectKey}{n}` forms).
+pub fn parse_payload_with_project(
+    format: &str,
+    content: &str,
+    project_key: Option<&str>,
+) -> Result<ParsedIngest, String> {
     match format {
         "junit" | "junit_xml" | "xml" => {
             let mut results = parse_junit(content)?;
-            enrich_case_keys(&mut results);
+            enrich_case_keys(&mut results, project_key);
             Ok(ParsedIngest {
                 results,
                 run_name: None,
@@ -33,7 +44,7 @@ pub fn parse_payload(format: &str, content: &str) -> Result<ParsedIngest, String
         "vulyk_json" | "json" | "vulyk" => {
             let doc = parse_vulyk_json(content)?;
             let mut results = doc.results;
-            enrich_case_keys(&mut results);
+            enrich_case_keys(&mut results, project_key);
             Ok(ParsedIngest {
                 results,
                 run_name: doc.run_name,
@@ -41,7 +52,7 @@ pub fn parse_payload(format: &str, content: &str) -> Result<ParsedIngest, String
         }
         "playwright_json" | "playwright" => {
             let mut results = parse_playwright_json(content)?;
-            enrich_case_keys(&mut results);
+            enrich_case_keys(&mut results, project_key);
             Ok(ParsedIngest {
                 results,
                 run_name: Some("Playwright".into()),
@@ -49,7 +60,7 @@ pub fn parse_payload(format: &str, content: &str) -> Result<ParsedIngest, String
         }
         "pytest_json" | "pytest" => {
             let mut results = parse_pytest_json(content)?;
-            enrich_case_keys(&mut results);
+            enrich_case_keys(&mut results, project_key);
             Ok(ParsedIngest {
                 results,
                 run_name: Some("pytest".into()),
@@ -61,10 +72,14 @@ pub fn parse_payload(format: &str, content: &str) -> Result<ParsedIngest, String
     }
 }
 
-fn enrich_case_keys(results: &mut [BulkResultItem]) {
+fn enrich_case_keys(results: &mut [BulkResultItem], project_key: Option<&str>) {
     for row in results.iter_mut() {
-        if row.case_key.is_none() {
-            row.case_key = resolve_case_key(None, row.title.as_deref(), row.external_id.as_deref());
-        }
+        row.case_key = resolve_case_key_with_project(
+            row.case_key.as_deref(),
+            row.title.as_deref(),
+            row.external_id.as_deref(),
+            Some(row.message.as_str()).filter(|s| !s.is_empty()),
+            project_key,
+        );
     }
 }

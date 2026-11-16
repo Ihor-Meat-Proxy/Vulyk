@@ -8,7 +8,7 @@ use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
-use crate::ingest::parse_payload;
+use crate::ingest::parse_payload_with_project;
 use crate::models::{BulkResultsRequest, BulkResultsResponse, IngestRequest, IngestResponse};
 use crate::routes::AppState;
 use crate::services::{ingest as ingest_svc, jobs as jobs_svc};
@@ -119,7 +119,9 @@ pub async fn ingest(
     }
 
     // Validate parse early even for async path so clients get fast feedback.
-    let parsed = parse_payload(&format, &body.content).map_err(AppError::BadRequest)?;
+    let project_key = ingest_svc::project_key(&state.pool, project_id).await?;
+    let parsed = parse_payload_with_project(&format, &body.content, Some(&project_key))
+        .map_err(AppError::BadRequest)?;
     let source = if body.source.trim().is_empty() {
         format.clone()
     } else {

@@ -12,7 +12,7 @@ use crate::auth::{
     generate_ci_token, hash_secret, require_permission, OptionalAuthUser, Permission,
 };
 use crate::error::{AppError, AppResult};
-use crate::ingest::parse_payload;
+use crate::ingest::parse_payload_with_project;
 use crate::models::{
     BulkResultsRequest, CiRunResultsResponse, CloseCiRunRequest, CreateProjectCiToken,
     CreateProjectCiTokenResponse, IngestRequest, OpenCiRunRequest, OpenCiRunResponse,
@@ -580,7 +580,9 @@ pub async fn ingest_ci_run(
     if body.content.trim().is_empty() {
         return Err(AppError::BadRequest("content is required".into()));
     }
-    let parsed = parse_payload(&format, &body.content).map_err(AppError::BadRequest)?;
+    let project_key = ingest_svc::project_key(&state.pool, project_id).await?;
+    let parsed = parse_payload_with_project(&format, &body.content, Some(&project_key))
+        .map_err(AppError::BadRequest)?;
     let source = if body.source.trim().is_empty() {
         format
     } else {
