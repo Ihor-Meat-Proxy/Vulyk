@@ -97,7 +97,8 @@ test('failed update check surfaces error instead of latest', {
   await openUpdates(page)
 
   // Prefer durable status fields (200 + last_check_error_*) over thrown API errors.
-  await page.route('**/api/v1/admin/updates/check', async (route) => {
+  // Match ?force=true (Check/Retry bypasses backoff via query string).
+  await page.route('**/api/v1/admin/updates/check*', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue()
       return

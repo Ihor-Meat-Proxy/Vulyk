@@ -214,7 +214,8 @@ test('Updates check error region uses alert live region', {
     timeout: 20_000,
   })
 
-  await page.route('**/api/v1/admin/updates/check', async (route) => {
+  // Match ?force=true (Check/Retry bypasses backoff via query string).
+  await page.route('**/api/v1/admin/updates/check*', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue()
       return
