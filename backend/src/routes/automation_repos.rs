@@ -234,7 +234,7 @@ pub async fn create_repo(
         return Err(AppError::BadRequest("remote_url required".into()));
     }
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
-    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
+    crate::services::egress::validate_git_remote_url(body.remote_url.trim(), &ci_policy)?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
@@ -381,7 +381,7 @@ pub async fn update_repo(
         .unwrap_or(existing.remote_url.as_str())
         .to_string();
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
-    crate::services::egress::validate_ci_url(&remote_url, &ci_policy)?;
+    crate::services::egress::validate_git_remote_url(&remote_url, &ci_policy)?;
     let branch = body
         .branch
         .as_deref()
@@ -709,7 +709,7 @@ pub async fn list_branches_preview(
         ));
     }
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
-    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
+    crate::services::egress::validate_git_remote_url(body.remote_url.trim(), &ci_policy)?;
     let branches = remote_svc::list_branches(
         &provider,
         body.remote_url.trim(),
@@ -822,7 +822,7 @@ pub async fn upsert_repo(
         return Err(AppError::BadRequest("remote_url required".into()));
     }
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
-    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
+    crate::services::egress::validate_git_remote_url(body.remote_url.trim(), &ci_policy)?;
     let branch = if body.branch.trim().is_empty() {
         "main".to_string()
     } else {

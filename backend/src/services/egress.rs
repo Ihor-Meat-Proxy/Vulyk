@@ -81,6 +81,24 @@ pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
     validate_host_public_only(&host)
 }
 
+/// Validate an automation-repo Git remote under [`CiUrlPolicy`].
+///
+/// Same rules as [`validate_ci_url`], except the lab hatch
+/// `VULYK_EGRESS_ALLOW_PRIVATE=1` also permits `file://` fixture remotes
+/// (used by integration tests / local clones). Production never sets that
+/// env, so `file://` stays blocked there.
+pub fn validate_git_remote_url(raw: &str, policy: &CiUrlPolicy) -> AppResult<()> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Err(AppError::BadRequest("URL is required".into()));
+    }
+    let lower = raw.to_ascii_lowercase();
+    if allow_private_egress() && lower.starts_with("file://") {
+        return Ok(());
+    }
+    validate_ci_url(raw, policy)
+}
+
 /// Validate a CI base / remote URL under [`CiUrlPolicy`].
 ///
 /// Lab hatch `VULYK_EGRESS_ALLOW_PRIVATE=1` still relaxes checks (http + private),
@@ -535,5 +553,20 @@ mod tests {
             assert!(validate_ci_url("ftp://10.0.0.1/", &open).is_err());
             assert!(validate_ci_url("", &open).is_err());
         });
+    }
+
+    #[test]
+    fn git_remote_file_only_under_lab_hatch() {
+        with_cleared_lab_hatch(|| {
+            let open = CiUrlPolicy::from_parts(true, Vec::<String>::new());
+            assert!(validate_git_remote_url("file:///tmp/fixture.git", &open).is_err());
+            assert!(validate_git_remote_url("https://8.8.8.8/repo.git", &open).is_ok());
+        });
+        std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
+        let open = CiUrlPolicy::from_parts(true, Vec::<String>::new());
+        assert!(validate_git_remote_url("file:///tmp/fixture.git", &open).is_ok());
+        // CI destinations still reject file:// even with the lab hatch.
+        assert!(validate_ci_url("file:///tmp/fixture.git", &open).is_err());
+        std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE");
     }
 }
