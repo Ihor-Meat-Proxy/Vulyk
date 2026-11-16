@@ -118,7 +118,7 @@ Private packages: `echo $CR_PAT | docker login ghcr.io -u USER --password-stdin`
 ```
 
 Do **not** pass both `--version` and `--to`. Upgrades never regenerate secrets or
-`.env`; see [upgrade.md — data-safety guarantees](upgrade.md#data-safety-guarantees).
+`.env`; see [upgrade.md — data-safety guarantees](../guides/upgrade.md#data-safety-guarantees).
 
 ### Still supported: build from source
 
@@ -153,6 +153,6 @@ If the workflow fails on GHCR push or Release creation, a repo admin should veri
 
 ## Related
 
-- [upgrade.md](upgrade.md) — backups, migrate CLI, Helm hooks
+- [upgrade.md](../guides/upgrade.md) — backups, migrate CLI, Helm hooks
 - [admin-guide.md](../admin-guide.md) — production Compose / Helm
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) — migration and version bump rules

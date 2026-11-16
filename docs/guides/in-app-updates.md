@@ -82,6 +82,6 @@ flowchart TD
 ## Related
 
 - [upgrade.md](upgrade.md) — CLI upgrade guarantees
-- [releasing.md](releasing.md) — how releases are published
+- [releasing.md](../dev/releasing.md) — how releases are published
 - [user-guide.md](../user-guide.md) — Admin Updates UI
 

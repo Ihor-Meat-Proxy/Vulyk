@@ -1,0 +1,16 @@
+# Local / relative markdown link checker (offline — no external HTTP).
+# Used by ./scripts/check-doc-links.sh and the CI "Doc links" job.
+
+offline = true
+verbose = "warning"
+no_progress = true
+cache = false
+include_fragments = true
+max_redirects = 0
+timeout = 5
+
+# Skip in-app absolute routes like /api/docs (not filesystem paths).
+exclude = ['^/']
+
+# Offline mode checks file targets; do not require http(s).
+scheme = ["file"]

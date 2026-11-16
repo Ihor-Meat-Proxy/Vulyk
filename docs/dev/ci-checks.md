@@ -1,19 +1,32 @@
 # CI checks
 
 Index of automated gates beyond the narrative in [ci-failures.md](ci-failures.md).
-Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`, and
-`./scripts/check-api-coverage.sh`.
+Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`,
+`./scripts/check-api-coverage.sh`, and `./scripts/check-doc-links.sh`.
 
 ## Workflows
 
 | Workflow | File | When | Role |
 | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, migrations, upgrade, frontend, Docker, Playwright, …) |
+| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, migrations, upgrade, frontend, Docker, Playwright, doc links, …) |
 | **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | CVE/deps, containers, SAST, secrets |
 | **Dependabot auto-merge** | `.github/workflows/dependabot-auto-merge.yml` | `pull_request_target` (Dependabot only) | Enables squash auto-merge for **patch** + **≥1.x minor** only; **0.x minor treated as breaking**; majors stay manual |
 | **Release** | `.github/workflows/release.yml` | tags / release | Publish images |
 
 Lighthouse remains **advisory** (`continue-on-error`) inside `ci.yml` — see [ci-failures.md](ci-failures.md).
+
+### Doc links (offline)
+
+The **Doc links (offline)** job runs [lychee](https://github.com/lycheeverse/lychee)
+with `--offline` against root markdown (`README.md`, `AGENTS.md`,
+`CONTRIBUTING.md`, `SECURITY.md`), `docs/**/*.md`, and `e2e/README.md`. It fails
+on broken **relative** links only; external `http(s)` URLs are not fetched.
+Config: `lychee.toml`. Local mirror:
+
+```bash
+cargo install lychee --locked   # once
+./scripts/check-doc-links.sh
+```
 
 ## Security workflow (detail)
 
@@ -102,4 +115,4 @@ class is genuinely inapplicable; include a concrete justification.
 
 ## Upgrade path
 
-Security/quality workflows must **not** change operator `.env`, Compose layout, or migrations. If a follow-up does, update `.env.example`, `install.sh`, and `./scripts/ci-env-upgrade-test.sh` in the **same** PR ([upgrade-path rule](../.cursor/rules/upgrade-path.mdc)).
+Security/quality workflows must **not** change operator `.env`, Compose layout, or migrations. If a follow-up does, update `.env.example`, `install.sh`, and `./scripts/ci-env-upgrade-test.sh` in the **same** PR ([upgrade-path rule](../../.cursor/rules/upgrade-path.mdc)).

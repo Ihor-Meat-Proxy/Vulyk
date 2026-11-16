@@ -17,7 +17,7 @@ await page.locator(`[data-testid="case-row"][data-entity-key="${key}"]`)
 ```
 
 - Source of truth: [`frontend/src/testing/testIds.ts`](../frontend/src/testing/testIds.ts)
-- Convention + security: [`docs/testing/test-ids.md`](../docs/testing/test-ids.md)
+- Convention + security: [`docs/dev/testing/test-ids.md`](../docs/dev/testing/test-ids.md)
 - Do **not** use bare `getByText('Save')` / toast text when parallel UI PRs can duplicate those strings (Playwright strict-mode failures).
 - When adding UI, add a `TestIds` constant, wire `testIdProps` / `listItemProps`, update the page object here, run `npm run check:test-ids` in `frontend/`.
 
@@ -68,7 +68,7 @@ rebuild inventories and can renumber unrelated keys. Instead:
 `./scripts/check-e2e-case-keys.sh` fails on playwright-e2e VQA gaps, duplicate
 `external_key` across seed fragments, or tags that reference missing keys.
 Seed cases: `backend/seed/vulyk-qa.d/playwright-e2e.json`. Full guide:
-[`docs/testing/playwright-vulyk.md`](../docs/testing/playwright-vulyk.md).
+[`docs/dev/testing/playwright-vulyk.md`](../docs/dev/testing/playwright-vulyk.md).
 
 Default sync is **additive** (preserves keys); pass `--force-renumber` only
 when you intentionally own a full regen.
@@ -104,7 +104,7 @@ export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
 ./scripts/e2e-local.sh
 ```
 
-See [`docs/guides/e2e-local.md`](../docs/guides/e2e-local.md) for `--sync` /
+See [`docs/dev/e2e-local.md`](../docs/dev/e2e-local.md) for `--sync` /
 `--report` / `--repeat 3`, the **VUE** project, and the coverage matrix.
 
 ## Run (host API + Vite preview)

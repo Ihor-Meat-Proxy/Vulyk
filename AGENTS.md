@@ -53,12 +53,12 @@ git config core.hooksPath scripts/githooks
 | Run `./scripts/check-seed-keys.sh` **and** `./scripts/check-e2e-case-keys.sh` after every rebase | Assume uniqueness because your branch was green yesterday |
 | For Playwright e2e: **append** one case + next free `VQA-N` to `playwright-e2e.json` by hand | Run `sync-vulyk-case-links.mjs` / `generate-vue-cases.mjs` on a feature branch (renumbers / rebuilds inventories) |
 
-See `backend/seed/vulyk-qa.d/README.md` and `docs/ci-failures.md`.
+See `backend/seed/vulyk-qa.d/README.md` and `docs/dev/ci-failures.md`.
 
 ## Playwright / `data-testid`
 
 - Prefer **`page.getByTestId(TestIds.…)`** (or `getByTestId('…')`) over ambiguous text / CSS.
-- Source of truth: `frontend/src/testing/testIds.ts` + `docs/testing/test-ids.md`.
+- Source of truth: `frontend/src/testing/testIds.ts` + `docs/dev/testing/test-ids.md`.
 - Add a constant, spread `testIdProps` / `listItemProps` on the control, update page objects.
 - Run `npm run check:test-ids` (frontend) and keep `e2e/tests/test-id-audit.spec.ts` green.
 - Avoid `getByText` for controls that exist more than once (toasts, “Save”, folder labels) — that causes strict-mode failures when sibling PRs duplicate UI.
@@ -82,7 +82,7 @@ When a PR adds or changes a **user-visible UI flow**:
      project should show the case too.
    - `generate-vue-cases.mjs --annotate` still rebuilds / renumbers `VUE-*` —
      append manually instead on feature branches.
-4. Prefer local Docker: `./scripts/e2e-local.sh` (see [docs/guides/e2e-local.md](docs/guides/e2e-local.md)). Do **not** add new required CI jobs for this suite without an explicit decision.
+4. Prefer local Docker: `./scripts/e2e-local.sh` (see [docs/dev/e2e-local.md](docs/dev/e2e-local.md)). Do **not** add new required CI jobs for this suite without an explicit decision.
 
 ### Recurring CI pitfalls
 
@@ -153,7 +153,7 @@ images), CodeQL, Semgrep, gitleaks. Dependabot: [`.github/dependabot.yml`](.gith
 
 Justified RustSec ignores live in `deny.toml` and `.cargo/audit.toml` with review-by
 dates — prefer upgrades; do not extend ignores without a reason + expiry.
-Details: [`docs/ci-checks.md`](docs/ci-checks.md).
+Details: [`docs/dev/ci-checks.md`](docs/dev/ci-checks.md).
 
 ## Quick commands
 
@@ -175,9 +175,9 @@ cd e2e && npm run typecheck
 ## More docs
 
 - Doc index: [`docs/README.md`](docs/README.md)
-- CI checks index (security + quality): [`docs/ci-checks.md`](docs/ci-checks.md)
-- CI failure catalog + pipeline diagram: [`docs/ci-failures.md`](docs/ci-failures.md)
-- Architecture: [`docs/architecture.md`](docs/architecture.md)
-- Playwright test ids: [`docs/testing/test-ids.md`](docs/testing/test-ids.md)
-- Audits (Oct 2026): [`docs/security/audit-2026-10.md`](docs/security/audit-2026-10.md), [`docs/quality/code-quality-2026-10.md`](docs/quality/code-quality-2026-10.md), [`docs/review/code-review-2026-10.md`](docs/review/code-review-2026-10.md)
+- CI checks index (security + quality): [`docs/dev/ci-checks.md`](docs/dev/ci-checks.md)
+- CI failure catalog + pipeline diagram: [`docs/dev/ci-failures.md`](docs/dev/ci-failures.md)
+- Architecture: [`docs/dev/architecture.md`](docs/dev/architecture.md)
+- Playwright test ids: [`docs/dev/testing/test-ids.md`](docs/dev/testing/test-ids.md)
+- Security policy: [`SECURITY.md`](SECURITY.md)
 - Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)

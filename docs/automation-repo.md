@@ -1,6 +1,6 @@
 # Automation repository
 
-Named Git connections used when generating automation code so the model can reuse existing patterns. Repos are **app-level** and attach to **many projects** (many-to-many). Operator guide: [guides/ci-integration.md](./guides/ci-integration.md#automation-repositories-generate). Design archive: [automation-integration-design.md](./automation-integration-design.md).
+Named Git connections used when generating automation code so the model can reuse existing patterns. Repos are **app-level** and attach to **many projects** (many-to-many). Operator guide: [guides/ci-integration.md](./guides/ci-integration.md#automation-repositories-generate).
 
 ## Connect
 

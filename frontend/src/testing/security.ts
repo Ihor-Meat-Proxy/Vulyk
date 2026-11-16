@@ -1,6 +1,6 @@
 /**
  * Guards against PII / secrets leaking into data-testid and related data-* attrs.
- * See docs/testing/test-ids.md § Security.
+ * See docs/dev/testing/test-ids.md § Security.
  */
 
 const UUID_RE =
@@ -175,7 +175,7 @@ export function assertSafeTestAttrs(
     if (hit) {
       throw new Error(
         `Unsafe test attribute ${hit.attr}="${hit.value}": ${hit.reason}. ` +
-          'Never put PII or secrets in data-testid / data-entity-* (see docs/testing/test-ids.md).',
+          'Never put PII or secrets in data-testid / data-entity-* (see docs/dev/testing/test-ids.md).',
       )
     }
   }

@@ -83,8 +83,8 @@ Each Playwright test carries both:
 - `@VUE-N` — dedicated **Vulyk UI E2E** project
 
 The reporter posts the key matching `VULYK_CASE_KEY_PREFIX` (default `VUE` in the
-local script). See also [playwright-vulyk.md](../testing/playwright-vulyk.md) and
-[ci-integration.md](./ci-integration.md).
+local script). See also [playwright-vulyk.md](testing/playwright-vulyk.md) and
+[ci-integration.md](../guides/ci-integration.md).
 
 ## Add a test + case
 

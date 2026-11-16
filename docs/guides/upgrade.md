@@ -132,7 +132,7 @@ Operator rollback (`install.sh rollback`) always:
 4. Health-checks `/health` and appends an audit record
 
 Publishing releases and first-time `--version` installs:
-[releasing.md](releasing.md).
+[releasing.md](../dev/releasing.md).
 
 ### Manual backup / restore
 
@@ -289,7 +289,7 @@ Compose files and CI already use this context. Custom build scripts that still p
   `[workspace.package].version`, and `frontend/package.json` + Helm `appVersion`
   must match (`./scripts/check-version.sh`).
 - Tag releases as `vMAJOR.MINOR.PATCH` to run the Release workflow (GHCR + GitHub
-  Release artifacts). See [releasing.md](releasing.md).
+  Release artifacts). See [releasing.md](../dev/releasing.md).
 - `/health` and `/ready` include `"version"`. The UI sidebar footer shows the same
   value from `/health`.
 
@@ -304,7 +304,7 @@ post-upgrade marker is gone while pre-upgrade data/config match. Prune/expiry of
 
 ## Related
 
-- [Releasing (tags, GHCR, install --version)](releasing.md)
+- [Releasing (tags, GHCR, install --version)](../dev/releasing.md)
 - [Migration authoring rules](../../CONTRIBUTING.md#database-migrations)
-- [Admin guide — backups](../admin-guide.md#backups)
+- [Admin guide — backups](../admin-guide.md#upgrades--backups)
 - [First-run setup](first-run-setup.md)

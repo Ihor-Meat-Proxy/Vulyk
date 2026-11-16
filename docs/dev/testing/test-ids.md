@@ -47,7 +47,7 @@ page.locator('[data-testid="case-row"][data-entity-key="VQA-001"]')
 
 ## Typed constants
 
-Source of truth: [`frontend/src/testing/testIds.ts`](../../frontend/src/testing/testIds.ts)
+Source of truth: [`frontend/src/testing/testIds.ts`](../../../frontend/src/testing/testIds.ts)
 
 - Components import `TestIds` and spread helpers from `frontend/src/testing` (`testIdProps`, `listItemProps`).
 - E2e imports the same module: `import { TestIds } from '../../frontend/src/testing/testIds'`.

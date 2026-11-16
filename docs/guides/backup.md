@@ -10,8 +10,7 @@ Vulyk supports two complementary backup layers:
 | Destinations | Local `./backups/` (install script) | Local volume, GitHub, GitLab, Nextcloud, Google Drive |
 | Use when | Disaster recovery, upgrades | Cross-instance copy, Git history, selective restore |
 
-Design details and Mermaid flows: [docs/backup-design.md](../backup-design.md).  
-DB upgrade path: [guides/upgrade.md](upgrade.md).
+DB upgrade path: [upgrade.md](upgrade.md). Admin overview: [admin-guide.md](../admin-guide.md).
 
 ## Quick start
 
@@ -21,11 +20,34 @@ DB upgrade path: [guides/upgrade.md](upgrade.md).
 4. Select the destination (and optionally a project) → **Back up now**.
 5. Confirm a **success** row in History; use **Download** or **Restore** (dry-run preview first).
 
+## What a content archive contains
+
+Archives declare `schema_version` (`content-1.0`). Typical layout:
+
+```text
+ContentArchive
+├── manifest.json          # ids, scope, checksums, created_at, producer
+├── config.json            # ConfigBundle-compatible subset (lists, fields, project meta, folders)
+├── projects/<key>/
+│   ├── project.json
+│   ├── folders.json
+│   ├── tags.json
+│   ├── cases.json
+│   ├── requirements.json
+│   ├── tombstones.json    # retired case numbers (never reuse)
+│   └── attachments/       # optional binaries
+└── checksums.sha256
+```
+
+Importers migrate known older minors forward; unknown future major versions are rejected.
+
 ## Schedules & change detection
 
 Create a **policy** with schedule `hourly` or `daily`, optional project scope, debounce (default 30 minutes), and retention (`retain_count` / `retain_days`).
 
-The API scheduler (advisory-locked across replicas) only uploads when cases or requirements changed since the last successful backup. Unchanged windows are recorded as `skipped`.
+The API scheduler takes a Postgres advisory lock across replicas and only uploads when cases or requirements changed since the last successful backup (watermark + debounce). Unchanged windows are recorded as `skipped`. Manual **Back up now** bypasses change detection. Job workers claim with `FOR UPDATE SKIP LOCKED`.
+
+Pack modes: `zip` (single archive) or `unpacked` (JSON tree — better Git diffs).
 
 ## Restore modes
 
@@ -35,13 +57,15 @@ The API scheduler (advisory-locked across replicas) only uploads when cases or r
 | `merge` | Match cases/requirements by key; `skip` or `overwrite` conflicts |
 | `replace` | Clear project content (keep memberships), then import |
 
-Custom fields map by key/name; missing definitions and option lists are created. Case keys and **tombstones** are preserved — retired numbers are never reused.
+Custom fields map by key/name; missing definitions and option lists are created. Case keys and **tombstones** are preserved — retired numbers are never reused. Always preview with `dry_run` first.
 
 ## Destinations
 
-Credentials are encrypted with `VULYK_SECRETS_KEY` and **masked** in the UI. Supported kinds: `local`, `github`, `gitlab`, `nextcloud`, `gdrive`. Pack mode `unpacked` writes a JSON tree (better Git diffs); `zip` stores a single archive.
+Credentials are encrypted with `VULYK_SECRETS_KEY` and **masked** in the UI. Supported kinds: `local`, `github`, `gitlab`, `nextcloud`, `gdrive`.
 
-**Local root:** set `VULYK_CONTENT_BACKUP_DIR` (default `./data/content-backups`). Local destination paths must stay under that directory (SSRF / path-escape guard). Outbound GitHub/GitLab/Nextcloud/Drive URLs use the shared egress allowlist; set `VULYK_EGRESS_ALLOW_PRIVATE=1` only for lab/mock servers.
+**Local root:** set `VULYK_CONTENT_BACKUP_DIR` (default `./data/content-backups`). Local destination paths must stay under that directory (path-escape guard). Outbound GitHub/GitLab/Nextcloud/Drive URLs use the shared egress allowlist; set `VULYK_EGRESS_ALLOW_PRIVATE=1` only for lab/mock servers.
+
+Do not embed live integration/LLM API keys in content archives (config export passphrase path remains separate). Treat destination repos as sensitive when attachments are included.
 
 ## API
 
