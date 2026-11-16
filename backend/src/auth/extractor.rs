@@ -401,7 +401,7 @@ pub async fn bearer_middleware(
                             user_id: Some(user.id()),
                         });
                         req.extensions_mut().insert(user);
-                        return next.run(req).await;
+                        next.run(req).await
                     }
                     Err(_) => unauthorized(&msg),
                 }
