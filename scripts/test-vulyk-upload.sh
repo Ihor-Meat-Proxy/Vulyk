@@ -104,13 +104,25 @@ PY
 )"
 PORT="${PORT}" PROJECT_ID="${PROJECT_ID}" RUN_ID="${RUN_ID}" \
   LOG="${WORKDIR}/log.txt" MAX_BODY="${WORKDIR}/max_body.txt" READY="${WORKDIR}/ready" \
-  python3 "${WORKDIR}/server.py" &
+  python3 -u "${WORKDIR}/server.py" &
 SERVER_PID=$!
-for _ in $(seq 1 50); do
-  [[ -s "${WORKDIR}/ready" ]] && break
+ready=0
+i=0
+while [ "${i}" -lt 50 ]; do
+  if [ -s "${WORKDIR}/ready" ]; then
+    ready=1
+    break
+  fi
+  i=$((i + 1))
   sleep 0.05
 done
+if [ "${ready}" -ne 1 ]; then
+  echo "FAIL mock server did not become ready (python3=$(command -v python3))" >&2
+  kill "${SERVER_PID}" 2>/dev/null || true
+  exit 1
+fi
 API="http://127.0.0.1:${PORT}"
+echo "mock API at ${API}"
 
 # J1: --print-run-id + dotenv
 DOT="${WORKDIR}/vulyk.env"
