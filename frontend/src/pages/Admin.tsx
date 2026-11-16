@@ -1386,8 +1386,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           due = now - last > backoffMs
         }
       } else {
-        const backoffMs =
-          Math.min(status.check_interval_hours, 1) * 3600 * 1000
+        const backoffMs = Math.min(status.check_interval_hours, 1) * 3600 * 1000
         due = now - last > backoffMs
       }
     } else if (!due) {

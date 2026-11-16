@@ -73,6 +73,12 @@ fn test_password() -> String {
     format!("upd-{}", uuid::Uuid::new_v4())
 }
 
+/// Serialise tests that mutate shared `updates_*` system_settings keys.
+async fn updates_settings_lock() -> tokio::sync::MutexGuard<'static, ()> {
+    static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    LOCK.lock().await
+}
+
 #[tokio::test]
 async fn updates_status_requires_admin_and_reports_manual() {
     if std::env::var("DATABASE_URL").is_err() {
@@ -173,6 +179,7 @@ async fn updates_status_exposes_persisted_check_error_and_keeps_last_good() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _guard = updates_settings_lock().await;
     let (base, pool) = spawn_app().await;
     let email = format!("updates-err+{}@example.com", uuid::Uuid::new_v4().simple());
     let password = test_password();
@@ -216,6 +223,7 @@ async fn failed_check_records_attempt_time_keeps_last_good() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _guard = updates_settings_lock().await;
     let (_base, pool) = spawn_app().await;
     for (key, value) in [
         ("updates_latest_version", "1.2.3"),
@@ -274,6 +282,7 @@ async fn auto_check_backoff_skips_until_rate_limit_reset() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _guard = updates_settings_lock().await;
     let (base, pool) = spawn_app().await;
     let email = format!("updates-skip+{}@example.com", uuid::Uuid::new_v4().simple());
     let password = test_password();
@@ -320,6 +329,7 @@ async fn successful_check_clears_last_check_error() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _guard = updates_settings_lock().await;
     let (_base, pool) = spawn_app().await;
     for (key, value) in [
         ("updates_latest_version", "0.1.0"),
