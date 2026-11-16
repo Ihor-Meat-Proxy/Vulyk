@@ -708,7 +708,8 @@ export const TestIds = {
   adminSettingsThemeSelect: 'admin-settings-theme-select',
   adminSettingsRegistrationSelect: 'admin-settings-registration-select',
   adminSettingsDefaultRoleSelect: 'admin-settings-default-role-select',
-  adminSettingsCiAllowPrivateCheckbox: 'admin-settings-ci-allow-private-checkbox',
+  adminSettingsCiAllowPrivateCheckbox:
+    'admin-settings-ci-allow-private-checkbox',
   adminSettingsCiAllowlistInput: 'admin-settings-ci-allowlist-input',
   adminSettingsCiPrivateWarning: 'admin-settings-ci-private-warning',
   adminSettingsSaveButton: 'admin-settings-save-button',

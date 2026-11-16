@@ -58,13 +58,14 @@ pub struct InstanceSettings {
     pub registration_mode: RegistrationMode,
     pub default_role: ProjectRole,
     pub allowed_email_domains: Vec<String>,
-    /// Admin opt-in: allow `http://` and private/LAN/localhost CI destinations.
+    /// Admin opt-in: allow plain HTTP and private/LAN/localhost CI destinations.
     /// Off by default. Prefer a non-empty [`Self::ci_url_allowlist`] in production.
+    /// (Avoid scheme literals here — OpenAPI is inlined into /api/docs HTML.)
     #[serde(default)]
     pub ci_allow_private_urls: bool,
     /// Optional hosts / CIDRs that may use the private CI opt-in.
     /// Empty + opt-in = any private/localhost; non-empty = only these entries
-    /// (public `https://` remotes remain allowed either way).
+    /// (public HTTPS remotes remain allowed either way).
     #[serde(default)]
     pub ci_url_allowlist: Vec<String>,
 }
