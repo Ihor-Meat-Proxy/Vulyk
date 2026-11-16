@@ -1,5 +1,7 @@
 # Code quality — coverage, unused deps, prettier, knip, ESLint.
-# See docs/ci-checks.md. Complements ci.yml (fmt/clippy/oxlint/tsc) and security.yml.
+# See docs/dev/ci-checks.md. Complements ci.yml (fmt/clippy/oxlint/tsc) and security.yml.
+# Fast required counterparts: cargo machete + knip also run in ci-fast-gates.yml
+# (stable names for branch protection). Keep llvm-cov / pedantic clippy here.
 
 name: Quality
 

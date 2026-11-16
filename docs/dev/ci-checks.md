@@ -2,18 +2,45 @@
 
 Index of automated gates beyond the narrative in [ci-failures.md](ci-failures.md).
 Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`,
-`./scripts/check-api-coverage.sh`, and `./scripts/check-doc-links.sh`.
+`./scripts/check-quality.sh`, `./scripts/check-shell-docker.sh`,
+`./scripts/check-pr-hygiene.sh`, `./scripts/check-api-coverage.sh`, and
+`./scripts/check-doc-links.sh`.
 
 ## Workflows
 
 | Workflow | File | When | Role |
 | --- | --- | --- | --- |
 | **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, **Migration integrity** verify/lint/upgrade-from-release, upgrade base→PR, frontend, Docker, Playwright, doc links, …) |
-| **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | CVE/deps, containers, SAST, secrets |
+| **Fast CI gates** | `.github/workflows/ci-fast-gates.yml` | PR + push `main` | Required **fast** checks (≤~2 min each, parallel + cached): PR hygiene, shellcheck/hadolint, machete, knip, cargo deny, npm audit, gitleaks |
+| **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | Deeper CVE/deps, containers, SAST, secrets (complements fast gates) |
+| **Quality** | `.github/workflows/quality.yml` | PR + push `main` + weekly | Coverage floors, ESLint/Prettier, pedantic clippy; machete/knip also mirrored as fast required jobs |
 | **Dependabot auto-merge** | `.github/workflows/dependabot-auto-merge.yml` | `pull_request_target` (Dependabot only) | Enables squash auto-merge for **patch** + **≥1.x minor** only; **0.x minor treated as breaking**; majors stay manual |
 | **Release** | `.github/workflows/release.yml` | tags / release | Publish images |
 
 Lighthouse remains **advisory** (`continue-on-error`) inside `ci.yml` — see [ci-failures.md](ci-failures.md).
+
+## Fast CI gates (required)
+
+Stable job names for branch protection (workflow **Fast CI gates**):
+
+| Job name | Tool | Local |
+| --- | --- | --- |
+| `PR hygiene` | Conventional Commits title + `Closes #N` / `Part of #N` in body; **skips** `dependabot[bot]` / `renovate[bot]` | `PR_TITLE=… PR_BODY=… PR_AUTHOR=… ./scripts/check-pr-hygiene.sh` |
+| `Shellcheck + hadolint` | shellcheck on `scripts/*.sh` + extracted Jenkins/GitLab snippets; hadolint on Dockerfiles (baseline: `.hadolint.yaml`) | `./scripts/check-shell-docker.sh` |
+| `cargo machete` | Unused Rust crate deps | `cargo machete` / `./scripts/check-quality.sh --quick` |
+| `knip` | Unused frontend files/deps/duplicates | `(cd frontend && npm run knip)` |
+| `cargo deny` | Advisories + licenses + bans (`deny.toml`) | `cargo deny check` / `./scripts/check-security.sh --quick` |
+| `npm audit` | `npm audit --omit=dev --audit-level=high` for `frontend/` + `e2e/` | same commands locally |
+| `gitleaks` | Secrets scan (`.gitleaks.toml`) | `gitleaks detect --source . --config .gitleaks.toml` |
+
+Already required in **CI** (keep these names stable):
+
+| Job name | Gate |
+| --- | --- |
+| `Backend (fmt, clippy, test)` | `cargo clippy --workspace --all-targets -- -D warnings` (+ fmt/tests) |
+| `Frontend (lint, typecheck, test, build)` | `tsc --noEmit` via `npm run typecheck` (+ oxlint, vitest, test-ids, build) |
+
+**Baselines:** Hadolint ignores live in `.hadolint.yaml` with rationale. Do not weaken cargo deny / gitleaks / knip without a documented exception. Dependabot auto-merge (`.github/workflows/dependabot-auto-merge.yml`) is intentionally unchanged — PR hygiene exempts Dependabot so patch/minor auto-merge keeps working once required checks pass.
 
 ### Doc links (offline)
 
