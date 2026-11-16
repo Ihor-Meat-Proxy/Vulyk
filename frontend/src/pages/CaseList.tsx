@@ -35,6 +35,7 @@ import { CaseStatusIcon } from '../components/CaseStatusIcon'
 import { VirtualList } from '../components/VirtualList'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { enumLabel } from '../i18n/enumLabel'
 import { casePath } from '../lib/caseUrls'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
@@ -694,7 +695,7 @@ export function CaseList({
               className={`priority-bar inline priority-${c.priority}`}
               aria-hidden
             />
-            {c.priority}
+            {enumLabel(t, 'priority', c.priority)}
           </span>
         )
       case 'status':
@@ -704,7 +705,7 @@ export function CaseList({
             {...testIdProps(TestIds.caseRowStatus)}
           >
             <CaseStatusIcon status={c.status} />
-            {c.status}
+            {enumLabel(t, 'status', c.status)}
           </span>
         )
       case 'automated':
@@ -716,7 +717,9 @@ export function CaseList({
       case 'last_run_status':
         return (
           <span {...testIdProps(TestIds.caseRowLastRunStatus)}>
-            {c.last_run_status ? c.last_run_status : t('cases.lastRunNone')}
+            {c.last_run_status
+              ? enumLabel(t, 'status', c.last_run_status)
+              : t('cases.lastRunNone')}
           </span>
         )
       case 'updated_at':
