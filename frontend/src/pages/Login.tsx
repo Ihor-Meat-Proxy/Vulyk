@@ -3,6 +3,7 @@ import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
 import { LanguageMenu } from '../components/LanguageMenu'
 import { PasswordRequirements } from '../components/PasswordRequirements'
+import { VulykLogo } from '../components/VulykLogo'
 import { friendlyErrorMessage } from '../friendlyError'
 import { useI18n } from '../i18n'
 import {
@@ -63,7 +64,7 @@ export function Login() {
         {...testIdProps(TestIds.loginPanel)}
       >
         <div className="brand">
-          <span className="brand-mark">{status?.instance_name || 'Vulyk'}</span>
+          <VulykLogo />
           <span className="brand-tag" {...testIdProps(TestIds.loginBrandTag)}>
             {isBootstrap
               ? t('login.bootstrapTitle')

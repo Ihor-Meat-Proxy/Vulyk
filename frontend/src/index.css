@@ -14,6 +14,12 @@
   --danger: #b42318;
   --focus-ring: #7a5c18;
   --theme-color: #7a5c18;
+  /* Honeycomb mark fills (see VulykLogo). */
+  --brand-honey-1: #e3bb72;
+  --brand-honey-2: #d9a55a;
+  --brand-honey-3: #ddb067;
+  --brand-honey-4: #d6a256;
+  --brand-honey-5: #cf9849;
   --status-passed-fg: #006b4f;
   --status-passed-bg: #d8ede4;
   --status-passed: #009e73;
@@ -198,7 +204,8 @@ select {
 .brand {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.35rem;
+  color: var(--ink);
 }
 
 .brand-mark {
@@ -209,9 +216,53 @@ select {
   color: var(--accent);
 }
 
+.vulyk-logo-link {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 0.35rem;
+}
+
+.vulyk-logo-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.vulyk-logo {
+  display: block;
+  height: 2rem;
+  width: auto;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+.vulyk-logo.mark-only {
+  height: 1.85rem;
+}
+
+.brand .vulyk-logo:not(.mark-only) {
+  height: 2.15rem;
+}
+
+.topbar-brand {
+  display: none;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .brand-tag {
   color: var(--ink-muted);
   font-size: 0.85rem;
+}
+
+/* Brighten honeycomb cells on pure black so they stay clearly visible (AAA). */
+[data-theme='high_contrast'] {
+  --brand-honey-1: #f6d78a;
+  --brand-honey-2: #f0c86a;
+  --brand-honey-3: #f2cf78;
+  --brand-honey-4: #ebc05c;
+  --brand-honey-5: #e5b44a;
 }
 
 .app-version {
@@ -2804,6 +2855,15 @@ button.trend-seg.clickable:focus-visible {
     display: inline-flex;
     align-items: center;
     min-height: 2.5rem;
+  }
+
+  /* Compact mark in the sticky topbar; full logo stays in the drawer. */
+  .topbar-brand {
+    display: inline-flex;
+  }
+
+  .topbar-brand .vulyk-logo {
+    height: 1.75rem;
   }
 
   .bottom-nav {
