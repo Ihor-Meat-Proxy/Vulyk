@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-16
+
+Minor release: in-app user documentation, stability and i18n fixes since 0.3.1,
+and guide links from key workflow cards into `/docs`.
+
+### Added
+
+- **In-app Docs** — Markdown under `docs/user/` rendered at `/docs` (sidebar TOC,
+  search, deep links, offline/self-hosted, bee theme). Gear menu **Docs** item
+  (`docs-menu-link`) next to **API docs** (`api-docs-menu-link`); menu portaled
+  so sticky table headers no longer clip it (#202, #203).
+- **Docs e2e** — open Docs from the menu, navigate TOC, open API docs; assert
+  OpenAPI covers public CI endpoints used in examples (`@VUE-235`, `@VUE-236`)
+  (#205).
+- **Detailed guide links** — shared `DocsLink` on Runs, CI, Import, Generate,
+  Chat, and Executions pointing at the matching `/docs` section (#206).
+- Playwright video recording opt-in via `PW_VIDEO` / `--video` (#199).
+
+### Changed
+
+- Remove competitor product names from UI copy and descriptive docs (keep
+  importer format names); `runs.startHelp` no longer mentions TestRail (#206).
+- Frontend Docker build context is the repo root so `docs/user` can ship in the
+  web image (#202).
+- Env-upgrade CI default previous tag prefers `v0.3.0` when present.
+- Version bump 0.3.1 → 0.4.0 across `VERSION`, Cargo workspace, frontend, and
+  Helm `appVersion`.
+
+### Fixed
+
+- **401 session clear** — invalid/revoked token clears session and lands on
+  `/login` with a session-expired notice (5 locales); do not treat 401 as
+  “API unavailable”; hide empty-projects hint while unauthenticated (#200).
+- Admin Updates: back off auto-check after failures; `?force=true` Retry; show
+  persisted check errors (#196, #193).
+- Case list priority/status enum labels i18n (#197).
+- Login email empty by default; remember last email locally (#198).
+- i18n Latin leftover sweep + CI guard (#201).
+- Unique brand logo link test ids for sidebar and topbar (#195).
+- E2E: reset DB by default and harden leftover-data locators (#194).
+- SSRF remote URL parse unit tests without live DNS (#192).
+- Folder-tree / coverage count spacing from labels (#191).
+
 ## [0.3.1] - 2026-11-15
 
 Patch release: upgrade backup path + version bump after the audit fix/improvement

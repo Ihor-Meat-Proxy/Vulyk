@@ -7,7 +7,7 @@ operators install or upgrade to a published release.
 
 | Location | Role |
 |----------|------|
-| [`VERSION`](../../VERSION) | Canonical semver (`0.3.1`) |
+| [`VERSION`](../../VERSION) | Canonical semver (`0.4.0`) |
 | [`Cargo.toml`](../../Cargo.toml) `[workspace.package].version` | Rust crates (`backend` / `cli` / `mcp` use `version.workspace = true`) |
 | [`frontend/package.json`](../../frontend/package.json) | UI build (`VITE_APP_VERSION` via Vite) |
 | [`deploy/helm/vulyk/Chart.yaml`](../../deploy/helm/vulyk/Chart.yaml) `appVersion` | Helm app semver |
