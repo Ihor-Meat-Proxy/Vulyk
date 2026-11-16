@@ -119,7 +119,8 @@ export function FileDropZone({
         multiple={multiple}
         capture={capture}
         disabled={disabled}
-        aria-label={ariaLabel}
+        // Named by the wrapping <label aria-label>; do not duplicate or
+        // Playwright getByLabel matches both and setInputFiles breaks.
         onChange={onChange}
         {...(inputTestId ? testIdProps(inputTestId) : {})}
       />

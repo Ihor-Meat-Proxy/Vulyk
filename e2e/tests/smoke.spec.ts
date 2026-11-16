@@ -56,9 +56,11 @@ test('smoke: login → case → run → junit → import → report', {
   await expect(page.getByTestId(TestIds.runsPage)).toBeVisible({
     timeout: 30_000,
   })
-  await page.getByLabel('Upload target run').selectOption({ label: runName })
   await page
-    .getByLabel('JUnit XML file')
+    .getByTestId(TestIds.runsUploadRunSelect)
+    .selectOption({ label: runName })
+  await page
+    .getByTestId(TestIds.runsUploadFileInput)
     .setInputFiles(path.join(fixtures, 'sample-junit.xml'))
   await expect(page.getByText(/Ingested \d+ results/i)).toBeVisible({
     timeout: 30_000,
