@@ -906,10 +906,17 @@ async fn insert_run(
         None
     };
 
+    let created_at = chrono::Utc::now();
+    let src = crate::services::display_ids::normalize_run_source(None, Some("sample"), None);
+    let mut tx = pool.begin().await?;
+    let (display_id, slug, seq_number) =
+        crate::services::display_ids::allocate_run_ids(&mut tx, project_id, src, created_at)
+            .await?;
     let run_id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_runs
-             (project_id, name, description, status, source, started_at, finished_at, is_sample)
-           VALUES ($1, $2, $3, $4, 'sample', $5, $6, TRUE)
+             (project_id, name, description, status, source, started_at, finished_at, is_sample,
+              created_at, display_id, slug, seq_number)
+           VALUES ($1, $2, $3, $4, 'sample', $5, $6, TRUE, $7, $8, $9, $10)
            RETURNING id"#,
     )
     .bind(project_id)
@@ -918,8 +925,13 @@ async fn insert_run(
     .bind(&run.status)
     .bind(started_at)
     .bind(finished_at)
-    .fetch_one(pool)
+    .bind(created_at)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
 
     for (sort, result) in run.results.iter().enumerate() {
         let Some(&case_id) = case_ids.get(&result.case_key) else {

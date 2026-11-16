@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   api,
   isAbortError,
@@ -16,6 +16,7 @@ import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
 import { useI18n } from '../i18n'
 import { isLiveRunStatus, LIVE_RUN_POLL_MS } from '../lib/liveRun'
+import { isEntityUuid, runPath, runRef } from '../lib/runUrls'
 import {
   applyUnlessCancelled,
   createStaleGuard,
@@ -59,6 +60,7 @@ function isAbandonableStatus(status: string): boolean {
 
 export function RunDetail({ projectId, onEnsureProject }: Props) {
   const { runId } = useParams()
+  const navigate = useNavigate()
   const { t } = useI18n()
   const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { can } = useProjectPermissions(projectId)
@@ -127,6 +129,14 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
         if (!projectId) return
         await reload(guard)
         applyUnlessCancelled(guard, () => setError(null))
+        if (
+          runId &&
+          isEntityUuid(runId) &&
+          (byId.slug || byId.display_id) &&
+          runRef(byId) !== runId
+        ) {
+          navigate(runPath(byId), { replace: true })
+        }
       } catch (err) {
         if (isAbortError(err) || guard.isCancelled()) return
         applyUnlessCancelled(guard, () =>
@@ -139,7 +149,7 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
     return () => {
       guard.cancel()
     }
-  }, [projectId, runId, onEnsureProject])
+  }, [projectId, runId, onEnsureProject, navigate])
 
   // Poll while the run is live so CI/reporter progress appears without reload.
   const liveStatus = detail?.run.status
@@ -378,6 +388,16 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
           </Link>
         </p>
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
+        {run.display_id ? (
+          <p className="muted" style={{ marginTop: 0 }}>
+            <span
+              {...testIdProps(TestIds.runDisplayId)}
+              title={t('runs.displayId')}
+            >
+              {t('runs.displayId')}: {run.display_id}
+            </span>
+          </p>
+        ) : null}
         <div className="meta-row">
           <StatusBadge status={run.status} testId="run-detail-status-badge" />
           {isLive && (

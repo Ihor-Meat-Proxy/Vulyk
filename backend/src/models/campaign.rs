@@ -16,7 +16,15 @@ pub struct Campaign {
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Human-readable never-reused id, e.g. `VQA-C-3`.
+    pub display_id: String,
+    /// Per-project monotonic sequence (never reused after delete).
+    pub seq_number: i32,
 }
+
+/// Shared SELECT / RETURNING column list for `campaigns` → [`Campaign`].
+pub const CAMPAIGN_COLS: &str =
+    "id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number";
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCampaign {
@@ -51,7 +59,14 @@ pub struct Iteration {
     pub scheduled_end: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Human-readable never-reused id, e.g. `VQA-IT-17`.
+    pub display_id: String,
+    /// Per-project monotonic sequence (never reused after delete).
+    pub seq_number: i32,
 }
+
+/// Shared SELECT / RETURNING column list for `iterations` → [`Iteration`].
+pub const ITERATION_COLS: &str = "id, project_id, campaign_id, name, reference, description, status, mode, cadence, scheduled_start, scheduled_end, created_at, updated_at, display_id, seq_number";
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateIteration {
@@ -177,6 +192,9 @@ pub struct ExecutionsTreeNode {
     pub status: Option<String>,
     pub mode: Option<String>,
     pub parent_id: Option<Uuid>,
+    /// Human-readable id (`VQA-C-3` / `VQA-IT-17`) when available.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub display_id: Option<String>,
     /// Nested campaign/iteration nodes (schema flattened to avoid recursive OpenAPI).
     #[schema(value_type = Vec<Object>)]
     pub children: Vec<ExecutionsTreeNode>,
@@ -210,6 +228,12 @@ pub struct AutomatedSuite {
     pub job_url: Option<String>,
     #[serde(default)]
     pub is_sample: bool,
+    /// Human-readable never-reused id from the underlying test run.
+    #[serde(default)]
+    pub display_id: String,
+    /// Canonical URL slug from the underlying test run.
+    #[serde(default)]
+    pub slug: String,
 }
 
 /// Max page size for campaign/execution list endpoints (service clamps to this).

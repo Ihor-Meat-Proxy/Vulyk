@@ -13,12 +13,15 @@ use crate::models::{
     IterationStatusCounts, PassRatePoint, SlowTestSummary, SuiteResultRow, TestRun, UpdateCampaign,
     UpdateIteration, BLOCKED, FAILED, PASSED, READY, RUNNING, SKIPPED, UNTESTABLE,
 };
+use crate::services::display_ids::{
+    allocate_campaign_ids, allocate_iteration_ids, allocate_run_ids, normalize_run_source,
+};
 
 use crate::models::TEST_RUN_COLS as RUN_COLS;
 
 pub async fn list_campaigns(pool: &PgPool, project_id: Uuid) -> AppResult<Vec<Campaign>> {
     let rows = sqlx::query_as::<_, Campaign>(
-        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at
+        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number
            FROM campaigns WHERE project_id = $1
            ORDER BY sort_order, name"#,
     )
@@ -40,18 +43,24 @@ pub async fn create_campaign(
     if let Some(parent_id) = body.parent_id {
         ensure_campaign(pool, project_id, parent_id).await?;
     }
+    let mut tx = pool.begin().await?;
+    let (display_id, seq_number) = allocate_campaign_ids(&mut tx, project_id).await?;
     let row = sqlx::query_as::<_, Campaign>(
-        r#"INSERT INTO campaigns (project_id, parent_id, name, description, sort_order)
-           VALUES ($1, $2, $3, $4, $5)
-           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at"#,
+        r#"INSERT INTO campaigns
+             (project_id, parent_id, name, description, sort_order, display_id, seq_number)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number"#,
     )
     .bind(project_id)
     .bind(body.parent_id)
     .bind(name)
     .bind(body.description.trim())
     .bind(body.sort_order)
-    .fetch_one(pool)
+    .bind(&display_id)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
     Ok(row)
 }
 
@@ -93,7 +102,7 @@ pub async fn update_campaign(
         r#"UPDATE campaigns
            SET name = $3, description = $4, parent_id = $5, sort_order = $6, updated_at = NOW()
            WHERE project_id = $1 AND id = $2
-           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at"#,
+           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number"#,
     )
     .bind(project_id)
     .bind(id)
@@ -120,7 +129,7 @@ pub async fn delete_campaign(pool: &PgPool, project_id: Uuid, id: Uuid) -> AppRe
 
 pub async fn ensure_campaign(pool: &PgPool, project_id: Uuid, id: Uuid) -> AppResult<Campaign> {
     sqlx::query_as::<_, Campaign>(
-        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at
+        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number
            FROM campaigns WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -140,17 +149,58 @@ pub async fn find_or_create_campaign(
     if name.is_empty() {
         return Err(AppError::BadRequest("name is required".into()));
     }
-    // Race-safe: unique index + ON CONFLICT (NULLS NOT DISTINCT on parent_id).
-    sqlx::query_as::<_, Campaign>(
-        r#"INSERT INTO campaigns (project_id, parent_id, name, description, sort_order)
-           VALUES ($1, $2, $3, '', 0)
-           ON CONFLICT (project_id, parent_id, name) DO UPDATE
-             SET updated_at = campaigns.updated_at
-           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at"#,
+    // Fast path: already exists.
+    if let Some(existing) = sqlx::query_as::<_, Campaign>(
+        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number
+           FROM campaigns
+           WHERE project_id = $1 AND name = $2
+             AND (($3::uuid IS NULL AND parent_id IS NULL) OR parent_id = $3)
+           LIMIT 1"#,
+    )
+    .bind(project_id)
+    .bind(name)
+    .bind(parent_id)
+    .fetch_optional(pool)
+    .await?
+    {
+        return Ok(existing);
+    }
+
+    // Race-safe insert: allocate display id in the same tx; on conflict roll back
+    // so the counter is not burned, then re-select the winner.
+    let mut tx = pool.begin().await?;
+    let (display_id, seq_number) = allocate_campaign_ids(&mut tx, project_id).await?;
+    let inserted = sqlx::query_as::<_, Campaign>(
+        r#"INSERT INTO campaigns
+             (project_id, parent_id, name, description, sort_order, display_id, seq_number)
+           VALUES ($1, $2, $3, '', 0, $4, $5)
+           ON CONFLICT (project_id, parent_id, name) DO NOTHING
+           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number"#,
     )
     .bind(project_id)
     .bind(parent_id)
     .bind(name)
+    .bind(&display_id)
+    .bind(seq_number)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    if let Some(campaign) = inserted {
+        tx.commit().await?;
+        return Ok(campaign);
+    }
+    tx.rollback().await?;
+
+    sqlx::query_as::<_, Campaign>(
+        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at, display_id, seq_number
+           FROM campaigns
+           WHERE project_id = $1 AND name = $2
+             AND (($3::uuid IS NULL AND parent_id IS NULL) OR parent_id = $3)
+           LIMIT 1"#,
+    )
+    .bind(project_id)
+    .bind(name)
+    .bind(parent_id)
     .fetch_one(pool)
     .await
     .map_err(AppError::from)
@@ -164,7 +214,8 @@ pub async fn list_iterations(
     let rows = if let Some(cid) = campaign_id {
         sqlx::query_as::<_, Iteration>(
             r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
-                      cadence, scheduled_start, scheduled_end, created_at, updated_at
+                      cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                      display_id, seq_number
                FROM iterations WHERE project_id = $1 AND campaign_id = $2
                ORDER BY created_at DESC, name"#,
         )
@@ -175,7 +226,8 @@ pub async fn list_iterations(
     } else {
         sqlx::query_as::<_, Iteration>(
             r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
-                      cadence, scheduled_start, scheduled_end, created_at, updated_at
+                      cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                      display_id, seq_number
                FROM iterations WHERE project_id = $1
                ORDER BY created_at DESC, name"#,
         )
@@ -198,13 +250,15 @@ pub async fn create_iteration(
         return Err(AppError::BadRequest("name is required".into()));
     }
     let mut tx = pool.begin().await?;
+    let (display_id, seq_number) = allocate_iteration_ids(&mut tx, project_id).await?;
     let iteration = sqlx::query_as::<_, Iteration>(
         r#"INSERT INTO iterations
              (project_id, campaign_id, name, reference, description, status, mode, cadence,
-              scheduled_start, scheduled_end)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              scheduled_start, scheduled_end, display_id, seq_number)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
            RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
-                     cadence, scheduled_start, scheduled_end, created_at, updated_at"#,
+                     cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                     display_id, seq_number"#,
     )
     .bind(project_id)
     .bind(campaign_id)
@@ -216,6 +270,8 @@ pub async fn create_iteration(
     .bind(body.cadence.trim())
     .bind(body.scheduled_start)
     .bind(body.scheduled_end)
+    .bind(&display_id)
+    .bind(seq_number)
     .fetch_one(&mut *tx)
     .await?;
 
@@ -253,7 +309,8 @@ pub async fn create_iteration(
 pub async fn get_iteration(pool: &PgPool, project_id: Uuid, id: Uuid) -> AppResult<Iteration> {
     sqlx::query_as::<_, Iteration>(
         r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
-                  cadence, scheduled_start, scheduled_end, created_at, updated_at
+                  cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                  display_id, seq_number
            FROM iterations WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -309,7 +366,8 @@ pub async fn update_iteration(
                updated_at = NOW()
            WHERE project_id = $1 AND id = $2
            RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
-                     cadence, scheduled_start, scheduled_end, created_at, updated_at"#,
+                     cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                     display_id, seq_number"#,
     )
     .bind(project_id)
     .bind(id)
@@ -352,30 +410,89 @@ pub async fn find_or_create_iteration(
         return Err(AppError::BadRequest("name is required".into()));
     }
     ensure_campaign(pool, project_id, campaign_id).await?;
-    // Do not stamp Running on create — sync_iteration_item_statuses owns lifecycle.
-    sqlx::query_as::<_, Iteration>(
-        r#"INSERT INTO iterations
-             (project_id, campaign_id, name, reference, description, status, mode, cadence,
-              scheduled_start, scheduled_end)
-           VALUES ($1, $2, $3, $4, '', 'Undefined', 'automated', $5, NULL, NULL)
-           ON CONFLICT (project_id, campaign_id, name) DO UPDATE
-             SET cadence = CASE
-                   WHEN EXCLUDED.cadence <> '' THEN EXCLUDED.cadence
-                   ELSE iterations.cadence
-                 END,
-                 reference = CASE
-                   WHEN EXCLUDED.reference <> '' THEN EXCLUDED.reference
-                   ELSE iterations.reference
-                 END,
-                 updated_at = iterations.updated_at
-           RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
-                     cadence, scheduled_start, scheduled_end, created_at, updated_at"#,
+    let reference = reference.trim();
+    let cadence = cadence.trim();
+
+    if let Some(existing) = sqlx::query_as::<_, Iteration>(
+        r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
+                  cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                  display_id, seq_number
+           FROM iterations
+           WHERE project_id = $1 AND campaign_id = $2 AND name = $3
+           LIMIT 1"#,
     )
     .bind(project_id)
     .bind(campaign_id)
     .bind(name)
-    .bind(reference.trim())
-    .bind(cadence.trim())
+    .fetch_optional(pool)
+    .await?
+    {
+        // Best-effort refresh of cadence/reference when re-attaching (same as J9 upsert).
+        if (!cadence.is_empty() && existing.cadence != cadence)
+            || (!reference.is_empty() && existing.reference != reference)
+        {
+            let updated = sqlx::query_as::<_, Iteration>(
+                r#"UPDATE iterations
+                   SET cadence = CASE WHEN $4 <> '' THEN $4 ELSE cadence END,
+                       reference = CASE WHEN $5 <> '' THEN $5 ELSE reference END,
+                       updated_at = NOW()
+                   WHERE id = $1 AND project_id = $2 AND campaign_id = $3
+                   RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
+                             cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                             display_id, seq_number"#,
+            )
+            .bind(existing.id)
+            .bind(project_id)
+            .bind(campaign_id)
+            .bind(cadence)
+            .bind(reference)
+            .fetch_one(pool)
+            .await?;
+            return Ok(updated);
+        }
+        return Ok(existing);
+    }
+
+    // Do not stamp Running on create — sync_iteration_item_statuses owns lifecycle.
+    let mut tx = pool.begin().await?;
+    let (display_id, seq_number) = allocate_iteration_ids(&mut tx, project_id).await?;
+    let inserted = sqlx::query_as::<_, Iteration>(
+        r#"INSERT INTO iterations
+             (project_id, campaign_id, name, reference, description, status, mode, cadence,
+              scheduled_start, scheduled_end, display_id, seq_number)
+           VALUES ($1, $2, $3, $4, '', 'Undefined', 'automated', $5, NULL, NULL, $6, $7)
+           ON CONFLICT (project_id, campaign_id, name) DO NOTHING
+           RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
+                     cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                     display_id, seq_number"#,
+    )
+    .bind(project_id)
+    .bind(campaign_id)
+    .bind(name)
+    .bind(reference)
+    .bind(cadence)
+    .bind(&display_id)
+    .bind(seq_number)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    if let Some(iteration) = inserted {
+        tx.commit().await?;
+        return Ok(iteration);
+    }
+    tx.rollback().await?;
+
+    sqlx::query_as::<_, Iteration>(
+        r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
+                  cadence, scheduled_start, scheduled_end, created_at, updated_at,
+                  display_id, seq_number
+           FROM iterations
+           WHERE project_id = $1 AND campaign_id = $2 AND name = $3
+           LIMIT 1"#,
+    )
+    .bind(project_id)
+    .bind(campaign_id)
+    .bind(name)
     .fetch_one(pool)
     .await
     .map_err(AppError::from)
@@ -410,6 +527,7 @@ pub async fn executions_tree(
                             status: Some(i.status.clone()),
                             mode: Some(i.mode.clone()),
                             parent_id: Some(c.id),
+                            display_id: Some(i.display_id.clone()),
                             children: vec![],
                         }),
                 );
@@ -421,6 +539,7 @@ pub async fn executions_tree(
                     status: None,
                     mode: None,
                     parent_id: c.parent_id,
+                    display_id: Some(c.display_id.clone()),
                     children,
                 }
             })
@@ -748,6 +867,8 @@ fn suite_from_run(run: TestRun) -> AutomatedSuite {
         pipeline_url: run.pipeline_url,
         job_url: run.job_url,
         is_sample: run.is_sample,
+        display_id: run.display_id,
+        slug: run.slug,
     }
 }
 
@@ -764,11 +885,17 @@ pub async fn create_automated_suite_run(
     artifacts: Value,
 ) -> AppResult<TestRun> {
     get_iteration(pool, project_id, iteration_id).await?;
+    let created_at = Utc::now();
+    let src = normalize_run_source(None, Some(source), None);
+    let mut tx = pool.begin().await?;
+    let (display_id, slug, seq_number) =
+        allocate_run_ids(&mut tx, project_id, src, created_at).await?;
     let run = sqlx::query_as::<_, TestRun>(&format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
-              created_by_name, environment, artifacts, started_at)
-           VALUES ($1, $2, $3, '', 'running', $4, $5, $6, $7, $8, NOW())
+              created_by_name, environment, artifacts, started_at, created_at,
+              display_id, slug, seq_number)
+           VALUES ($1, $2, $3, '', 'running', $4, $5, $6, $7, $8, $9, $9, $10, $11, $12)
            RETURNING {RUN_COLS}"#
     ))
     .bind(project_id)
@@ -779,8 +906,13 @@ pub async fn create_automated_suite_run(
     .bind(created_by_name)
     .bind(environment)
     .bind(artifacts)
-    .fetch_one(pool)
+    .bind(created_at)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
     Ok(run)
 }
 
@@ -1066,12 +1198,18 @@ pub async fn seed_historical_suite(
     };
 
     let updated_at = finished_at.unwrap_or(created_at);
+    let src = normalize_run_source(None, Some("ci"), Some("ci"));
+    let mut tx = pool.begin().await?;
+    let (display_id, slug, seq_number) =
+        allocate_run_ids(&mut tx, project_id, src, created_at).await?;
     let run_id: Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, created_by_name,
               environment, artifacts, pass_count, fail_count, skip_count, blocked_count,
-              duration_ms, started_at, finished_at, created_at, updated_at, is_sample)
-           VALUES ($1, $2, $3, '', $4, 'ci', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $15, TRUE)
+              duration_ms, started_at, finished_at, created_at, updated_at, is_sample,
+              display_id, slug, seq_number)
+           VALUES ($1, $2, $3, '', $4, 'ci', $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $13, $15, TRUE,
+                   $16, $17, $18)
            RETURNING id"#,
     )
     .bind(project_id)
@@ -1089,8 +1227,12 @@ pub async fn seed_historical_suite(
     .bind(created_at)
     .bind(finished_at)
     .bind(updated_at)
-    .fetch_one(pool)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
 
     for (idx, (case_id, status, ms)) in case_results.iter().enumerate() {
         let executed_at = created_at + Duration::seconds((idx as i64) * 15);

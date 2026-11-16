@@ -18,6 +18,7 @@ use crate::routes::automation_repos::decrypt_actions_token;
 use crate::routes::AppState;
 use crate::services::automation_repo as repo_svc;
 use crate::services::automation_repo_remote::{parse_remote, HostKind};
+use crate::services::display_ids::{allocate_run_ids, normalize_run_source};
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -104,9 +105,14 @@ pub async fn create_ci_config(
     .await?;
     ensure_project(&state, project_id).await?;
     let provider = body.provider.trim().to_lowercase();
-    if provider != "github" && provider != "gitlab" {
+    // Inbound / stored configs accept common CI systems; dispatch currently
+    // implements github + gitlab only (see dispatch match below).
+    if !matches!(
+        provider.as_str(),
+        "github" | "gitlab" | "jenkins" | "bitbucket" | "other"
+    ) {
         return Err(AppError::BadRequest(
-            "provider must be 'github' or 'gitlab'".into(),
+            "provider must be 'github', 'gitlab', 'jenkins', 'bitbucket', or 'other'".into(),
         ));
     }
     if body.name.trim().is_empty() {
@@ -309,9 +315,20 @@ pub async fn dispatch_ci(
             include_all_cases: false,
             start: false,
         };
+        let created_at = Utc::now();
+        let src = normalize_run_source(
+            Some(cfg.provider.as_str()),
+            Some(&create.source),
+            Some("ci"),
+        );
+        let mut tx = state.pool.begin().await?;
+        let (display_id, slug, seq_number) =
+            allocate_run_ids(&mut tx, cfg.project_id, src, created_at).await?;
         let run = sqlx::query_as::<_, TestRun>(&format!(
-            r#"INSERT INTO test_runs (project_id, name, status, source, meta, lifecycle)
-               VALUES ($1, $2, $3, $4, $5, 'ci')
+            r#"INSERT INTO test_runs
+                 (project_id, name, status, source, meta, lifecycle, created_at,
+                  display_id, slug, seq_number)
+               VALUES ($1, $2, $3, $4, $5, 'ci', $6, $7, $8, $9)
                RETURNING {cols}"#,
             cols = crate::models::TEST_RUN_COLS
         ))
@@ -320,8 +337,13 @@ pub async fn dispatch_ci(
         .bind(create.status.as_deref().unwrap_or("queued"))
         .bind(create.source)
         .bind(create.meta)
-        .fetch_one(&state.pool)
+        .bind(created_at)
+        .bind(&display_id)
+        .bind(&slug)
+        .bind(seq_number)
+        .fetch_one(&mut *tx)
         .await?;
+        tx.commit().await?;
         Some(run.id)
     };
 
@@ -531,10 +553,16 @@ pub async fn run_in_ci(
     let run_name = body
         .run_name
         .unwrap_or_else(|| format!("CI {}", Utc::now().format("%Y-%m-%d %H:%M")));
+    let created_at = Utc::now();
+    let src = normalize_run_source(Some("github"), Some("ci:github"), Some("ci"));
+    let mut tx = state.pool.begin().await?;
+    let (display_id, slug, seq_number) =
+        allocate_run_ids(&mut tx, project_id, src, created_at).await?;
     let run = sqlx::query_as::<_, TestRun>(&format!(
         r#"INSERT INTO test_runs
-            (project_id, name, status, source, meta, lifecycle, ci_provider, ci_repo, suite_name)
-           VALUES ($1, $2, 'queued', 'ci:github', $3, 'ci', 'github', $4, $2)
+            (project_id, name, status, source, meta, lifecycle, ci_provider, ci_repo, suite_name,
+             created_at, display_id, slug, seq_number)
+           VALUES ($1, $2, 'queued', 'ci:github', $3, 'ci', 'github', $4, $2, $5, $6, $7, $8)
            RETURNING {cols}"#,
         cols = crate::models::TEST_RUN_COLS
     ))
@@ -547,8 +575,13 @@ pub async fn run_in_ci(
         "case_keys": case_keys,
     }))
     .bind(format!("{owner}/{gh_repo}"))
-    .fetch_one(&state.pool)
+    .bind(created_at)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await?;
+    tx.commit().await?;
 
     // Attach run_items for selected cases (lookup by key).
     for key in &case_keys {

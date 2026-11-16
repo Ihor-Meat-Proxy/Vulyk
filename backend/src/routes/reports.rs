@@ -20,6 +20,7 @@ use crate::models::{
 };
 use crate::routes::AppState;
 use crate::services::cases::ensure_project;
+use crate::services::display_ids::resolve_run_id;
 use crate::services::{reports, run_reports};
 
 pub fn router() -> Router<AppState> {
@@ -105,8 +106,9 @@ pub async fn project_dashboard(
 pub async fn run_summary(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<RunSummaryReport>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -135,8 +137,9 @@ pub async fn run_summary(
 pub async fn run_report_detail(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<RunReportDetail>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -166,9 +169,10 @@ pub async fn run_report_detail(
 pub async fn run_case_results(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Query(q): Query<RunResultsQuery>,
 ) -> AppResult<Json<RunCaseResultsPage>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -198,8 +202,9 @@ pub async fn run_case_results(
 pub async fn run_case_expand(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id, case_id)): Path<(Uuid, Uuid, Uuid)>,
+    Path((project_id, run_id_param, case_id)): Path<(Uuid, String, Uuid)>,
 ) -> AppResult<Json<RunCaseResultExpand>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -229,9 +234,10 @@ pub async fn run_case_expand(
 pub async fn run_groups(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Query(q): Query<RunGroupsQuery>,
 ) -> AppResult<Json<RunResultGroups>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,

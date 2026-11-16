@@ -46,6 +46,12 @@ pub struct TestRun {
     /// Seeded demo run (admin sample-data remove targets these).
     #[serde(default)]
     pub is_sample: bool,
+    /// Human-readable never-reused id, e.g. `VQA-R-42`.
+    pub display_id: String,
+    /// Canonical URL slug, e.g. `VQA-R-jenkins-42-20261116T163512Z`.
+    pub slug: String,
+    /// Per-project monotonic sequence (never reused after delete).
+    pub seq_number: i32,
 }
 
 fn default_lifecycle() -> String {
@@ -53,7 +59,7 @@ fn default_lifecycle() -> String {
 }
 
 /// Shared SELECT / RETURNING column list for `test_runs` → [`TestRun`].
-pub const TEST_RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at, suite_name, ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url, lifecycle, is_sample";
+pub const TEST_RUN_COLS: &str = "id, project_id, plan_id, iteration_id, name, description, status, source, external_ref, meta, created_by_name, environment, artifacts, pass_count, fail_count, skip_count, blocked_count, duration_ms, started_at, finished_at, created_at, updated_at, suite_name, ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url, lifecycle, is_sample, display_id, slug, seq_number";
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow, ToSchema)]
 pub struct RunItem {

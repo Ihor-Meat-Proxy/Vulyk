@@ -4,13 +4,13 @@ use axum::{
     Json, Router,
 };
 use serde_json::json;
-use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::ingest::parse_payload_with_project;
 use crate::models::{BulkResultsRequest, BulkResultsResponse, IngestRequest, IngestResponse};
 use crate::routes::AppState;
+use crate::services::display_ids::resolve_run_id;
 use crate::services::{ingest as ingest_svc, jobs as jobs_svc};
 
 pub fn router() -> Router<AppState> {
@@ -23,7 +23,7 @@ pub fn router() -> Router<AppState> {
     post,
     path = "/api/v1/runs/{id}/results:bulk",
     tag = "ingest",
-    params(("id" = Uuid, Path, description = "Run id")),
+    params(("id" = String, Path, description = "Run UUID, display_id, or slug")),
     request_body = BulkResultsRequest,
     responses((status = 200, description = "Bulk insert summary", body = BulkResultsResponse)),
     security(("bearer_auth" = []))
@@ -31,12 +31,13 @@ pub fn router() -> Router<AppState> {
 pub async fn bulk_results(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path(id): Path<Uuid>,
+    Path(id_param): Path<String>,
     Json(body): Json<BulkResultsRequest>,
 ) -> AppResult<Json<BulkResultsResponse>> {
     if body.results.is_empty() {
         return Err(AppError::BadRequest("results must not be empty".into()));
     }
+    let id = resolve_run_id(&state.pool, None, &id_param).await?;
     let project_id = ingest_svc::ensure_run_exists(&state.pool, id).await?;
     require_permission(
         &state.pool,
@@ -90,7 +91,7 @@ pub async fn bulk_results(
     post,
     path = "/api/v1/runs/{id}/ingest",
     tag = "ingest",
-    params(("id" = Uuid, Path, description = "Run id")),
+    params(("id" = String, Path, description = "Run UUID, display_id, or slug")),
     request_body = IngestRequest,
     responses((status = 200, description = "Ingest summary", body = IngestResponse)),
     security(("bearer_auth" = []))
@@ -98,9 +99,10 @@ pub async fn bulk_results(
 pub async fn ingest(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path(id): Path<Uuid>,
+    Path(id_param): Path<String>,
     Json(body): Json<IngestRequest>,
 ) -> AppResult<Json<IngestResponse>> {
+    let id = resolve_run_id(&state.pool, None, &id_param).await?;
     let project_id = ingest_svc::ensure_run_exists(&state.pool, id).await?;
     require_permission(
         &state.pool,

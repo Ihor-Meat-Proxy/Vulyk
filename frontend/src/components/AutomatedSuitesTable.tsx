@@ -285,11 +285,19 @@ export function AutomatedSuitesTable({
                     >
                       <td>
                         <Link
-                          to={`/executions/runs/${suite.id}`}
+                          to={`/executions/runs/${encodeURIComponent(suite.slug || suite.display_id || suite.id)}`}
                           {...testIdProps(TestIds.automatedSuiteNameLink)}
                         >
                           {suite.suite_name || suite.name}
                         </Link>
+                        {suite.display_id ? (
+                          <div
+                            className="muted"
+                            {...testIdProps(TestIds.runRowDisplayId)}
+                          >
+                            {suite.display_id}
+                          </div>
+                        ) : null}
                         {suite.is_sample ? (
                           <>
                             {' '}

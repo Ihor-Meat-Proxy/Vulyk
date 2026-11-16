@@ -11,6 +11,7 @@ pub mod cases;
 pub mod chat_propose;
 pub mod config_bundle;
 pub mod custom_fields;
+pub mod display_ids;
 pub mod egress;
 pub mod ingest;
 pub mod jobs;

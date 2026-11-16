@@ -75,7 +75,7 @@ function TreeNode({
           type="button"
           className="exec-tree-label"
           onClick={() => {
-            if (isIteration) onSelectIteration(node.id)
+            if (isIteration) onSelectIteration(node.display_id || node.id)
             else setOpen((v) => !v)
           }}
           {...listChildProps(TestIds.executionNode, 'label')}

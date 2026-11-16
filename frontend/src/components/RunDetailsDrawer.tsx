@@ -140,7 +140,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                 jobUrl={suite.job_url}
               />
               <Link
-                to={`/executions/runs/${suite.id}`}
+                to={`/executions/runs/${encodeURIComponent(suite.slug || suite.display_id || suite.id)}`}
                 {...testIdProps(TestIds.runDetailsDrawerLink)}
               >
                 {t('executions.details')}
@@ -214,7 +214,7 @@ export function RunDetailsDrawer({ projectId, suite, open, onClose }: Props) {
                       {row.case_id ? (
                         <p>
                           <Link
-                            to={`/executions/runs/${suite.id}/cases/${row.case_id}`}
+                            to={`/executions/runs/${encodeURIComponent(suite.slug || suite.display_id || suite.id)}/cases/${row.case_id}`}
                             {...listChildProps(
                               TestIds.runDetailsResultRow,
                               'execution-link',

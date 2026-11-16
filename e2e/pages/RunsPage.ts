@@ -43,9 +43,11 @@ export class RunsPage {
     await this.page
       .getByTestId(TestIds.runRow)
       .filter({ hasText: name })
-      .getByTestId(TestIds.runRowName)
+      .getByTestId(TestIds.runRowLink)
       .click()
-    await expect(this.page.getByTestId(TestIds.runDetailPanel)).toBeVisible()
+    await expect(this.page.getByTestId(TestIds.runDetailPanel)).toBeVisible({
+      timeout: 20_000,
+    })
   }
 
   async executeStatus(status: 'Passed' | 'Failed' | 'Blocked' | 'Skipped') {

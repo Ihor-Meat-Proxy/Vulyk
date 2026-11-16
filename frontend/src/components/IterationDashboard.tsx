@@ -262,6 +262,13 @@ export function IterationDashboard({
               </span>
             ) : null}
           </h2>
+          {iteration.display_id ? (
+            <p className="muted" style={{ margin: '0.15rem 0' }}>
+              <span {...testIdProps(TestIds.iterationDisplayId)}>
+                {t('executions.iterationDisplayId')}: {iteration.display_id}
+              </span>
+            </p>
+          ) : null}
           <div className="meta-row">
             <StatusBadge status={iteration.status} />
             <span className="muted">{iteration.mode}</span>

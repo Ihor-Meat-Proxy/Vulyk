@@ -416,6 +416,11 @@ export type TestRun = {
   job_url?: string | null
   lifecycle?: string
   is_sample?: boolean
+  /** Human-readable never-reused id, e.g. VQA-R-42. */
+  display_id?: string
+  /** Canonical URL slug, e.g. VQA-R-jenkins-42-20261116T163512Z. */
+  slug?: string
+  seq_number?: number
 }
 
 export type RunProgress = {
@@ -528,6 +533,9 @@ export type Campaign = {
   sort_order: number
   created_at: string
   updated_at: string
+  /** Human-readable never-reused id, e.g. VQA-C-3. */
+  display_id?: string
+  seq_number?: number
 }
 
 export type CreateCampaign = {
@@ -558,6 +566,9 @@ export type Iteration = {
   scheduled_end: string | null
   created_at: string
   updated_at: string
+  /** Human-readable never-reused id, e.g. VQA-IT-17. */
+  display_id?: string
+  seq_number?: number
 }
 
 export type CreateIteration = {
@@ -641,6 +652,7 @@ export type ExecutionsTreeNode = {
   status: string | null
   mode: string | null
   parent_id: string | null
+  display_id?: string | null
   children: ExecutionsTreeNode[]
 }
 
@@ -668,6 +680,8 @@ export type AutomatedSuite = {
   pipeline_url?: string | null
   job_url?: string | null
   is_sample?: boolean
+  display_id?: string
+  slug?: string
 }
 
 export type AutomatedSuitesParams = {
