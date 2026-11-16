@@ -135,7 +135,7 @@ grep -qi 'run-id' "${WORKDIR}/no-run.txt" || {
   fail=$((fail + 1))
 }
 
-# J2: close with project-key (must not hit /projects/_/… or POST /runs/{id})
+# J2: close with project-key (must not hit /projects/_/... or POST /runs/{id})
 : > "${WORKDIR}/log.txt"
 "${SCRIPT}" --api-url "${API}" --project-key KOC --close-run --run-id "${RUN_ID}" >/dev/null
 if grep -q '/projects/_/' "${WORKDIR}/log.txt"; then

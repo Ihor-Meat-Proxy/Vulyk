@@ -43,7 +43,7 @@ Options:
   --async                Force async ingest
   --print-run-id         On --open-run: print only the run UUID on stdout
   --run-id-file PATH     Write the opened run id to PATH (also for open-run)
-  --dotenv-file PATH     Append VULYK_RUN_ID=… for GitLab dotenv / generic CI
+  --dotenv-file PATH     Append VULYK_RUN_ID=... for GitLab dotenv / generic CI
   --help                 Show this help
 
 Open-run exports the run id via (when applicable):
@@ -418,7 +418,7 @@ print(d.get("id") or d["run"]["id"])')"
   fi
 
   if [[ -z "${RUN_ID}" ]]; then
-    echo "error: empty run id — refuse to upload" >&2
+    echo "error: empty run id - refuse to upload" >&2
     exit 2
   fi
 
