@@ -16,7 +16,9 @@ Open **Runs** (`/runs`). You need **manage plans** to create plans; **execute ru
 1. Enter a run name.
 2. Optionally select a **plan** and/or **suite/folder**.
 3. If neither plan nor suite is selected, the run can include **all cases**.
-4. Create the run and open it at `/runs/{id}`.
+4. Create the run and open it at `/runs/{slug}` (human-readable id such as
+   `VQA-R-manual-12-20261116T163512Z`). Old UUID bookmarks still work and
+   redirect to the canonical slug.
 
 ### Execute manually
 
@@ -58,7 +60,9 @@ Open **Executions** (`/executions`).
 2. **Dashboard** — status donut, pass-rate trend, flaky/slowest tests, editable schedule and cadence.
 3. **Automated suites** — filterable table (created on/by, duration, pass/fail counts), Details drawer, report/artifact links, delete/rerun by RBAC.
 4. Suite Details — per-case results with environment, expandable errors, link to case.
-5. Deep links: `/executions/iterations/{id}`, `/executions/runs/{runId}`, `/executions/runs/{runId}/cases/{caseId}`.
+5. Deep links use display ids / slugs (UUID still accepted):
+   `/executions/iterations/{display_id}`, `/executions/runs/{slug}`,
+   `/executions/runs/{slug}/cases/{caseId}`. Iterations show ids like `VQA-IT-17`.
 
 ### Permissions (Executions)
 
