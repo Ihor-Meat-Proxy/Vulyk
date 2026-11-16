@@ -58,6 +58,8 @@ type Props = {
   label?: string
   id?: string
   testId?: string
+  /** data-testid on the home Link (must be unique when both sidebar + topbar mount). */
+  linkTestId?: string
 }
 
 /** Honeycomb-V mark + optional wordmark (currentColor → theme ink). */
@@ -68,6 +70,7 @@ export function VulykLogo({
   label,
   id,
   testId = TestIds.brandLogo,
+  linkTestId = TestIds.brandLogoLinkSidebar,
 }: Props) {
   const { t } = useI18n()
   const name = label ?? t('brand.name')
@@ -117,7 +120,7 @@ export function VulykLogo({
       to="/"
       className="vulyk-logo-link"
       aria-label={t('a11y.brandHome')}
-      {...testIdProps(TestIds.brandLogoLink)}
+      {...testIdProps(linkTestId)}
     >
       {svg}
     </Link>

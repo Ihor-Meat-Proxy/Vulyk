@@ -14,7 +14,10 @@ export const TestIds = {
   appShell: 'app-shell',
   appVersion: 'app-version',
   brandLogo: 'brand-logo',
-  brandLogoLink: 'brand-logo-link',
+  /** @deprecated Prefer brandLogoLinkSidebar / brandLogoLinkTopbar (unique per shell). */
+  brandLogoLink: 'brand-logo-link-sidebar',
+  brandLogoLinkSidebar: 'brand-logo-link-sidebar',
+  brandLogoLinkTopbar: 'brand-logo-link-topbar',
   headerBrandLogo: 'header-brand-logo',
   headerMenuToggle: 'header-menu-toggle',
   headerProjectSelect: 'header-project-select',
