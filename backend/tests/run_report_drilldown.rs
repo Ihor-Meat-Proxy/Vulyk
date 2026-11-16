@@ -447,8 +447,7 @@ async fn run_report_prefers_pipeline_url_column() {
         .await
         .unwrap();
     assert_eq!(
-        detail["pipeline_url"],
-        "https://jenkins.example/job/demo/42/",
+        detail["pipeline_url"], "https://jenkins.example/job/demo/42/",
         "report detail must surface test_runs.pipeline_url (not only meta)"
     );
 }
