@@ -22,6 +22,7 @@ import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
+  onEnsureProject?: (projectId: string) => void
 }
 
 const STEP_STATUSES = RESULT_STATUSES.filter((s) => s !== 'Retest')
@@ -53,7 +54,7 @@ function isAbandonableStatus(status: string): boolean {
   return s === 'in_progress' || s === 'running'
 }
 
-export function RunDetail({ projectId }: Props) {
+export function RunDetail({ projectId, onEnsureProject }: Props) {
   const { runId } = useParams()
   const { t } = useI18n()
   const { can } = useProjectPermissions(projectId)
@@ -105,27 +106,36 @@ export function RunDetail({ projectId }: Props) {
   }
 
   useEffect(() => {
-    if (!projectId || !runId) {
+    if (!runId) {
       setLoading(false)
       return
     }
     const guard = createStaleGuard()
     setLoading(true)
-    reload(guard)
-      .then(() => {
+    ;(async () => {
+      try {
+        const byId = await api.getRunById(runId, { signal: guard.signal })
+        if (guard.isCancelled()) return
+        if (byId.project_id !== projectId) {
+          onEnsureProject?.(byId.project_id)
+          return
+        }
+        if (!projectId) return
+        await reload(guard)
         applyUnlessCancelled(guard, () => setError(null))
-      })
-      .catch((err: Error) => {
+      } catch (err) {
         if (isAbortError(err) || guard.isCancelled()) return
-        applyUnlessCancelled(guard, () => setError(err.message))
-      })
-      .finally(() => {
+        applyUnlessCancelled(guard, () =>
+          setError(err instanceof Error ? err.message : String(err)),
+        )
+      } finally {
         applyUnlessCancelled(guard, () => setLoading(false))
-      })
+      }
+    })()
     return () => {
       guard.cancel()
     }
-  }, [projectId, runId])
+  }, [projectId, runId, onEnsureProject])
 
   // Poll while the run is live so CI/reporter progress appears without reload.
   const liveStatus = detail?.run.status

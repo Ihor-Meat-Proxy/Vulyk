@@ -261,7 +261,14 @@ export default function App() {
           />
           <Route
             path="runs/:runId"
-            element={<RunDetail projectId={activeProjectId} />}
+            element={
+              <RunDetail
+                projectId={activeProjectId}
+                onEnsureProject={(id) => {
+                  if (id !== projectId) setProjectId(id)
+                }}
+              />
+            }
           />
           <Route
             path="executions"
@@ -273,11 +280,25 @@ export default function App() {
           />
           <Route
             path="executions/runs/:runId"
-            element={<ExecutionPage projectId={activeProjectId} />}
+            element={
+              <ExecutionPage
+                projectId={activeProjectId}
+                onEnsureProject={(id) => {
+                  if (id !== projectId) setProjectId(id)
+                }}
+              />
+            }
           />
           <Route
             path="executions/runs/:runId/cases/:caseId"
-            element={<ExecutionPage projectId={activeProjectId} />}
+            element={
+              <ExecutionPage
+                projectId={activeProjectId}
+                onEnsureProject={(id) => {
+                  if (id !== projectId) setProjectId(id)
+                }}
+              />
+            }
           />
           <Route path="ci" element={<Runs projectId={activeProjectId} />} />
           <Route
@@ -286,7 +307,14 @@ export default function App() {
           />
           <Route
             path="reports/runs/:runId"
-            element={<RunReportDetail projectId={activeProjectId} />}
+            element={
+              <RunReportDetail
+                projectId={activeProjectId}
+                onEnsureProject={(id) => {
+                  if (id !== projectId) setProjectId(id)
+                }}
+              />
+            }
           />
           <Route
             path="reports/coverage"

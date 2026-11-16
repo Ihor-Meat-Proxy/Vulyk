@@ -24,6 +24,7 @@ import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
+  onEnsureProject?: (projectId: string) => void
 }
 
 const PAGE_SIZE = 50
@@ -43,7 +44,7 @@ function comparisonClass(c: string | null): string {
   return `comparison-pill comparison-${c}`
 }
 
-export function RunReportDetail({ projectId }: Props) {
+export function RunReportDetail({ projectId, onEnsureProject }: Props) {
   const { runId } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -118,9 +119,15 @@ export function RunReportDetail({ projectId }: Props) {
   )
 
   const refresh = useCallback(async () => {
-    if (!projectId || !runId) return
+    if (!runId) return
     setBusy(true)
     try {
+      const byId = await api.getRunById(runId)
+      if (byId.project_id !== projectId) {
+        onEnsureProject?.(byId.project_id)
+        return
+      }
+      if (!projectId) return
       const d = await api.getRunReportDetail(projectId, runId)
       setDetail(d)
       if (groupBy) {
@@ -147,7 +154,7 @@ export function RunReportDetail({ projectId }: Props) {
     } finally {
       setBusy(false)
     }
-  }, [projectId, runId, groupBy, listParams])
+  }, [projectId, runId, groupBy, listParams, onEnsureProject])
 
   useEffect(() => {
     void refresh()

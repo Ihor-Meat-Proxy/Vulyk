@@ -20,10 +20,12 @@ import { formatTimestamp } from '../timezone'
 
 type Props = {
   projectId: string | null
+  /** Switch the shell project when a deep-linked run belongs elsewhere. */
+  onEnsureProject?: (projectId: string) => void
 }
 
 /** Suite-focused run view and optional case execution (#N) detail. */
-export function ExecutionPage({ projectId }: Props) {
+export function ExecutionPage({ projectId, onEnsureProject }: Props) {
   const { runId, caseId } = useParams()
   const { t } = useI18n()
   const { user, status: authStatus } = useAuth()
@@ -43,17 +45,29 @@ export function ExecutionPage({ projectId }: Props) {
     })
 
   useEffect(() => {
-    if (!projectId || !runId) {
+    if (!runId) {
       setLoading(false)
       return
     }
     let cancelled = false
     setLoading(true)
-    Promise.all([
-      api.getRun(projectId, runId),
-      api.listSuiteResults(projectId, runId, { limit: 100, offset: 0 }),
-    ])
-      .then(async ([detail, page]) => {
+    ;(async () => {
+      try {
+        // Resolve owning project for deep links before project-scoped fetches.
+        const byId = await api.getRunById(runId)
+        if (cancelled) return
+        if (byId.project_id !== projectId) {
+          onEnsureProject?.(byId.project_id)
+          return
+        }
+        if (!projectId) {
+          setLoading(false)
+          return
+        }
+        const [detail, page] = await Promise.all([
+          api.getRun(projectId, runId),
+          api.listSuiteResults(projectId, runId, { limit: 100, offset: 0 }),
+        ])
         if (cancelled) return
         setRunDetail(detail)
         setResults(page.items)
@@ -142,17 +156,18 @@ export function ExecutionPage({ projectId }: Props) {
         } else {
           setActive(null)
         }
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message)
-      })
-      .finally(() => {
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : String(err))
+        }
+      } finally {
         if (!cancelled) setLoading(false)
-      })
+      }
+    })()
     return () => {
       cancelled = true
     }
-  }, [projectId, runId, caseId])
+  }, [projectId, runId, caseId, onEnsureProject])
 
   // Light poll: refresh suite shell + results while the run is live.
   const isLive = isLiveRunStatus(runDetail?.run.status)
