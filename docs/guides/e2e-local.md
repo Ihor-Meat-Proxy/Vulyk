@@ -34,12 +34,18 @@ Traces / failures: `e2e/artifacts/test-results/`
 ./scripts/e2e-local.sh --build          # rebuild api/web images
 ./scripts/e2e-local.sh --sync           # upsert VUE project + cases before run
 ./scripts/e2e-local.sh --report         # sync + mint CI token + post results into VUE
-./scripts/e2e-local.sh --repeat 3       # flake gate (must be green 3×)
+./scripts/e2e-local.sh --repeat 3       # flake gate (must be green 3×; wipe once at start)
+./scripts/e2e-local.sh --keep-data      # reuse e2e DB volume (default wipes volumes first)
 ./scripts/e2e-local.sh --ui             # Playwright UI mode
-./scripts/e2e-local.sh -- down          # stop stack (keep volume)
-./scripts/e2e-local.sh --reset          # stop stack and delete e2e volume
+./scripts/e2e-local.sh --down           # stop stack (keep volume)
+./scripts/e2e-local.sh --reset          # stop stack and delete e2e volume (exit)
 ./scripts/e2e-local.sh -- tests/auth.spec.ts   # pass-through Playwright args
 ```
+
+By default each invocation **wipes the e2e Compose volumes** before `up`, so
+leftover projects / automation repos / backups from earlier runs cannot poison
+locators. Pass `--keep-data` to skip the wipe. `--reset` still means wipe-and-exit
+without running Playwright.
 
 Compose file: [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml).
 

@@ -3,14 +3,20 @@
 # Never touches the operator's .env or the default vulyk_pg / vulyk_pg_dev volumes.
 #
 # Usage:
-#   ./scripts/e2e-local.sh              # up stack, run suite, leave stack up
+#   ./scripts/e2e-local.sh              # wipe e2e volume, up stack, run suite, leave stack up
+#   ./scripts/e2e-local.sh --keep-data  # reuse existing e2e DB volume (skip wipe)
 #   ./scripts/e2e-local.sh --build      # force rebuild api/web images
 #   ./scripts/e2e-local.sh --sync       # create/sync VUE project + cases before run
 #   ./scripts/e2e-local.sh --report     # sync + mint CI token + post results to VUE
 #   ./scripts/e2e-local.sh --ui         # Playwright UI mode (needs local display/X11)
 #   ./scripts/e2e-local.sh --down       # stop stack (keeps e2e volume)
-#   ./scripts/e2e-local.sh --reset      # stop stack AND delete e2e DB volume
-#   ./scripts/e2e-local.sh --repeat 3   # run the suite N times (flake gate)
+#   ./scripts/e2e-local.sh --reset      # stop stack AND delete e2e DB volume (exit)
+#   ./scripts/e2e-local.sh --repeat 3   # run the suite N times (flake gate; wipe once at start)
+#
+# Isolation: by default each invocation resets the e2e Compose volumes before
+# bringing the stack up, so leftover projects/repos/backups from prior runs
+# cannot poison locators. Use --keep-data to skip that wipe. --repeat reuses
+# the same fresh volume across iterations (wipe once at start, not per loop).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,12 +34,13 @@ DO_REPORT=0
 DO_UI=0
 DO_DOWN=0
 DO_RESET=0
+DO_KEEP_DATA=0
 DO_RUN=1
 REPEAT=1
 EXTRA_PW_ARGS=()
 
 usage() {
-  sed -n '2,16p' "$0" | sed 's/^# \?//'
+  sed -n '2,22p' "$0" | sed 's/^# \?//'
   exit "${1:-0}"
 }
 
@@ -46,6 +53,7 @@ while [[ $# -gt 0 ]]; do
     --ui) DO_UI=1; shift ;;
     --down) DO_DOWN=1; DO_RUN=0; shift ;;
     --reset) DO_RESET=1; DO_RUN=0; shift ;;
+    --keep-data) DO_KEEP_DATA=1; shift ;;
     --repeat)
       REPEAT="${2:?--repeat needs a number}"
       shift 2
@@ -255,6 +263,15 @@ if [[ "$DO_DOWN" -eq 1 ]]; then
   echo "==> Stopping e2e stack (volume kept)"
   "${COMPOSE[@]}" --profile playwright down --remove-orphans || true
   exit 0
+fi
+
+# Default: wipe e2e volumes once at start so prior-run leftovers cannot flake
+# the suite. --keep-data skips this; --repeat still only wipes once here.
+if [[ "$DO_KEEP_DATA" -eq 0 ]]; then
+  echo "==> Wiping e2e volumes for a clean run (pass --keep-data to reuse)"
+  "${COMPOSE[@]}" --profile playwright down -v --remove-orphans || true
+else
+  echo "==> Keeping existing e2e volumes (--keep-data)"
 fi
 
 compose_up
