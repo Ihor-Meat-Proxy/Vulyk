@@ -112,7 +112,7 @@ ensure_env() {
 
 # Some Cloud / nested-Docker hosts drop bridge forwards unless DOCKER-USER allows
 # them. When iptables-nft and iptables-legacy both exist, Docker may write nft
-# rules while the kernel still enforces a legacy FORWARD DROP — fix both.
+# rules while the kernel still enforces a legacy FORWARD DROP -- fix both.
 ensure_docker_forward() {
   local ipt
   for ipt in iptables iptables-nft iptables-legacy; do
