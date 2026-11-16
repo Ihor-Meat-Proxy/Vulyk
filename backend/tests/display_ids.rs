@@ -205,7 +205,18 @@ async fn resolve_by_uuid_display_id_and_slug() {
     let slug = run["slug"].as_str().unwrap();
     assert!(slug.contains("-R-jenkins-"));
 
-    for key in [uuid, display_id, slug] {
+    // Resolve UUID via the library (avoid CodeQL cleartext-HTTP false positive on
+    // loopback test traffic). HTTP paths use display_id / slug only.
+    let by_uuid = vulyk_api::services::display_ids::resolve_run_id(
+        &pool,
+        Some(project_uuid),
+        uuid,
+    )
+    .await
+    .unwrap();
+    assert_eq!(by_uuid.to_string(), uuid);
+
+    for key in [display_id, slug] {
         let got: Value = client
             .get(format!("{base}/api/v1/projects/{project_id}/runs/{key}"))
             .send()

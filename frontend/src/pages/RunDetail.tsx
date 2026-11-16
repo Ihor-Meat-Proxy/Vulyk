@@ -390,7 +390,10 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
         <h2 style={{ marginTop: 0 }}>{run.name}</h2>
         {run.display_id ? (
           <p className="muted" style={{ marginTop: 0 }}>
-            <span {...testIdProps(TestIds.runDisplayId)} title={t('runs.displayId')}>
+            <span
+              {...testIdProps(TestIds.runDisplayId)}
+              title={t('runs.displayId')}
+            >
               {t('runs.displayId')}: {run.display_id}
             </span>
           </p>
