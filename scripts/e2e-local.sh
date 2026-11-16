@@ -9,6 +9,7 @@
 #   ./scripts/e2e-local.sh --sync       # create/sync VUE project + cases before run
 #   ./scripts/e2e-local.sh --report     # sync + mint CI token + post results to VUE
 #   ./scripts/e2e-local.sh --ui         # Playwright UI mode (needs local display/X11)
+#   ./scripts/e2e-local.sh --video      # record video (PW_VIDEO=on; or --video=retain-on-failure)
 #   ./scripts/e2e-local.sh --down       # stop stack (keeps e2e volume)
 #   ./scripts/e2e-local.sh --reset      # stop stack AND delete e2e DB volume (exit)
 #   ./scripts/e2e-local.sh --repeat 3   # run the suite N times (flake gate; wipe once at start)
@@ -17,6 +18,10 @@
 # bringing the stack up, so leftover projects/repos/backups from prior runs
 # cannot poison locators. Use --keep-data to skip that wipe. --repeat reuses
 # the same fresh volume across iterations (wipe once at start, not per loop).
+#
+# Video (opt-in): --video or --video=MODE exports PW_VIDEO into the Playwright
+# container. MODE is on | retain-on-failure | off (default off). Bare --video
+# means on. Videos land under e2e/artifacts/test-results/.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -37,10 +42,12 @@ DO_RESET=0
 DO_KEEP_DATA=0
 DO_RUN=1
 REPEAT=1
+# Playwright video mode passed as PW_VIDEO (on|retain-on-failure|off). Empty = off.
+PW_VIDEO="${PW_VIDEO:-}"
 EXTRA_PW_ARGS=()
 
 usage() {
-  sed -n '2,22p' "$0" | sed 's/^# \?//'
+  sed -n '2,26p' "$0" | sed 's/^# \?//'
   exit "${1:-0}"
 }
 
@@ -51,6 +58,21 @@ while [[ $# -gt 0 ]]; do
     --sync) DO_SYNC=1; shift ;;
     --report) DO_REPORT=1; DO_SYNC=1; shift ;;
     --ui) DO_UI=1; shift ;;
+    --video|--video=*)
+      if [[ "$1" == "--video" ]]; then
+        PW_VIDEO=on
+      else
+        PW_VIDEO="${1#--video=}"
+      fi
+      case "$PW_VIDEO" in
+        on|retain-on-failure|off) ;;
+        *)
+          echo "error: --video expects on|retain-on-failure|off (got: ${PW_VIDEO})" >&2
+          exit 1
+          ;;
+      esac
+      shift
+      ;;
     --down) DO_DOWN=1; DO_RUN=0; shift ;;
     --reset) DO_RESET=1; DO_RUN=0; shift ;;
     --keep-data) DO_KEEP_DATA=1; shift ;;
@@ -235,6 +257,7 @@ run_playwright_once() {
   "${COMPOSE[@]}" --profile playwright run --rm --no-deps \
     -e "PLAYWRIGHT_HTML_REPORT=/work/e2e/artifacts/html-report/${stamp}" \
     -e "PLAYWRIGHT_JSON_OUTPUT_NAME=/work/e2e/artifacts/results-${stamp}.json" \
+    -e "PW_VIDEO=${PW_VIDEO:-off}" \
     -e "VULYK_CI_TOKEN=${VULYK_CI_TOKEN:-}" \
     -e "VULYK_PROJECT=${VULYK_PROJECT_ID:-${VULYK_PROJECT:-VUE}}" \
     -e "VULYK_PROJECT_ID=${VULYK_PROJECT_ID:-}" \
