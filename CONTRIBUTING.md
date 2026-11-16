@@ -46,24 +46,24 @@ Agents: see root [AGENTS.md](AGENTS.md), [docs/dev/ci-failures.md](docs/dev/ci-f
 
 ## Database migrations
 
-Schema changes ship as SQLx files under `backend/migrations/`. CI enforces integrity
-(`scripts/check-migrations.sh`): no edits to files that already exist on `main`, and
-no colliding version prefixes.
+Schema changes ship as SQLx files under `backend/migrations/`. Full rules, local
+commands, Squawk vs hard-fail behavior, and what CI runs are documented in
+**[docs/dev/migrations.md](docs/dev/migrations.md)**.
 
-### Rules
+Summary:
 
-1. **Forward-only.** Do not add reversible `.down.sql` workflows for production. Fixes are new migrations.
-2. **Never edit an applied migration.** Once a file has landed on `main` / a release, treat it as immutable. Ship a follow-up migration instead.
-3. **Unique timestamped versions.** Prefer `YYYYMMDDHHMMSS_description.sql` (UTC). The numeric prefix before the first `_` is the SQLx version and must be unique.
-4. **Expand / contract for breaking changes.** Add new columns/tables first (expand), deploy dual-write/read code, then remove old shapes in a later migration (contract). Avoid one-shot renames that break rolling deploys.
-5. **Data migrations must be idempotent.** Use `WHERE` guards, `ON CONFLICT`, or `IF NOT EXISTS` so re-runs (or repair) are safe.
-6. **Keep migrations small and reviewable.** Large backfills may use batched SQL; document runtime expectations in the PR.
-7. **Never destroy operator data on upgrade.** Migrations must be additive/backward-compatible. Operator upgrades take a verified backup first and auto-roll back on migrate/health failure — see [docs/guides/upgrade.md](docs/guides/upgrade.md#data-safety-guarantees). The Upgrade CI job must keep passing (sample data + encrypted secrets survive).
-8. **Same-PR upgrade path.** New/renamed env keys, Compose services/volumes/images, schema, or install layout changes must update `.env.example` (sync markers), `install.sh` upgrade/preflight, migrations, and `./scripts/ci-env-upgrade-test.sh` in the **same PR**. Never overwrite existing operator `.env` values — only append missing keys. See [AGENTS.md](AGENTS.md#upgrade-path-same-pr) and `.cursor/rules/upgrade-path.mdc`.
-
-Local helpers:
+1. **Forward-only** in production (no `.down.sql` for fixes). Optional downs are
+   exercised by CI when present.
+2. **Never edit** a migration on `main` or a **release tag** (`v0.5.0` / latest
+   `v*`) — CI hard-fails. Add a new timestamped file instead.
+3. **Unique** `YYYYMMDDHHMMSS_description.sql` version prefixes.
+4. **Expand / contract** for breaking shape changes; keep data migrations idempotent.
+5. **Same-PR upgrade path** for env/compose/schema/install changes — see
+   [AGENTS.md](AGENTS.md#upgrade-path-same-pr).
 
 ```bash
+./scripts/check-migrations.sh
+./scripts/lint-migrations-squawk.sh          # risky DDL warnings
 cargo run -p vulyk-api -- migrate status
 cargo run -p vulyk-api -- migrate run
 ```

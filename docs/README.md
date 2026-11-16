@@ -34,6 +34,7 @@ Help rendered in the product at `/docs`:
 | [dev/architecture.md](dev/architecture.md) | Modules, ERD, security summary |
 | [dev/ci-checks.md](dev/ci-checks.md) | CI / security / quality check index |
 | [dev/ci-failures.md](dev/ci-failures.md) | CI failure catalog |
+| [dev/migrations.md](dev/migrations.md) | SQLx migrations, Squawk, verify / upgrade CI |
 | [dev/testing/test-ids.md](dev/testing/test-ids.md) | Playwright `data-testid` conventions |
 | [dev/testing/playwright-vulyk.md](dev/testing/playwright-vulyk.md) | Map e2e tests to VQA cases + reporter |
 | [dev/e2e-local.md](dev/e2e-local.md) | Local Docker Playwright suite |

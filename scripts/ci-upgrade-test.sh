@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 # CI: start API at BASE_SHA with seeded data, upgrade to HEAD, verify integrity.
 # Requires: DATABASE_URL, rust toolchain, postgres reachable.
+#
+# Usage:
+#   ./scripts/ci-upgrade-test.sh <base-sha>
+#   VULYK_UPGRADE_BASE_SHA=<sha> ./scripts/ci-upgrade-test.sh
+#   VULYK_UPGRADE_BASE_REF=v0.5.0 ./scripts/ci-upgrade-test.sh
+#     Resolves the ref (fetching tags if needed) to a commit SHA, then runs the
+#     same seed-at-base -> migrate-to-HEAD smoke path.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}"
 
 BASE_SHA="${1:-${VULYK_UPGRADE_BASE_SHA:-}}"
+BASE_REF="${VULYK_UPGRADE_BASE_REF:-}"
 API_URL="${VULYK_API_URL:-http://127.0.0.1:8080}"
 export VULYK_API_URL="${API_URL}"
 BIND_ADDR="${BIND_ADDR:-127.0.0.1:8080}"
@@ -15,14 +23,46 @@ PERF_CASES="${PERF_CASES:-200}"
 die() { printf 'error: %s\n' "$*" >&2; exit 1; }
 log() { printf '==> %s\n' "$*" >&2; }
 
-[[ -n "${BASE_SHA}" ]] || die "usage: $0 <base-sha> (or set VULYK_UPGRADE_BASE_SHA)"
-[[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is required"
-
 need_cmd() { command -v "$1" >/dev/null 2>&1 || die "missing $1"; }
 need_cmd cargo
 need_cmd curl
 need_cmd python3
 need_cmd git
+
+resolve_base_ref() {
+  local ref="$1"
+  if git rev-parse --verify "${ref}^{commit}" >/dev/null 2>&1; then
+    git rev-parse "${ref}^{commit}"
+    return 0
+  fi
+  # Shallow / tag-sparse clones: fetch tags then retry
+  log "Fetching tags to resolve ${ref}..."
+  git fetch --tags --force origin 2>/dev/null || git fetch --tags --force 2>/dev/null || true
+  if git rev-parse --verify "${ref}^{commit}" >/dev/null 2>&1; then
+    git rev-parse "${ref}^{commit}"
+    return 0
+  fi
+  # Last resort: fetch the ref explicitly
+  git fetch --force origin "refs/tags/${ref}:refs/tags/${ref}" 2>/dev/null \
+    || git fetch --force origin "${ref}" 2>/dev/null \
+    || true
+  if git rev-parse --verify "${ref}^{commit}" >/dev/null 2>&1; then
+    git rev-parse "${ref}^{commit}"
+    return 0
+  fi
+  return 1
+}
+
+if [[ -z "${BASE_SHA}" && -n "${BASE_REF}" ]]; then
+  if BASE_SHA="$(resolve_base_ref "${BASE_REF}")"; then
+    log "Resolved VULYK_UPGRADE_BASE_REF=${BASE_REF} -> ${BASE_SHA}"
+  else
+    die "could not resolve VULYK_UPGRADE_BASE_REF=${BASE_REF} (tag missing?)"
+  fi
+fi
+
+[[ -n "${BASE_SHA}" ]] || die "usage: $0 <base-sha> (or set VULYK_UPGRADE_BASE_SHA / VULYK_UPGRADE_BASE_REF)"
+[[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL is required"
 
 wait_health() {
   local _
