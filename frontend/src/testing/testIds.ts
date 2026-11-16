@@ -54,6 +54,7 @@ export const TestIds = {
 
   // —— Login / auth ——
   loginPanel: 'login-panel',
+  loginSessionExpiredNotice: 'login-session-expired-notice',
   loginBrandTag: 'login-brand-tag',
   loginDisplayNameInput: 'login-display-name-input',
   loginEmailInput: 'login-email-input',

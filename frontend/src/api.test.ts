@@ -1,12 +1,17 @@
 /** @vitest-environment jsdom */
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { api, isAbortError, ssoStartUrl } from './api'
+import { ApiError, api, isAbortError, ssoStartUrl } from './api'
+import { resetUnauthorizedGuardForTests } from './sessionExpiry'
 
 describe('api client', () => {
   const originalFetch = globalThis.fetch
 
   afterEach(() => {
     globalThis.fetch = originalFetch
+    resetUnauthorizedGuardForTests()
+    localStorage.clear()
+    sessionStorage.clear()
+    vi.restoreAllMocks()
   })
 
   it('exposes listProjects', () => {
@@ -98,5 +103,55 @@ describe('api client', () => {
     expect(typeof api.listProjectCiTokens).toBe('function')
     expect(typeof api.createProjectCiToken).toBe('function')
     expect(typeof api.revokeProjectCiToken).toBe('function')
+  })
+
+  it('clears session and redirects on 401 from protected APIs', async () => {
+    localStorage.setItem('vulyk.authToken', 'stale-jwt')
+    const assign = vi.fn()
+    vi.stubGlobal('location', {
+      pathname: '/runs',
+      search: '',
+      assign,
+    })
+    vi.stubGlobal('caches', { delete: vi.fn(async () => true) })
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              code: 'unauthorized',
+              message: 'invalid or revoked API token',
+            },
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        ),
+    ) as typeof fetch
+
+    await expect(api.listProjects()).rejects.toMatchObject({
+      status: 401,
+      code: 'unauthorized',
+    } satisfies Partial<ApiError>)
+    expect(localStorage.getItem('vulyk.authToken')).toBeNull()
+    expect(sessionStorage.getItem('vulyk.sessionExpiredNotice')).toBe('1')
+    expect(assign).toHaveBeenCalledWith('/login?returnTo=%2Fruns')
+  })
+
+  it('does not redirect on 401 from login', async () => {
+    const assign = vi.fn()
+    vi.stubGlobal('location', { pathname: '/login', search: '', assign })
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            error: { code: 'unauthorized', message: 'invalid credentials' },
+          }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        ),
+    ) as typeof fetch
+
+    await expect(
+      api.login({ email: 'a@b.c', password: 'wrong-password-xx' }),
+    ).rejects.toMatchObject({ status: 401 })
+    expect(assign).not.toHaveBeenCalled()
   })
 })

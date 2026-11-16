@@ -6,7 +6,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
-import { api, type Project, type Suite } from './api'
+import { ApiError, api, type Project, type Suite } from './api'
 import { useAuth } from './auth'
 import { Layout } from './components/Layout'
 import { useI18n } from './i18n'
@@ -120,9 +120,13 @@ export default function App() {
         await refreshProjects()
         if (!cancelled) setBootError(null)
       } catch (err) {
-        if (!cancelled) {
-          setBootError(err instanceof Error ? err.message : String(err))
+        if (cancelled) return
+        // 401 clears the session and redirects to /login — never "API unavailable".
+        if (err instanceof ApiError && err.status === 401) {
+          setBootError(null)
+          return
         }
+        setBootError(err instanceof Error ? err.message : String(err))
       }
     })()
     return () => {

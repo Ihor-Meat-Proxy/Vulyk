@@ -1,3 +1,4 @@
+import { handleUnauthorizedRedirect } from './sessionExpiry'
 import { getStoredToken } from './token'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? ''
@@ -46,6 +47,16 @@ export function isAbortError(err: unknown): boolean {
   return false
 }
 
+/** Auth endpoints that may legitimately return 401 (bad password) without ending the session. */
+function isCredentialChallengePath(path: string): boolean {
+  return (
+    path.startsWith('/api/v1/auth/login') ||
+    path.startsWith('/api/v1/auth/register') ||
+    path.startsWith('/api/v1/auth/bootstrap') ||
+    path.startsWith('/api/v1/auth/change-password')
+  )
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const token = getStoredToken()
   const headers: Record<string, string> = {
@@ -67,22 +78,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   })
   if (!res.ok) {
     const text = await res.text()
+    let code = 'error'
+    let message = text || res.statusText
     try {
       const parsed = JSON.parse(text) as {
         error?: { message?: string; code?: string }
       }
       if (parsed?.error?.message) {
-        throw new ApiError(
-          parsed.error.message,
-          res.status,
-          parsed.error.code ?? 'error',
-        )
+        message = parsed.error.message
+        code = parsed.error.code ?? 'error'
       }
-    } catch (err) {
-      if (err instanceof ApiError) throw err
-      if (err instanceof Error && err.message !== text) throw err
+    } catch {
+      /* raw body */
     }
-    throw new ApiError(text || res.statusText, res.status)
+    if (
+      res.status === 401 &&
+      !isCredentialChallengePath(path) &&
+      typeof window !== 'undefined'
+    ) {
+      // Stale/revoked bearer or session — clear client auth and land on login.
+      // Do not surface this as "API unavailable" (that banner is for network/5xx).
+      handleUnauthorizedRedirect()
+    }
+    throw new ApiError(message, res.status, code)
   }
   if (res.status === 204) {
     return undefined as T
