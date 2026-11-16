@@ -104,7 +104,7 @@ sequenceDiagram
 | **Symptoms** | `strict mode violation: … resolved to N elements`; timeouts on `getByText` / role clicks after sibling UI PRs |
 | **Why** | Overlapping PRs change the same header/cases/toasts; text locators match multiple nodes; i18n duplicates labels. |
 | **Fix** | Scope locators; prefer `TestIds` / `getByTestId`. |
-| **Prevent** | `docs/testing/test-ids.md`, e2e page objects, `npm run check:test-ids`, audit spec. Avoid ambiguous text for shared controls. |
+| **Prevent** | `docs/dev/testing/test-ids.md`, e2e page objects, `npm run check:test-ids`, audit spec. Avoid ambiguous text for shared controls. |
 | **Seen on** | Strict: #24, #29; broader churn: #25, #26, #27, #28, main after i18n |
 
 ### 5. Rebase conflicts in shared files

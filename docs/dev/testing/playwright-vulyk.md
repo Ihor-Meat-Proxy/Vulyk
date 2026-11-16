@@ -128,7 +128,7 @@ test('login with seeded admin succeeds', {
 ```
 
 Also accepted: a single `{ type: 'vulyk', description: 'VQA-236' }`, tag
-`@VQA-236`, or `VQA-236` in the title. See [CI integration](../guides/ci-integration.md).
+`@VQA-236`, or `VQA-236` in the title. See [CI integration](../../guides/ci-integration.md).
 
 ## Run e2e against a local Vulyk and see real results
 
@@ -170,5 +170,5 @@ Omit the three env vars for a normal CI/local run with no Vulyk traffic.
 Copy `e2e/reporters/vulyk-reporter.ts` into your own Playwright repo (or depend
 on this tree), register it in `playwright.config`, annotate tests with
 `{ type: 'vulyk', description: 'YOUR-KEY' }`, and set the same env vars. See
-also [CI integration](../guides/ci-integration.md) for JUnit / `vulyk-upload.sh`
+also [CI integration](../../guides/ci-integration.md) for JUnit / `vulyk-upload.sh`
 pipelines.

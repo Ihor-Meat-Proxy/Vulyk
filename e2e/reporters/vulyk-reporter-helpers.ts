@@ -137,7 +137,7 @@ export function formatMissingAnnotationWarning(
     `[vulyk-reporter] ${totalMissing} test(s) missing vulyk case key ` +
     `(sample: ${samplePart}${morePart}); results for those tests are skipped. ` +
     `Annotate with { type: 'vulyk', description: '${example}' } or tag @${example} ` +
-    `(see docs/testing/playwright-vulyk.md).`
+    `(see docs/dev/testing/playwright-vulyk.md).`
   )
 }
 

@@ -4,7 +4,7 @@ Thanks for helping build the beehive.
 
 ## Ground rules
 
-1. Read [docs/README.md](docs/README.md) and [docs/architecture.md](docs/architecture.md) before large changes. Keep module boundaries (`routes` / `services` / …).
+1. Read [docs/README.md](docs/README.md) and [docs/dev/architecture.md](docs/dev/architecture.md) before large changes. Keep module boundaries (`routes` / `services` / …).
 2. Do **not** open PRs or commits against the OpenProject project itself. Document Vulyk↔OpenProject integration only in this repo.
 3. Prefer small, reviewable PRs. Match existing style (`cargo fmt`, frontend oxlint/tsc).
 4. License is AGPL-3.0 (existing `LICENSE`). Do not re-license without maintainer agreement.
@@ -42,7 +42,7 @@ docker build -f backend/Dockerfile -t vulyk-api:local .
 docker build -f frontend/Dockerfile -t vulyk-web:local .
 ```
 
-Agents: see root [AGENTS.md](AGENTS.md), [docs/ci-failures.md](docs/ci-failures.md), and the Oct 2026 audits linked from [docs/README.md](docs/README.md).
+Agents: see root [AGENTS.md](AGENTS.md), [docs/dev/ci-failures.md](docs/dev/ci-failures.md), and [SECURITY.md](SECURITY.md).
 
 ## Database migrations
 
@@ -72,7 +72,7 @@ Upgrades for operators: [docs/guides/upgrade.md](docs/guides/upgrade.md).
 
 ## Playwright test ids
 
-Interactive UI must expose stable `data-testid` attributes. Convention, list/row attrs, strip flag (`VITE_STRIP_TEST_IDS`), security (no PII/secrets in `data-*`), and enforcement are documented in [docs/testing/test-ids.md](docs/testing/test-ids.md). Use typed constants from `frontend/src/testing/testIds.ts` in components and e2e — do not invent ad-hoc selectors. Never put emails, names, passwords, or tokens into `data-testid` / `data-entity-*`.
+Interactive UI must expose stable `data-testid` attributes. Convention, list/row attrs, strip flag (`VITE_STRIP_TEST_IDS`), security (no PII/secrets in `data-*`), and enforcement are documented in [docs/dev/testing/test-ids.md](docs/dev/testing/test-ids.md). Use typed constants from `frontend/src/testing/testIds.ts` in components and e2e — do not invent ad-hoc selectors. Never put emails, names, passwords, or tokens into `data-testid` / `data-entity-*`.
 
 ## API / schema changes
 
@@ -82,11 +82,11 @@ Interactive UI must expose stable `data-testid` attributes. Convention, list/row
 - When bumping the release version, update the root `VERSION` file,
   `[workspace.package].version` in `Cargo.toml`, `frontend/package.json`, Helm
   `appVersion`, and `CHANGELOG.md`, then run `./scripts/check-version.sh`. Tag
-  `vX.Y.Z` on `main` to publish (see [docs/guides/releasing.md](docs/guides/releasing.md)).
+  `vX.Y.Z` on `main` to publish (see [docs/dev/releasing.md](docs/dev/releasing.md)).
 
 ## Parallel workstreams
 
-Shared contracts: OpenAPI + this doc + [docs/architecture.md](docs/architecture.md). Prefer small PRs; rebase onto latest `main` before merge.
+Shared contracts: OpenAPI + this doc + [docs/dev/architecture.md](docs/dev/architecture.md). Prefer small PRs; rebase onto latest `main` before merge.
 
 **Rebase onto latest `main` immediately before merge.** For sample cases, prefer
 `backend/seed/vulyk-qa.d/` fragments with omitted keys over appending `VQA-NNN` to

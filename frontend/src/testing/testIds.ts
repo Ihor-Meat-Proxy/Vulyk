@@ -2,7 +2,7 @@
  * Stable Playwright `data-testid` constants.
  *
  * Convention: kebab-case `<page>-<component>-<element>`
- * See docs/testing/test-ids.md
+ * See docs/dev/testing/test-ids.md
  *
  * Safe to import from e2e (no Vite env dependency).
  * Use `testIdProps` / `listItemProps` from `./attrs` in React components

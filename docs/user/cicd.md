@@ -389,4 +389,4 @@ Under **Settings → Test automation repositories**:
 | Posts after close | Open a new run; closed runs reject new results |
 | Git host rate limit | Add a read token on the automation repo; wait until reset time shown in Settings |
 
-Interactive API docs: [/api/docs](/api/docs).
+Interactive API docs: `/api/docs`.

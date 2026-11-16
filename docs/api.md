@@ -92,4 +92,4 @@ Requires `export_reports`. Labels follow `locale` query (or `Accept-Language`): 
 - `GET /api/v1/cases/{id_or_key}/export.pdf?results=5` — same, resolves project from the case
 - `POST /api/v1/projects/{project_id}/cases/export` — body `{ "case_ids": ["…"], "results": 5, "locale": "en" }`; one id → PDF, multiple → ZIP of PDFs. **`case_ids` max 100** (400 if exceeded) to bound memory
 
-Further reading: [README.md](README.md) (index), [architecture.md](architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md), [admin-guide.md](admin-guide.md).
+Further reading: [README.md](README.md) (index), [architecture.md](dev/architecture.md), [auth-and-rbac.md](auth-and-rbac.md), [guides/ci-integration.md](guides/ci-integration.md), [guides/ingest-and-ci.md](guides/ingest-and-ci.md), [user-guide.md](user-guide.md), [admin-guide.md](admin-guide.md).

@@ -21,6 +21,25 @@ jobs:
           chmod +x scripts/check-version.sh
           ./scripts/check-version.sh
 
+  docs-links:
+    name: Doc links (offline)
+    runs-on: ubuntu-latest
+    steps:
+      # Pin full SHAs (Semgrep: mutable action tags).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Link Checker
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          # Offline / relative only — do not fail on external HTTP.
+          args: >-
+            --config lychee.toml
+            --offline
+            --no-progress
+            --include-fragments
+            README.md AGENTS.md CONTRIBUTING.md SECURITY.md
+            'docs/**/*.md' e2e/README.md
+          fail: true
+
   backend:
     name: Backend (fmt, clippy, test)
     runs-on: ubuntu-latest

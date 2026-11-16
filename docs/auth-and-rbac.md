@@ -139,4 +139,4 @@ Admin panel: **Users**, **Roles**, **Projects**, **Integrations**, **SSO**, **LL
 - `backend/migrations/20261025143000_auth_rbac.sql` — sessions, memberships, user admin columns, API token ownership
 - `backend/migrations/20261025150000_roles_setup_sso.sql` — five-role matrix, setup tokens, registration/invites, SSO providers
 
-Security audit (Oct 2026) + fix PRs: [security/audit-2026-10.md](security/audit-2026-10.md).
+Security policy and reporting: [SECURITY.md](../SECURITY.md).

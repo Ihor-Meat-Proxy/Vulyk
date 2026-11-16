@@ -1,5 +1,5 @@
 /* Design tokens — light defaults (FOUC script / AppearanceProvider override).
-   See docs/design-tokens.md and src/theme/tokens.ts. */
+   See docs/dev/design-tokens.md and src/theme/tokens.ts. */
 :root {
   --font-scale: 1;
   --bg: #f7f1e6;

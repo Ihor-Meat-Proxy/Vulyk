@@ -200,7 +200,7 @@ Upgrade (keeps the named Postgres volume; never runs docker compose down -v):
 WARNING: never run 'docker compose down -v' on a data you care about -
 the -v flag deletes named volumes (Postgres data).
 
-See docs/guides/first-run-setup.md, docs/guides/upgrade.md, docs/guides/releasing.md
+See docs/guides/first-run-setup.md, docs/guides/upgrade.md, docs/dev/releasing.md
 
 Environment:
   Linux, macOS (bash 3.2+), and WSL2 are supported. Native Windows is not - use WSL2.

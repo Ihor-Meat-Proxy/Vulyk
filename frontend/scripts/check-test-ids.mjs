@@ -3,7 +3,7 @@
  * Static audit: fail on duplicate data-testid string literals in a file,
  * interactive JSX missing test id wiring, and suspicious PII/secret literals.
  *
- * Heuristic JSX scan (handles `=>` inside attrs). See docs/testing/test-ids.md
+ * Heuristic JSX scan (handles `=>` inside attrs). See docs/dev/testing/test-ids.md
  */
 import fs from 'node:fs'
 import path from 'node:path'

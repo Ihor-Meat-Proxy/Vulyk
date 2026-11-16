@@ -16,7 +16,7 @@ Before finishing a PR:
 
 1. Rebase onto latest `main` immediately before merge.
 2. Run `./scripts/check.sh` (hooks: `git config core.hooksPath scripts/githooks`).
-3. Read root `AGENTS.md` and `docs/ci-failures.md`.
+3. Read root `AGENTS.md` and `docs/dev/ci-failures.md`.
 
 ## Seed data
 
@@ -27,7 +27,7 @@ Before finishing a PR:
 ## Playwright
 
 - Use `TestIds` / `getByTestId`; avoid ambiguous `getByText` for shared controls.
-- See `docs/testing/test-ids.md`.
+- See `docs/dev/testing/test-ids.md`.
 
 ## Migrations
 

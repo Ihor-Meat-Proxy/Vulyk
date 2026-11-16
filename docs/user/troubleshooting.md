@@ -86,5 +86,5 @@ Default minimum length is **16** (floor 12) with letter + digit. Existing shorte
 ## Still stuck?
 
 1. Check `/health` for API liveness and version.
-2. Use [/api/docs](/api/docs) to reproduce the failing call with Bearer auth.
+2. Use `/api/docs` to reproduce the failing call with Bearer auth.
 3. Review Admin → Updates history / job logs when an in-app upgrade failed (auto-rollback should restore the previous images + DB).

@@ -1,0 +1,21 @@
+# Local / relative markdown link checker (offline — no external HTTP).
+# Used by ./scripts/check-doc-links.sh and the CI "Doc links" job.
+# CI installs lychee via lychee-action (currently v0.24.x).
+
+offline = true
+verbose = "warning"
+no_progress = true
+cache = false
+# Fragment checking is enabled via CLI `--include-fragments` (config key type
+# differs across lychee versions; keep it out of the TOML).
+max_redirects = 0
+timeout = 5
+
+# Skip in-app absolute routes (/api/docs, /health, …). Lychee 0.24 treats
+# root-relative markdown links as errors unless a root dir is set; excluding
+# them keeps offline checks focused on repo files. Prefer `code` spans for
+# in-app paths in markdown when possible.
+exclude = ['^/']
+
+# Offline mode checks file targets; do not require http(s).
+scheme = ["file"]

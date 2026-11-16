@@ -166,4 +166,4 @@ Never commit real passwords; prefer secrets in `.env` (not printed by install.sh
 
 `scripts/install.sh` runs on Linux, macOS (bash 3.2+), and WSL2. Use `./scripts/install.sh check` to verify the toolchain and script syntax.
 
-See also: [auth-and-rbac.md](../auth-and-rbac.md), [admin-guide.md](../admin-guide.md), [sso.md](sso.md), [user-guide.md](../user-guide.md#language--settings).
+See also: [auth-and-rbac.md](../auth-and-rbac.md), [admin-guide.md](../admin-guide.md), [sso.md](sso.md), [Languages (in-app docs)](../user/admin.md#languages).

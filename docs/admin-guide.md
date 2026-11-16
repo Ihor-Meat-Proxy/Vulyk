@@ -40,8 +40,8 @@ helm upgrade --install vulyk deploy/helm/vulyk \
   --set secrets.create=true \
   --set auth.required=true \
   --set setup.adminPassword=change-me-admin12 \
-  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.3.0 \
-  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.3.0
+  --set image.api=ghcr.io/ihor-meat-proxy/vulyk-api:0.4.0 \
+  --set image.web=ghcr.io/ihor-meat-proxy/vulyk-web:0.4.0
 ```
 
 Chart path: [`deploy/helm/vulyk`](../deploy/helm/vulyk). Auth is **required by default**. A setup Job runs `vulyk-api setup --yes`. Provide Secret keys:
@@ -75,7 +75,7 @@ When seeded for local Compose (`VULYK_SEED_DEMO=1`):
 2. Change the admin password if the default was used.
 3. Explore the seeded sample projects (opt out with `VULYK_SEED_SAMPLE=0` or uncheck the wizard box; not seeded in prod unless enabled). Rows are flagged `is_sample` and show a **Sample** badge:
    - **Kyiv Open-Air Concert 2026** (`KYIV_CONCERT_2026`) — nested folders, ~35 cases with `KC-*` keys, requirements, dress rehearsal + ticketing smoke runs, and **Sample nightly #N** CI suites (creator **Sample CI**, varied outcomes).
-   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~300 cases, prefix `VQA`; base seed + fragments under `backend/seed/vulyk-qa.d/`, including a 1:1 Playwright e2e suite), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance, status badges & sample data, PDF, multi-repo CI, password policy, Admin Updates, lists/custom fields), requirements, and example runs. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`. See [`docs/testing/playwright-vulyk.md`](./testing/playwright-vulyk.md).
+   - **Vulyk QA** (`VULYK_QA`) — product self-coverage (~300 cases, prefix `VQA`; base seed + fragments under `backend/seed/vulyk-qa.d/`, including a 1:1 Playwright e2e suite), folders by area (setup, auth, RBAC, folders/tree, cases, runs, import, LLM, MCP, i18n/locales, header menus, appearance, PWA, performance, status badges & sample data, PDF, multi-repo CI, password policy, Admin Updates, lists/custom fields), requirements, and example runs. Cases link to Playwright specs via `external_key` where covered; planned gaps are `draft` with tag `planned`. See [`docs/dev/testing/playwright-vulyk.md`](./dev/testing/playwright-vulyk.md).
 4. Create additional projects and memberships under gear → **Admin settings**.
 5. Under **Admin → Settings → Sample data**, inspect what is installed, **Remove sample data** (confirm; deletes only `is_sample` rows; idempotent), or **Re-seed sample data**. System-admin only (`GET/DELETE /api/v1/admin/sample-data`, `POST /api/v1/admin/sample-data/reseed`).
 6. Mint API tokens for CI/MCP (gear → **My settings**, or Admin → Tokens). Prefer `vulyk_at_…` personal tokens; project CI uses `vulyk_ci_…`.
