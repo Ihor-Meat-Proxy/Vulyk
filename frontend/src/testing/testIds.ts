@@ -269,6 +269,8 @@ export const TestIds = {
   runsPlanSelect: 'runs-plan-select',
   runsSuiteSelect: 'runs-suite-select',
   runsUploadRunSelect: 'runs-upload-run-select',
+  runsUploadDropZone: 'runs-upload-drop-zone',
+  runsUploadChooseButton: 'runs-upload-choose-button',
   runsUploadFileInput: 'runs-upload-file-input',
   runsUploadDisabledHint: 'runs-upload-disabled-hint',
   runsPlanNameInput: 'runs-plan-name-input',
@@ -336,6 +338,7 @@ export const TestIds = {
   executionStepStatusSelect: 'execution-step-status-select',
   executionCameraInput: 'execution-camera-input',
   executionCameraButton: 'execution-camera-button',
+  executionAttachDropZone: 'execution-attach-drop-zone',
   executionAttachNoteButton: 'execution-attach-note-button',
 
   // —— Requirements ——
@@ -648,6 +651,8 @@ export const TestIds = {
   adminConfigStrategySelect: 'admin-config-strategy-select',
   adminConfigPreviewButton: 'admin-config-preview-button',
   adminConfigImportButton: 'admin-config-import-button',
+  adminConfigImportDropZone: 'admin-config-import-drop-zone',
+  adminConfigImportChooseButton: 'admin-config-import-choose-button',
   adminConfigImportInput: 'admin-config-import-input',
   adminUserSystemAdminCheckbox: 'admin-user-system-admin-checkbox',
   adminProjectDescriptionInput: 'admin-project-description-input',
@@ -834,8 +839,10 @@ export const TestIds = {
   folderDeleteDialogPanel: 'folder-delete-dialog-panel',
   folderDeleteDialogOptions: 'folder-delete-dialog-options',
   folderDeleteDialogMoveOption: 'folder-delete-dialog-move-option',
+  folderDeleteDialogMoveLabel: 'folder-delete-dialog-move-label',
   folderDeleteDialogDeleteCasesOption:
     'folder-delete-dialog-delete-cases-option',
+  folderDeleteDialogDeleteLabel: 'folder-delete-dialog-delete-label',
   folderDeleteDialogConfirm: 'folder-delete-dialog-confirm',
   folderDeleteDialogCancel: 'folder-delete-dialog-cancel',
   adminRollbackDialogInput: 'admin-rollback-dialog-input',

@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
 import { AuthProvider } from './auth'
 import { ToastProvider } from './components/ToastProvider'
@@ -13,9 +13,10 @@ import './index.css'
 setupPwa()
 startOfflineSyncWatch()
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <BrowserRouter>
+const router = createBrowserRouter([
+  {
+    path: '*',
+    element: (
       <AuthProvider>
         <I18nProvider>
           <AppearanceProvider>
@@ -25,6 +26,12 @@ createRoot(document.getElementById('root')!).render(
           </AppearanceProvider>
         </I18nProvider>
       </AuthProvider>
-    </BrowserRouter>
+    ),
+  },
+])
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <RouterProvider router={router} />
   </StrictMode>,
 )

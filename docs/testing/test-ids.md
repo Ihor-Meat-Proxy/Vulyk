@@ -99,6 +99,9 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Case not-found panel | `case-detail-not-found` |
 | Forced password policy note / disabled hint | `change-password-policy-note` / `change-password-disabled-hint` |
 | Runs upload disabled hint | `runs-upload-disabled-hint` |
+| Runs upload drop zone / choose button | `runs-upload-drop-zone` / `runs-upload-choose-button` |
+| Execution attach drop zone | `execution-attach-drop-zone` |
+| Admin config import drop zone / choose | `admin-config-import-drop-zone` / `admin-config-import-choose-button` |
 | Coverage uncovered empty | `reports-coverage-uncovered-empty` |
 4. Reference the id in seeded Vulyk QA steps when the case is UI-driven.
 
@@ -141,5 +144,5 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Campaign create dialog | `campaign-dialog-panel`, `campaign-dialog-name-input`, `campaign-dialog-description-input`, `campaign-dialog-submit`, `campaign-dialog-cancel`, `campaign-dialog-error` |
 | Iteration create dialog | `iteration-dialog-panel`, `iteration-dialog-name-input`, `iteration-dialog-description-input`, `iteration-dialog-cadence-input`, `iteration-dialog-mode-select`, `iteration-dialog-submit`, `iteration-dialog-cancel`, `iteration-dialog-error` |
 | Folder create / rename inputs | `folder-create-dialog-input` / `folder-rename-dialog-input` |
-| Folder delete dialog | `folder-delete-dialog-panel`, `folder-delete-dialog-options`, `folder-delete-dialog-move-option`, `folder-delete-dialog-delete-cases-option`, `folder-delete-dialog-confirm`, `folder-delete-dialog-cancel` |
+| Folder delete dialog | `folder-delete-dialog-panel`, `folder-delete-dialog-options`, `folder-delete-dialog-move-option`, `folder-delete-dialog-move-label`, `folder-delete-dialog-delete-cases-option`, `folder-delete-dialog-delete-label`, `folder-delete-dialog-confirm`, `folder-delete-dialog-cancel` |
 | Admin rollback typed confirm | `admin-rollback-dialog-input` |

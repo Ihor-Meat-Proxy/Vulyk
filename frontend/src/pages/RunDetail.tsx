@@ -8,6 +8,7 @@ import {
   type TestRunDetail,
 } from '../api'
 import { CiPipelineLink } from '../components/CiRunBadges'
+import { FileDropZone } from '../components/FileDropZone'
 import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -718,29 +719,32 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
             )}
 
             <div className="attach-row">
-              <input
-                ref={cameraInputRef}
-                type="file"
+              <FileDropZone
                 accept="image/*"
                 capture="environment"
-                className="sr-only"
-                aria-label={t('a11y.attachPhoto')}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void attachPhoto(file)
-                  e.target.value = ''
-                }}
-                {...testIdProps(TestIds.executionCameraInput)}
-              />
-              <button
-                type="button"
-                className="btn secondary"
                 disabled={saving || !active.latest_result}
-                onClick={() => cameraInputRef.current?.click()}
-                {...testIdProps(TestIds.executionCameraButton)}
+                aria-label={t('a11y.attachPhotoDropZone')}
+                dropZoneTestId={TestIds.executionAttachDropZone}
+                inputTestId={TestIds.executionCameraInput}
+                inputRef={cameraInputRef}
+                onFiles={(files) => {
+                  const file = files[0]
+                  if (file) void attachPhoto(file)
+                }}
               >
-                {t('runs.cameraPhoto')}
-              </button>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={saving || !active.latest_result}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    cameraInputRef.current?.click()
+                  }}
+                  {...testIdProps(TestIds.executionCameraButton)}
+                >
+                  {t('runs.cameraPhoto')}
+                </button>
+              </FileDropZone>
               {active.latest_result && (
                 <button
                   type="button"

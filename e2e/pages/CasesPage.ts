@@ -163,6 +163,29 @@ export class CasesPage {
     await this.page.getByTestId(TestIds.promptDialogConfirm).click();
   }
 
+  folderNode(name: string | RegExp) {
+    return this.folderTree()
+      .locator(`[data-testid="${TestIds.folderNode}"]`)
+      .filter({ hasText: name });
+  }
+
+  async deleteFolder(name: string | RegExp) {
+    const node = this.folderNode(name);
+    await node.getByTestId(TestIds.folderNodeDelete).click();
+  }
+
+  folderDeleteDialog() {
+    return this.page.getByTestId(TestIds.folderDeleteDialogPanel);
+  }
+
+  async confirmFolderDeleteMoveToParent() {
+    const dialog = this.folderDeleteDialog();
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId(TestIds.folderDeleteDialogMoveOption).check();
+    await dialog.getByTestId(TestIds.folderDeleteDialogConfirm).click();
+    await expect(dialog).toBeHidden({ timeout: 20_000 });
+  }
+
   async editSteps(action: string, expected: string) {
     await this.page.getByTestId(TestIds.caseDetailEditButton).click();
     const addStep = this.page.getByTestId(TestIds.caseDetailAddStepButton);

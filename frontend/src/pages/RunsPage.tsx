@@ -9,6 +9,7 @@ import {
 } from '../api'
 import { useAuth } from '../auth'
 import { DocsLink } from '../components/DocsLink'
+import { FileDropZone } from '../components/FileDropZone'
 import { StatusBadge } from '../components/StatusBadge'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -317,24 +318,34 @@ export function RunsPage({ projectId, suites }: Props) {
                 </option>
               ))}
             </select>
-            <label
-              className={`file-input-label${!uploadRunId || uploading ? ' is-disabled' : ''}`}
+            <FileDropZone
+              accept=".xml,text/xml,application/xml"
+              disabled={!uploadRunId || uploading}
+              aria-label={t('a11y.junitXmlDropZone')}
+              dropZoneTestId={TestIds.runsUploadDropZone}
+              inputTestId={TestIds.runsUploadFileInput}
+              onFiles={(files) => {
+                const file = files[0]
+                if (file) void uploadJunit(file)
+              }}
             >
-              <span className="btn secondary">{t('runs.chooseJunitFile')}</span>
-              <input
-                type="file"
-                className="file-input"
-                accept=".xml,text/xml,application/xml"
-                aria-label={t('a11y.junitXmlFile')}
+              <button
+                type="button"
+                className="btn secondary"
                 disabled={!uploadRunId || uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void uploadJunit(file)
-                  e.target.value = ''
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const input = e.currentTarget
+                    .closest('.file-drop-zone')
+                    ?.querySelector<HTMLInputElement>('input[type="file"]')
+                  input?.click()
                 }}
-                {...testIdProps(TestIds.runsUploadFileInput)}
-              />
-            </label>
+                {...testIdProps(TestIds.runsUploadChooseButton)}
+              >
+                {t('runs.chooseJunitFile')}
+              </button>
+            </FileDropZone>
           </div>
           {!uploadRunId && (
             <p

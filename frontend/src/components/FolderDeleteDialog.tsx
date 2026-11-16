@@ -8,6 +8,8 @@ export type FolderDeleteStrategy = 'move_to_parent' | 'delete_cases'
 export type FolderDeleteDialogProps = {
   open: boolean
   folderName: string
+  caseCount: number
+  childFolderCount?: number
   canDeleteCases: boolean
   busy?: boolean
   onConfirm: (strategy: FolderDeleteStrategy) => void
@@ -17,6 +19,8 @@ export type FolderDeleteDialogProps = {
 export function FolderDeleteDialog({
   open,
   folderName,
+  caseCount,
+  childFolderCount = 0,
   canDeleteCases,
   busy = false,
   onConfirm,
@@ -31,14 +35,27 @@ export function FolderDeleteDialog({
     if (open) setStrategy('move_to_parent')
   }, [open])
 
+  const moveLabel =
+    childFolderCount > 0
+      ? t('folders.deleteMoveToParentWithFolders', {
+          count: caseCount,
+          folders: childFolderCount,
+        })
+      : t('folders.deleteMoveToParent', { count: caseCount })
+
+  const deleteLabel =
+    childFolderCount > 0
+      ? t('folders.deleteCasesWithFolders', {
+          count: caseCount,
+          folders: childFolderCount,
+        })
+      : t('folders.deleteCases', { count: caseCount })
+
   return (
     <Dialog
       open={open}
       title={t('folders.delete')}
-      description={t('folders.deleteNonemptyHelp').replace(
-        '{name}',
-        folderName,
-      )}
+      description={t('folders.deleteNonemptyHelp', { name: folderName })}
       onClose={onCancel}
       asForm
       onSubmit={() => {
@@ -81,7 +98,9 @@ export function FolderDeleteDialog({
             onChange={() => setStrategy('move_to_parent')}
             {...testIdProps(TestIds.folderDeleteDialogMoveOption)}
           />
-          <span>{t('folders.deleteMoveToParent')}</span>
+          <span {...testIdProps(TestIds.folderDeleteDialogMoveLabel)}>
+            {moveLabel}
+          </span>
         </label>
         <label className="app-dialog-radio">
           <input
@@ -93,7 +112,9 @@ export function FolderDeleteDialog({
             onChange={() => setStrategy('delete_cases')}
             {...testIdProps(TestIds.folderDeleteDialogDeleteCasesOption)}
           />
-          <span>{t('folders.deleteCases')}</span>
+          <span {...testIdProps(TestIds.folderDeleteDialogDeleteLabel)}>
+            {deleteLabel}
+          </span>
         </label>
         {!canDeleteCases ? (
           <p className="muted app-dialog-hint">

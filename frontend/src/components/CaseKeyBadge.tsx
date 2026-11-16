@@ -1,6 +1,7 @@
 import { useCallback, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '../i18n'
 import { casePath } from '../lib/caseUrls'
+import { writeClipboard } from '../lib/clipboard'
 import { TestIds, testIdProps } from '../testing'
 import { useToast } from './ToastProvider'
 
@@ -9,22 +10,6 @@ type Props = {
   /** Optional: also offer “copy link” via long-press / secondary control. */
   showCopyLink?: boolean
   className?: string
-}
-
-async function writeClipboard(text: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text)
-    return
-  }
-  const ta = document.createElement('textarea')
-  ta.value = text
-  ta.setAttribute('readonly', '')
-  ta.style.position = 'fixed'
-  ta.style.left = '-9999px'
-  document.body.appendChild(ta)
-  ta.select()
-  document.execCommand('copy')
-  document.body.removeChild(ta)
 }
 
 function CopyIcon() {

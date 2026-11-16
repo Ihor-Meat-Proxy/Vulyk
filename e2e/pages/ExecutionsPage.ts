@@ -1,14 +1,14 @@
-import { expect, type Page } from '@playwright/test'
-import { TestIds } from '../../frontend/src/testing/testIds'
+import { expect, type Page } from "@playwright/test";
+import { TestIds } from "../../frontend/src/testing/testIds";
 
 export class ExecutionsPage {
   constructor(readonly page: Page) {}
 
   async open() {
-    await this.page.getByTestId(TestIds.navLinkExecutions).click()
+    await this.page.getByTestId(TestIds.navLinkExecutions).click();
     await expect(this.page.getByTestId(TestIds.executionsPage)).toBeVisible({
       timeout: 30_000,
-    })
+    });
   }
 
   async selectIteration(name: string | RegExp) {
@@ -17,31 +17,52 @@ export class ExecutionsPage {
       .getByTestId(TestIds.executionNode)
       .filter({ hasText: name })
       .first()
-      .click()
+      .click();
   }
 
   async expectDashboard() {
-    await expect(
-      this.page.getByTestId(TestIds.iterationDashboard),
-    ).toBeVisible({
-      timeout: 20_000,
-    })
+    await expect(this.page.getByTestId(TestIds.iterationDashboard)).toBeVisible(
+      {
+        timeout: 20_000,
+      },
+    );
   }
 
   async expectSuites() {
     await expect(
       this.page.getByTestId(TestIds.automatedSuitesTable),
-    ).toBeVisible({ timeout: 15_000 })
+    ).toBeVisible({ timeout: 15_000 });
   }
 
   async openFirstSuiteDetails() {
     await this.page
       .getByTestId(TestIds.automatedSuiteRow)
       .first()
-      .getByRole('button', { name: /Details|Деталі/i })
-      .click()
+      .getByRole("button", { name: /Details|Деталі/i })
+      .click();
     await expect(this.page.getByTestId(TestIds.runDetailsDrawer)).toBeVisible({
       timeout: 15_000,
-    })
+    });
+  }
+
+  async openNewCampaignDialog() {
+    await this.page.getByTestId(TestIds.executionsNewCampaignButton).click();
+    await expect(
+      this.page.getByTestId(TestIds.campaignDialogPanel),
+    ).toBeVisible({ timeout: 10_000 });
+  }
+
+  async createCampaign(name: string, description = "") {
+    await this.openNewCampaignDialog();
+    await this.page.getByTestId(TestIds.campaignDialogNameInput).fill(name);
+    if (description) {
+      await this.page
+        .getByTestId(TestIds.campaignDialogDescriptionInput)
+        .fill(description);
+    }
+    await this.page.getByTestId(TestIds.campaignDialogSubmit).click();
+    await expect(this.page.getByTestId(TestIds.campaignDialogPanel)).toBeHidden(
+      { timeout: 20_000 },
+    );
   }
 }

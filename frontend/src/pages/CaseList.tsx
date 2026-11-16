@@ -1291,6 +1291,18 @@ export function CaseList({
       <FolderDeleteDialog
         open={deleteFolderTarget != null}
         folderName={deleteFolderTarget?.name ?? ''}
+        caseCount={
+          deleteFolderTarget
+            ? (deleteFolderTarget.case_count ??
+              deleteFolderTarget.direct_case_count ??
+              0)
+            : 0
+        }
+        childFolderCount={
+          deleteFolderTarget
+            ? suites.filter((s) => s.parent_id === deleteFolderTarget.id).length
+            : 0
+        }
         canDeleteCases={canDeleteCases}
         busy={folderBusy}
         onCancel={() => setDeleteFolderTarget(null)}
