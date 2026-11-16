@@ -139,7 +139,7 @@ jobs:
       - name: Build and push web image
         uses: docker/build-push-action@v7
         with:
-          context: ./frontend
+          context: .
           file: frontend/Dockerfile
           push: true
           tags: ${{ steps.meta_web.outputs.tags }}

@@ -1,10 +1,13 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
@@ -42,14 +45,15 @@ function initials(name: string, email: string): string {
 
 type Props = {
   showAdmin: boolean
-  docsUrl: string
+  apiDocsUrl: string
 }
 
-export function UserMenu({ showAdmin, docsUrl }: Props) {
+export function UserMenu({ showAdmin, apiDocsUrl }: Props) {
   const { user, status, logout } = useAuth()
   const { t } = useI18n()
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
+  const [panelStyle, setPanelStyle] = useState<CSSProperties>({})
   const rootRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const menuId = useId()
@@ -57,10 +61,33 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
   const authRequired = Boolean(status?.auth_required)
   const modeLabel = authRequired ? t('nav.authRequired') : t('nav.openMode')
 
+  useLayoutEffect(() => {
+    if (!open || !rootRef.current) return
+    const place = () => {
+      const rect = rootRef.current!.getBoundingClientRect()
+      setPanelStyle({
+        position: 'fixed',
+        top: rect.bottom + 6,
+        right: Math.max(8, window.innerWidth - rect.right),
+        left: 'auto',
+      })
+    }
+    place()
+    window.addEventListener('resize', place)
+    window.addEventListener('scroll', place, true)
+    return () => {
+      window.removeEventListener('resize', place)
+      window.removeEventListener('scroll', place, true)
+    }
+  }, [open])
+
   useEffect(() => {
     if (!open) return
     const onDoc = (e: MouseEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      if (rootRef.current?.contains(target)) return
+      if (listRef.current?.contains(target)) return
+      setOpen(false)
     }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -110,6 +137,125 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
     navigate(path)
   }
 
+  const panel = open ? (
+    <div
+      id={menuId}
+      className="icon-menu-panel user-menu-panel user-menu-panel-portal"
+      role="menu"
+      tabIndex={-1}
+      aria-label={label}
+      ref={listRef}
+      style={panelStyle}
+      onKeyDown={onMenuKeyDown}
+      {...testIdProps(TestIds.headerGearMenuPanel)}
+    >
+      <div className="user-menu-header" role="presentation">
+        <span className="user-avatar" aria-hidden="true">
+          {user ? initials(user.display_name, user.email) : '?'}
+        </span>
+        <div className="user-menu-identity">
+          <strong>
+            {user?.display_name ?? status?.instance_name ?? 'Vulyk'}
+          </strong>
+          <span className="muted">{user?.email ?? t('nav.modeInfo')}</span>
+        </div>
+      </div>
+
+      <div className="user-menu-mode" role="presentation">
+        <span
+          className="mode-badge"
+          title={t('nav.modeInfo')}
+          {...testIdProps(TestIds.headerGearAuthMode)}
+        >
+          {modeLabel}
+        </span>
+      </div>
+
+      {user ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="user-menu-item"
+          onClick={() => go('/settings')}
+          {...testIdProps(TestIds.headerGearSettings)}
+        >
+          {t('nav.mySettings')}
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        role="menuitem"
+        className="user-menu-item"
+        onClick={() => go('/appearance')}
+        {...testIdProps(TestIds.headerGearAppearance)}
+      >
+        {t('nav.appearance')}
+      </button>
+
+      {showAdmin ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="user-menu-item"
+          onClick={() => go('/admin')}
+          {...testIdProps(TestIds.headerGearAdmin)}
+        >
+          {t('nav.adminSettings')}
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        role="menuitem"
+        className="user-menu-item"
+        onClick={() => go('/docs')}
+        {...testIdProps(TestIds.docsMenuLink)}
+      >
+        {t('nav.docs')}
+      </button>
+
+      <a
+        role="menuitem"
+        className="user-menu-item"
+        href={apiDocsUrl}
+        target="_blank"
+        rel="noreferrer"
+        onClick={close}
+        {...testIdProps(TestIds.apiDocsMenuLink)}
+      >
+        {t('nav.apiDocs')}
+      </a>
+
+      <div className="user-menu-sep" role="separator" />
+
+      {user ? (
+        <button
+          type="button"
+          role="menuitem"
+          className="user-menu-item"
+          onClick={() => {
+            close()
+            void logout()
+          }}
+          {...testIdProps(TestIds.headerGearSignOut)}
+        >
+          {t('nav.signOut')}
+        </button>
+      ) : (
+        <Link
+          role="menuitem"
+          className="user-menu-item"
+          to="/login"
+          onClick={close}
+          {...testIdProps(TestIds.headerGearSignIn)}
+        >
+          {t('nav.signIn')}
+        </Link>
+      )}
+    </div>
+  ) : null
+
   return (
     <div className="icon-menu" ref={rootRef}>
       <button
@@ -125,113 +271,7 @@ export function UserMenu({ showAdmin, docsUrl }: Props) {
       >
         <GearIcon />
       </button>
-      {open ? (
-        <div
-          id={menuId}
-          className="icon-menu-panel user-menu-panel"
-          role="menu"
-          tabIndex={-1}
-          aria-label={label}
-          ref={listRef}
-          onKeyDown={onMenuKeyDown}
-          {...testIdProps(TestIds.headerGearMenuPanel)}
-        >
-          <div className="user-menu-header" role="presentation">
-            <span className="user-avatar" aria-hidden="true">
-              {user ? initials(user.display_name, user.email) : '?'}
-            </span>
-            <div className="user-menu-identity">
-              <strong>
-                {user?.display_name ?? status?.instance_name ?? 'Vulyk'}
-              </strong>
-              <span className="muted">{user?.email ?? t('nav.modeInfo')}</span>
-            </div>
-          </div>
-
-          <div className="user-menu-mode" role="presentation">
-            <span
-              className="mode-badge"
-              title={t('nav.modeInfo')}
-              {...testIdProps(TestIds.headerGearAuthMode)}
-            >
-              {modeLabel}
-            </span>
-          </div>
-
-          {user ? (
-            <button
-              type="button"
-              role="menuitem"
-              className="user-menu-item"
-              onClick={() => go('/settings')}
-              {...testIdProps(TestIds.headerGearSettings)}
-            >
-              {t('nav.mySettings')}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            role="menuitem"
-            className="user-menu-item"
-            onClick={() => go('/appearance')}
-            {...testIdProps(TestIds.headerGearAppearance)}
-          >
-            {t('nav.appearance')}
-          </button>
-
-          {showAdmin ? (
-            <button
-              type="button"
-              role="menuitem"
-              className="user-menu-item"
-              onClick={() => go('/admin')}
-              {...testIdProps(TestIds.headerGearAdmin)}
-            >
-              {t('nav.adminSettings')}
-            </button>
-          ) : null}
-
-          <a
-            role="menuitem"
-            className="user-menu-item"
-            href={docsUrl}
-            target="_blank"
-            rel="noreferrer"
-            onClick={close}
-            {...testIdProps(TestIds.headerGearDocs)}
-          >
-            {t('nav.helpDocs')}
-          </a>
-
-          <div className="user-menu-sep" role="separator" />
-
-          {user ? (
-            <button
-              type="button"
-              role="menuitem"
-              className="user-menu-item"
-              onClick={() => {
-                close()
-                void logout()
-              }}
-              {...testIdProps(TestIds.headerGearSignOut)}
-            >
-              {t('nav.signOut')}
-            </button>
-          ) : (
-            <Link
-              role="menuitem"
-              className="user-menu-item"
-              to="/login"
-              onClick={close}
-              {...testIdProps(TestIds.headerGearSignIn)}
-            >
-              {t('nav.signIn')}
-            </Link>
-          )}
-        </div>
-      ) : null}
+      {panel ? createPortal(panel, document.body) : null}
     </div>
   )
 }

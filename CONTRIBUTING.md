@@ -39,7 +39,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 cd frontend && npm ci && npm run lint && npm run typecheck && npm run check:test-ids && npm run test && npm run build
 docker build -f backend/Dockerfile -t vulyk-api:local .
-docker build -f frontend/Dockerfile -t vulyk-web:local ./frontend
+docker build -f frontend/Dockerfile -t vulyk-web:local .
 ```
 
 Agents: see root [AGENTS.md](AGENTS.md), [docs/ci-failures.md](docs/ci-failures.md), and the Oct 2026 audits linked from [docs/README.md](docs/README.md).

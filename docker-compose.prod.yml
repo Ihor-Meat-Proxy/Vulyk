@@ -87,8 +87,8 @@ services:
   web:
     image: ${VULYK_WEB_IMAGE:-vulyk-web:local}
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: ""
     restart: unless-stopped

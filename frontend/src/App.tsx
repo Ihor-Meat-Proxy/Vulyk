@@ -24,6 +24,7 @@ import { ExecutionsPage } from './pages/ExecutionsPage'
 import { NotFound } from './pages/NotFound'
 import { Runs } from './pages/Runs'
 import { CoverageDetail } from './pages/CoverageDetail'
+import { Docs } from './pages/Docs'
 import { Reports } from './pages/Reports'
 import { RequirementsPage } from './pages/RequirementsPage'
 import { RunDetail } from './pages/RunDetail'
@@ -308,6 +309,8 @@ export default function App() {
             path="settings"
             element={<Settings activeProjectId={activeProjectId} />}
           />
+          <Route path="docs" element={<Docs />} />
+          <Route path="docs/:docId" element={<Docs />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

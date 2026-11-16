@@ -74,8 +74,8 @@ services:
   web:
     image: ${VULYK_E2E_WEB_IMAGE:-vulyk-web:e2e}
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         VITE_API_URL: ""
     depends_on:

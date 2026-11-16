@@ -1,8 +1,11 @@
 FROM node:22-bookworm AS builder
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci
-COPY . .
+# Build from the repository root so docs/user Markdown can be bundled.
+WORKDIR /src
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN cd frontend && npm ci
+COPY frontend ./frontend
+COPY docs/user ./docs/user
+WORKDIR /src/frontend
 ARG VITE_API_URL=
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
@@ -14,7 +17,7 @@ FROM nginxinc/nginx-unprivileged:1.31.7-alpine
 USER root
 RUN apk upgrade --no-cache
 USER nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /src/frontend/dist /usr/share/nginx/html
 EXPOSE 8080
 CMD ["nginx", "-g", "daemon off;"]

@@ -307,7 +307,8 @@ select {
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
-  z-index: 1;
+  /* Above case-list sticky headers (z-index 2) so the gear menu is not clipped. */
+  z-index: 50;
 }
 
 .topbar h1 {
@@ -519,7 +520,7 @@ select.project-select {
   position: absolute;
   right: 0;
   top: calc(100% + 0.35rem);
-  z-index: 40;
+  z-index: 60;
   min-width: 14rem;
   margin: 0;
   padding: 0.35rem;
@@ -3862,5 +3863,113 @@ button.trend-seg.clickable:focus-visible {
 
   .case-edit-sticky {
     bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* —— In-app user docs (/docs) —— */
+.user-menu-panel-portal {
+  position: fixed;
+  z-index: 80;
+}
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+  font-family: var(--font-body);
+}
+
+.docs-sidebar {
+  position: sticky;
+  top: 0.75rem;
+  max-height: calc(100vh - 5rem);
+  overflow: auto;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+}
+
+.docs-sidebar-header h2 {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.docs-search input {
+  width: 100%;
+}
+
+.docs-toc-pages,
+.docs-toc-headings {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+}
+
+.docs-toc-pages a,
+.docs-toc-headings a {
+  display: block;
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.35rem;
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.docs-toc-pages a.active,
+.docs-toc-pages a:hover,
+.docs-toc-headings a:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.docs-toc-h3 {
+  padding-left: 0.75rem;
+  font-size: 0.92em;
+}
+
+.docs-article {
+  min-width: 0;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.docs-article h1 {
+  margin-top: 0;
+  font-family: var(--font-display);
+}
+
+.docs-article h2,
+.docs-article h3 {
+  scroll-margin-top: 4.5rem;
+  font-family: var(--font-display);
+}
+
+.docs-article pre,
+.docs-article code {
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.docs-article pre {
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--bg-elevated) 88%, var(--ink) 4%);
+}
+
+.docs-article a {
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-sidebar {
+    position: static;
+    max-height: none;
   }
 }
