@@ -10,6 +10,7 @@ import {
   type SuiteResultRow,
   type TestRunDetail,
 } from '../api'
+import { CiPipelineLink, CiSourceBadge } from '../components/CiRunBadges'
 import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
@@ -243,6 +244,9 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
     environment: run.environment ?? {},
     artifacts: run.artifacts ?? {},
     external_ref: run.external_ref,
+    ci_provider: run.ci_provider ?? null,
+    pipeline_url: run.pipeline_url ?? null,
+    job_url: run.job_url ?? null,
   }
 
   // Case execution detail
@@ -417,7 +421,10 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
         )}
       </div>
       <div className="meta-row">
-        <span className="muted">{suiteShell.source}</span>
+        <CiSourceBadge
+          source={suiteShell.source}
+          ciProvider={suiteShell.ci_provider}
+        />
         {suiteShell.created_by_name ? (
           <span>{suiteShell.created_by_name}</span>
         ) : null}
@@ -426,6 +433,10 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
           P{suiteShell.pass_count} / F{suiteShell.fail_count} / S
           {suiteShell.skip_count} / B{suiteShell.blocked_count}
         </span>
+        <CiPipelineLink
+          pipelineUrl={suiteShell.pipeline_url}
+          jobUrl={suiteShell.job_url}
+        />
       </div>
 
       <h3>{t('executions.results')}</h3>

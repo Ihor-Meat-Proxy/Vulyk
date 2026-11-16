@@ -7,6 +7,7 @@ import {
   type RunItemExecution,
   type TestRunDetail,
 } from '../api'
+import { CiPipelineLink } from '../components/CiRunBadges'
 import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
@@ -385,6 +386,7 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
               percent: progress.percent.toFixed(0),
             })}
           </span>
+          <CiPipelineLink pipelineUrl={run.pipeline_url} jobUrl={run.job_url} />
           {fromCache && <span className="badge">{t('runs.cachedBadge')}</span>}
           {canAbandon && isAbandonableStatus(run.status) && (
             <button
