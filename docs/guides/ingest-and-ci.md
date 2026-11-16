@@ -1,6 +1,6 @@
 # Ingest & CI integrations (W4 / W5)
 
-Upload automated results into Vulyk and trigger GitHub Actions / GitLab pipelines from the UI.
+Upload automated results into Vulyk and trigger GitHub Actions / GitLab pipelines / Jenkins jobs from the UI.
 
 > **Preferred CI flow** (open → upload → close, project CI tokens, multi-repo settings): see **[ci-integration.md](./ci-integration.md)**. This page covers formats, one-shot ingest, dispatch, and webhooks.
 
@@ -48,7 +48,8 @@ pytest, Playwright, Surefire, and similar reporters are supported. Each `<testca
 | `POST` | `/api/v1/runs/{id}/ingest` | Parse JUnit / Vulyk / Playwright / pytest JSON into an existing run |
 | `POST` | `/api/v1/runs/{id}/results:bulk` | Bulk insert already-normalized results |
 | `GET` | `/api/v1/jobs/{id}` | Poll background ingest jobs |
-| `POST` | `/api/v1/ci-configs/{id}/dispatch` | Trigger GitHub `workflow_dispatch` or GitLab pipeline |
+| `POST` | `/api/v1/ci-configs/{id}/dispatch` | Trigger GitHub `workflow_dispatch`, GitLab pipeline, or Jenkins `buildWithParameters` |
+| `POST` | `/api/v1/ci-configs/{id}/test` | Probe Jenkins (crumb + whoAmI + job); advisory message for GitHub/GitLab |
 | `POST` | `/api/v1/webhooks/github[/{config_id}]` | Sync GitHub Actions status |
 | `POST` | `/api/v1/webhooks/gitlab[/{config_id}]` | Sync GitLab pipeline status |
 

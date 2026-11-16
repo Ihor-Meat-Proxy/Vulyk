@@ -9,10 +9,11 @@ use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
-use crate::integrations::{github, gitlab};
+use crate::integrations::{github, gitlab, jenkins};
 use crate::models::{
-    merge_ci_config, AutomationRepoRow, CiConfig, CiConfigPublic, CiDispatch, CreateCiConfig,
-    CreateRun, DispatchCiRequest, RunInCiRequest, RunInCiResponse, TestRun, UpdateCiConfig,
+    merge_ci_config, AutomationRepoRow, CiConfig, CiConfigPublic, CiConfigTestResult, CiDispatch,
+    CreateCiConfig, CreateRun, DispatchCiRequest, RunInCiRequest, RunInCiResponse, TestRun,
+    UpdateCiConfig,
 };
 use crate::routes::automation_repos::decrypt_actions_token;
 use crate::routes::AppState;
@@ -35,6 +36,10 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/v1/ci-configs/{id}/dispatch",
             axum::routing::post(dispatch_ci),
+        )
+        .route(
+            "/api/v1/ci-configs/{id}/test",
+            axum::routing::post(test_ci_config),
         )
         .route(
             "/api/v1/projects/{project_id}/run-in-ci",
@@ -105,8 +110,8 @@ pub async fn create_ci_config(
     .await?;
     ensure_project(&state, project_id).await?;
     let provider = body.provider.trim().to_lowercase();
-    // Inbound / stored configs accept common CI systems; dispatch currently
-    // implements github + gitlab only (see dispatch match below).
+    // Inbound / stored configs accept common CI systems; dispatch implements
+    // github + gitlab + jenkins (see dispatch match below).
     if !matches!(
         provider.as_str(),
         "github" | "gitlab" | "jenkins" | "bitbucket" | "other"
@@ -251,6 +256,56 @@ pub async fn delete_ci_config(
 
 #[utoipa::path(
     post,
+    path = "/api/v1/ci-configs/{id}/test",
+    tag = "ci",
+    params(("id" = Uuid, Path, description = "CI config id")),
+    responses((status = 200, description = "Connection probe", body = CiConfigTestResult)),
+    security(("bearer_auth" = []))
+)]
+pub async fn test_ci_config(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<CiConfigTestResult>> {
+    let cfg = load_config(&state, id).await?;
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        cfg.project_id,
+        Permission::ManageCiConfig,
+    )
+    .await?;
+    if !cfg.enabled {
+        return Err(AppError::BadRequest("CI config is disabled".into()));
+    }
+    let result = match cfg.provider.as_str() {
+        "jenkins" => match jenkins::test_connection(&cfg.config).await {
+            Ok((ok, message)) => CiConfigTestResult { ok, message },
+            Err(err) => CiConfigTestResult {
+                ok: false,
+                message: err.to_string(),
+            },
+        },
+        "github" => CiConfigTestResult {
+            ok: true,
+            message: "GitHub configs are validated on dispatch (workflow_dispatch)".into(),
+        },
+        "gitlab" => CiConfigTestResult {
+            ok: true,
+            message: "GitLab configs are validated on dispatch (trigger API)".into(),
+        },
+        other => {
+            return Err(AppError::BadRequest(format!(
+                "test connection is not implemented for provider '{other}'"
+            )));
+        }
+    };
+    Ok(Json(result))
+}
+
+#[utoipa::path(
+    post,
     path = "/api/v1/ci-configs/{id}/dispatch",
     tag = "ci",
     params(("id" = Uuid, Path, description = "CI config id")),
@@ -353,10 +408,33 @@ pub async fn dispatch_ci(
         body.inputs
     };
     // Always expose the Vulyk run id so workflows can attach via VULYK_RUN_ID.
+    // Prefer the human-readable slug (UUID still accepted by CI attach APIs).
     if let Some(rid) = run_id {
+        let (slug, display_id): (Option<String>, Option<String>) =
+            sqlx::query_as(r#"SELECT slug, display_id FROM test_runs WHERE id = $1"#)
+                .bind(rid)
+                .fetch_optional(&state.pool)
+                .await?
+                .map(|(s, d)| (Some(s), Some(d)))
+                .unwrap_or((None, None));
+        let attach_id = slug
+            .clone()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| rid.to_string());
         if let Some(obj) = inputs.as_object_mut() {
             obj.entry("vulyk_run_id")
-                .or_insert_with(|| json!(rid.to_string()));
+                .or_insert_with(|| json!(attach_id.clone()));
+            // Jenkins (and many freestyle jobs) declare uppercase parameters.
+            if cfg.provider == "jenkins" {
+                obj.entry("VULYK_RUN_ID")
+                    .or_insert_with(|| json!(attach_id));
+                obj.entry("VULYK_PROJECT_ID")
+                    .or_insert_with(|| json!(cfg.project_id.to_string()));
+                if let Some(did) = display_id {
+                    obj.entry("VULYK_RUN_DISPLAY_ID")
+                        .or_insert_with(|| json!(did));
+                }
+            }
         }
     }
 
@@ -376,12 +454,13 @@ pub async fn dispatch_ci(
     let handle = match cfg.provider.as_str() {
         "github" => github::dispatch(&cfg.config, &inputs).await,
         "gitlab" => gitlab::dispatch(&cfg.config, &inputs).await,
+        "jenkins" => jenkins::dispatch(&cfg.config, &inputs).await,
         other => Err(AppError::BadRequest(format!("unknown provider {other}"))),
     };
 
     let updated = match handle {
         Ok(h) => {
-            sqlx::query_as::<_, CiDispatch>(
+            let d = sqlx::query_as::<_, CiDispatch>(
                 r#"UPDATE ci_dispatches
                    SET status = $2, external_id = COALESCE($3, external_id),
                        external_url = COALESCE($4, external_url), updated_at = NOW()
@@ -394,10 +473,34 @@ pub async fn dispatch_ci(
             .bind(&h.external_id)
             .bind(&h.external_url)
             .fetch_one(&state.pool)
-            .await?
+            .await?;
+            if let (Some(rid), Some(url)) = (run_id, &h.external_url) {
+                let _ = sqlx::query(
+                    r#"UPDATE test_runs
+                       SET pipeline_url = COALESCE(pipeline_url, $2),
+                           job_url = COALESCE(job_url, $2),
+                           status = CASE WHEN status = 'queued' THEN 'in_progress' ELSE status END,
+                           updated_at = NOW()
+                       WHERE id = $1"#,
+                )
+                .bind(rid)
+                .bind(url)
+                .execute(&state.pool)
+                .await;
+            }
+            d
         }
         Err(err) => {
             let msg = err.to_string();
+            if let Some(rid) = run_id {
+                let _ = sqlx::query(
+                    r#"UPDATE test_runs SET status = 'failed', finished_at = NOW(), updated_at = NOW()
+                       WHERE id = $1 AND status IN ('queued', 'pending')"#,
+                )
+                .bind(rid)
+                .execute(&state.pool)
+                .await;
+            }
             sqlx::query_as::<_, CiDispatch>(
                 r#"UPDATE ci_dispatches
                    SET status = 'failed', last_error = $2, updated_at = NOW()
@@ -896,6 +999,42 @@ fn validate_config(provider: &str, config: &serde_json::Value) -> AppResult<()> 
                     )));
                 }
             }
+        }
+        "jenkins" => {
+            for key in ["base_url", "username", "token"] {
+                if config
+                    .get(key)
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .is_empty()
+                {
+                    return Err(AppError::BadRequest(format!(
+                        "jenkins config requires '{key}'"
+                    )));
+                }
+            }
+            let job = config
+                .get("job_path")
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .or_else(|| {
+                    config
+                        .get("job_url")
+                        .and_then(|v| v.as_str())
+                        .filter(|s| !s.is_empty())
+                });
+            if job.is_none() {
+                return Err(AppError::BadRequest(
+                    "jenkins config requires 'job_path' or 'job_url'".into(),
+                ));
+            }
+            // SSRF check at save time (same policy as automation remotes).
+            let base = config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim_end_matches('/');
+            crate::services::egress::validate_public_https_url(base)?;
         }
         _ => {}
     }

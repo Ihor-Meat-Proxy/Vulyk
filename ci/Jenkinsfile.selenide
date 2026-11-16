@@ -1,0 +1,91 @@
+// Selenide / JUnit → Vulyk (Jenkins).
+//
+// Same two modes as ci/Jenkinsfile:
+// 1) Vulyk Dispatch supplies VULYK_RUN_ID → attach results to that run.
+// 2) Empty VULYK_RUN_ID → open → upload Surefire XML → close.
+//
+// Expect Maven Surefire (or failsafe) XML under target/surefire-reports/.
+
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'VULYK_RUN_ID', defaultValue: '', description: 'Existing Vulyk run id/slug from Dispatch')
+    string(name: 'VULYK_PROJECT_ID', defaultValue: '', description: 'Optional project UUID override')
+    string(name: 'CASE_KEYS', defaultValue: '', description: 'Optional comma-separated case keys (informational)')
+  }
+
+  environment {
+    VULYK_API_URL     = "${env.VULYK_API_URL}"
+    VULYK_API_TOKEN   = credentials('vulyk-ci-token')
+    VULYK_PROJECT_KEY = "${env.VULYK_PROJECT_KEY ?: 'KOC'}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Test') {
+      steps {
+        sh '''
+          set -euo pipefail
+          mvn -B test || true
+        '''
+      }
+    }
+
+    stage('Report to Vulyk') {
+      steps {
+        script {
+          sh '''
+            set -euo pipefail
+            if [ ! -f ./scripts/vulyk-upload.sh ]; then
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            else
+              UPLOADER=./scripts/vulyk-upload.sh
+            fi
+
+            export VULYK_API_URL VULYK_API_TOKEN
+            PROJECT_ARGS=()
+            if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+              PROJECT_ARGS+=(--project-id "${VULYK_PROJECT_ID}")
+            else
+              PROJECT_ARGS+=(--project-key "${VULYK_PROJECT_KEY}")
+            fi
+
+            if [ -z "${VULYK_RUN_ID:-}" ]; then
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "Jenkins Selenide #${BUILD_NUMBER}" \
+                --provider jenkins --branch "${GIT_BRANCH:-}" --commit "${GIT_COMMIT:-}" \
+                --pipeline-url "${BUILD_URL}" \
+                "${PROJECT_ARGS[@]}")"
+              export VULYK_RUN_ID
+            else
+              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+                curl -fsS -X POST \
+                  -H "Authorization: Bearer ${VULYK_API_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"pipeline_url\":\"${BUILD_URL}\",\"branch\":\"${GIT_BRANCH:-}\",\"commit\":\"${GIT_COMMIT:-}\"}" \
+                  "${VULYK_API_URL%/}/api/v1/projects/${VULYK_PROJECT_ID}/ci/runs/${VULYK_RUN_ID}/start" || true
+              fi
+            fi
+
+            FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+            if [ -z "${FILE}" ]; then
+              FILE="$(ls target/surefire-reports/junitreports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+            fi
+            test -n "${FILE}"
+
+            "$UPLOADER" --file "${FILE}" --format junit \
+              --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+          '''
+        }
+      }
+    }
+  }
+}

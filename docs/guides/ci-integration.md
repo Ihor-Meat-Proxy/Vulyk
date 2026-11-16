@@ -78,6 +78,45 @@ When configuring GitHub/GitLab **webhooks** for dispatch status sync, set a **we
 
 ## Two-way trigger (Run in CI)
 
+Vulyk can **start** a GitHub Actions workflow, GitLab pipeline, or **Jenkins
+job** and stream results back into an existing run. GitHub also supports the
+Executions **Run in CI** button via an automation repo; Jenkins/GitLab use
+**CI → Dispatch** on a saved CI config (or the same dispatch API).
+
+### Jenkins (Dispatch)
+
+1. Under **CI triggers**, choose **Jenkins** and save:
+   - **Base URL** — `https://jenkins.example.com` (HTTPS; private hosts need
+     `VULYK_EGRESS_ALLOW_PRIVATE=1` on the API)
+   - **Job path** — `folder/job-name`, `/job/folder/job/job-name`, or a full job URL
+   - **Username** + **API token** (Jenkins user token; redacted in API responses)
+   - **Use CSRF crumb** — on by default (`crumbIssuer`; skipped when CSRF is off)
+2. Click **Test connection** (whoAmI + job API).
+3. **Dispatch** creates a Vulyk run (or attaches one), calls
+   `buildWithParameters` with `VULYK_RUN_ID` (preferring the run **slug**),
+   `VULYK_PROJECT_ID`, and any extra inputs, then follows the queue item to a
+   build number and stores `pipeline_url` / `job_url` on the run.
+4. Point the job at [`ci/Jenkinsfile`](../../ci/Jenkinsfile) (Playwright) or
+   [`ci/Jenkinsfile.selenide`](../../ci/Jenkinsfile.selenide). The job must
+   declare string parameters `VULYK_RUN_ID` / `VULYK_PROJECT_ID` and upload with
+   that id (`vulyk-upload.sh` or the Playwright reporter).
+
+```mermaid
+sequenceDiagram
+  participant UI as Vulyk CI triggers
+  participant API as Vulyk API
+  participant J as Jenkins
+  UI->>API: Dispatch jenkins config
+  API->>API: Create run status=queued
+  API->>J: crumb + buildWithParameters(VULYK_RUN_ID=slug)
+  J-->>API: Location queue/item/N
+  API->>J: poll queue → build number
+  API->>API: pipeline_url + dispatch running
+  J->>API: start / results / close (same run)
+```
+
+### GitHub Actions (Run in CI)
+
 Vulyk can **start** a GitHub Actions workflow and stream results back into an
 existing run:
 
@@ -205,6 +244,29 @@ export VULYK_PROJECT_KEY=KOC
 
 Thin wrapper at [`action/action.yml`](../../action/action.yml) remains available for simple one-shot uploads. Large result files are streamed (`curl --data-binary @file`) so agents do not hit `Argument list too long`.
 
+## Jenkins (inbound)
+
+Use the same open → upload → close loop from a freestyle or Pipeline job. Sample
+Declarative Pipelines live under [`ci/Jenkinsfile`](../../ci/Jenkinsfile) and
+[`ci/Jenkinsfile.selenide`](../../ci/Jenkinsfile.selenide). Capture the run id
+with `--print-run-id` when Jenkins starts the run itself; when Vulyk dispatched
+the build, use the `VULYK_RUN_ID` parameter instead.
+
+```bash
+export VULYK_API_URL=https://vulyk.example.com
+export VULYK_API_TOKEN=vulyk_ci_…
+export VULYK_PROJECT_KEY=KOC
+
+./scripts/vulyk-upload.sh --open-run --print-run-id \
+  --suite-name "Jenkins #${BUILD_NUMBER}" \
+  --provider jenkins --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
+  --pipeline-url "${BUILD_URL}"
+```
+
+Private Jenkins controllers reached from Vulyk (Dispatch / Test connection)
+require `VULYK_EGRESS_ALLOW_PRIVATE=1` on the API process — the same SSRF escape
+hatch used for local automation remotes.
+
 ## GitLab CI
 
 Include the template and set variables:
@@ -250,7 +312,7 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 | Closed | Job finished successfully or with failures |
 | Cancelled | Job interrupted / cancelled close (`status=cancelled`, not a passed-looking Closed badge) |
 
-On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
+On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 
 ```mermaid
 stateDiagram-v2

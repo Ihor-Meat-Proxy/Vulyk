@@ -3019,6 +3019,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body ?? {}),
     }),
+  testCiConfig: (configId: string) =>
+    request<{ ok: boolean; message: string }>(
+      `/api/v1/ci-configs/${configId}/test`,
+      { method: 'POST', body: '{}' },
+    ),
   listDispatches: (projectId: string) =>
     request<CiDispatch[]>(`/api/v1/projects/${projectId}/ci-dispatches`),
 
