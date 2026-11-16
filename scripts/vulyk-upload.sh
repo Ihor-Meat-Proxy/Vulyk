@@ -11,6 +11,7 @@ usage() {
   cat <<'EOF'
 Usage:
   vulyk-upload.sh --open-run [metadata options]
+  vulyk-upload.sh --start-run [metadata options]
   vulyk-upload.sh --file PATH [--format auto|junit|...] [options]
   vulyk-upload.sh --close-run [--cancelled] [options]
 
@@ -24,6 +25,7 @@ Options:
   --suite-name NAME      CI suite name (or VULYK_RUN_NAME)
   --create-run           Legacy: create a run when --run-id is unset
   --open-run             Open a CI lifecycle run (status=open)
+  --start-run            Attach / mark a queued run in_progress (branch, commit, pipeline URL)
   --close-run            Close a CI run
   --cancelled            Mark close as cancelled
   --pipeline             Legacy one-shot campaign/iteration ingest
@@ -41,15 +43,17 @@ Options:
   --environment JSON     Environment metadata JSON object
   --artifacts JSON       Artifacts array/object JSON
   --async                Force async ingest
-  --print-run-id         On --open-run: print only the run UUID on stdout
+  --print-run-id         On --open-run: print only the run UUID on stdout (preferred capture)
   --run-id-file PATH     Write the opened run id to PATH (also for open-run)
   --dotenv-file PATH     Append VULYK_RUN_ID=... for GitLab dotenv / generic CI
   --help                 Show this help
 
-Open-run exports the run id via (when applicable):
-  - stdout JSON response (default) or bare UUID with --print-run-id
-  - $GITHUB_ENV (GitHub Actions)
-  - --run-id-file / --dotenv-file / $VULYK_DOTENV_FILE (default vulyk.env under GitLab CI)
+Capture the opened run id with --print-run-id (same shell) or --run-id-file /
+--dotenv-file. On GitHub Actions, --open-run also appends VULYK_RUN_ID to
+$GITHUB_ENV for *later* steps only — it is not visible to the next command in
+the same step. Prefer:
+
+  VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id ...)"
 EOF
 }
 
@@ -64,6 +68,7 @@ RUN_NAME="${VULYK_RUN_NAME:-}"
 SUITE_NAME=""
 CREATE_RUN=0
 OPEN_RUN=0
+START_RUN=0
 CLOSE_RUN=0
 CANCELLED=0
 PIPELINE=0
@@ -98,6 +103,7 @@ while [[ $# -gt 0 ]]; do
     --suite-name) SUITE_NAME="${2:-}"; shift 2 ;;
     --create-run) CREATE_RUN=1; shift ;;
     --open-run) OPEN_RUN=1; shift ;;
+    --start-run) START_RUN=1; shift ;;
     --close-run) CLOSE_RUN=1; shift ;;
     --cancelled) CANCELLED=1; shift ;;
     --pipeline) PIPELINE=1; shift ;;
@@ -277,6 +283,37 @@ print(d.get("id") or d.get("run_id") or (d.get("run") or {}).get("id") or "")')"
   exit 0
 fi
 
+# - start / attach CI run -
+if [[ "${START_RUN}" -eq 1 ]]; then
+  if [[ -z "${RUN_ID}" ]]; then
+    echo "error: --run-id or VULYK_RUN_ID required for --start-run" >&2
+    exit 2
+  fi
+  resolve_project_id
+  BODY_FILE="$(mktemp_payload)"
+  BRANCH="${BRANCH}" COMMIT="${COMMIT}" PIPELINE_URL="${PIPELINE_URL}" \
+    JOB_URL="${JOB_URL}" BODY_FILE="${BODY_FILE}" python3 - <<'PY'
+import json, os
+payload = {}
+for k, envk in [
+    ("branch", "BRANCH"),
+    ("commit", "COMMIT"),
+    ("pipeline_url", "PIPELINE_URL"),
+    ("job_url", "JOB_URL"),
+]:
+    v = os.environ.get(envk) or ""
+    if v:
+        payload[k] = v
+with open(os.environ["BODY_FILE"], "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
+PY
+  curl_json_file POST \
+    "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs/${RUN_ID}/start" \
+    "${BODY_FILE}"
+  echo
+  exit 0
+fi
+
 # - close CI run -
 if [[ "${CLOSE_RUN}" -eq 1 ]]; then
   if [[ -z "${RUN_ID}" ]]; then
@@ -298,7 +335,7 @@ if [[ "${CLOSE_RUN}" -eq 1 ]]; then
 fi
 
 if [[ -z "${FILE}" || ! -f "${FILE}" ]]; then
-  echo "error: --file is required and must exist (unless --open-run / --close-run)" >&2
+  echo "error: --file is required and must exist (unless --open-run / --start-run / --close-run)" >&2
   exit 2
 fi
 

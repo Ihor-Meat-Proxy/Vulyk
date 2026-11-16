@@ -5,6 +5,8 @@
 //    (slug or UUID). Attach to that run; do not open a new one.
 // 2) Jenkins-first: leave VULYK_RUN_ID empty; open a run, then upload + close.
 //
+// Shell snippets are POSIX sh (dash-safe): no bash arrays, no pipefail.
+//
 // Credentials / variables (Jenkins credentials or folder properties):
 //   VULYK_API_URL, VULYK_CI_TOKEN (or VULYK_API_TOKEN), VULYK_PROJECT_KEY or VULYK_PROJECT_ID
 //
@@ -36,17 +38,21 @@ pipeline {
       steps {
         dir('e2e') {
           sh '''
-            set -euo pipefail
+            set -eu
             npm ci
-            ARGS=()
+            set --
             if [ -n "${CASE_KEYS:-}" ]; then
-              IFS=',' read -ra KEYS <<< "${CASE_KEYS}"
-              for k in "${KEYS[@]}"; do
-                k="$(echo "$k" | xargs)"
-                [ -n "$k" ] && ARGS+=(-g "$k")
+              old_ifs=$IFS
+              IFS=,
+              for k in $CASE_KEYS; do
+                k=$(printf '%s' "$k" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                if [ -n "$k" ]; then
+                  set -- "$@" -g "$k"
+                fi
               done
+              IFS=$old_ifs
             fi
-            npx playwright test "${ARGS[@]}" || true
+            npx playwright test "$@" || true
           '''
         }
       }
@@ -56,7 +62,7 @@ pipeline {
       steps {
         script {
           sh '''
-            set -euo pipefail
+            set -eu
             if [ ! -f ./scripts/vulyk-upload.sh ]; then
               curl -fsSL -o vulyk-upload.sh \
                 https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
@@ -67,29 +73,34 @@ pipeline {
             fi
 
             export VULYK_API_URL VULYK_API_TOKEN
-            PROJECT_ARGS=()
-            if [ -n "${VULYK_PROJECT_ID:-}" ]; then
-              PROJECT_ARGS+=(--project-id "${VULYK_PROJECT_ID}")
-            else
-              PROJECT_ARGS+=(--project-key "${VULYK_PROJECT_KEY}")
-            fi
+
+            BRANCH="${GIT_BRANCH:-}"
+            BRANCH="${BRANCH#origin/}"
+            BRANCH="${BRANCH#refs/heads/}"
+            COMMIT="${GIT_COMMIT:-}"
+
+            project_flag() {
+              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+                printf '%s\n' --project-id "${VULYK_PROJECT_ID}"
+              else
+                printf '%s\n' --project-key "${VULYK_PROJECT_KEY}"
+              fi
+            }
 
             if [ -z "${VULYK_RUN_ID:-}" ]; then
+              # Capture id in this shell: GITHUB_ENV / dotenv are for later steps only.
               VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
                 --suite-name "Jenkins Playwright #${BUILD_NUMBER}" \
-                --provider jenkins --branch "${GIT_BRANCH:-}" --commit "${GIT_COMMIT:-}" \
+                --provider jenkins --branch "${BRANCH}" --commit "${COMMIT}" \
                 --pipeline-url "${BUILD_URL}" \
-                "${PROJECT_ARGS[@]}")"
+                $(project_flag))"
               export VULYK_RUN_ID
             else
-              # Attach: mark queued run in_progress + store pipeline URL
-              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
-                curl -fsS -X POST \
-                  -H "Authorization: Bearer ${VULYK_API_TOKEN}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"pipeline_url\":\"${BUILD_URL}\",\"branch\":\"${GIT_BRANCH:-}\",\"commit\":\"${GIT_COMMIT:-}\"}" \
-                  "${VULYK_API_URL%/}/api/v1/projects/${VULYK_PROJECT_ID}/ci/runs/${VULYK_RUN_ID}/start" || true
-              fi
+              # Attach: mark queued run in_progress + store pipeline URL / git meta
+              "$UPLOADER" --start-run --run-id "${VULYK_RUN_ID}" \
+                --branch "${BRANCH}" --commit "${COMMIT}" \
+                --pipeline-url "${BUILD_URL}" \
+                $(project_flag) || true
             fi
 
             FILE=""
@@ -99,8 +110,8 @@ pipeline {
             test -n "$FILE"
 
             "$UPLOADER" --file "$FILE" --format junit \
-              --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
-            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+              --run-id "${VULYK_RUN_ID}" $(project_flag)
+            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" $(project_flag)
           '''
         }
       }

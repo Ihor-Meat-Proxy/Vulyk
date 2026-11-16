@@ -402,4 +402,32 @@ mod tests {
         assert_eq!(items[0].status, SKIPPED);
         assert_eq!(items[0].case_key.as_deref(), Some("VQA-55"));
     }
+
+    #[test]
+    fn maps_marker_skip_key_from_message_and_plugin_property() {
+        // @pytest.mark.skip(reason="… KEY …") → message= attribute.
+        let xml_msg = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1" skipped="1">
+  <testcase classname="pkg" name="test_health" time="0.0">
+    <skipped message="KOC-12 not ready"/>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml_msg).expect("parse");
+        assert_eq!(items[0].status, SKIPPED);
+        assert_eq!(items[0].case_key.as_deref(), Some("KOC-12"));
+
+        // ci/pytest_vulyk.py copies @pytest.mark.vulyk onto <properties> at collection.
+        let xml_prop = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1" skipped="1">
+  <testcase classname="pkg" name="test_health" time="0.0">
+    <properties>
+      <property name="case_key" value="KOC-99"/>
+    </properties>
+    <skipped message="not ready"/>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml_prop).expect("parse");
+        assert_eq!(items[0].status, SKIPPED);
+        assert_eq!(items[0].case_key.as_deref(), Some("KOC-99"));
+    }
 }

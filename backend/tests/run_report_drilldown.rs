@@ -451,3 +451,77 @@ async fn run_report_prefers_pipeline_url_column() {
         "report detail must surface test_runs.pipeline_url (not only meta)"
     );
 }
+
+#[tokio::test]
+async fn run_report_prefers_ci_branch_and_commit_columns() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let base = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let key = format!(
+        "B{}",
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+    );
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": "Branch Commit Project",
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let opened: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci/runs"))
+        .json(&serde_json::json!({
+            "provider": "jenkins",
+            "suite_name": "Jenkins build",
+            "branch": "feature/j11",
+            "commit": "deadbeefcafebabe",
+            "pipeline_url": "https://jenkins.example/job/demo/99/",
+            "external_ref": format!("jenkins:{}", uuid::Uuid::new_v4()),
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run_id = opened["run"]["id"].as_str().unwrap();
+    assert_eq!(opened["run"]["ci_branch"], "feature/j11");
+    assert_eq!(opened["run"]["ci_commit"], "deadbeefcafebabe");
+
+    let detail: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/reports/runs/{run_id}"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(
+        detail["branch"], "feature/j11",
+        "report detail must surface test_runs.ci_branch (not only meta)"
+    );
+    assert_eq!(
+        detail["commit"], "deadbeefcafebabe",
+        "report detail must surface test_runs.ci_commit (not only meta)"
+    );
+}

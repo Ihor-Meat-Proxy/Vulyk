@@ -69,6 +69,11 @@ class H(BaseHTTPRequestHandler):
         if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs":
             self._json(200, {"id": RUN_ID, "status": "open"})
             return
+        if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs/{RUN_ID}/start":
+            payload = json.loads(body.decode("utf-8") or "{}")
+            assert payload.get("branch") or payload.get("pipeline_url")
+            self._json(200, {"id": RUN_ID, "status": "in_progress", **payload})
+            return
         if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs/{RUN_ID}/close":
             self._json(200, {"id": RUN_ID, "status": "closed"})
             return
@@ -146,6 +151,18 @@ grep -qi 'run-id' "${WORKDIR}/no-run.txt" || {
   echo "FAIL expected run-id error message" >&2
   fail=$((fail + 1))
 }
+
+# J11: --start-run with project-key (attach branch/commit/pipeline_url)
+: > "${WORKDIR}/log.txt"
+"${SCRIPT}" --api-url "${API}" --project-key KOC --start-run --run-id "${RUN_ID}" \
+  --branch "feature/j11" --commit "abc123" --pipeline-url "https://ci.example/1" >/dev/null
+if grep -q "POST /api/v1/projects/${PROJECT_ID}/ci/runs/${RUN_ID}/start" "${WORKDIR}/log.txt"; then
+  echo "PASS start-run-resolves-project-key"
+  pass=$((pass + 1))
+else
+  echo "FAIL start-run did not hit /start" >&2
+  fail=$((fail + 1))
+fi
 
 # J2: close with project-key (must not hit /projects/_/... or POST /runs/{id})
 : > "${WORKDIR}/log.txt"
