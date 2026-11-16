@@ -15,6 +15,8 @@ struct CaseBuilder {
     time_secs: Option<f64>,
     status: String,
     message: String,
+    /// Captured `<system-out>` / `<system-err>` (and skip body) for key extraction.
+    body_text: String,
     /// Explicit key from `<property name="test_key|test_id|case_key|vulyk_key" …>`.
     property_key: Option<String>,
 }
@@ -52,13 +54,14 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
     let mut results = Vec::new();
     let mut current: Option<CaseBuilder> = None;
     let mut buf = Vec::new();
-    let mut capture_failure = false;
+    let mut capture_text = false;
+    let mut capture_to_body = false;
     let mut in_testcase = false;
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Empty(e)) if e.local_name().as_ref() == b"testcase" => {
-                results.push(finish_case(case_from_attrs(&e)?));
+                results.push(finish_case(case_from_attrs(&e)?, None));
             }
             Ok(Event::Start(e)) if e.local_name().as_ref() == b"testcase" => {
                 current = Some(case_from_attrs(&e)?);
@@ -79,11 +82,19 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
                 if matches!(e.local_name().as_ref(), b"failure" | b"error" | b"skipped") =>
             {
                 apply_outcome(&mut current, e.local_name().as_ref(), &e);
-                capture_failure = e.local_name().as_ref() != b"skipped";
+                // Capture body text for failures/errors and skipped (key may live in body).
+                capture_text = true;
+                capture_to_body = e.local_name().as_ref() == b"skipped";
             }
-            Ok(Event::Text(t)) if capture_failure => {
+            Ok(Event::Start(e))
+                if matches!(e.local_name().as_ref(), b"system-out" | b"system-err")
+                    && in_testcase =>
+            {
+                capture_text = true;
+                capture_to_body = true;
+            }
+            Ok(Event::Text(t)) if capture_text => {
                 if let Some(ref mut c) = current {
-                    // quick-xml 0.41+: decode encoding, then unescape entities.
                     let text = t
                         .decode()
                         .ok()
@@ -93,34 +104,28 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
                                 .unwrap_or_else(|_| decoded.into_owned())
                         })
                         .unwrap_or_default();
-                    if c.message.is_empty() {
-                        c.message = text;
-                    } else if !text.is_empty() {
-                        c.message.push('\n');
-                        c.message.push_str(&text);
-                    }
+                    append_capture(c, &text, capture_to_body);
                 }
             }
-            Ok(Event::CData(t)) if capture_failure => {
+            Ok(Event::CData(t)) if capture_text => {
                 if let Some(ref mut c) = current {
                     let text = String::from_utf8_lossy(&t).into_owned();
-                    if c.message.is_empty() {
-                        c.message = text;
-                    } else if !text.is_empty() {
-                        c.message.push('\n');
-                        c.message.push_str(&text);
-                    }
+                    append_capture(c, &text, capture_to_body);
                 }
             }
             Ok(Event::End(e)) => match e.local_name().as_ref() {
                 b"testcase" => {
                     if let Some(c) = current.take() {
-                        results.push(finish_case(c));
+                        results.push(finish_case(c, None));
                     }
-                    capture_failure = false;
+                    capture_text = false;
+                    capture_to_body = false;
                     in_testcase = false;
                 }
-                b"failure" | b"error" => capture_failure = false,
+                b"failure" | b"error" | b"skipped" | b"system-out" | b"system-err" => {
+                    capture_text = false;
+                    capture_to_body = false;
+                }
                 _ => {}
             },
             Ok(Event::Eof) => break,
@@ -130,6 +135,26 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
         buf.clear();
     }
     Ok(results)
+}
+
+fn append_capture(c: &mut CaseBuilder, text: &str, to_body: bool) {
+    if text.is_empty() {
+        return;
+    }
+    if to_body {
+        if !c.body_text.is_empty() {
+            c.body_text.push('\n');
+        }
+        c.body_text.push_str(text);
+        if c.message.is_empty() {
+            c.message = text.to_string();
+        }
+    } else if c.message.is_empty() {
+        c.message = text.to_string();
+    } else {
+        c.message.push('\n');
+        c.message.push_str(text);
+    }
 }
 
 fn case_from_attrs(e: &quick_xml::events::BytesStart<'_>) -> Result<CaseBuilder, String> {
@@ -207,7 +232,7 @@ fn apply_outcome(
     }
 }
 
-fn finish_case(c: CaseBuilder) -> BulkResultItem {
+fn finish_case(c: CaseBuilder, project_key: Option<&str>) -> BulkResultItem {
     let external_id = if c.classname.is_empty() {
         c.name.clone()
     } else {
@@ -218,10 +243,27 @@ fn finish_case(c: CaseBuilder) -> BulkResultItem {
     } else {
         format!("{} — {}", c.classname, c.name)
     };
-    let case_key = super::case_key::resolve_case_key(
+    let body = {
+        let mut parts = Vec::new();
+        if !c.message.is_empty() {
+            parts.push(c.message.as_str());
+        }
+        if !c.body_text.is_empty() {
+            parts.push(c.body_text.as_str());
+        }
+        let joined = parts.join("\n");
+        if joined.is_empty() {
+            None
+        } else {
+            Some(joined)
+        }
+    };
+    let case_key = super::case_key::resolve_case_key_with_project(
         c.property_key.as_deref(),
         Some(&title),
         Some(&external_id),
+        body.as_deref(),
+        project_key,
     );
     let duration_ms = c
         .time_secs
@@ -327,5 +369,37 @@ mod tests {
 </testsuite>"#;
         let items = parse_junit(xml).expect("parse");
         assert_eq!(items[0].case_key.as_deref(), Some("DEMO-3"));
+    }
+
+    #[test]
+    fn maps_underscore_name_and_skipped_property() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="2" skipped="1">
+  <testcase classname="pkg" name="test_VQA_110_login" time="0.1"/>
+  <testcase classname="pkg" name="anon_skip" time="0.0">
+    <properties>
+      <property name="case_key" value="VQA_111"/>
+    </properties>
+    <skipped message="not ready"/>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert_eq!(items[0].case_key.as_deref(), Some("VQA-110"));
+        assert_eq!(items[1].status, SKIPPED);
+        assert_eq!(items[1].case_key.as_deref(), Some("VQA-111"));
+    }
+
+    #[test]
+    fn maps_skipped_key_from_system_out() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1" skipped="1">
+  <testcase classname="pkg" name="anonymous" time="0.0">
+    <skipped/>
+    <system-out>ignored until VQA_55 is ready</system-out>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert_eq!(items[0].status, SKIPPED);
+        assert_eq!(items[0].case_key.as_deref(), Some("VQA-55"));
     }
 }

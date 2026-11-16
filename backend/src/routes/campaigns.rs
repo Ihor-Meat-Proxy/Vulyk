@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
-use crate::ingest::parse_payload;
+use crate::ingest::parse_payload_with_project;
 use crate::models::{
     clamp_campaign_limit, AutomatedSuite, AutomatedSuitesQuery, Campaign, CaseExecutionHistoryPage,
     CreateCampaign, CreateIteration, ExecutionsTreeNode, IngestRequest, IngestResponse, Iteration,
@@ -792,7 +792,9 @@ pub async fn pipeline_ingest(
             "format and content are required".into(),
         ));
     }
-    let parsed = parse_payload(&format, &body.content).map_err(AppError::BadRequest)?;
+    let project_key = ingest_svc::project_key(&state.pool, project_id).await?;
+    let parsed = parse_payload_with_project(&format, &body.content, Some(&project_key))
+        .map_err(AppError::BadRequest)?;
 
     let campaign_name = body.campaign.as_deref().unwrap_or("CI").trim().to_string();
     let campaign =

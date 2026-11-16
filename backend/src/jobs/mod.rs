@@ -7,7 +7,7 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::ingest::parse_payload;
+use crate::ingest::parse_payload_with_project;
 use crate::services::{ingest as ingest_svc, jobs as jobs_svc};
 
 #[derive(Debug, Deserialize)]
@@ -179,7 +179,10 @@ async fn handle_ingest(
 ) -> Result<serde_json::Value, String> {
     let payload: IngestJobPayload =
         serde_json::from_value(payload.clone()).map_err(|e| e.to_string())?;
-    let parsed = parse_payload(&payload.format, &payload.content)?;
+    let project_key = ingest_svc::project_key(pool, payload.project_id)
+        .await
+        .map_err(|e| e.to_string())?;
+    let parsed = parse_payload_with_project(&payload.format, &payload.content, Some(&project_key))?;
     let report = ingest_svc::persist_results(
         pool,
         payload.run_id,
