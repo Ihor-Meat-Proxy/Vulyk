@@ -14,6 +14,7 @@ import { IterationDashboard } from '../components/IterationDashboard'
 import { RunDetailsDrawer } from '../components/RunDetailsDrawer'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { isEntityUuid, iterationPath, iterationRef } from '../lib/runUrls'
 import { TestIds, testIdProps } from '../testing'
 
 type Props = {
@@ -83,6 +84,13 @@ export function ExecutionsPage({ projectId }: Props) {
         if (!cancelled) {
           setDashboard(data)
           setError(null)
+          if (
+            isEntityUuid(selectedId) &&
+            data.iteration.display_id &&
+            iterationRef(data.iteration) !== selectedId
+          ) {
+            navigate(iterationPath(data.iteration), { replace: true })
+          }
         }
       })
       .catch((err: Error) => {
@@ -94,11 +102,11 @@ export function ExecutionsPage({ projectId }: Props) {
     return () => {
       cancelled = true
     }
-  }, [projectId, selectedId, suitesRefresh])
+  }, [projectId, selectedId, suitesRefresh, navigate])
 
   const selectIteration = (id: string) => {
     setSelectedId(id)
-    navigate(`/executions/iterations/${id}`)
+    navigate(`/executions/iterations/${encodeURIComponent(id)}`)
   }
 
   const createCampaign = async (values: {
@@ -123,14 +131,18 @@ export function ExecutionsPage({ projectId }: Props) {
     },
   ) => {
     if (!projectId) return
-    const iteration = await api.createIteration(projectId, campaignId, {
-      name: values.name,
-      description: values.description || undefined,
-      cadence: values.cadence ?? 'manual',
-      mode: values.mode ?? 'automated',
-    })
-    await refreshTree()
-    selectIteration(iteration.id)
+    try {
+      const iteration = await api.createIteration(projectId, campaignId, {
+        name: values.name,
+        description: values.description || undefined,
+        cadence: values.cadence ?? 'manual',
+        mode: values.mode ?? 'automated',
+      })
+      await refreshTree()
+      selectIteration(iteration.display_id || iteration.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
   }
 
   const saveSchedule = async (body: UpdateIteration) => {

@@ -300,6 +300,9 @@ export const TestIds = {
   runDetailCaseRow: 'run-detail-case-row',
   runDetailAddCasesButton: 'run-detail-add-cases-button',
   runDetailError: 'run-detail-error',
+  /** Human-readable run display id chip (e.g. VQA-R-42). */
+  runDisplayId: 'run-display-id',
+  runRowDisplayId: 'run-row-display-id',
   runsLiveBadge: 'runs-live-badge',
   /** List-row child (`listChildProps(runRow, 'abandon')`). */
   runRowAbandonButton: 'run-row-abandon',
@@ -311,6 +314,8 @@ export const TestIds = {
   runDetailsLoading: 'run-details-loading',
   runDetailsEmpty: 'run-details-empty',
   runDetailsResultRow: 'run-details-result-row',
+  /** Human-readable iteration display id chip (e.g. VQA-IT-17). */
+  iterationDisplayId: 'iteration-display-id',
 
   // —— Executions ——
   executionsPage: 'executions-page',

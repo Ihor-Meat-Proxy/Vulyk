@@ -127,6 +127,14 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 | Runs list row abandon button | `run-row-abandon` (list child) |
 | Run report abandon button | `reports-run-abandon-button` |
 
+## Readable run / iteration display ids
+
+| Element | Test id |
+| --- | --- |
+| Run detail display id chip | `run-display-id` |
+| Runs list row display id | `run-row-display-id` |
+| Iteration dashboard display id | `iteration-display-id` |
+
 ## A11y pass (imp #8)
 
 - Case picker: labelled checkboxes/chips/folders (`aria-pressed`, `aria-live`)

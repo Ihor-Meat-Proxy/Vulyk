@@ -20,6 +20,7 @@ use crate::models::{
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
+use crate::services::display_ids::{allocate_run_ids, normalize_run_source, resolve_run_id};
 use crate::services::ingest as ingest_svc;
 
 pub fn router() -> Router<AppState> {
@@ -276,6 +277,8 @@ pub async fn open_ci_run(
     let source = match provider.as_deref() {
         Some("github") => "ci:github".to_string(),
         Some("gitlab") => "ci:gitlab".to_string(),
+        Some("jenkins") => "ci:jenkins".to_string(),
+        Some("bitbucket") => "ci:bitbucket".to_string(),
         Some(other) => format!("ci:{other}"),
         None => "ci".to_string(),
     };
@@ -361,14 +364,19 @@ pub async fn open_ci_run(
         iteration_id = Some(iteration.id);
     }
 
+    let created_at = chrono::Utc::now();
+    let src = normalize_run_source(provider.as_deref(), Some(&source), Some("ci"));
+    let mut tx = state.pool.begin().await?;
+    let (display_id, slug, seq_number) =
+        allocate_run_ids(&mut tx, project_id, src, created_at).await?;
     let run = match sqlx::query_as::<_, TestRun>(&format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
-              meta, created_by_name, environment, artifacts, started_at,
+              meta, created_by_name, environment, artifacts, started_at, created_at,
               suite_name, ci_provider, ci_repo, ci_branch, ci_commit,
-              pipeline_url, job_url, lifecycle)
-           VALUES ($1, $2, $3, '', $4, $5, $6, $7, $8, $9, $10, $11,
-                   $12, $13, $14, $15, $16, $17, $18, 'ci')
+              pipeline_url, job_url, lifecycle, display_id, slug, seq_number)
+           VALUES ($1, $2, $3, '', $4, $5, $6, $7, $8, $9, $10, $11, $12,
+                   $13, $14, $15, $16, $17, $18, $19, 'ci', $20, $21, $22)
            RETURNING {TEST_RUN_COLS}"#
     ))
     .bind(project_id)
@@ -382,6 +390,7 @@ pub async fn open_ci_run(
     .bind(&environment)
     .bind(&artifacts)
     .bind(started_at)
+    .bind(created_at)
     .bind(&suite_name)
     .bind(&provider)
     .bind(&body.repo)
@@ -389,14 +398,21 @@ pub async fn open_ci_run(
     .bind(&body.commit)
     .bind(&body.pipeline_url)
     .bind(&body.job_url)
-    .fetch_one(&state.pool)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq_number)
+    .fetch_one(&mut *tx)
     .await
     {
-        Ok(run) => run,
+        Ok(run) => {
+            tx.commit().await?;
+            run
+        }
         Err(sqlx::Error::Database(err))
             if err.constraint() == Some("test_runs_project_external_ref_uidx") =>
         {
             // Race: another open won the unique index — return existing.
+            drop(tx);
             if let Some(ref ext) = external_ref {
                 let existing = sqlx::query_as::<_, TestRun>(&format!(
                     r#"SELECT {TEST_RUN_COLS} FROM test_runs
@@ -428,15 +444,16 @@ pub async fn open_ci_run(
     get,
     path = "/api/v1/projects/{project_id}/ci/runs/{run_id}",
     tag = "ci-report",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     responses((status = 200, body = TestRun)),
     security(("bearer_auth" = []))
 )]
 pub async fn get_ci_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<TestRun>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -453,16 +470,17 @@ pub async fn get_ci_run(
     post,
     path = "/api/v1/projects/{project_id}/ci/runs/{run_id}/start",
     tag = "ci-report",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     responses((status = 200, body = TestRun)),
     security(("bearer_auth" = []))
 )]
 pub async fn start_ci_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     body: Result<Json<StartCiRunRequest>, axum::extract::rejection::JsonRejection>,
 ) -> AppResult<Json<TestRun>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -501,7 +519,7 @@ pub async fn start_ci_run(
     post,
     path = "/api/v1/projects/{project_id}/ci/runs/{run_id}/results",
     tag = "ci-report",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     request_body = BulkResultsRequest,
     responses((status = 200, body = CiRunResultsResponse)),
     security(("bearer_auth" = []))
@@ -509,9 +527,10 @@ pub async fn start_ci_run(
 pub async fn post_ci_results(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Json(body): Json<BulkResultsRequest>,
 ) -> AppResult<Json<CiRunResultsResponse>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -551,7 +570,7 @@ pub async fn post_ci_results(
     post,
     path = "/api/v1/projects/{project_id}/ci/runs/{run_id}/ingest",
     tag = "ci-report",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     request_body = IngestRequest,
     responses((status = 200, body = CiRunResultsResponse)),
     security(("bearer_auth" = []))
@@ -559,9 +578,10 @@ pub async fn post_ci_results(
 pub async fn ingest_ci_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Json(body): Json<IngestRequest>,
 ) -> AppResult<Json<CiRunResultsResponse>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,
@@ -631,7 +651,7 @@ pub async fn ingest_ci_run(
     post,
     path = "/api/v1/projects/{project_id}/ci/runs/{run_id}/close",
     tag = "ci-report",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     request_body = CloseCiRunRequest,
     responses((status = 200, body = TestRun)),
     security(("bearer_auth" = []))
@@ -639,9 +659,10 @@ pub async fn ingest_ci_run(
 pub async fn close_ci_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Json(body): Json<CloseCiRunRequest>,
 ) -> AppResult<Json<TestRun>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     require_permission(
         &state.pool,
         &auth,

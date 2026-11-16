@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   api,
   isAbortError,
@@ -15,6 +15,12 @@ import { StatusBadge } from '../components/StatusBadge'
 import { useAuth } from '../auth'
 import { useI18n } from '../i18n'
 import { isLiveRunStatus, LIVE_RUN_POLL_MS } from '../lib/liveRun'
+import {
+  executionRunPath,
+  isEntityUuid,
+  iterationPath,
+  runRef,
+} from '../lib/runUrls'
 import { applyUnlessCancelled, createStaleGuard } from '../lib/staleGuard'
 import { TestIds, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
@@ -28,6 +34,7 @@ type Props = {
 /** Suite-focused run view and optional case execution (#N) detail. */
 export function ExecutionPage({ projectId, onEnsureProject }: Props) {
   const { runId, caseId } = useParams()
+  const navigate = useNavigate()
   const { t } = useI18n()
   const { user, status: authStatus } = useAuth()
   const [runDetail, setRunDetail] = useState<TestRunDetail | null>(null)
@@ -73,6 +80,17 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
         setRunDetail(detail)
         setResults(page.items)
         setError(null)
+        if (
+          runId &&
+          isEntityUuid(runId) &&
+          (detail.run.slug || detail.run.display_id) &&
+          runRef(detail.run) !== runId
+        ) {
+          const next = caseId
+            ? executionRunPath(detail.run, caseId)
+            : executionRunPath(detail.run)
+          navigate(next, { replace: true })
+        }
 
         if (caseId) {
           const row = detail.items.find((i) => i.item.case_id === caseId)
@@ -222,7 +240,7 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
 
   const run = runDetail.run
   const backHref = run.iteration_id
-    ? `/executions/iterations/${run.iteration_id}`
+    ? iterationPath({ id: run.iteration_id })
     : '/executions'
 
   const suiteShell: AutomatedSuite = {
@@ -247,6 +265,8 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
     ci_provider: run.ci_provider ?? null,
     pipeline_url: run.pipeline_url ?? null,
     job_url: run.job_url ?? null,
+    display_id: run.display_id,
+    slug: run.slug,
   }
 
   // Case execution detail
@@ -260,7 +280,7 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
       >
         <p style={{ marginTop: 0 }}>
           <Link
-            to={`/executions/runs/${runId}`}
+            to={executionRunPath(run)}
             {...testIdProps(TestIds.executionSuiteLink)}
           >
             ← {suiteShell.name}
@@ -470,7 +490,7 @@ export function ExecutionPage({ projectId, onEnsureProject }: Props) {
                 <td>
                   {row.case_id ? (
                     <Link
-                      to={`/executions/runs/${runId}/cases/${row.case_id}`}
+                      to={executionRunPath(run, row.case_id)}
                       {...testIdProps(TestIds.executionResultOpenLink)}
                     >
                       {t('executions.executionView')}

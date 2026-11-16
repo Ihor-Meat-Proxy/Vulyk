@@ -47,9 +47,9 @@ UI loads a vendored `@scalar/api-reference` bundle from
 | CI reporting | `/api/v1/projects/{id}/ci/runs` (open / results / ingest / close), project CI tokens — [guides/ci-integration.md](guides/ci-integration.md) |
 | CI configs / webhooks | `/api/v1/projects/{id}/ci-configs`; `/api/v1/webhooks/github|gitlab[/{config_id}]` — webhook secret **required** (fail-closed); responses redact secrets (`has_webhook_secret` / `has_token`) |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
-| Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` |
-| Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — see [guides/executions.md](guides/executions.md) |
-| Ingest | `POST /api/v1/projects/{id}/ingest` (pipeline), `POST /api/v1/runs/{id}/ingest` (`junit` / `vulyk_json` / `playwright_json` / `pytest_json`), `…/results:bulk` |
+| Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` — run path params accept **UUID, `display_id` (`PREFIX-R-n`), or URL `slug`**; responses include `display_id`, `slug`, `seq_number` |
+| Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — campaign/iteration path params accept **UUID or `display_id`** (`PREFIX-C-n` / `PREFIX-IT-n`); see [guides/executions.md](guides/executions.md) |
+| Ingest | `POST /api/v1/projects/{id}/ingest` (pipeline), `POST /api/v1/runs/{id}/ingest` (`junit` / `vulyk_json` / `playwright_json` / `pytest_json`; `{id}` = UUID\|display_id\|slug), `…/results:bulk` |
 | Reports | `/api/v1/projects/{id}/reports/*` |
 | Requirements / ALM | `/requirements`, `/integrations`, `/defects` |
 | Importers | `/api/v1/importers`, `/imports` |

@@ -267,6 +267,15 @@ API job worker (and list/get lazy path) marks it `cancelled`. Set `0` to disable
 Appended on upgrade if missing; existing operator values are never overwritten.
 Admins can also abandon a stuck run from Runs → run detail.
 
+### Readable run / iteration / campaign ids
+
+Forward migration `20261116170318_readable_run_iteration_ids.sql` adds per-project
+counters (`next_run_number`, `next_iteration_number`, `next_campaign_number`) and
+backfills `display_id` / `seq_number` (plus run `slug`) for existing rows. Applied
+automatically on upgrade — no operator `.env` changes. Deleted entities never
+reuse sequence numbers. UI URLs prefer the run `slug`; API path params accept
+UUID, display_id, or slug.
+
 ## Web image build context
 
 The `vulyk-web` image is built from the **repository root** (`docker build -f frontend/Dockerfile .`)

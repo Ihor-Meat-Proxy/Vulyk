@@ -361,13 +361,32 @@ async fn ci_run_detail_backfills_items_from_results() {
         .expect("case key")
         .to_string();
 
+    let prefix: String = sqlx::query_scalar("SELECT case_key_prefix FROM projects WHERE id = $1")
+        .bind(project_uuid)
+        .fetch_one(&pool)
+        .await
+        .expect("prefix");
+    let seq: i32 = sqlx::query_scalar(
+        r#"UPDATE projects SET next_run_number = next_run_number + 1
+           WHERE id = $1 RETURNING next_run_number"#,
+    )
+    .bind(project_uuid)
+    .fetch_one(&pool)
+    .await
+    .expect("seq");
+    let display_id = format!("{prefix}-R-{seq}");
+    let slug = format!("{prefix}-R-github-{seq}-20260101T000000Z");
     let run_id: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO test_runs (
-             project_id, name, status, source, lifecycle, pass_count, fail_count, skip_count
-           ) VALUES ($1, 'Legacy CI run', 'closed', 'ci:github', 'ci', 1, 0, 0)
+             project_id, name, status, source, lifecycle, pass_count, fail_count, skip_count,
+             display_id, slug, seq_number
+           ) VALUES ($1, 'Legacy CI run', 'closed', 'ci:github', 'ci', 1, 0, 0, $2, $3, $4)
            RETURNING id"#,
     )
     .bind(project_uuid)
+    .bind(&display_id)
+    .bind(&slug)
+    .bind(seq)
     .fetch_one(&pool)
     .await
     .expect("insert run");

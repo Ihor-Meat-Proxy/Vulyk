@@ -122,6 +122,15 @@ Set `VULYK_RUN_ID` (or the action `run-id` input) so the pipeline **attaches** t
 the existing run instead of opening a new one. The Playwright reporter and
 `vulyk-report` / `vulyk-upload.sh` all honor this.
 
+**Human-readable run ids:** every run gets a never-reused `display_id`
+(`{PREFIX}-R-{n}`, e.g. `VQA-R-42`) and a URL `slug`
+(`{PREFIX}-R-{source}-{n}-{YYYYMMDDTHHMMSSZ}`, e.g.
+`VQA-R-jenkins-42-20261116T163512Z`). Print `display_id` / `slug` from the open
+response (or UI) for operators; API path params accept **UUID, display_id, or
+slug** interchangeably (`GET /api/v1/runs/{id}`, project-scoped
+`/runs/{run_id}`, CI `/ci/runs/{run_id}`, ingest). `VULYK_RUN_ID` may be any of
+those forms. UUID remains the internal primary key.
+
 The built-in Playwright reporter (`e2e/reporters/vulyk-reporter.ts`) is **live**:
 
 | Hook | API | Run status |

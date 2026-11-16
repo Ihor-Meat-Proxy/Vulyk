@@ -21,6 +21,7 @@ use crate::models::{
 use crate::routes::AppState;
 use crate::services::campaigns as camp;
 use crate::services::cases::ensure_project;
+use crate::services::display_ids::{resolve_campaign_id, resolve_iteration_id, resolve_run_id};
 use crate::services::{ingest as ingest_svc, jobs as jobs_svc};
 
 pub fn router() -> Router<AppState> {
@@ -166,15 +167,17 @@ pub async fn create_campaign(
     get,
     path = "/api/v1/projects/{project_id}/campaigns/{campaign_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("campaign_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("campaign_id" = String, Path, description = "Campaign UUID or display_id")),
     responses((status = 200, body = Campaign)),
     security(("bearer_auth" = []))
 )]
 pub async fn get_campaign(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, campaign_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, campaign_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<Campaign>> {
+    let campaign_id =
+        resolve_campaign_id(&state.pool, Some(project_id), &campaign_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -193,7 +196,7 @@ pub async fn get_campaign(
     put,
     path = "/api/v1/projects/{project_id}/campaigns/{campaign_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("campaign_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("campaign_id" = String, Path, description = "Campaign UUID or display_id")),
     request_body = UpdateCampaign,
     responses((status = 200, body = Campaign)),
     security(("bearer_auth" = []))
@@ -201,9 +204,11 @@ pub async fn get_campaign(
 pub async fn update_campaign(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, campaign_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, campaign_id_param)): Path<(Uuid, String)>,
     Json(body): Json<UpdateCampaign>,
 ) -> AppResult<Json<Campaign>> {
+    let campaign_id =
+        resolve_campaign_id(&state.pool, Some(project_id), &campaign_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -222,15 +227,17 @@ pub async fn update_campaign(
     delete,
     path = "/api/v1/projects/{project_id}/campaigns/{campaign_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("campaign_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("campaign_id" = String, Path, description = "Campaign UUID or display_id")),
     responses((status = 204, description = "Deleted")),
     security(("bearer_auth" = []))
 )]
 pub async fn delete_campaign(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, campaign_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, campaign_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<axum::http::StatusCode> {
+    let campaign_id =
+        resolve_campaign_id(&state.pool, Some(project_id), &campaign_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -317,15 +324,17 @@ pub async fn create_iteration_top(
     get,
     path = "/api/v1/projects/{project_id}/campaigns/{campaign_id}/iterations",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("campaign_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("campaign_id" = String, Path, description = "Campaign UUID or display_id")),
     responses((status = 200, body = [Iteration])),
     security(("bearer_auth" = []))
 )]
 pub async fn list_campaign_iterations(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, campaign_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, campaign_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<Vec<Iteration>>> {
+    let campaign_id =
+        resolve_campaign_id(&state.pool, Some(project_id), &campaign_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -344,7 +353,7 @@ pub async fn list_campaign_iterations(
     post,
     path = "/api/v1/projects/{project_id}/campaigns/{campaign_id}/iterations",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("campaign_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("campaign_id" = String, Path, description = "Campaign UUID or display_id")),
     request_body = CreateIteration,
     responses((status = 200, body = Iteration)),
     security(("bearer_auth" = []))
@@ -352,9 +361,11 @@ pub async fn list_campaign_iterations(
 pub async fn create_iteration(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, campaign_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, campaign_id_param)): Path<(Uuid, String)>,
     Json(body): Json<CreateIteration>,
 ) -> AppResult<Json<Iteration>> {
+    let campaign_id =
+        resolve_campaign_id(&state.pool, Some(project_id), &campaign_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -373,15 +384,17 @@ pub async fn create_iteration(
     get,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("iteration_id" = String, Path, description = "Iteration UUID or display_id")),
     responses((status = 200, body = Iteration)),
     security(("bearer_auth" = []))
 )]
 pub async fn get_iteration(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<Iteration>> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -400,7 +413,7 @@ pub async fn get_iteration(
     put,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("iteration_id" = String, Path, description = "Iteration UUID or display_id")),
     request_body = UpdateIteration,
     responses((status = 200, body = Iteration)),
     security(("bearer_auth" = []))
@@ -408,9 +421,11 @@ pub async fn get_iteration(
 pub async fn update_iteration(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
     Json(body): Json<UpdateIteration>,
 ) -> AppResult<Json<Iteration>> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -429,15 +444,17 @@ pub async fn update_iteration(
     delete,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("iteration_id" = String, Path, description = "Iteration UUID or display_id")),
     responses((status = 204, description = "Deleted")),
     security(("bearer_auth" = []))
 )]
 pub async fn delete_iteration(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<axum::http::StatusCode> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -455,15 +472,17 @@ pub async fn delete_iteration(
     get,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}/dashboard",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("iteration_id" = String, Path, description = "Iteration UUID or display_id")),
     responses((status = 200, body = IterationDashboard)),
     security(("bearer_auth" = []))
 )]
 pub async fn iteration_dashboard(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<IterationDashboard>> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -482,15 +501,17 @@ pub async fn iteration_dashboard(
     get,
     path = "/api/v1/projects/{project_id}/iterations/{iteration_id}/items",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("iteration_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("iteration_id" = String, Path, description = "Iteration UUID or display_id")),
     responses((status = 200, body = [IterationItemView])),
     security(("bearer_auth" = []))
 )]
 pub async fn list_iteration_items(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<Vec<IterationItemView>>> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -512,7 +533,7 @@ pub async fn list_iteration_items(
     tag = "executions",
     params(
         ("project_id" = Uuid, Path),
-        ("iteration_id" = Uuid, Path),
+        ("iteration_id" = String, Path, description = "Iteration UUID or display_id"),
         ("status" = Option<String>, Query, description = "Filter by suite status"),
         ("created_by" = Option<String>, Query, description = "Filter by creator"),
         ("q" = Option<String>, Query, description = "Search text"),
@@ -526,9 +547,11 @@ pub async fn list_iteration_items(
 pub async fn list_suites(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, iteration_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, iteration_id_param)): Path<(Uuid, String)>,
     Query(q): Query<AutomatedSuitesQuery>,
 ) -> AppResult<Json<Page<AutomatedSuite>>> {
+    let iteration_id =
+        resolve_iteration_id(&state.pool, Some(project_id), &iteration_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -589,7 +612,7 @@ impl SuiteResultsQuery {
     tag = "executions",
     params(
         ("project_id" = Uuid, Path),
-        ("run_id" = Uuid, Path),
+        ("run_id" = String, Path, description = "Run UUID, display_id, or slug"),
         ("limit" = Option<i64>, Query, description = "Page size (default 25, max 200)"),
         ("offset" = Option<i64>, Query, description = "Offset (default 0)")
     ),
@@ -599,9 +622,10 @@ impl SuiteResultsQuery {
 pub async fn list_suite_results(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
     Query(q): Query<SuiteResultsQuery>,
 ) -> AppResult<Json<Page<SuiteResultRow>>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -630,15 +654,16 @@ pub async fn list_suite_results(
     delete,
     path = "/api/v1/projects/{project_id}/suites-runs/{run_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     responses((status = 204, description = "Deleted")),
     security(("bearer_auth" = []))
 )]
 pub async fn delete_suite_run(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<axum::http::StatusCode> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -663,15 +688,16 @@ pub async fn delete_suite_run(
     post,
     path = "/api/v1/projects/{project_id}/suites-runs/{run_id}",
     tag = "executions",
-    params(("project_id" = Uuid, Path), ("run_id" = Uuid, Path)),
+    params(("project_id" = Uuid, Path), ("run_id" = String, Path, description = "Run UUID, display_id, or slug")),
     responses((status = 200, description = "Rerun stub / new suite shell", body = AutomatedSuite)),
     security(("bearer_auth" = []))
 )]
 pub async fn rerun_suite(
     State(state): State<AppState>,
     OptionalAuthUser(auth): OptionalAuthUser,
-    Path((project_id, run_id)): Path<(Uuid, Uuid)>,
+    Path((project_id, run_id_param)): Path<(Uuid, String)>,
 ) -> AppResult<Json<AutomatedSuite>> {
+    let run_id = resolve_run_id(&state.pool, Some(project_id), &run_id_param).await?;
     ensure_project(&state.pool, project_id).await?;
     require_permission(
         &state.pool,
@@ -725,6 +751,8 @@ pub async fn rerun_suite(
         pipeline_url: new_run.pipeline_url,
         job_url: new_run.job_url,
         is_sample: new_run.is_sample,
+        display_id: new_run.display_id,
+        slug: new_run.slug,
     }))
 }
 

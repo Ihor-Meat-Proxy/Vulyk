@@ -15,6 +15,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { hasLiveRuns, LIVE_RUN_POLL_MS } from '../lib/liveRun'
+import { runPath } from '../lib/runUrls'
 import { applyUnlessCancelled, createStaleGuard } from '../lib/staleGuard'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { formatTimestamp } from '../timezone'
@@ -186,7 +187,7 @@ export function RunsPage({ projectId, suites }: Props) {
       setName('')
       const runPage = await api.listRuns(projectId, RUNS_PAGE_SIZE, 0)
       applyRunsPage(runPage, false)
-      navigate(`/runs/${detail.run.id}`)
+      navigate(runPath(detail.run))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -445,11 +446,19 @@ export function RunsPage({ projectId, suites }: Props) {
                   >
                     <td {...testIdProps(TestIds.runRowName)}>
                       <Link
-                        to={`/runs/${r.id}`}
+                        to={runPath(r)}
                         {...listChildProps(TestIds.runRow, 'link')}
                       >
                         {r.name}
                       </Link>
+                      {r.display_id ? (
+                        <div
+                          className="muted"
+                          {...testIdProps(TestIds.runRowDisplayId)}
+                        >
+                          {r.display_id}
+                        </div>
+                      ) : null}
                     </td>
                     <td {...testIdProps(TestIds.runRowStatus)}>
                       <StatusBadge
