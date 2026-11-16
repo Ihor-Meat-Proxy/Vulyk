@@ -3,8 +3,8 @@ import { TestIds } from '../../frontend/src/testing/testIds'
 import { ensureAdminSession, loginAsAdmin } from '../fixtures/auth'
 
 test('revoked bearer token redirects to login with session-expired notice', {
-  tag: ['@VUE-216'],
-  annotation: [{ type: 'vulyk', description: 'VUE-216' }],
+  tag: ['@VUE-234'],
+  annotation: [{ type: 'vulyk', description: 'VUE-234' }],
 }, async ({ page, request }) => {
   await ensureAdminSession(request)
   await loginAsAdmin(page)
@@ -12,10 +12,13 @@ test('revoked bearer token redirects to login with session-expired notice', {
     timeout: 60_000,
   })
 
-  // Poison the stored JWT / API token so the next API call returns 401.
+  // Poison the stored JWT/API token AND drop the session cookie. A bad Bearer
+  // alone still falls through to a valid cookie (by design); both must be
+  // invalid to force 401 → login (upgrade / revoke / expiry).
   await page.evaluate(() => {
     localStorage.setItem('vulyk.authToken', 'vulyk_at_revoked_for_e2e_test')
   })
+  await page.context().clearCookies()
 
   await page.reload()
   await expect(page.getByTestId(TestIds.loginPanel)).toBeVisible({
