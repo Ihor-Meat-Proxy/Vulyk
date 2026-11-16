@@ -438,7 +438,8 @@ pub async fn run_report_detail(
 
     let row = sqlx::query(
         r#"SELECT id, project_id, name, description, status, source, external_ref, meta,
-                  created_by_name, environment, artifacts, duration_ms, started_at, finished_at
+                  created_by_name, environment, artifacts, duration_ms, started_at, finished_at,
+                  pipeline_url, job_url
            FROM test_runs WHERE id = $1 AND project_id = $2"#,
     )
     .bind(run_id)
@@ -452,12 +453,18 @@ pub async fn run_report_detail(
     let environment: Value = row.try_get("environment")?;
     let artifacts: Value = row.try_get("artifacts")?;
     let external_ref: Option<String> = row.try_get("external_ref")?;
+    let column_pipeline_url: Option<String> = row.try_get("pipeline_url")?;
+    let column_job_url: Option<String> = row.try_get("job_url")?;
 
     let branch = json_str(&meta, &["branch", "ref", "git_branch"])
         .or_else(|| json_str(&environment, &["branch", "ref", "git_branch"]));
     let commit = json_str(&meta, &["commit", "commit_sha", "sha", "git_commit"])
         .or_else(|| json_str(&environment, &["commit", "commit_sha", "sha"]));
-    let pipeline_url = extract_pipeline_url(&meta, &artifacts, external_ref.as_deref());
+    // Prefer the dedicated column (CI open/start / webhooks); fall back to meta/artifacts.
+    let pipeline_url = column_pipeline_url
+        .filter(|s| !s.trim().is_empty())
+        .or_else(|| column_job_url.filter(|s| !s.trim().is_empty()))
+        .or_else(|| extract_pipeline_url(&meta, &artifacts, external_ref.as_deref()));
     let env_label = environment_label(&environment);
 
     let duration_ms: Option<i64> = row.try_get("duration_ms")?;

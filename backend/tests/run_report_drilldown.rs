@@ -381,3 +381,74 @@ async fn run_detail_results_filter_group_coverage_and_export() {
         .unwrap();
     assert!(pdf.starts_with(b"%PDF"));
 }
+
+#[tokio::test]
+async fn run_report_prefers_pipeline_url_column() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let base = spawn_app().await;
+    let client = reqwest::Client::new();
+
+    let key = format!(
+        "P{}",
+        uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
+    );
+    let project: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .json(&serde_json::json!({
+            "key": key,
+            "name": "Pipeline URL Project",
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_id = project["id"].as_str().unwrap();
+
+    let opened: Value = client
+        .post(format!("{base}/api/v1/projects/{project_id}/ci/runs"))
+        .json(&serde_json::json!({
+            "provider": "other",
+            "suite_name": "Jenkins build",
+            "pipeline_url": "https://jenkins.example/job/demo/42/",
+            "external_ref": format!("jenkins:{}", uuid::Uuid::new_v4()),
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run_id = opened["run"]["id"].as_str().unwrap();
+    assert_eq!(
+        opened["run"]["pipeline_url"],
+        "https://jenkins.example/job/demo/42/"
+    );
+
+    let detail: Value = client
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/reports/runs/{run_id}"
+        ))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    assert_eq!(
+        detail["pipeline_url"],
+        "https://jenkins.example/job/demo/42/",
+        "report detail must surface test_runs.pipeline_url (not only meta)"
+    );
+}
