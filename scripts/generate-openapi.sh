@@ -8,5 +8,5 @@ cd "${ROOT}"
 
 OUT="${1:-docs/api/openapi.json}"
 
-cargo run -p vulyk-api --example dump_openapi --quiet -- --out "${OUT}"
+OPENAPI_OUT="${OUT}" cargo run -p vulyk-api --example dump_openapi --quiet
 echo "OK: wrote ${OUT}"

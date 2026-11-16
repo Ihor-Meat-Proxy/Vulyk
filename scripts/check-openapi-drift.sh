@@ -26,7 +26,7 @@ if [[ ! -f "${COMMITTED}" ]]; then
 fi
 
 echo "==> regenerate OpenAPI from ApiDoc"
-cargo run -p vulyk-api --example dump_openapi --quiet -- --out "${GENERATED}"
+OPENAPI_OUT="${GENERATED}" cargo run -p vulyk-api --example dump_openapi --quiet
 
 echo "==> diff against committed ${COMMITTED}"
 if ! diff -u "${COMMITTED}" "${GENERATED}"; then

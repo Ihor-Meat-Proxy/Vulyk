@@ -1,5 +1,7 @@
-//! Dump `ApiDoc` as pretty JSON to stdout (or `--out PATH`).
+//! Dump `ApiDoc` as pretty JSON to stdout.
 //! Used by `scripts/generate-openapi.sh` / `scripts/check-openapi-drift.sh`.
+//!
+//! Optional output path via env `OPENAPI_OUT` (avoids parsing process args).
 use std::env;
 use std::fs;
 use std::io::{self, Write};
@@ -10,27 +12,7 @@ use utoipa::OpenApi;
 use vulyk_api::openapi::ApiDoc;
 
 fn main() -> ExitCode {
-    let mut out_path: Option<PathBuf> = None;
-    let mut args = env::args().skip(1);
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--out" | "-o" => {
-                let Some(path) = args.next() else {
-                    eprintln!("error: --out requires a path");
-                    return ExitCode::from(2);
-                };
-                out_path = Some(PathBuf::from(path));
-            }
-            "-h" | "--help" => {
-                eprintln!("Usage: dump_openapi [--out PATH]");
-                return ExitCode::SUCCESS;
-            }
-            other => {
-                eprintln!("error: unknown arg {other}");
-                return ExitCode::from(2);
-            }
-        }
-    }
+    let out_path = env::var_os("OPENAPI_OUT").map(PathBuf::from);
 
     let doc = ApiDoc::openapi();
     let json = match serde_json::to_string_pretty(&doc) {
