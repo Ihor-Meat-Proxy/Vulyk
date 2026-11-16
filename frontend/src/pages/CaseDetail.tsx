@@ -30,6 +30,7 @@ import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useCaseEditorSaveShortcut } from '../hooks/useCaseEditorSaveShortcut'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
+import { enumLabel } from '../i18n/enumLabel'
 import {
   draftStepsFromApi,
   emptyDraftStep,
@@ -813,11 +814,7 @@ export function CaseDetail({
                   <option value="critical">{t('priority.critical')}</option>
                 </select>
               ) : (
-                (() => {
-                  const key = `priority.${c.priority}`
-                  const label = t(key)
-                  return label === key ? c.priority : label
-                })()
+                enumLabel(t, 'priority', c.priority)
               )}
             </span>
             <span>
@@ -833,11 +830,7 @@ export function CaseDetail({
                   <option value="deprecated">{t('status.deprecated')}</option>
                 </select>
               ) : (
-                (() => {
-                  const key = `status.${c.status}`
-                  const label = t(key)
-                  return label === key ? c.status : label
-                })()
+                enumLabel(t, 'status', c.status)
               )}
             </span>
             <span>
