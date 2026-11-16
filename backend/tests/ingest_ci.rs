@@ -5,6 +5,10 @@ use std::time::Duration;
 use serde_json::{json, Value};
 
 async fn spawn_app() -> (String, sqlx::PgPool) {
+    // Keep reserved fixture hosts (*.example.com) offline-friendly: do not depend
+    // on live DNS for CI base_url validation (see egress::install_documentation_dns_stub_for_tests).
+    vulyk_api::services::egress::install_documentation_dns_stub_for_tests();
+
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for integration tests");
     let pool = vulyk_api::db::connect(&database_url)
@@ -174,7 +178,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
             "config": {
                 "project_id": "42",
                 "trigger_token": "glptt-test",
-                "base_url": "https://gitlab.com",
+                "base_url": "https://gitlab.example.com",
                 "ref": "main"
             }
         }))
@@ -227,7 +231,7 @@ async fn junit_ingest_and_gitlab_webhook_status() {
             "object_attributes": {
                 "id": 999001,
                 "status": "success",
-                "url": "https://gitlab.com/pipelines/999001"
+                "url": "https://gitlab.example.com/pipelines/999001"
             }
         }))
         .send()
@@ -281,7 +285,7 @@ async fn webhook_without_secret_is_rejected() {
             "config": {
                 "project_id": "42",
                 "trigger_token": "glptt-test",
-                "base_url": "https://gitlab.com",
+                "base_url": "https://gitlab.example.com",
                 "ref": "main"
             }
         }))
@@ -302,7 +306,7 @@ async fn webhook_without_secret_is_rejected() {
             "object_attributes": {
                 "id": 1,
                 "status": "success",
-                "url": "https://gitlab.com/pipelines/1"
+                "url": "https://gitlab.example.com/pipelines/1"
             }
         }))
         .send()
