@@ -80,7 +80,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
       >
         <div className="brand-row">
           <div className="brand" id={drawerTitleId}>
-            <VulykLogo linkHome />
+            <VulykLogo linkHome linkTestId={TestIds.brandLogoLinkSidebar} />
             <span className="brand-tag">{t('layout.tag')}</span>
           </div>
           <button
@@ -182,7 +182,12 @@ export function Layout({ projects, project, onSelectProject }: Props) {
         <header className="topbar">
           <div className="topbar-lead">
             <div className="topbar-brand">
-              <VulykLogo markOnly linkHome testId={TestIds.headerBrandLogo} />
+              <VulykLogo
+                markOnly
+                linkHome
+                testId={TestIds.headerBrandLogo}
+                linkTestId={TestIds.brandLogoLinkTopbar}
+              />
             </div>
             <button
               type="button"

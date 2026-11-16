@@ -14,6 +14,8 @@ Examples:
 | Login email field | `login-email-input` |
 | Header gear menu trigger | `header-gear-menu` |
 | Header gear auth mode badge | `header-gear-auth-mode` |
+| Sidebar brand home link | `brand-logo-link-sidebar` |
+| Mobile topbar brand home link | `brand-logo-link-topbar` |
 | Admin Updates status / check error | `admin-updates-status` / `admin-updates-check-error` |
 | Admin custom fields add | `admin-custom-fields-add-button` |
 | Admin open-mode (auth off) warning | `admin-auth-off-banner` |
