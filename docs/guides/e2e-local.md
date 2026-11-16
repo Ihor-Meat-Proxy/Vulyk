@@ -37,6 +37,8 @@ Traces / failures: `e2e/artifacts/test-results/`
 ./scripts/e2e-local.sh --repeat 3       # flake gate (must be green 3×; wipe once at start)
 ./scripts/e2e-local.sh --keep-data      # reuse e2e DB volume (default wipes volumes first)
 ./scripts/e2e-local.sh --ui             # Playwright UI mode
+./scripts/e2e-local.sh --video          # record video for every test (PW_VIDEO=on)
+./scripts/e2e-local.sh --video=retain-on-failure
 ./scripts/e2e-local.sh --down           # stop stack (keep volume)
 ./scripts/e2e-local.sh --reset          # stop stack and delete e2e volume (exit)
 ./scripts/e2e-local.sh -- tests/auth.spec.ts   # pass-through Playwright args
@@ -54,6 +56,10 @@ Compose file: [`docker-compose.e2e.yml`](../../docker-compose.e2e.yml).
 - **HTML report:** open `e2e/artifacts/html-report/latest/index.html`.
 - **Trace:** failed tests keep a trace under `e2e/artifacts/test-results/` — open with
   `npx playwright show-trace <path>` (from `e2e/` on the host, or inside the image).
+- **Video (opt-in):** default is off. Pass `--video` / `--video=on` /
+  `--video=retain-on-failure` / `--video=off`, or set `PW_VIDEO` the same way.
+  The script exports `PW_VIDEO` into the Playwright container; `e2e/playwright.config.ts`
+  maps it to Playwright's `use.video`. Files land under `e2e/artifacts/test-results/`.
 - **UI mode:** `./scripts/e2e-local.sh --ui` then browse to the printed UI port.
 - **API logs:** `docker compose -f docker-compose.e2e.yml --env-file e2e/.docker.env logs -f api`.
 - **Skip mock OIDC in container:** already set (`E2E_SKIP_MOCK_OIDC=1`); issuer is

@@ -8,6 +8,16 @@ const artifactsDir = path.join(__dirname, 'artifacts')
 const htmlReportDir =
   process.env.PLAYWRIGHT_HTML_REPORT ?? path.join(artifactsDir, 'html-report', 'latest')
 
+/** Opt-in video via PW_VIDEO: on | retain-on-failure | off (default). */
+function resolveVideoMode(): 'on' | 'retain-on-failure' | 'off' {
+  const raw = (process.env.PW_VIDEO ?? 'off').trim().toLowerCase()
+  if (raw === 'on' || raw === 'retain-on-failure' || raw === 'off') return raw
+  console.warn(
+    `PW_VIDEO="${process.env.PW_VIDEO}" is not on|retain-on-failure|off; using off`,
+  )
+  return 'off'
+}
+
 export default defineConfig({
   testDir: './tests',
   outputDir: path.join(artifactsDir, 'test-results'),
@@ -30,7 +40,7 @@ export default defineConfig({
     // Local Docker / flake triage: keep traces on failure; CI still retries once.
     trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
     screenshot: 'only-on-failure',
-    video: 'off',
+    video: resolveVideoMode(),
   },
   projects: [
     {
