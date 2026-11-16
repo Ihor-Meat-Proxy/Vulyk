@@ -5,7 +5,8 @@ offline = true
 verbose = "warning"
 no_progress = true
 cache = false
-include_fragments = true
+# lychee 0.24+ expects a string mode (e.g. "full"), not a boolean.
+include_fragments = "full"
 max_redirects = 0
 timeout = 5
 
