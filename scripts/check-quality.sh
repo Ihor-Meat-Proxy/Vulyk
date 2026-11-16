@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Local mirror of .github/workflows/quality.yml (subset; no Postgres required).
+# Fast required machete/knip also run in .github/workflows/ci-fast-gates.yml.
 # Usage:
 #   ./scripts/check-quality.sh           # machete + frontend quality + rust lib cov
 #   ./scripts/check-quality.sh --quick   # skip coverage

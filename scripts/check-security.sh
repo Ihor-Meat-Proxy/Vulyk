@@ -46,13 +46,14 @@ if [[ "${MODE}" != "quick" ]]; then
   (
     cd frontend
     if [[ ! -d node_modules ]]; then npm ci; fi
-    npm audit --audit-level=high
+    # Fast CI gate uses --omit=dev; full tree (incl. dev) remains useful locally.
+    npm audit --omit=dev --audit-level=high
   )
-  echo "==> e2e npm audit (high+)"
+  echo "==> e2e npm audit (prod, high+)"
   (
     cd e2e
     if [[ ! -d node_modules ]]; then npm ci; fi
-    npm audit --audit-level=high
+    npm audit --omit=dev --audit-level=high
   )
 fi
 

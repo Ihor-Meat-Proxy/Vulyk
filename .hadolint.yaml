@@ -1,0 +1,12 @@
+# Hadolint baseline for required Fast CI gate "Shellcheck + hadolint".
+# Prefer fixing new findings; only extend ignored when a rule conflicts with
+# intentional image design (document why).
+ignored:
+  # Rolling Debian/Alpine tags; pinning every apt package is impractical and
+  # fights security patch rebuilds (Trivy image gate covers CVE floor).
+  - DL3008
+  # frontend builder: `cd frontend && npm ci` before WORKDIR switch keeps the
+  # COPY layout (repo-root context) readable; WORKDIR follows immediately.
+  - DL3003
+  # updater sidecar must talk to the host Docker socket for install.sh upgrade.
+  - DL3002

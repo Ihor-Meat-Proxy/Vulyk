@@ -1,0 +1,150 @@
+# Fast required quality gates (issue #265). Each job targets ≤~2 min with
+# caching. Stable `name:` values are intended for branch protection.
+# Complements ci.yml (clippy/tsc), quality.yml (llvm-cov advisory extras),
+# and security.yml (deeper/scheduled scans). Dependabot auto-merge is unchanged.
+
+name: Fast CI gates
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: fast-ci-gates-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  pr-hygiene:
+    name: PR hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check Conventional Commits title + issue reference
+        if: github.event_name == 'pull_request'
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+        run: |
+          chmod +x scripts/check-pr-hygiene.sh
+          ./scripts/check-pr-hygiene.sh
+      - name: Skip on non-PR events
+        if: github.event_name != 'pull_request'
+        run: echo "OK: PR hygiene not applicable on ${{ github.event_name }}"
+
+  shell-docker:
+    name: Shellcheck + hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install shellcheck + hadolint
+        env:
+          HADOLINT_VERSION: "2.12.0"
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          curl -sSfL \
+            "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-x86_64" \
+            -o /tmp/hadolint
+          sudo install -m 0755 /tmp/hadolint /usr/local/bin/hadolint
+          hadolint --version
+          shellcheck --version | head -n1
+      - name: check-shell-docker.sh
+        run: |
+          chmod +x scripts/check-shell-docker.sh scripts/check-pr-hygiene.sh
+          ./scripts/check-shell-docker.sh
+
+  machete:
+    name: cargo machete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-targets: false
+      - name: Install cargo-machete
+        run: cargo install cargo-machete --locked
+      - name: cargo machete
+        run: cargo machete
+
+  knip:
+    name: knip
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: knip (unused files/deps/duplicates)
+        run: npm run knip
+
+  cargo-deny:
+    name: cargo deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-targets: false
+      - name: Install cargo-deny
+        run: cargo install cargo-deny --locked
+      - name: cargo deny check
+        run: cargo deny check
+
+  npm-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: frontend npm audit (prod, high+)
+        working-directory: frontend
+        run: |
+          npm ci --omit=dev
+          npm audit --omit=dev --audit-level=high
+      - name: e2e npm audit (prod, high+)
+        working-directory: e2e
+        run: |
+          npm ci --omit=dev
+          npm audit --omit=dev --audit-level=high
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: "8.30.0"
+        run: |
+          curl -sSfL \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      - name: Gitleaks detect
+        run: gitleaks detect --source . --config .gitleaks.toml --verbose --redact
