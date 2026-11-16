@@ -70,8 +70,18 @@ pub enum HeadCheck {
 }
 
 /// Parse `https://github.com/owner/repo(.git)?` or GitLab HTTPS remotes.
+///
+/// Always runs the SSRF egress check before shape-parsing. Unit tests that only
+/// need owner/repo extraction should call [`parse_remote_shape`] so they stay
+/// independent of ambient DNS (e.g. github.com resolving into 198.18.0.0/15).
 pub fn parse_remote(provider: &str, remote_url: &str) -> AppResult<HostKind> {
     egress::validate_public_https_url(remote_url)?;
+    parse_remote_shape(provider, remote_url)
+}
+
+/// Shape-only parse (no DNS / egress check). Production callers must use
+/// [`parse_remote`] so SSRF validation still runs.
+pub(crate) fn parse_remote_shape(provider: &str, remote_url: &str) -> AppResult<HostKind> {
     let url = remote_url.trim().trim_end_matches('/');
     let without_git = url.strip_suffix(".git").unwrap_or(url);
     let provider = provider.trim().to_lowercase();
@@ -793,7 +803,9 @@ mod tests {
 
     #[test]
     fn parses_github_url() {
-        let h = parse_remote("github", "https://github.com/acme/demo.git").unwrap();
+        // Shape-only: must not depend on ambient DNS for github.com (sandbox
+        // resolvers sometimes map it into 198.18.0.0/15, which SSRF rejects).
+        let h = parse_remote_shape("github", "https://github.com/acme/demo.git").unwrap();
         match h {
             HostKind::GitHub {
                 owner,
@@ -811,13 +823,22 @@ mod tests {
 
     #[test]
     fn parses_gitlab_url() {
-        let h = parse_remote("gitlab", "https://gitlab.com/group/sub/repo").unwrap();
+        let h = parse_remote_shape("gitlab", "https://gitlab.com/group/sub/repo").unwrap();
         match h {
             HostKind::GitLab { project_path, .. } => {
                 assert_eq!(project_path, "group/sub/repo");
             }
             _ => panic!("expected gitlab"),
         }
+    }
+
+    #[test]
+    fn parse_remote_still_runs_ssrf_on_literal_private() {
+        let err = parse_remote("github", "https://127.0.0.1/acme/demo.git").unwrap_err();
+        assert!(
+            err.to_string().contains("private") || err.to_string().contains("not allowed"),
+            "unexpected: {err}"
+        );
     }
 
     #[test]
