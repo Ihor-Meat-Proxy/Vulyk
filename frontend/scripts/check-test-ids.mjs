@@ -328,11 +328,16 @@ function buildCatalogMarkdown(canonical) {
 }
 
 function syncDocsCatalog(canonical) {
-  if (!fs.existsSync(docsPath)) {
-    return [`missing docs catalog file: ${docsPath}`]
+  let docs
+  try {
+    docs = fs.readFileSync(docsPath, 'utf8')
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return [`missing docs catalog file: ${docsPath}`]
+    }
+    throw err
   }
   const catalog = buildCatalogMarkdown(canonical)
-  let docs = fs.readFileSync(docsPath, 'utf8')
   if (!docs.includes(CATALOG_BEGIN) || !docs.includes(CATALOG_END)) {
     if (!docs.endsWith('\n')) docs += '\n'
     docs += `\n${catalog}`
