@@ -45,7 +45,13 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      testIgnore: /pwa-mobile\.spec\.ts/,
+      testIgnore: [/pwa-mobile\.spec\.ts/, /a11y-smoke\.spec\.ts/],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      // Fast CI gate: axe serious/critical on 5 primary pages.
+      name: 'a11y-smoke',
+      testMatch: /a11y-smoke\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {

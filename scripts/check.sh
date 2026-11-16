@@ -5,7 +5,8 @@
 #   ./scripts/check.sh --quick   # skip clippy and frontend vitest (pre-commit)
 #   ./scripts/check.sh --full    # also cargo test + frontend vitest (pre-push / CI parity)
 # Quality extras (coverage / knip / prettier / machete): see ./scripts/check-quality.sh
-# Fast CI gates (shell/docker, PR hygiene helpers): see ./scripts/check-shell-docker.sh
+# Fast CI gates: ./scripts/check-shell-docker.sh, check-pr-hygiene.sh,
+# check-openapi-drift.sh, check-bundle-size.sh; frontend npm run check:i18n
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

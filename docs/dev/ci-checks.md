@@ -3,8 +3,10 @@
 Index of automated gates beyond the narrative in [ci-failures.md](ci-failures.md).
 Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`,
 `./scripts/check-quality.sh`, `./scripts/check-shell-docker.sh`,
-`./scripts/check-pr-hygiene.sh`, `./scripts/check-api-coverage.sh`, and
-`./scripts/check-doc-links.sh`.
+`./scripts/check-pr-hygiene.sh`, `./scripts/check-openapi-drift.sh`,
+`./scripts/check-bundle-size.sh`, `./scripts/check-api-coverage.sh`, and
+`./scripts/check-doc-links.sh`. Frontend: `npm run check:i18n` /
+`npm run check:test-ids`.
 
 ## Workflows
 
@@ -35,6 +37,8 @@ Stable job names for branch protection (workflow **Fast CI gates**):
 | `i18n completeness` | Locale key parity (en/uk/fr/es/de), placeholder parity, uk Latin allowlist, JSX `t()` literals | `(cd frontend && npm run check:i18n)` |
 | `Test ID guard` | Duplicate `data-testid` + every `TestIds` value in `docs/dev/testing/test-ids.md` catalog | `(cd frontend && npm run check:test-ids)`; refresh catalog with `-- --write-catalog` |
 | `OpenAPI drift` | Committed `docs/api/openapi.json` must match `ApiDoc`; `oasdiff breaking` vs base unless `VERSION` bumped | `./scripts/generate-openapi.sh` then `./scripts/check-openapi-drift.sh` |
+| `Bundle size budget` | Main `frontend/dist/assets/index-*.js` must not grow **>10%** vs base ref | `./scripts/check-bundle-size.sh` |
+| `Accessibility smoke` | Playwright project `a11y-smoke`: axe on login/cases/runs/docs/settings; **serious/critical** fail (`color-contrast` disabled like other a11y specs) | `(cd e2e && npx playwright test --project=a11y-smoke)` with API + preview running |
 
 Already required in **CI** (keep these names stable):
 
@@ -43,7 +47,23 @@ Already required in **CI** (keep these names stable):
 | `Backend (fmt, clippy, test)` | `cargo clippy --workspace --all-targets -- -D warnings` (+ fmt/tests) |
 | `Frontend (lint, typecheck, test, build)` | `tsc --noEmit` via `npm run typecheck` (+ oxlint, vitest, test-ids, build) |
 
-**Baselines:** Hadolint ignores live in `.hadolint.yaml` with rationale. Do not weaken cargo deny / gitleaks / knip without a documented exception. Dependabot auto-merge (`.github/workflows/dependabot-auto-merge.yml`) is intentionally unchanged — PR hygiene exempts Dependabot so patch/minor auto-merge keeps working once required checks pass.
+### Baselining / exceptions
+
+| Gate | How to baseline |
+| --- | --- |
+| Hadolint | Add rule id + rationale to `.hadolint.yaml` `ignored` |
+| i18n identical-to-en | Add key to `frontend/src/i18n/identical-allowlist.ts` |
+| i18n uk Latin | Add token to `frontend/src/i18n/latin-allowlist.ts` |
+| i18n JSX literals | Add regex to `frontend/scripts/i18n-literal-allowlist.txt` |
+| Test ID catalog | `(cd frontend && npm run check:test-ids -- --write-catalog)` |
+| OpenAPI drift | `./scripts/generate-openapi.sh` (commit `docs/api/openapi.json`) |
+| OpenAPI breaking | Bump `VERSION` + workspace `version` in the same PR |
+| Bundle size | Shrink the entry chunk, or intentionally exceed only with review (no silent raise of `BUNDLE_GROWTH_MAX` in CI) |
+| cargo deny / gitleaks | Prefer fixes; justified ignores in `deny.toml` / `.gitleaks.toml` with review-by dates |
+
+**Dependabot:** `.github/workflows/dependabot-auto-merge.yml` is intentionally unchanged. PR hygiene **skips** `dependabot[bot]` / `renovate[bot]`, so patch/minor auto-merge keeps working once the other required checks pass.
+
+**Residual risk:** `Accessibility smoke` cold runs may exceed ~2 min (release API compile + Playwright browser install). Warm `rust-cache` / npm cache keeps it closer to the budget. Full Playwright in `ci.yml` remains the broad e2e gate.
 
 ### Doc links (offline)
 

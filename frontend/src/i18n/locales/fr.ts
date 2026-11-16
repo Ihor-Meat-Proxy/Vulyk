@@ -49,6 +49,8 @@ const fr: Dict = {
   'a11y.sort': "Tri",
   'a11y.updatesCheckError': "Erreur de vérification des mises à jour",
   'a11y.uploadTargetRun': "Exécution cible pour l’import",
+  'a11y.runsPlanSelect': "Plan pour la nouvelle exécution",
+  'a11y.runsSuiteSelect': "Suite pour la nouvelle exécution",
   'admin.automationBranch': "Branche",
   'admin.automationProvider': "Fournisseur",
   'admin.automationReindex': "Réindexer",

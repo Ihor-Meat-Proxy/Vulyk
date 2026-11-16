@@ -47,8 +47,8 @@ SCRIPTS=(
 # Newly added fast-gate helpers (optional until PR2/PR3 land).
 for optional in \
   scripts/check-openapi-drift.sh \
-  scripts/check-bundle-size.sh \
-  scripts/check-i18n.sh
+  scripts/generate-openapi.sh \
+  scripts/check-bundle-size.sh
 do
   if [[ -f "${optional}" ]]; then
     SCRIPTS+=("${optional}")

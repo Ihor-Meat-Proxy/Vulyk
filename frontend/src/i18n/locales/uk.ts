@@ -49,6 +49,8 @@ const uk: Dict = {
   'a11y.sort': "Сортування",
   'a11y.updatesCheckError': "Помилка перевірки оновлень",
   'a11y.uploadTargetRun': "Цільовий прогін для завантаження",
+  'a11y.runsPlanSelect': "План для нового прогону",
+  'a11y.runsSuiteSelect': "Набір для нового прогону",
   'admin.automationBranch': "Гілка",
   'admin.automationProvider': "Провайдер",
   'admin.automationReindex': "Переіндексувати",

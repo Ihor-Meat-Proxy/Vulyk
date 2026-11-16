@@ -262,6 +262,7 @@ export function RunsPage({ projectId, suites }: Props) {
               className="filter-input"
               value={planId}
               onChange={(e) => setPlanId(e.target.value)}
+              aria-label={t('a11y.runsPlanSelect')}
               {...testIdProps(TestIds.runsPlanSelect)}
             >
               <option value="">{t('runs.noPlan')}</option>
@@ -275,6 +276,7 @@ export function RunsPage({ projectId, suites }: Props) {
               className="filter-input"
               value={suiteId}
               onChange={(e) => setSuiteId(e.target.value)}
+              aria-label={t('a11y.runsSuiteSelect')}
               {...testIdProps(TestIds.runsSuiteSelect)}
             >
               <option value="">{t('runs.allSuites')}</option>

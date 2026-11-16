@@ -49,6 +49,8 @@ const de: Dict = {
   'a11y.sort': "Sortierung",
   'a11y.updatesCheckError': "Fehler bei der Update-Prüfung",
   'a11y.uploadTargetRun': "Ziel-Lauf für Upload",
+  'a11y.runsPlanSelect': "Plan für neuen Lauf",
+  'a11y.runsSuiteSelect': "Suite für neuen Lauf",
   'admin.automationBranch': "Branch",
   'admin.automationProvider': "Anbieter",
   'admin.automationReindex': "Neu indexieren",

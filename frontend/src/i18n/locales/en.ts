@@ -49,6 +49,8 @@ const en: Dict = {
   'a11y.sort': "Sort",
   'a11y.updatesCheckError': "Update check error",
   'a11y.uploadTargetRun': "Upload target run",
+  'a11y.runsPlanSelect': "Plan for new run",
+  'a11y.runsSuiteSelect': "Suite for new run",
   'admin.automationBranch': "Branch",
   'admin.automationProvider': "Provider",
   'admin.automationReindex': "Re-index",
