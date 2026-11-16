@@ -84,7 +84,7 @@ else
 fi
 
 # F5 fixture: force an operator who opted out of auth, regardless of whether the
-# previous release .env.example defaulted AUTH_REQUIRED to false (≤0.3) or true (0.4+).
+# previous release .env.example defaulted AUTH_REQUIRED to false (<=0.3) or true (0.4+).
 if grep -qE '^VULYK_AUTH_REQUIRED=' "${OPERATOR_ENV}"; then
   # portable in-place edit (Linux + macOS BSD sed)
   tmp_auth="${OPERATOR_ENV}.auth"
