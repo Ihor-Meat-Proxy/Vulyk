@@ -1773,8 +1773,13 @@ export const api = {
       body: JSON.stringify(body),
     }),
   getAdminUpdates: () => request<UpdatesStatus>('/api/v1/admin/updates'),
-  checkAdminUpdates: () =>
-    request<UpdatesStatus>('/api/v1/admin/updates/check', { method: 'POST' }),
+  /** `force: true` bypasses server-side auto-check backoff (Retry / Check button). */
+  checkAdminUpdates: (opts?: { force?: boolean }) => {
+    const q = opts?.force ? '?force=true' : ''
+    return request<UpdatesStatus>(`/api/v1/admin/updates/check${q}`, {
+      method: 'POST',
+    })
+  },
   applyAdminUpdate: (version: string) =>
     request<{ job: UpdateJob }>('/api/v1/admin/updates/apply', {
       method: 'POST',

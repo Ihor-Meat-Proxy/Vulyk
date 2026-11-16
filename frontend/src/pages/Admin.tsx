@@ -1361,12 +1361,37 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     void refresh()
   }, [refresh])
 
-  // Periodic check when interval > 0 and last check is stale
+  // Periodic check when interval > 0 and last attempt is stale.
+  // Honour rate-limit reset / short error backoff; page load uses GET only.
+  // Explicit Retry/Check button uses force=true and bypasses this gate.
   useEffect(() => {
     if (!status || status.check_interval_hours <= 0) return
-    const last = status.last_checked_at ? Date.parse(status.last_checked_at) : 0
-    const due =
-      !last || Date.now() - last > status.check_interval_hours * 3600 * 1000
+    const now = Date.now()
+    const last = status.last_checked_at
+      ? Date.parse(status.last_checked_at)
+      : status.last_check_error_at
+        ? Date.parse(status.last_check_error_at)
+        : NaN
+    let due = !Number.isFinite(last)
+    if (!due && status.last_check_error_code) {
+      if (status.last_check_error_code === 'git_host_rate_limit') {
+        const resetMs = status.last_check_error_reset_at
+          ? Date.parse(status.last_check_error_reset_at)
+          : NaN
+        if (Number.isFinite(resetMs)) {
+          due = now >= resetMs
+        } else {
+          const backoffMs =
+            Math.min(status.check_interval_hours, 1) * 3600 * 1000
+          due = now - last > backoffMs
+        }
+      } else {
+        const backoffMs = Math.min(status.check_interval_hours, 1) * 3600 * 1000
+        due = now - last > backoffMs
+      }
+    } else if (!due) {
+      due = now - last > status.check_interval_hours * 3600 * 1000
+    }
     if (!due) return
     void (async () => {
       try {
@@ -1374,10 +1399,16 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
         setStatus(s)
         setActiveJob(s.active_job)
       } catch {
-        // Silent periodic failure; user can click Check
+        // Silent periodic failure; user can click Retry
       }
     })()
-  }, [status?.check_interval_hours, status?.last_checked_at])
+  }, [
+    status?.check_interval_hours,
+    status?.last_checked_at,
+    status?.last_check_error_at,
+    status?.last_check_error_code,
+    status?.last_check_error_reset_at,
+  ])
 
   // Poll active job
   useEffect(() => {
@@ -1404,7 +1435,8 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     setSessionCheckError(null)
     setSessionCheckErrorAt(null)
     try {
-      const s = await api.checkAdminUpdates()
+      // Explicit Retry / Check bypasses server + client auto-check backoff.
+      const s = await api.checkAdminUpdates({ force: true })
       setStatus(s)
       setActiveJob(s.active_job)
       // Prefer durable status fields from the API over session-only errors.

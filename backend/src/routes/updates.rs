@@ -1,7 +1,7 @@
 //! Admin Updates: check GitHub Releases and apply via the updater sidecar.
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     routing::{get, post},
     Json, Router,
 };
@@ -89,6 +89,11 @@ pub struct UpdatesStatus {
     pub latest_notes: Option<String>,
     pub latest_url: Option<String>,
     pub update_available: bool,
+    /// RFC3339 time of the last check **attempt** (success or failure).
+    ///
+    /// Always advanced on both success and failure so auto-check interval /
+    /// backoff can suppress hammering GitHub. Last-good `latest_*` metadata is
+    /// kept separately on failure.
     pub last_checked_at: Option<String>,
     /// Stable machine code for the last failed check (`git_host_rate_limit`, …).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -218,19 +223,93 @@ async fn persist_last_check_error(
     code: &str,
     reset_at: Option<DateTime<Utc>>,
 ) -> AppResult<()> {
+    let now = Utc::now().to_rfc3339();
     set_string_setting(pool, "updates_last_check_error_code", code).await?;
-    set_string_setting(
-        pool,
-        "updates_last_check_error_at",
-        &Utc::now().to_rfc3339(),
-    )
-    .await?;
+    set_string_setting(pool, "updates_last_check_error_at", &now).await?;
     set_string_setting(
         pool,
         "updates_last_check_error_reset_at",
         &reset_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
     )
     .await?;
+    // Record the attempt time even on failure so clients can honour the
+    // check interval / rate-limit reset instead of re-hitting GitHub on every visit.
+    set_string_setting(pool, "updates_last_checked_at", &now).await?;
+    Ok(())
+}
+
+/// Whether an automatic (non-Retry) update check should run now.
+///
+/// - Rate limit with known `reset_at`: wait until that instant (even if shorter
+///   or longer than the configured interval).
+/// - Other errors (or rate limit without reset): wait
+///   `min(interval_hours, 1)` hour(s) from the last attempt.
+/// - After success: wait the full `interval_hours` from `last_checked_at`.
+/// - `interval_hours <= 0` means periodic checks are disabled.
+/// - Explicit Retry / Check passes `force=true` and bypasses this gate.
+pub fn auto_check_due(
+    now: DateTime<Utc>,
+    interval_hours: i64,
+    last_checked_at: Option<DateTime<Utc>>,
+    error_code: Option<&str>,
+    reset_at: Option<DateTime<Utc>>,
+) -> bool {
+    if interval_hours <= 0 {
+        return false;
+    }
+    let has_error = error_code.map(|c| !c.is_empty()).unwrap_or(false);
+    if has_error {
+        if error_code == Some(CHECK_ERR_RATE_LIMIT) {
+            if let Some(reset) = reset_at {
+                return now >= reset;
+            }
+        }
+        let Some(last) = last_checked_at else {
+            return true;
+        };
+        let wait_hours = interval_hours.min(1);
+        return now >= last + chrono::Duration::hours(wait_hours);
+    }
+    let Some(last) = last_checked_at else {
+        return true;
+    };
+    now >= last + chrono::Duration::hours(interval_hours)
+}
+
+fn parse_rfc3339_opt(raw: &str) -> Option<DateTime<Utc>> {
+    if raw.is_empty() {
+        return None;
+    }
+    DateTime::parse_from_rfc3339(raw)
+        .ok()
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+/// Persist a GitHub Releases check outcome.
+///
+/// Success clears `last_check_error_*` and refreshes latest release fields.
+/// Failure records the error **and** advances `updates_last_checked_at` (via
+/// [`persist_last_check_error`]) while leaving last-good `latest_*` untouched.
+pub async fn apply_check_outcome(
+    pool: &sqlx::PgPool,
+    outcome: Result<Option<GithubReleaseInfo>, (&'static str, Option<DateTime<Utc>>)>,
+) -> AppResult<()> {
+    match outcome {
+        Ok(None) => {
+            clear_last_check_error(pool).await?;
+            set_string_setting(pool, "updates_last_checked_at", &Utc::now().to_rfc3339()).await?;
+        }
+        Ok(Some(release)) => {
+            clear_last_check_error(pool).await?;
+            set_string_setting(pool, "updates_latest_version", &release.tag).await?;
+            set_string_setting(pool, "updates_latest_notes", &release.notes).await?;
+            set_string_setting(pool, "updates_latest_url", &release.html_url).await?;
+            set_string_setting(pool, "updates_last_checked_at", &Utc::now().to_rfc3339()).await?;
+        }
+        Err((code, reset_at)) => {
+            persist_last_check_error(pool, code, reset_at).await?;
+        }
+    }
     Ok(())
 }
 
@@ -586,53 +665,60 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
     })
 }
 
+#[derive(Debug, Deserialize, ToSchema, Default)]
+pub struct CheckUpdatesQuery {
+    /// When true, bypass auto-check backoff (Admin Retry / Check button).
+    #[serde(default)]
+    pub force: bool,
+}
+
 #[utoipa::path(
     post,
     path = "/api/v1/admin/updates/check",
     tag = "admin",
+    params(
+        ("force" = Option<bool>, Query, description = "Bypass auto-check backoff")
+    ),
     responses((status = 200, body = UpdatesStatus)),
     security(("bearer_auth" = []))
 )]
 pub async fn check_updates(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
+    Query(q): Query<CheckUpdatesQuery>,
 ) -> AppResult<Json<UpdatesStatus>> {
     // Always return 200 with UpdatesStatus (including last_check_error_*) so the
     // Admin UI can show a durable reason after refresh without relying on thrown
-    // API errors alone. Last good latest_version/notes/url/last_checked_at are kept.
-    match fetch_latest_github_release().await {
-        Ok(None) => {
-            clear_last_check_error(&state.pool).await?;
-            set_string_setting(
-                &state.pool,
-                "updates_last_checked_at",
-                &Utc::now().to_rfc3339(),
-            )
-            .await?;
-        }
-        Ok(Some(release)) => {
-            clear_last_check_error(&state.pool).await?;
-            set_string_setting(&state.pool, "updates_latest_version", &release.tag).await?;
-            set_string_setting(&state.pool, "updates_latest_notes", &release.notes).await?;
-            set_string_setting(&state.pool, "updates_latest_url", &release.html_url).await?;
-            set_string_setting(
-                &state.pool,
-                "updates_last_checked_at",
-                &Utc::now().to_rfc3339(),
-            )
-            .await?;
-        }
-        Err((code, reset_at)) => {
-            persist_last_check_error(&state.pool, code, reset_at).await?;
+    // API errors alone. Last-good latest_version/notes/url are kept on failure;
+    // last_checked_at advances on every attempt for backoff.
+    if !q.force {
+        let interval = prefs_interval(&state.pool).await?;
+        let last_raw = settings::get_string(&state.pool, "updates_last_checked_at", "").await?;
+        let err_code =
+            settings::get_string(&state.pool, "updates_last_check_error_code", "").await?;
+        let err_reset =
+            settings::get_string(&state.pool, "updates_last_check_error_reset_at", "").await?;
+        let due = auto_check_due(
+            Utc::now(),
+            interval,
+            parse_rfc3339_opt(&last_raw),
+            opt_setting(err_code).as_deref(),
+            parse_rfc3339_opt(&err_reset),
+        );
+        if !due {
+            return Ok(Json(build_status(&state).await?));
         }
     }
+    let outcome = fetch_latest_github_release().await;
+    apply_check_outcome(&state.pool, outcome).await?;
     Ok(Json(build_status(&state).await?))
 }
 
-struct GithubReleaseInfo {
-    tag: String,
-    notes: String,
-    html_url: String,
+#[derive(Debug, Clone)]
+pub struct GithubReleaseInfo {
+    pub tag: String,
+    pub notes: String,
+    pub html_url: String,
 }
 
 /// Fetch GitHub `/releases/latest`. On failure returns a stable error code (+ reset).
@@ -742,6 +828,75 @@ mod check_error_tests {
             "oops",
         );
         assert_eq!(code, CHECK_ERR_HTTP);
+    }
+
+    #[test]
+    fn auto_check_due_respects_rate_limit_reset() {
+        let now = Utc::now();
+        let reset = now + chrono::Duration::hours(1);
+        assert!(!auto_check_due(
+            now,
+            24,
+            Some(now),
+            Some(CHECK_ERR_RATE_LIMIT),
+            Some(reset),
+        ));
+        assert!(auto_check_due(
+            reset + chrono::Duration::seconds(1),
+            24,
+            Some(now),
+            Some(CHECK_ERR_RATE_LIMIT),
+            Some(reset),
+        ));
+    }
+
+    #[test]
+    fn auto_check_due_uses_short_backoff_for_other_errors() {
+        let now = Utc::now();
+        // min(24, 1) = 1h — still within window
+        let last_recent = now - chrono::Duration::minutes(30);
+        assert!(!auto_check_due(
+            now,
+            24,
+            Some(last_recent),
+            Some(CHECK_ERR_NETWORK),
+            None,
+        ));
+        // past the 1h error backoff
+        let last_old = now - chrono::Duration::hours(2);
+        assert!(auto_check_due(
+            now,
+            24,
+            Some(last_old),
+            Some(CHECK_ERR_HTTP),
+            None,
+        ));
+    }
+
+    #[test]
+    fn auto_check_due_success_uses_full_interval() {
+        let now = Utc::now();
+        let last = now - chrono::Duration::hours(2);
+        assert!(!auto_check_due(now, 24, Some(last), None, None));
+        assert!(auto_check_due(
+            last + chrono::Duration::hours(25),
+            24,
+            Some(last),
+            None,
+            None,
+        ));
+    }
+
+    #[test]
+    fn auto_check_due_disabled_when_interval_zero() {
+        let now = Utc::now();
+        assert!(!auto_check_due(now, 0, None, None, None));
+    }
+
+    #[test]
+    fn auto_check_due_true_when_never_checked() {
+        let now = Utc::now();
+        assert!(auto_check_due(now, 24, None, None, None));
     }
 }
 

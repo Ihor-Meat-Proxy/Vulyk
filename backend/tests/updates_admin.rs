@@ -2,6 +2,7 @@
 
 use std::time::Duration;
 
+use chrono::Utc;
 use serde_json::Value;
 use vulyk_api::auth::hash_password;
 
@@ -70,6 +71,12 @@ async fn login(client: &reqwest::Client, base: &str, email: &str, password: &str
 /// Unique per call so CodeQL does not flag a hard-coded credential.
 fn test_password() -> String {
     format!("upd-{}", uuid::Uuid::new_v4())
+}
+
+/// Serialise tests that mutate shared `updates_*` system_settings keys.
+async fn updates_settings_lock() -> tokio::sync::MutexGuard<'static, ()> {
+    static LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+    LOCK.lock().await
 }
 
 #[tokio::test]
@@ -172,6 +179,7 @@ async fn updates_status_exposes_persisted_check_error_and_keeps_last_good() {
         eprintln!("skipping: DATABASE_URL not set");
         return;
     }
+    let _guard = updates_settings_lock().await;
     let (base, pool) = spawn_app().await;
     let email = format!("updates-err+{}@example.com", uuid::Uuid::new_v4().simple());
     let password = test_password();
@@ -207,6 +215,174 @@ async fn updates_status_exposes_persisted_check_error_and_keeps_last_good() {
     assert_eq!(body["last_check_error_code"], "git_host_rate_limit");
     assert_eq!(body["last_check_error_at"], "2024-06-01T12:00:00Z");
     assert_eq!(body["last_check_error_reset_at"], "2024-06-01T13:00:00Z");
+}
+
+#[tokio::test]
+async fn failed_check_records_attempt_time_keeps_last_good() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let _guard = updates_settings_lock().await;
+    let (_base, pool) = spawn_app().await;
+    for (key, value) in [
+        ("updates_latest_version", "1.2.3"),
+        ("updates_latest_notes", "cached notes"),
+        ("updates_latest_url", "https://example.com/v1.2.3"),
+        ("updates_last_checked_at", ""),
+        ("updates_last_check_error_code", ""),
+        ("updates_last_check_error_at", ""),
+        ("updates_last_check_error_reset_at", ""),
+    ] {
+        vulyk_api::settings::set_value(&pool, key, serde_json::Value::String(value.into()))
+            .await
+            .expect("set");
+    }
+
+    let before = Utc::now() - chrono::Duration::seconds(2);
+    let reset = Utc::now() + chrono::Duration::hours(1);
+    vulyk_api::routes::updates::apply_check_outcome(
+        &pool,
+        Err((
+            vulyk_api::routes::updates::CHECK_ERR_RATE_LIMIT,
+            Some(reset),
+        )),
+    )
+    .await
+    .expect("apply failure outcome");
+
+    let last = vulyk_api::settings::get_string(&pool, "updates_last_checked_at", "")
+        .await
+        .expect("last");
+    assert!(!last.is_empty(), "failure must record attempt time");
+    let parsed = chrono::DateTime::parse_from_rfc3339(&last).expect("rfc3339");
+    assert!(parsed >= before);
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_latest_version", "")
+            .await
+            .unwrap(),
+        "1.2.3"
+    );
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_last_check_error_code", "")
+            .await
+            .unwrap(),
+        "git_host_rate_limit"
+    );
+    let stored_reset =
+        vulyk_api::settings::get_string(&pool, "updates_last_check_error_reset_at", "")
+            .await
+            .unwrap();
+    assert_eq!(stored_reset, reset.to_rfc3339());
+}
+
+#[tokio::test]
+async fn auto_check_backoff_skips_until_rate_limit_reset() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let _guard = updates_settings_lock().await;
+    let (base, pool) = spawn_app().await;
+    let email = format!("updates-skip+{}@example.com", uuid::Uuid::new_v4().simple());
+    let password = test_password();
+    insert_admin(&pool, &email, &password).await;
+    let client = reqwest::Client::new();
+    let token = login(&client, &base, &email, &password).await;
+
+    let attempt = Utc::now().to_rfc3339();
+    let reset = (Utc::now() + chrono::Duration::hours(2)).to_rfc3339();
+    for (key, value) in [
+        ("updates_latest_version", "2.0.0"),
+        ("updates_last_checked_at", attempt.as_str()),
+        ("updates_last_check_error_code", "git_host_rate_limit"),
+        ("updates_last_check_error_at", attempt.as_str()),
+        ("updates_last_check_error_reset_at", reset.as_str()),
+    ] {
+        vulyk_api::settings::set_value(&pool, key, serde_json::Value::String(value.into()))
+            .await
+            .expect("set");
+    }
+
+    // Auto-check (no force) must return cached status without advancing attempt time.
+    let res = client
+        .post(format!("{base}/api/v1/admin/updates/check"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .expect("check");
+    assert!(
+        res.status().is_success(),
+        "{}",
+        res.text().await.unwrap_or_default()
+    );
+    let body: Value = res.json().await.expect("json");
+    assert_eq!(body["last_checked_at"], attempt);
+    assert_eq!(body["last_check_error_code"], "git_host_rate_limit");
+    assert_eq!(body["last_check_error_reset_at"], reset);
+    assert_eq!(body["latest_version"], "2.0.0");
+}
+
+#[tokio::test]
+async fn successful_check_clears_last_check_error() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let _guard = updates_settings_lock().await;
+    let (_base, pool) = spawn_app().await;
+    for (key, value) in [
+        ("updates_latest_version", "0.1.0"),
+        ("updates_last_check_error_code", "git_host_rate_limit"),
+        ("updates_last_check_error_at", "2024-06-01T12:00:00Z"),
+        ("updates_last_check_error_reset_at", "2024-06-01T13:00:00Z"),
+        ("updates_last_checked_at", "2024-06-01T12:00:00Z"),
+    ] {
+        vulyk_api::settings::set_value(&pool, key, serde_json::Value::String(value.into()))
+            .await
+            .expect("set");
+    }
+
+    vulyk_api::routes::updates::apply_check_outcome(
+        &pool,
+        Ok(Some(vulyk_api::routes::updates::GithubReleaseInfo {
+            tag: "3.4.5".into(),
+            notes: "fresh".into(),
+            html_url: "https://example.com/v3.4.5".into(),
+        })),
+    )
+    .await
+    .expect("apply success");
+
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_last_check_error_code", "")
+            .await
+            .unwrap(),
+        ""
+    );
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_last_check_error_at", "")
+            .await
+            .unwrap(),
+        ""
+    );
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_last_check_error_reset_at", "")
+            .await
+            .unwrap(),
+        ""
+    );
+    assert_eq!(
+        vulyk_api::settings::get_string(&pool, "updates_latest_version", "")
+            .await
+            .unwrap(),
+        "3.4.5"
+    );
+    let last = vulyk_api::settings::get_string(&pool, "updates_last_checked_at", "")
+        .await
+        .unwrap();
+    assert_ne!(last, "2024-06-01T12:00:00Z");
+    assert!(!last.is_empty());
 }
 
 #[tokio::test]
