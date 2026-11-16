@@ -568,6 +568,7 @@ const en: Dict = {
   'login.createAdmin': "Create admin",
   'login.displayName': "Display name",
   'login.email': "Email",
+  'login.emailPlaceholder': "name@example.com",
   'login.password': "Password",
   'login.register': "Create an account",
   'login.registerSubmit': "Register",

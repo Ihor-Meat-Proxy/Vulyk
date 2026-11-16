@@ -13,11 +13,31 @@ import {
 } from '../passwordPolicy'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
+/** Remember last successful login email across sessions (not a secret). */
+const LAST_LOGIN_EMAIL_KEY = 'vulyk.lastLoginEmail'
+
+function readLastLoginEmail(): string {
+  try {
+    return localStorage.getItem(LAST_LOGIN_EMAIL_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+function rememberLoginEmail(email: string) {
+  try {
+    const trimmed = email.trim()
+    if (trimmed) localStorage.setItem(LAST_LOGIN_EMAIL_KEY, trimmed)
+  } catch {
+    // Ignore quota / private-mode failures.
+  }
+}
+
 export function Login() {
   const { status, login, bootstrap, register } = useAuth()
   const { t } = useI18n()
   const [mode, setMode] = useState<'login' | 'register'>('login')
-  const [email, setEmail] = useState('admin@vulyk.local')
+  const [email, setEmail] = useState(() => readLastLoginEmail())
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('Admin')
   const [error, setError] = useState<string | null>(null)
@@ -46,6 +66,7 @@ export function Login() {
       } else {
         await login(email, password)
       }
+      rememberLoginEmail(email)
     } catch (err) {
       setError(friendlyErrorMessage(err, t, 'login'))
     } finally {
@@ -94,6 +115,7 @@ export function Login() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder={t('login.emailPlaceholder')}
             required
             autoComplete="username"
             {...testIdProps(TestIds.loginEmailInput)}

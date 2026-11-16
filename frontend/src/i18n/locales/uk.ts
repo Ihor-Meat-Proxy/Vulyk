@@ -568,6 +568,7 @@ const uk: Dict = {
   'login.createAdmin': "Створити адміна",
   'login.displayName': "Ім'я",
   'login.email': "Ел. пошта",
+  'login.emailPlaceholder': "name@example.com",
   'login.password': "Пароль",
   'login.register': "Створити обліковий запис",
   'login.registerSubmit': "Зареєструватися",
