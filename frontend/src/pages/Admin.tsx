@@ -1331,7 +1331,9 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [checking, setChecking] = useState(false)
   /** Immediate feedback for a failed click when the API still throws. */
-  const [sessionCheckError, setSessionCheckError] = useState<string | null>(null)
+  const [sessionCheckError, setSessionCheckError] = useState<string | null>(
+    null,
+  )
   const [sessionCheckErrorAt, setSessionCheckErrorAt] = useState<string | null>(
     null,
   )
