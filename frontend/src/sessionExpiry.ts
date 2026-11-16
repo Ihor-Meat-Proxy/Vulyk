@@ -43,6 +43,18 @@ function safeReturnTo(pathname: string, search: string): string | null {
 }
 
 /**
+ * `/auth/status` is optional-auth: a dead stored bearer yields 200 with
+ * `authenticated: false` (not 401). Detect that so reload still lands on login
+ * with the session-expired notice.
+ */
+export function shouldTreatAuthStatusAsExpired(
+  hadStoredToken: boolean,
+  status: { auth_required: boolean; authenticated: boolean },
+): boolean {
+  return hadStoredToken && status.auth_required && !status.authenticated
+}
+
+/**
  * Clear local auth and send the browser to /login with a short notice.
  * Idempotent across concurrent 401s.
  */

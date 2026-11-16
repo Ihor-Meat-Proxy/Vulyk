@@ -8,6 +8,10 @@ import {
   type ReactNode,
 } from 'react'
 import { api, type AuthStatus, type UserPublic } from './api'
+import {
+  handleUnauthorizedRedirect,
+  shouldTreatAuthStatusAsExpired,
+} from './sessionExpiry'
 import { getStoredToken, setStoredToken } from './token'
 
 type AuthContextValue = {
@@ -68,9 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshStatus = useCallback(async () => {
+    // /auth/status is optional-auth and returns 200 with authenticated:false
+    // when a stored bearer is dead (no 401). Treat that like session expiry so
+    // reload after revoke/upgrade still shows the login notice.
+    const hadToken = Boolean(getStoredToken())
     const next = await api.authStatus()
+    if (shouldTreatAuthStatusAsExpired(hadToken, next)) {
+      handleUnauthorizedRedirect()
+      setToken(null)
+    }
     setStatus(next)
-  }, [])
+  }, [setToken])
 
   useEffect(() => {
     let cancelled = false

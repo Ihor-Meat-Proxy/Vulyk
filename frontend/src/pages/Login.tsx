@@ -58,7 +58,12 @@ export function Login() {
     if (fromQuery && fromQuery.startsWith('/') && !fromQuery.startsWith('//')) {
       sessionStorage.setItem(RETURN_TO_KEY, fromQuery)
     }
-    setSessionNotice(consumeSessionExpiredNotice())
+    // Only consume on the real /login route. App may soft-render <Login /> on
+    // "/" while handleUnauthorizedRedirect navigates to /login; consuming
+    // early would clear the notice before that navigation lands.
+    if (window.location.pathname.startsWith('/login')) {
+      setSessionNotice(consumeSessionExpiredNotice())
+    }
   }, [searchParams])
 
   const isBootstrap = Boolean(status?.bootstrap_available)

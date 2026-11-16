@@ -6,6 +6,7 @@ import {
   consumeSessionExpiredNotice,
   handleUnauthorizedRedirect,
   resetUnauthorizedGuardForTests,
+  shouldTreatAuthStatusAsExpired,
   RETURN_TO_KEY,
   SESSION_EXPIRED_NOTICE_KEY,
 } from './sessionExpiry'
@@ -49,6 +50,33 @@ describe('sessionExpiry', () => {
     expect(assign).toHaveBeenCalledWith(
       '/login?returnTo=%2Fcases%2Fabc%3Fx%3D1',
     )
+  })
+
+  it('shouldTreatAuthStatusAsExpired only when a stored token went stale', () => {
+    expect(
+      shouldTreatAuthStatusAsExpired(true, {
+        auth_required: true,
+        authenticated: false,
+      }),
+    ).toBe(true)
+    expect(
+      shouldTreatAuthStatusAsExpired(false, {
+        auth_required: true,
+        authenticated: false,
+      }),
+    ).toBe(false)
+    expect(
+      shouldTreatAuthStatusAsExpired(true, {
+        auth_required: true,
+        authenticated: true,
+      }),
+    ).toBe(false)
+    expect(
+      shouldTreatAuthStatusAsExpired(true, {
+        auth_required: false,
+        authenticated: false,
+      }),
+    ).toBe(false)
   })
 
   it('consumeSessionExpiredNotice is one-shot', () => {
