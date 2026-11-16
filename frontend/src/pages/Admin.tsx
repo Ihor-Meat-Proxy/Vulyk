@@ -1288,34 +1288,55 @@ function TokensPanel({
   )
 }
 
-/** Strip raw upstream JSON from update-check failures for a single friendly alert. */
-function friendlyUpdateCheckError(raw: string): string {
-  const trimmed = raw.trim()
-  if (/rate limit/i.test(trimmed)) {
-    return 'Update check failed: GitHub API rate limit exceeded. Try again later.'
+/** Map durable API error codes (or a thrown raw message) to translated copy. */
+function translateUpdateCheckError(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  formatDate: (value: string | Date | null | undefined) => string,
+  code: string | null | undefined,
+  resetAt: string | null | undefined,
+  rawFallback?: string | null,
+): string {
+  switch (code) {
+    case 'git_host_rate_limit':
+      return t('admin.updates.error.rateLimit', {
+        reset: resetAt ? formatDate(resetAt) : '—',
+      })
+    case 'network_error':
+      return t('admin.updates.error.network')
+    case 'github_http_error':
+    case 'github_parse_error':
+      return t('admin.updates.error.http')
+    default:
+      break
   }
-  if (/403|Forbidden/i.test(trimmed)) {
-    return 'Update check failed: GitHub releases request was forbidden.'
+  // Session-only thrown errors (legacy mocks / unexpected 4xx): keep friendly, no raw JSON.
+  if (rawFallback) {
+    const trimmed = rawFallback.trim()
+    if (/rate limit|git_host_rate_limit/i.test(trimmed)) {
+      return t('admin.updates.error.rateLimit', { reset: '—' })
+    }
+    if (/network|fetch failed|Failed to fetch/i.test(trimmed)) {
+      return t('admin.updates.error.network')
+    }
+    if (/403|Forbidden|404|Not Found|HTTP|github/i.test(trimmed)) {
+      return t('admin.updates.error.http')
+    }
   }
-  if (/404|Not Found/i.test(trimmed)) {
-    return 'Update check failed: GitHub release feed was not found.'
-  }
-  // Drop embedded JSON blobs that make the alert unreadable.
-  const withoutJson = trimmed.replace(/\{[\s\S]*\}$/, '').trim()
-  if (withoutJson && withoutJson.length < trimmed.length) {
-    return withoutJson.length > 200
-      ? `${withoutJson.slice(0, 200)}…`
-      : withoutJson
-  }
-  return trimmed.length > 240 ? `${trimmed.slice(0, 240)}…` : trimmed
+  return t('admin.updates.error.unknown')
 }
 
 function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
-  const { t } = useI18n()
+  const { t, formatDate } = useI18n()
   const [status, setStatus] = useState<UpdatesStatus | null>(null)
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [checking, setChecking] = useState(false)
-  const [checkError, setCheckError] = useState<string | null>(null)
+  /** Immediate feedback for a failed click when the API still throws. */
+  const [sessionCheckError, setSessionCheckError] = useState<string | null>(
+    null,
+  )
+  const [sessionCheckErrorAt, setSessionCheckErrorAt] = useState<string | null>(
+    null,
+  )
   const [applying, setApplying] = useState(false)
   const [rollingBack, setRollingBack] = useState(false)
   const [intervalHours, setIntervalHours] = useState(24)
@@ -1380,18 +1401,30 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
 
   const onCheck = async () => {
     setChecking(true)
-    setCheckError(null)
+    setSessionCheckError(null)
+    setSessionCheckErrorAt(null)
     try {
       const s = await api.checkAdminUpdates()
       setStatus(s)
       setActiveJob(s.active_job)
-      setCheckError(null)
+      // Prefer durable status fields from the API over session-only errors.
+      setSessionCheckError(null)
+      setSessionCheckErrorAt(null)
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err)
       // One friendly alert in the panel — avoid duplicating raw GitHub JSON
-      // in the Admin-level error banner (demo F7).
-      const msg = friendlyUpdateCheckError(raw)
-      setCheckError(msg)
+      // in the Admin-level error banner (demo F7). Keep session feedback when
+      // the API still throws (e.g. older mocks / unexpected transport errors).
+      setSessionCheckError(raw)
+      setSessionCheckErrorAt(new Date().toISOString())
+      // Refresh GET so any persisted last_check_error_* still surfaces.
+      try {
+        const s = await api.getAdminUpdates()
+        setStatus(s)
+        setActiveJob(s.active_job)
+      } catch {
+        /* ignore */
+      }
     } finally {
       setChecking(false)
     }
@@ -1514,8 +1547,21 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     !rollingBack &&
     !jobBusy
 
-  const statusSummary = checkError
-    ? t('admin.updates.checkFailed')
+  const durableErrorCode = status.last_check_error_code ?? null
+  const hasCheckError = Boolean(durableErrorCode || sessionCheckError)
+  const checkErrorMessage = hasCheckError
+    ? translateUpdateCheckError(
+        t,
+        formatDate,
+        durableErrorCode,
+        status.last_check_error_reset_at,
+        sessionCheckError,
+      )
+    : null
+  const errorAt = status.last_check_error_at ?? sessionCheckErrorAt
+
+  const statusSummary = hasCheckError
+    ? t('admin.updates.lastCheckFailed')
     : status.update_available
       ? t('admin.updates.available')
       : status.last_checked_at
@@ -1526,17 +1572,19 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
     <div className="panel" {...testIdProps(TestIds.adminUpdatesPanel)}>
       <h3>{t('admin.updates')}</h3>
       <p
-        className={checkError ? 'error' : 'muted'}
-        role={checkError ? 'alert' : 'status'}
-        aria-live={checkError ? 'assertive' : 'polite'}
+        className={hasCheckError ? 'error' : 'muted'}
+        role={hasCheckError ? 'alert' : 'status'}
+        aria-live={hasCheckError ? 'assertive' : 'polite'}
         {...testIdProps(TestIds.adminUpdatesStatus)}
       >
         {statusSummary}
-        {!checkError && status.last_checked_at
-          ? ` · ${t('admin.updates.lastChecked')}: ${status.last_checked_at}`
-          : null}
+        {hasCheckError && errorAt
+          ? ` · ${formatDate(errorAt)}`
+          : !hasCheckError && status.last_checked_at
+            ? ` · ${t('admin.updates.lastChecked')}: ${status.last_checked_at}`
+            : null}
       </p>
-      {checkError ? (
+      {checkErrorMessage ? (
         <p
           className="error"
           role="alert"
@@ -1544,7 +1592,7 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           aria-label={t('a11y.updatesCheckError')}
           {...testIdProps(TestIds.adminUpdatesCheckError)}
         >
-          {checkError}
+          {checkErrorMessage}
         </p>
       ) : null}
 
@@ -1582,9 +1630,14 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           className="btn secondary"
           disabled={checking}
           onClick={() => void onCheck()}
+          // Retry reuses the Check control (label switches when a check error is shown).
           {...testIdProps(TestIds.adminUpdatesCheckButton)}
         >
-          {checking ? t('admin.updates.checking') : t('admin.updates.check')}
+          {checking
+            ? t('admin.updates.checking')
+            : hasCheckError
+              ? t('admin.updates.retry')
+              : t('admin.updates.check')}
         </button>
         {status.capability === 'compose_updater' ? (
           <button

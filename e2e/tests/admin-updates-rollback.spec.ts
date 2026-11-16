@@ -96,19 +96,34 @@ test('failed update check surfaces error instead of latest', {
 }, async ({ page }) => {
   await openUpdates(page)
 
+  // Prefer durable status fields (200 + last_check_error_*) over thrown API errors.
   await page.route('**/api/v1/admin/updates/check', async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue()
       return
     }
     await route.fulfill({
-      status: 400,
+      status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        error: {
-          code: 'bad_request',
-          message: 'github releases HTTP 403: API rate limit exceeded',
-        },
+        current_version: '0.0.0-test',
+        latest_version: '0.1.0',
+        latest_notes: 'cached',
+        latest_url: 'https://example.com/release',
+        update_available: true,
+        last_checked_at: '2024-01-01T00:00:00Z',
+        last_check_error_code: 'git_host_rate_limit',
+        last_check_error_at: '2024-06-01T12:00:00Z',
+        last_check_error_reset_at: '2024-06-01T13:00:00Z',
+        check_interval_hours: 24,
+        capability: 'manual_only',
+        manual_command: './scripts/install.sh upgrade',
+        rollback_command: './scripts/install.sh rollback',
+        github_repo: 'Ihor-Meat-Proxy/Vulyk',
+        active_job: null,
+        rollback: null,
+        version_backups: [],
+        retention: { rollback_days: 7, version_count: 3 },
       }),
     })
   })
@@ -117,14 +132,24 @@ test('failed update check surfaces error instead of latest', {
 
   const checkError = page.getByTestId(TestIds.adminUpdatesCheckError)
   await expect(checkError).toBeVisible({ timeout: 15_000 })
-  await expect(checkError).toContainText(/rate limit|403|github/i)
+  await expect(checkError).toContainText(
+    /rate limit|ліміт|limite|límite|Ratenlimit/i,
+  )
 
   const status = page.getByTestId(TestIds.adminUpdatesStatus)
   await expect(status).toBeVisible()
-  await expect(status).toContainText(/failed|не вдалася|Échec|Falló|fehlgeschlagen/i)
+  await expect(status).toContainText(
+    /failed|не вдалася|Échec|Falló|fehlgeschlagen/i,
+  )
   await expect(status).not.toContainText(
     /latest checked release|остання перевірена|dernière version vérifiée|última versión comprobada|zuletzt geprüfte/i,
   )
+  // Cached last-good latest version remains visible.
+  await expect(page.getByTestId(TestIds.adminUpdatesLatestVersion)).toContainText(
+    '0.1.0',
+  )
   // Check failures stay in the Updates panel alert only (no duplicate Admin banner).
   await expect(page.getByTestId(TestIds.adminError)).toHaveCount(0)
+  // Retry reuses the check control.
+  await expect(page.getByTestId(TestIds.adminUpdatesRetryButton)).toBeEnabled()
 })

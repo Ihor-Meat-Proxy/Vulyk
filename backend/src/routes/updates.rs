@@ -90,6 +90,15 @@ pub struct UpdatesStatus {
     pub latest_url: Option<String>,
     pub update_available: bool,
     pub last_checked_at: Option<String>,
+    /// Stable machine code for the last failed check (`git_host_rate_limit`, …).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_check_error_code: Option<String>,
+    /// RFC3339 timestamp of the last failed check.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_check_error_at: Option<String>,
+    /// RFC3339 rate-limit reset time when known (`x-ratelimit-reset`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_check_error_reset_at: Option<String>,
     pub check_interval_hours: i64,
     pub capability: UpdatesCapability,
     pub manual_command: String,
@@ -100,6 +109,12 @@ pub struct UpdatesStatus {
     pub version_backups: Vec<VersionBackupInfo>,
     pub retention: VersionBackupRetention,
 }
+
+/// Stable codes persisted in `updates_last_check_error_code` and returned to the UI.
+pub const CHECK_ERR_RATE_LIMIT: &str = "git_host_rate_limit";
+pub const CHECK_ERR_NETWORK: &str = "network_error";
+pub const CHECK_ERR_HTTP: &str = "github_http_error";
+pub const CHECK_ERR_PARSE: &str = "github_parse_error";
 
 #[derive(Debug, Serialize, ToSchema, FromRow)]
 pub struct UpdateJobPublic {
@@ -149,6 +164,74 @@ pub struct UpdatePreferencesRequest {
 
 fn github_repo() -> String {
     std::env::var("VULYK_GITHUB_REPO").unwrap_or_else(|_| "Ihor-Meat-Proxy/Vulyk".into())
+}
+
+/// Optional PAT / fine-grained token for GitHub Releases (raises unauthenticated rate limit).
+fn github_token() -> Option<String> {
+    std::env::var("VULYK_GITHUB_TOKEN")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+}
+
+fn opt_setting(s: String) -> Option<String> {
+    if s.is_empty() {
+        None
+    } else {
+        Some(s)
+    }
+}
+
+/// Map a non-success GitHub Releases HTTP response to a stable UI code + optional reset time.
+pub fn classify_github_release_http_error(
+    status: reqwest::StatusCode,
+    headers: &reqwest::header::HeaderMap,
+    body: &str,
+) -> (&'static str, Option<DateTime<Utc>>) {
+    let code = status.as_u16();
+    if code == 429 || code == 403 {
+        let remaining = headers
+            .get("x-ratelimit-remaining")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("?");
+        if remaining == "0" || code == 429 || body.to_ascii_lowercase().contains("rate limit") {
+            let err = crate::services::automation_repo_remote::rate_limit_error(headers, body);
+            let reset_at = match err {
+                AppError::GitHostRateLimit { reset_at, .. } => reset_at,
+                _ => crate::services::automation_repo_remote::rate_limit_reset(headers),
+            };
+            return (CHECK_ERR_RATE_LIMIT, reset_at);
+        }
+    }
+    (CHECK_ERR_HTTP, None)
+}
+
+async fn clear_last_check_error(pool: &sqlx::PgPool) -> AppResult<()> {
+    set_string_setting(pool, "updates_last_check_error_code", "").await?;
+    set_string_setting(pool, "updates_last_check_error_at", "").await?;
+    set_string_setting(pool, "updates_last_check_error_reset_at", "").await?;
+    Ok(())
+}
+
+async fn persist_last_check_error(
+    pool: &sqlx::PgPool,
+    code: &str,
+    reset_at: Option<DateTime<Utc>>,
+) -> AppResult<()> {
+    set_string_setting(pool, "updates_last_check_error_code", code).await?;
+    set_string_setting(
+        pool,
+        "updates_last_check_error_at",
+        &Utc::now().to_rfc3339(),
+    )
+    .await?;
+    set_string_setting(
+        pool,
+        "updates_last_check_error_reset_at",
+        &reset_at.map(|t| t.to_rfc3339()).unwrap_or_default(),
+    )
+    .await?;
+    Ok(())
 }
 
 fn updater_url() -> Option<String> {
@@ -462,12 +545,12 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
     let notes = settings::get_string(&state.pool, "updates_latest_notes", "").await?;
     let url = settings::get_string(&state.pool, "updates_latest_url", "").await?;
     let last = settings::get_string(&state.pool, "updates_last_checked_at", "").await?;
+    let err_code = settings::get_string(&state.pool, "updates_last_check_error_code", "").await?;
+    let err_at = settings::get_string(&state.pool, "updates_last_check_error_at", "").await?;
+    let err_reset =
+        settings::get_string(&state.pool, "updates_last_check_error_reset_at", "").await?;
     let interval = prefs_interval(&state.pool).await?;
-    let latest_clean = if latest.is_empty() {
-        None
-    } else {
-        Some(latest)
-    };
+    let latest_clean = opt_setting(latest);
     let update_available = latest_clean
         .as_ref()
         .map(|l| semver_gt(l, current))
@@ -484,10 +567,13 @@ async fn build_status(state: &AppState) -> AppResult<UpdatesStatus> {
     Ok(UpdatesStatus {
         current_version: current,
         latest_version: latest_clean,
-        latest_notes: if notes.is_empty() { None } else { Some(notes) },
-        latest_url: if url.is_empty() { None } else { Some(url) },
+        latest_notes: opt_setting(notes),
+        latest_url: opt_setting(url),
         update_available,
-        last_checked_at: if last.is_empty() { None } else { Some(last) },
+        last_checked_at: opt_setting(last),
+        last_check_error_code: opt_setting(err_code),
+        last_check_error_at: opt_setting(err_at),
+        last_check_error_reset_at: opt_setting(err_reset),
         check_interval_hours: interval,
         capability: capability(),
         manual_command: manual_command(&target),
@@ -511,41 +597,81 @@ pub async fn check_updates(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
 ) -> AppResult<Json<UpdatesStatus>> {
+    // Always return 200 with UpdatesStatus (including last_check_error_*) so the
+    // Admin UI can show a durable reason after refresh without relying on thrown
+    // API errors alone. Last good latest_version/notes/url/last_checked_at are kept.
+    match fetch_latest_github_release().await {
+        Ok(None) => {
+            clear_last_check_error(&state.pool).await?;
+            set_string_setting(
+                &state.pool,
+                "updates_last_checked_at",
+                &Utc::now().to_rfc3339(),
+            )
+            .await?;
+        }
+        Ok(Some(release)) => {
+            clear_last_check_error(&state.pool).await?;
+            set_string_setting(&state.pool, "updates_latest_version", &release.tag).await?;
+            set_string_setting(&state.pool, "updates_latest_notes", &release.notes).await?;
+            set_string_setting(&state.pool, "updates_latest_url", &release.html_url).await?;
+            set_string_setting(
+                &state.pool,
+                "updates_last_checked_at",
+                &Utc::now().to_rfc3339(),
+            )
+            .await?;
+        }
+        Err((code, reset_at)) => {
+            persist_last_check_error(&state.pool, code, reset_at).await?;
+        }
+    }
+    Ok(Json(build_status(&state).await?))
+}
+
+struct GithubReleaseInfo {
+    tag: String,
+    notes: String,
+    html_url: String,
+}
+
+/// Fetch GitHub `/releases/latest`. On failure returns a stable error code (+ reset).
+async fn fetch_latest_github_release(
+) -> Result<Option<GithubReleaseInfo>, (&'static str, Option<DateTime<Utc>>)> {
     let repo = github_repo();
     let url = format!("https://api.github.com/repos/{repo}/releases/latest");
     let client = reqwest::Client::new();
-    let resp = client
+    let mut req = client
         .get(&url)
         .header("User-Agent", "vulyk-api-updates")
-        .header("Accept", "application/vnd.github+json")
-        .send()
-        .await
-        .map_err(|e| AppError::BadRequest(format!("github releases request failed: {e}")))?;
-    if resp.status() == reqwest::StatusCode::NOT_FOUND {
-        set_string_setting(
-            &state.pool,
-            "updates_last_checked_at",
-            &Utc::now().to_rfc3339(),
-        )
-        .await?;
-        return Ok(Json(build_status(&state).await?));
+        .header("Accept", "application/vnd.github+json");
+    if let Some(token) = github_token() {
+        req = req.bearer_auth(token);
     }
-    if !resp.status().is_success() {
-        let status = resp.status();
+    let resp = match req.send().await {
+        Ok(r) => r,
+        Err(_) => return Err((CHECK_ERR_NETWORK, None)),
+    };
+    let status = resp.status();
+    let headers = resp.headers().clone();
+    if status == reqwest::StatusCode::NOT_FOUND {
+        return Ok(None);
+    }
+    if !status.is_success() {
         let body = resp.text().await.unwrap_or_default();
-        return Err(AppError::BadRequest(format!(
-            "github releases HTTP {status}: {body}"
-        )));
+        let (code, reset) = classify_github_release_http_error(status, &headers, &body);
+        return Err((code, reset));
     }
-    let payload: serde_json::Value = resp
-        .json()
-        .await
-        .map_err(|e| AppError::BadRequest(format!("github releases json: {e}")))?;
+    let payload: serde_json::Value = match resp.json().await {
+        Ok(v) => v,
+        Err(_) => return Err((CHECK_ERR_PARSE, None)),
+    };
     let tag = payload
         .get("tag_name")
         .and_then(|v| v.as_str())
         .unwrap_or("")
-        .trim_start_matches('v');
+        .trim_start_matches('v')
+        .to_string();
     let notes = payload
         .get("body")
         .and_then(|v| v.as_str())
@@ -558,16 +684,65 @@ pub async fn check_updates(
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    set_string_setting(&state.pool, "updates_latest_version", tag).await?;
-    set_string_setting(&state.pool, "updates_latest_notes", &notes).await?;
-    set_string_setting(&state.pool, "updates_latest_url", &html_url).await?;
-    set_string_setting(
-        &state.pool,
-        "updates_last_checked_at",
-        &Utc::now().to_rfc3339(),
-    )
-    .await?;
-    Ok(Json(build_status(&state).await?))
+    Ok(Some(GithubReleaseInfo {
+        tag,
+        notes,
+        html_url,
+    }))
+}
+
+#[cfg(test)]
+mod check_error_tests {
+    use super::*;
+    use reqwest::header::{HeaderMap, HeaderValue};
+
+    #[test]
+    fn classify_rate_limit_403_with_remaining_zero() {
+        let mut headers = HeaderMap::new();
+        headers.insert("x-ratelimit-remaining", HeaderValue::from_static("0"));
+        headers.insert("x-ratelimit-reset", HeaderValue::from_static("1700000000"));
+        let (code, reset) = classify_github_release_http_error(
+            reqwest::StatusCode::FORBIDDEN,
+            &headers,
+            r#"{"message":"API rate limit exceeded"}"#,
+        );
+        assert_eq!(code, CHECK_ERR_RATE_LIMIT);
+        assert!(reset.is_some());
+    }
+
+    #[test]
+    fn classify_rate_limit_429() {
+        let headers = HeaderMap::new();
+        let (code, _) = classify_github_release_http_error(
+            reqwest::StatusCode::TOO_MANY_REQUESTS,
+            &headers,
+            "slow down",
+        );
+        assert_eq!(code, CHECK_ERR_RATE_LIMIT);
+    }
+
+    #[test]
+    fn classify_plain_403_as_http() {
+        let mut headers = HeaderMap::new();
+        headers.insert("x-ratelimit-remaining", HeaderValue::from_static("58"));
+        let (code, reset) = classify_github_release_http_error(
+            reqwest::StatusCode::FORBIDDEN,
+            &headers,
+            r#"{"message":"Forbidden"}"#,
+        );
+        assert_eq!(code, CHECK_ERR_HTTP);
+        assert!(reset.is_none());
+    }
+
+    #[test]
+    fn classify_500_as_http() {
+        let (code, _) = classify_github_release_http_error(
+            reqwest::StatusCode::INTERNAL_SERVER_ERROR,
+            &HeaderMap::new(),
+            "oops",
+        );
+        assert_eq!(code, CHECK_ERR_HTTP);
+    }
 }
 
 #[utoipa::path(

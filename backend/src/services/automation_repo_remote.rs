@@ -148,7 +148,8 @@ async fn sleep_backoff(attempt: u32) {
     tokio::time::sleep(Duration::from_millis(ms)).await;
 }
 
-fn rate_limit_reset(headers: &reqwest::header::HeaderMap) -> Option<DateTime<Utc>> {
+/// Parse GitHub/GitLab `x-ratelimit-reset` (unix seconds) into UTC.
+pub fn rate_limit_reset(headers: &reqwest::header::HeaderMap) -> Option<DateTime<Utc>> {
     headers
         .get("x-ratelimit-reset")
         .and_then(|v| v.to_str().ok())
@@ -156,7 +157,8 @@ fn rate_limit_reset(headers: &reqwest::header::HeaderMap) -> Option<DateTime<Utc
         .and_then(|unix| Utc.timestamp_opt(unix, 0).single())
 }
 
-fn rate_limit_error(headers: &reqwest::header::HeaderMap, body: &str) -> AppError {
+/// Build a [`AppError::GitHostRateLimit`] from response headers/body.
+pub fn rate_limit_error(headers: &reqwest::header::HeaderMap, body: &str) -> AppError {
     let remaining = headers
         .get("x-ratelimit-remaining")
         .and_then(|v| v.to_str().ok())
