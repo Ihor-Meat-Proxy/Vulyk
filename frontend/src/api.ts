@@ -2434,6 +2434,12 @@ export const api = {
       `/api/v1/projects/${projectId}/runs/${runId}`,
       opts?.signal ? { signal: opts.signal } : undefined,
     ),
+  /** Project-agnostic lookup (deep links); includes `project_id`. */
+  getRunById: (runId: string, opts?: ApiFetchOptions) =>
+    request<TestRun>(
+      `/api/v1/runs/${runId}`,
+      opts?.signal ? { signal: opts.signal } : undefined,
+    ),
   createRun: (projectId: string, body: Record<string, unknown>) =>
     request<TestRunDetail>(`/api/v1/projects/${projectId}/runs`, {
       method: 'POST',
