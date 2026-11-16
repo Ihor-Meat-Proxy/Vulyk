@@ -148,7 +148,7 @@ jobs:
             file: backend/Dockerfile
             tag: vulyk-api:security
           - name: web
-            context: ./frontend
+            context: .
             file: frontend/Dockerfile
             tag: vulyk-web:security
           - name: updater

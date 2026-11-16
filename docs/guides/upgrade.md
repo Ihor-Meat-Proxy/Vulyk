@@ -267,6 +267,13 @@ API job worker (and list/get lazy path) marks it `cancelled`. Set `0` to disable
 Appended on upgrade if missing; existing operator values are never overwritten.
 Admins can also abandon a stuck run from Runs → run detail.
 
+## Web image build context
+
+The `vulyk-web` image is built from the **repository root** (`docker build -f frontend/Dockerfile .`)
+so in-app Markdown under [`docs/user/`](../user/) can be bundled into `/docs`.
+Compose files and CI already use this context. Custom build scripts that still pass
+`./frontend` as the context need to switch to `.` (no operator `.env` changes).
+
 ## Versioning
 
 - Canonical semver is the root [`VERSION`](../../VERSION) file; Rust crates inherit

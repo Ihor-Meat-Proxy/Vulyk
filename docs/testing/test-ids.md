@@ -14,6 +14,9 @@ Examples:
 | Login email field | `login-email-input` |
 | Header gear menu trigger | `header-gear-menu` |
 | Header gear auth mode badge | `header-gear-auth-mode` |
+| Gear → Docs (`/docs`) | `docs-menu-link` |
+| Gear → API docs (`/api/docs`) | `api-docs-menu-link` |
+| In-app docs page / TOC / article | `docs-page` / `docs-toc` / `docs-article` |
 | Sidebar brand home link | `brand-logo-link-sidebar` |
 | Mobile topbar brand home link | `brand-logo-link-topbar` |
 | Admin Updates status / check error | `admin-updates-status` / `admin-updates-check-error` |

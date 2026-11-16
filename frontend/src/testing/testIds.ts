@@ -30,9 +30,22 @@ export const TestIds = {
   headerGearSettings: 'header-gear-settings',
   headerGearAppearance: 'header-gear-appearance',
   headerGearAdmin: 'header-gear-admin',
-  headerGearDocs: 'header-gear-docs',
+  /** In-app user docs at /docs (all roles). */
+  docsMenuLink: 'docs-menu-link',
+  /** Self-hosted OpenAPI (Scalar) at /api/docs (all roles). */
+  apiDocsMenuLink: 'api-docs-menu-link',
+  /** @deprecated Prefer apiDocsMenuLink. */
+  headerGearDocs: 'api-docs-menu-link',
   headerGearSignOut: 'header-gear-sign-out',
   headerGearSignIn: 'header-gear-sign-in',
+  docsPage: 'docs-page',
+  docsSidebar: 'docs-sidebar',
+  docsSearch: 'docs-search',
+  docsToc: 'docs-toc',
+  docsTocPagePrefix: 'docs-toc-page-',
+  docsTocHeading: 'docs-toc-heading',
+  docsContentLink: 'docs-content-link',
+  docsArticle: 'docs-article',
   navDrawer: 'nav-drawer',
   navDrawerClose: 'nav-drawer-close',
   navDrawerBackdrop: 'nav-drawer-backdrop',

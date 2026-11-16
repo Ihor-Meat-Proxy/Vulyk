@@ -19,7 +19,7 @@ type Props = {
   onSelectProject: (id: string) => void
 }
 
-function docsUrl(): string {
+function apiDocsUrl(): string {
   const base = (import.meta.env.VITE_API_URL as string | undefined) ?? ''
   return `${base.replace(/\/$/, '')}/api/docs`
 }
@@ -235,7 +235,7 @@ export function Layout({ projects, project, onSelectProject }: Props) {
             </label>
             <div className="topbar-icons">
               <LanguageMenu />
-              <UserMenu showAdmin={showAdmin} docsUrl={docsUrl()} />
+              <UserMenu showAdmin={showAdmin} apiDocsUrl={apiDocsUrl()} />
             </div>
           </div>
         </header>

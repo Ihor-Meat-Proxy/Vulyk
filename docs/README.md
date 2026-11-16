@@ -12,6 +12,7 @@ Index of guides and references. Prefer these over outdated workstream notes.
 |-----|----------|
 | [../README.md](../README.md) | Install, quick start, repo layout |
 | [user-guide.md](user-guide.md) | Testers and day-to-day workflows |
+| [user/](user/) | In-app help Markdown (rendered at `/docs`) |
 | [admin-guide.md](admin-guide.md) | Operators: deploy, backups, Admin UI |
 | [architecture.md](architecture.md) | System shape, modules, data model |
 | [api.md](api.md) | HTTP API overview (OpenAPI at `/api/docs`) |

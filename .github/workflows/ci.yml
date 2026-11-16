@@ -198,7 +198,7 @@ jobs:
       - name: Build API image
         run: docker build -f backend/Dockerfile -t vulyk-api:ci .
       - name: Build web image
-        run: docker build -f frontend/Dockerfile -t vulyk-web:ci ./frontend
+        run: docker build -f frontend/Dockerfile -t vulyk-web:ci .
 
   dogfood-ingest:
     name: Dogfood e2e ingest (API + CLI upload)
