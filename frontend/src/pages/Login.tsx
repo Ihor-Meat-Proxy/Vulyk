@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ssoStartUrl } from '../api'
 import { useAuth } from '../auth'
 import { LanguageMenu } from '../components/LanguageMenu'
@@ -11,6 +12,12 @@ import {
   passwordFieldMinLength,
   passwordMeetsPolicy,
 } from '../passwordPolicy'
+import {
+  RETURN_TO_KEY,
+  consumeReturnToPath,
+  consumeSessionExpiredNotice,
+  peekReturnToPath,
+} from '../sessionExpiry'
 import { TestIds, listItemProps, testIdProps } from '../testing'
 
 /** Remember last successful login email across sessions (not a secret). */
@@ -36,12 +43,23 @@ function rememberLoginEmail(email: string) {
 export function Login() {
   const { status, login, bootstrap, register } = useAuth()
   const { t } = useI18n()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState(() => readLastLoginEmail())
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('Admin')
   const [error, setError] = useState<string | null>(null)
+  const [sessionNotice, setSessionNotice] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    const fromQuery = searchParams.get('returnTo')
+    if (fromQuery && fromQuery.startsWith('/') && !fromQuery.startsWith('//')) {
+      sessionStorage.setItem(RETURN_TO_KEY, fromQuery)
+    }
+    setSessionNotice(consumeSessionExpiredNotice())
+  }, [searchParams])
 
   const isBootstrap = Boolean(status?.bootstrap_available)
   const registrationMode = status?.registration_mode ?? 'disabled'
@@ -67,6 +85,18 @@ export function Login() {
         await login(email, password)
       }
       rememberLoginEmail(email)
+      const returnTo =
+        consumeReturnToPath() ??
+        peekReturnToPath() ??
+        searchParams.get('returnTo')
+      if (
+        returnTo &&
+        returnTo.startsWith('/') &&
+        !returnTo.startsWith('//') &&
+        !returnTo.startsWith('/login')
+      ) {
+        navigate(returnTo, { replace: true })
+      }
     } catch (err) {
       setError(friendlyErrorMessage(err, t, 'login'))
     } finally {
@@ -97,6 +127,15 @@ export function Login() {
         <p className="muted">
           {isBootstrap ? t('login.bootstrapSubtitle') : t('login.subtitle')}
         </p>
+        {sessionNotice ? (
+          <p
+            className="error"
+            role="status"
+            {...testIdProps(TestIds.loginSessionExpiredNotice)}
+          >
+            {t('login.sessionExpired')}
+          </p>
+        ) : null}
         {(isBootstrap || showRegister) && (
           <label className="field">
             <span>{t('login.displayName')}</span>

@@ -574,6 +574,7 @@ const en: Dict = {
   'login.registerSubmit': "Register",
   'login.registerTitle': "Register",
   'login.sso': "Continue with {name}",
+  'login.sessionExpired': "Your session expired, please sign in again.",
   'login.submit': "Sign in",
   'login.subtitle': "Use your local account. Personal API tokens for CI/MCP are managed under Admin → Tokens after sign-in.",
   'login.title': "Sign in",

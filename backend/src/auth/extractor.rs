@@ -382,7 +382,33 @@ pub async fn bearer_middleware(
             req.extensions_mut().insert(user);
             next.run(req).await
         }
-        Err(AppError::Unauthorized(msg)) => unauthorized(&msg),
+        Err(AppError::Unauthorized(msg)) => {
+            // Stale browser JWT (e.g. after an operator rotates VULYK_JWT_SECRET)
+            // must not block a still-valid session cookie. Pure API clients with
+            // only a bad Bearer still get 401 once the cookie path fails.
+            let jar = CookieJar::from_headers(req.headers());
+            if let Some(cookie) = jar.get(SESSION_COOKIE) {
+                match authenticate_session(&state.pool, cookie.value()).await {
+                    Ok(user) => {
+                        if is_unsafe_method(&method) && !csrf_double_submit_ok(req.headers()) {
+                            return csrf_forbidden();
+                        }
+                        if let Some(resp) = block_if_must_change(&user, &method, &path) {
+                            return resp;
+                        }
+                        req.extensions_mut().insert(AuthContext {
+                            token_id: None,
+                            user_id: Some(user.id()),
+                        });
+                        req.extensions_mut().insert(user);
+                        return next.run(req).await;
+                    }
+                    Err(_) => unauthorized(&msg),
+                }
+            } else {
+                unauthorized(&msg)
+            }
+        }
         Err(e) => (
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(json!({ "error": { "code": "internal", "message": e.to_string() } })),
@@ -404,7 +430,13 @@ async fn resolve_auth(parts: &mut Parts, state: &AppState) -> AppResult<AuthUser
         return Ok(user.clone());
     }
     if let Some(raw) = bearer_token(parts) {
-        return authenticate_bearer(&state.pool, &state.auth.jwt_secret, &raw).await;
+        match authenticate_bearer(&state.pool, &state.auth.jwt_secret, &raw).await {
+            Ok(user) => return Ok(user),
+            Err(AppError::Unauthorized(_)) => {
+                // Fall through to session cookie (same as bearer_middleware).
+            }
+            Err(other) => return Err(other),
+        }
     }
     let jar = CookieJar::from_headers(&parts.headers);
     if let Some(cookie) = jar.get(SESSION_COOKIE) {

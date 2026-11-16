@@ -574,6 +574,7 @@ const uk: Dict = {
   'login.registerSubmit': "Зареєструватися",
   'login.registerTitle': "Реєстрація",
   'login.sso': "Увійти через {name}",
+  'login.sessionExpired': "Сеанс закінчився, увійдіть знову.",
   'login.submit': "Увійти",
   'login.subtitle': "Увійдіть локальним обліковим записом. Токени API для CI/MCP — у Адмін → Токени.",
   'login.title': "Увійти",

@@ -82,7 +82,7 @@ export function CaseList({
   onSuitesChanged,
 }: Props) {
   const { t, formatNumber, formatDate, locale } = useI18n()
-  const { user } = useAuth()
+  const { user, status } = useAuth()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canCreate = can('create_edit_cases')
@@ -771,6 +771,15 @@ export function CaseList({
   }
 
   if (!projectId) {
+    // Never show the "create a project via the API" empty state while signed out
+    // (e.g. during a 401→login redirect). Auth-required installs land on Login instead.
+    if (status?.auth_required && !status.authenticated) {
+      return (
+        <p className="muted" style={{ margin: '2rem' }}>
+          {t('common.loading')}
+        </p>
+      )
+    }
     return <div className="empty">{t('cases.noProjectsHint')}</div>
   }
 

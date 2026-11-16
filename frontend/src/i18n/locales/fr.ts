@@ -574,6 +574,7 @@ const fr: Dict = {
   'login.registerSubmit': "S’inscrire",
   'login.registerTitle': "Inscription",
   'login.sso': "Continuer avec {name}",
+  'login.sessionExpired': "Votre session a expiré, veuillez vous reconnecter.",
   'login.submit': "Se connecter",
   'login.subtitle': "Utilisez votre compte local. Les jetons API personnels pour CI/MCP se gèrent sous Admin → Jetons après connexion.",
   'login.title': "Connexion",
