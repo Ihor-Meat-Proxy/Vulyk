@@ -148,3 +148,71 @@ jobs:
           gitleaks version
       - name: Gitleaks detect
         run: gitleaks detect --source . --config .gitleaks.toml --verbose --redact
+
+  i18n:
+    name: i18n completeness
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Locale parity, placeholders, uk Latin, t() literals
+        run: npm run check:i18n
+
+  test-ids:
+    name: Test ID guard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Duplicates + docs/dev/testing/test-ids.md catalog sync
+        run: npm run check:test-ids
+
+  openapi:
+    name: OpenAPI drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: Install oasdiff
+        env:
+          OASDIFF_VERSION: "1.38.0"
+        run: |
+          curl -sSfL \
+            "https://github.com/Tufin/oasdiff/releases/download/v${OASDIFF_VERSION}/oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin oasdiff
+          oasdiff --version
+      - name: Fetch base ref for baseline spec
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            echo "OPENAPI_BASE_REF=origin/${BASE_REF}" >> "$GITHUB_ENV"
+          else
+            git fetch --no-tags --depth=1 origin main
+            echo "OPENAPI_BASE_REF=origin/main" >> "$GITHUB_ENV"
+          fi
+      - name: check-openapi-drift.sh
+        run: |
+          chmod +x scripts/check-openapi-drift.sh scripts/generate-openapi.sh
+          ./scripts/check-openapi-drift.sh

@@ -32,6 +32,9 @@ Stable job names for branch protection (workflow **Fast CI gates**):
 | `cargo deny` | Advisories + licenses + bans (`deny.toml`) | `cargo deny check` / `./scripts/check-security.sh --quick` |
 | `npm audit` | `npm audit --omit=dev --audit-level=high` for `frontend/` + `e2e/` | same commands locally |
 | `gitleaks` | Secrets scan (`.gitleaks.toml`) | `gitleaks detect --source . --config .gitleaks.toml` |
+| `i18n completeness` | Locale key parity (en/uk/fr/es/de), placeholder parity, uk Latin allowlist, JSX `t()` literals | `(cd frontend && npm run check:i18n)` |
+| `Test ID guard` | Duplicate `data-testid` + every `TestIds` value in `docs/dev/testing/test-ids.md` catalog | `(cd frontend && npm run check:test-ids)`; refresh catalog with `-- --write-catalog` |
+| `OpenAPI drift` | Committed `docs/api/openapi.json` must match `ApiDoc`; `oasdiff breaking` vs base unless `VERSION` bumped | `./scripts/generate-openapi.sh` then `./scripts/check-openapi-drift.sh` |
 
 Already required in **CI** (keep these names stable):
 

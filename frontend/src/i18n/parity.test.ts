@@ -49,6 +49,19 @@ describe('i18n locale parity', () => {
       expect(identical).toEqual([])
     })
 
+    it(`${code} placeholders match English`, () => {
+      const dict = localeDictionaries[code]
+      const mismatches: { key: string; en: string[]; locale: string[] }[] = []
+      for (const key of enKeys) {
+        const enPh = placeholders(String(en[key] ?? ''))
+        const locPh = placeholders(String(dict[key] ?? ''))
+        if (enPh.join(',') !== locPh.join(',')) {
+          mismatches.push({ key, en: enPh, locale: locPh })
+        }
+      }
+      expect(mismatches).toEqual([])
+    })
+
     if (CYRILLIC_LOCALES.has(code)) {
       it(`${code} has no unexpected Latin-script words (allowlist brands/tech)`, () => {
         const dict = localeDictionaries[code]
@@ -66,3 +79,11 @@ describe('i18n locale parity', () => {
     }
   }
 })
+
+function placeholders(value: string): string[] {
+  const found: string[] = []
+  const re = /\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(value))) found.push(m[1])
+  return [...new Set(found)].sort()
+}
