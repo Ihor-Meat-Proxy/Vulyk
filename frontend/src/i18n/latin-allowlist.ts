@@ -95,6 +95,9 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'env',
     'Email',
     'email',
+    // RFC 2606-style login email placeholder (login.emailPlaceholder)
+    'name',
+    'example.com',
     'Backspace',
     'Tab',
     'Enter',
