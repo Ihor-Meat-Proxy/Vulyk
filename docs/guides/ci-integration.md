@@ -187,12 +187,14 @@ export VULYK_PROJECT_KEY=KOC
   --branch "${GITHUB_REF_NAME}" --commit "$GITHUB_SHA" \
   --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+# On GitHub Actions, --open-run appends VULYK_RUN_ID to $GITHUB_ENV.
+# Elsewhere use --print-run-id / --run-id-file / --dotenv-file (GitLab defaults to vulyk.env).
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
 
-./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
+./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID" --project-key "$VULYK_PROJECT_KEY"
 ```
 
-Thin wrapper at [`action/action.yml`](../../action/action.yml) remains available for simple one-shot uploads.
+Thin wrapper at [`action/action.yml`](../../action/action.yml) remains available for simple one-shot uploads. Large result files are streamed (`curl --data-binary @file`) so agents do not hit `Argument list too long`.
 
 ## GitLab CI
 

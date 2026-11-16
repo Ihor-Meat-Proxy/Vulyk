@@ -2,6 +2,9 @@
 # Upload JUnit XML, Vulyk JSON, Playwright JSON, or pytest JSON results to Vulyk.
 # Supports CI lifecycle: --open-run -> upload -> --close-run (also on failure).
 # Used by the GitHub Action and GitLab CI template (no Rust toolchain required).
+#
+# Large result files are streamed via a temp JSON body + curl --data-binary @file
+# so Linux agents do not hit "Argument list too long" / env size limits.
 set -euo pipefail
 
 usage() {
@@ -24,7 +27,7 @@ Options:
   --close-run            Close a CI run
   --cancelled            Mark close as cancelled
   --pipeline             Legacy one-shot campaign/iteration ingest
-  --provider NAME        github | gitlab | other
+  --provider NAME        github | gitlab | jenkins | other
   --repo TEXT            owner/repo or path
   --branch TEXT          Git branch
   --commit SHA           Git commit
@@ -38,7 +41,15 @@ Options:
   --environment JSON     Environment metadata JSON object
   --artifacts JSON       Artifacts array/object JSON
   --async                Force async ingest
+  --print-run-id         On --open-run: print only the run UUID on stdout
+  --run-id-file PATH     Write the opened run id to PATH (also for open-run)
+  --dotenv-file PATH     Append VULYK_RUN_ID=... for GitLab dotenv / generic CI
   --help                 Show this help
+
+Open-run exports the run id via (when applicable):
+  - stdout JSON response (default) or bare UUID with --print-run-id
+  - $GITHUB_ENV (GitHub Actions)
+  - --run-id-file / --dotenv-file / $VULYK_DOTENV_FILE (default vulyk.env under GitLab CI)
 EOF
 }
 
@@ -70,6 +81,9 @@ CREATED_BY="${VULYK_CREATED_BY:-}"
 ENVIRONMENT="${VULYK_ENVIRONMENT:-}"
 ARTIFACTS="${VULYK_ARTIFACTS:-}"
 ASYNC=0
+PRINT_RUN_ID=0
+RUN_ID_FILE="${VULYK_RUN_ID_FILE:-}"
+DOTENV_FILE="${VULYK_DOTENV_FILE:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -101,6 +115,9 @@ while [[ $# -gt 0 ]]; do
     --environment) ENVIRONMENT="${2:-}"; shift 2 ;;
     --artifacts) ARTIFACTS="${2:-}"; shift 2 ;;
     --async) ASYNC=1; shift ;;
+    --print-run-id) PRINT_RUN_ID=1; shift ;;
+    --run-id-file) RUN_ID_FILE="${2:-}"; shift 2 ;;
+    --dotenv-file) DOTENV_FILE="${2:-}"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "unknown arg: $1" >&2; usage; exit 2 ;;
   esac
@@ -121,6 +138,64 @@ if [[ -z "${SUITE_NAME}" && -n "${RUN_NAME}" ]]; then
   SUITE_NAME="${RUN_NAME}"
 fi
 
+# Under GitLab CI, default dotenv path so later jobs can pick up the run id.
+if [[ -z "${DOTENV_FILE}" && -n "${GITLAB_CI:-}" ]]; then
+  DOTENV_FILE="vulyk.env"
+fi
+
+TMP_FILES=()
+cleanup() {
+  local f
+  # Bash 3.2 (macOS): empty "${arr[@]}" under set -u can abort.
+  if [ "${#TMP_FILES[@]}" -gt 0 ]; then
+    for f in "${TMP_FILES[@]}"; do
+      rm -f "${f}" 2>/dev/null || true
+    done
+  fi
+}
+trap cleanup EXIT
+
+mktemp_payload() {
+  local t
+  # macOS mktemp needs the Xs at the end of the template path.
+  t="$(mktemp "${TMPDIR:-/tmp}/vulyk-upload.XXXXXX" 2>/dev/null \
+    || mktemp -t vulyk-upload)"
+  TMP_FILES+=("${t}")
+  printf '%s' "${t}"
+}
+
+# POST JSON body from a file (avoids ARG_MAX / env size limits).
+curl_json_file() {
+  local method="$1" url="$2" body_file="$3"
+  curl -fsS -X "${method}" ${AUTH[@]+"${AUTH[@]}"} \
+    -H 'Content-Type: application/json' \
+    --data-binary @"${body_file}" \
+    "${url}"
+}
+
+export_run_id() {
+  local id="$1"
+  if [[ -z "${id}" ]]; then
+    echo "error: open-run response did not include a run id" >&2
+    exit 1
+  fi
+  echo "VULYK_RUN_ID=${id}" >&2
+  if [[ -n "${GITHUB_ENV:-}" ]]; then
+    echo "VULYK_RUN_ID=${id}" >> "${GITHUB_ENV}"
+  fi
+  if [[ -n "${RUN_ID_FILE}" ]]; then
+    printf '%s\n' "${id}" > "${RUN_ID_FILE}"
+  fi
+  if [[ -n "${DOTENV_FILE}" ]]; then
+    # Replace prior value if re-running in the same job.
+    if [[ -f "${DOTENV_FILE}" ]]; then
+      grep -v '^VULYK_RUN_ID=' "${DOTENV_FILE}" > "${DOTENV_FILE}.tmp" || true
+      mv "${DOTENV_FILE}.tmp" "${DOTENV_FILE}"
+    fi
+    echo "VULYK_RUN_ID=${id}" >> "${DOTENV_FILE}"
+  fi
+}
+
 resolve_project_id() {
   if [[ -n "${PROJECT_ID}" ]]; then
     return
@@ -129,12 +204,13 @@ resolve_project_id() {
     echo "error: --project-id or --project-key required" >&2
     exit 2
   fi
-  PROJECTS="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/projects")"
-  PROJECT_ID="$(PROJECT_KEY="${PROJECT_KEY}" PROJECTS="${PROJECTS}" python3 - <<'PY'
+  local projects
+  projects="$(curl -fsS ${AUTH[@]+"${AUTH[@]}"} "${API_URL}/api/v1/projects")"
+  PROJECT_ID="$(PROJECT_KEY="${PROJECT_KEY}" PROJECTS="${projects}" python3 - <<'PY'
 import json, os
 key = os.environ["PROJECT_KEY"].upper()
 for p in json.loads(os.environ["PROJECTS"]):
-    if str(p.get("key","")).upper() == key:
+    if str(p.get("key", "")).upper() == key:
         print(p["id"])
         break
 else:
@@ -150,13 +226,15 @@ if [[ "${OPEN_RUN}" -eq 1 ]]; then
     SUITE_NAME="CI run"
   fi
   if [[ -z "${CREATED_BY}" ]]; then
-    CREATED_BY="${GITHUB_ACTOR:-${GITLAB_USER_LOGIN:-ci-bot}}"
+    CREATED_BY="${GITHUB_ACTOR:-${GITLAB_USER_LOGIN:-${BUILD_USER:-ci-bot}}}"
   fi
-  PAYLOAD="$(SUITE_NAME="${SUITE_NAME}" PROVIDER="${PROVIDER}" REPO="${REPO}" \
+  BODY_FILE="$(mktemp_payload)"
+  SUITE_NAME="${SUITE_NAME}" PROVIDER="${PROVIDER}" REPO="${REPO}" \
     BRANCH="${BRANCH}" COMMIT="${COMMIT}" PIPELINE_URL="${PIPELINE_URL}" \
     JOB_URL="${JOB_URL}" EXTERNAL_REF="${EXTERNAL_REF}" CAMPAIGN="${CAMPAIGN}" \
-    ITERATION="${ITERATION}" CREATED_BY="${CREATED_BY}" ENVIRONMENT="${ENVIRONMENT:-{}}" \
-    ARTIFACTS="${ARTIFACTS:-[]}" python3 - <<'PY'
+    ITERATION="${ITERATION}" CREATED_BY="${CREATED_BY}" \
+    ENVIRONMENT="${ENVIRONMENT:-{}}" ARTIFACTS="${ARTIFACTS:-[]}" \
+    BODY_FILE="${BODY_FILE}" python3 - <<'PY'
 import json, os
 env = json.loads(os.environ.get("ENVIRONMENT") or "{}")
 arts = json.loads(os.environ.get("ARTIFACTS") or "[]")
@@ -181,18 +259,20 @@ for k, envk in [
     v = os.environ.get(envk) or ""
     if v:
         payload[k] = v
-print(json.dumps(payload))
+with open(os.environ["BODY_FILE"], "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
 PY
-)"
-  RESP="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-    -d "${PAYLOAD}" \
-    "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs")"
-  echo "${RESP}"
+  RESP="$(curl_json_file POST \
+    "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs" \
+    "${BODY_FILE}")"
   RUN_ID="$(printf '%s' "${RESP}" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 print(d.get("id") or d.get("run_id") or (d.get("run") or {}).get("id") or "")')"
-  if [[ -n "${GITHUB_ENV:-}" && -n "${RUN_ID}" ]]; then
-    echo "VULYK_RUN_ID=${RUN_ID}" >> "${GITHUB_ENV}"
+  export_run_id "${RUN_ID}"
+  if [[ "${PRINT_RUN_ID}" -eq 1 ]]; then
+    printf '%s\n' "${RUN_ID}"
+  else
+    echo "${RESP}"
   fi
   exit 0
 fi
@@ -200,33 +280,20 @@ fi
 # - close CI run -
 if [[ "${CLOSE_RUN}" -eq 1 ]]; then
   if [[ -z "${RUN_ID}" ]]; then
-    echo "error: --run-id required for --close-run" >&2
+    echo "error: --run-id or VULYK_RUN_ID required for --close-run" >&2
     exit 2
   fi
+  resolve_project_id
   BODY='{}'
   if [[ "${CANCELLED}" -eq 1 ]]; then
     BODY='{"cancelled":true}'
   fi
-  # Prefer CI close endpoint; fall back to legacy status patch.
-  if curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${BODY}" \
-      "${API_URL}/api/v1/projects/${PROJECT_ID:-_}/ci/runs/${RUN_ID}/close" 2>/dev/null; then
-    echo
-  elif [[ -n "${PROJECT_ID}" ]]; then
-    curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${BODY}" \
-      "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs/${RUN_ID}/close"
-    echo
-  else
-    # Discover project via run detail is not always available; try path without project.
-    curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${BODY}" \
-      "${API_URL}/api/v1/ci/runs/${RUN_ID}/close" \
-      || curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-        -d '{"status":"closed"}' \
-        "${API_URL}/api/v1/runs/${RUN_ID}"
-    echo
-  fi
+  BODY_FILE="$(mktemp_payload)"
+  printf '%s' "${BODY}" > "${BODY_FILE}"
+  curl_json_file POST \
+    "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs/${RUN_ID}/close" \
+    "${BODY_FILE}"
+  echo
   exit 0
 fi
 
@@ -258,9 +325,55 @@ detect_format() {
 }
 
 FORMAT="$(detect_format "${FILE}")"
-CONTENT="$(cat "${FILE}")"
 ASYNC_BOOL=false
 if [[ "${ASYNC}" -eq 1 ]]; then ASYNC_BOOL=true; fi
+
+# Build ingest JSON on disk: python reads --file content (never via argv/env).
+write_ingest_payload() {
+  local out="$1" mode="$2"
+  FORMAT="${FORMAT}" ASYNC_BOOL="${ASYNC_BOOL}" FILE_PATH="${FILE}" \
+    RUN_NAME="${RUN_NAME}" CAMPAIGN="${CAMPAIGN}" ITERATION="${ITERATION}" \
+    CADENCE="${CADENCE}" CREATED_BY="${CREATED_BY}" \
+    ENVIRONMENT="${ENVIRONMENT}" ARTIFACTS="${ARTIFACTS}" \
+    MODE="${mode}" OUT="${out}" python3 - <<'PY'
+import json, os
+from pathlib import Path
+
+content = Path(os.environ["FILE_PATH"]).read_text(encoding="utf-8", errors="replace")
+mode = os.environ["MODE"]
+payload = {
+    "format": os.environ["FORMAT"],
+    "content": content,
+    "async_mode": os.environ["ASYNC_BOOL"] == "true",
+}
+if mode == "pipeline":
+    env = json.loads(os.environ.get("ENVIRONMENT") or "{}")
+    arts = json.loads(os.environ.get("ARTIFACTS") or "[]")
+    payload.update({
+        "source": "ci",
+        "run_name": os.environ["RUN_NAME"],
+        "created_by_name": os.environ["CREATED_BY"],
+        "environment": env,
+        "artifacts": arts,
+    })
+    if os.environ.get("CAMPAIGN"):
+        payload["campaign"] = os.environ["CAMPAIGN"]
+    if os.environ.get("ITERATION"):
+        payload["iteration"] = os.environ["ITERATION"]
+    if os.environ.get("CADENCE"):
+        payload["cadence"] = os.environ["CADENCE"]
+else:
+    payload["source"] = os.environ["FORMAT"]
+    if os.environ.get("CREATED_BY"):
+        payload["created_by_name"] = os.environ["CREATED_BY"]
+    if os.environ.get("ENVIRONMENT"):
+        payload["environment"] = json.loads(os.environ["ENVIRONMENT"])
+    if os.environ.get("ARTIFACTS"):
+        payload["artifacts"] = json.loads(os.environ["ARTIFACTS"])
+with open(os.environ["OUT"], "w", encoding="utf-8") as f:
+    json.dump(payload, f, ensure_ascii=False)
+PY
+}
 
 if [[ "${PIPELINE}" -eq 1 ]]; then
   resolve_project_id
@@ -268,7 +381,7 @@ if [[ "${PIPELINE}" -eq 1 ]]; then
     RUN_NAME="CI upload $(basename "${FILE}")"
   fi
   if [[ -z "${CREATED_BY}" ]]; then
-    CREATED_BY="${GITHUB_ACTOR:-${GITLAB_USER_LOGIN:-ci-bot}}"
+    CREATED_BY="${GITHUB_ACTOR:-${GITLAB_USER_LOGIN:-${BUILD_USER:-ci-bot}}}"
   fi
   if [[ -z "${ENVIRONMENT}" ]]; then
     ENVIRONMENT='{}'
@@ -276,92 +389,60 @@ if [[ "${PIPELINE}" -eq 1 ]]; then
   if [[ -z "${ARTIFACTS}" ]]; then
     ARTIFACTS='[]'
   fi
-  PAYLOAD="$(FORMAT="${FORMAT}" CONTENT="${CONTENT}" ASYNC_BOOL="${ASYNC_BOOL}" \
-    RUN_NAME="${RUN_NAME}" CAMPAIGN="${CAMPAIGN}" ITERATION="${ITERATION}" \
-    CADENCE="${CADENCE}" CREATED_BY="${CREATED_BY}" ENVIRONMENT="${ENVIRONMENT}" \
-    ARTIFACTS="${ARTIFACTS}" python3 - <<'PY'
-import json, os
-env = json.loads(os.environ.get("ENVIRONMENT") or "{}")
-arts = json.loads(os.environ.get("ARTIFACTS") or "[]")
-payload = {
-    "format": os.environ["FORMAT"],
-    "content": os.environ["CONTENT"],
-    "async_mode": os.environ["ASYNC_BOOL"] == "true",
-    "source": "ci",
-    "run_name": os.environ["RUN_NAME"],
-    "created_by_name": os.environ["CREATED_BY"],
-    "environment": env,
-    "artifacts": arts,
-}
-if os.environ.get("CAMPAIGN"):
-    payload["campaign"] = os.environ["CAMPAIGN"]
-if os.environ.get("ITERATION"):
-    payload["iteration"] = os.environ["ITERATION"]
-if os.environ.get("CADENCE"):
-    payload["cadence"] = os.environ["CADENCE"]
-print(json.dumps(payload))
-PY
-)"
-  RESP="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-    -d "${PAYLOAD}" \
-    "${API_URL}/api/v1/projects/${PROJECT_ID}/ingest")"
+  BODY_FILE="$(mktemp_payload)"
+  write_ingest_payload "${BODY_FILE}" pipeline
+  RESP="$(curl_json_file POST \
+    "${API_URL}/api/v1/projects/${PROJECT_ID}/ingest" \
+    "${BODY_FILE}")"
   echo "${RESP}"
   RUN_ID="$(printf '%s' "${RESP}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("run_id") or "")')"
 else
   if [[ -z "${RUN_ID}" ]]; then
     if [[ "${CREATE_RUN}" -ne 1 ]]; then
-      echo "error: --run-id required unless --create-run, --pipeline, or --open-run" >&2
+      echo "error: --run-id / VULYK_RUN_ID required unless --create-run, --pipeline, or --open-run" >&2
+      echo "hint: capture open-run with --print-run-id or --run-id-file, or export VULYK_RUN_ID" >&2
       exit 2
     fi
     resolve_project_id
     if [[ -z "${RUN_NAME}" ]]; then
       RUN_NAME="CI upload $(basename "${FILE}")"
     fi
-    RUN_PAYLOAD="$(RUN_NAME="${RUN_NAME}" python3 - <<'PY'
+    BODY_FILE="$(mktemp_payload)"
+    RUN_NAME="${RUN_NAME}" BODY_FILE="${BODY_FILE}" python3 - <<'PY'
 import json, os
-print(json.dumps({"name": os.environ["RUN_NAME"], "status": "running", "source": "ci"}))
+with open(os.environ["BODY_FILE"], "w", encoding="utf-8") as f:
+    json.dump({"name": os.environ["RUN_NAME"], "status": "running", "source": "ci"}, f)
 PY
-)"
-    RUN_JSON="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${RUN_PAYLOAD}" \
-      "${API_URL}/api/v1/projects/${PROJECT_ID}/runs")"
+    RUN_JSON="$(curl_json_file POST \
+      "${API_URL}/api/v1/projects/${PROJECT_ID}/runs" \
+      "${BODY_FILE}")"
     RUN_ID="$(printf '%s' "${RUN_JSON}" | python3 -c 'import json,sys
 d=json.load(sys.stdin)
 print(d.get("id") or d["run"]["id"])')"
     echo "created run ${RUN_ID}"
   fi
 
-  # Prefer CI ingest path when project id known; else legacy run ingest.
-  PAYLOAD="$(FORMAT="${FORMAT}" CONTENT="${CONTENT}" ASYNC_BOOL="${ASYNC_BOOL}" \
-    CREATED_BY="${CREATED_BY}" ENVIRONMENT="${ENVIRONMENT}" ARTIFACTS="${ARTIFACTS}" python3 - <<'PY'
-import json, os
-payload = {
-    "format": os.environ["FORMAT"],
-    "content": os.environ["CONTENT"],
-    "async_mode": os.environ["ASYNC_BOOL"] == "true",
-    "source": os.environ["FORMAT"],
-}
-if os.environ.get("CREATED_BY"):
-    payload["created_by_name"] = os.environ["CREATED_BY"]
-if os.environ.get("ENVIRONMENT"):
-    payload["environment"] = json.loads(os.environ["ENVIRONMENT"])
-if os.environ.get("ARTIFACTS"):
-    payload["artifacts"] = json.loads(os.environ["ARTIFACTS"])
-print(json.dumps(payload))
-PY
-)"
+  if [[ -z "${RUN_ID}" ]]; then
+    echo "error: empty run id - refuse to upload" >&2
+    exit 2
+  fi
 
-  if [[ -n "${PROJECT_ID}" ]]; then
-    RESP="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${PAYLOAD}" \
+  BODY_FILE="$(mktemp_payload)"
+  write_ingest_payload "${BODY_FILE}" ingest
+
+  # Prefer CI ingest when project is known; else legacy run ingest.
+  if [[ -n "${PROJECT_ID}" ]] || [[ -n "${PROJECT_KEY}" ]]; then
+    resolve_project_id
+    RESP="$(curl_json_file POST \
       "${API_URL}/api/v1/projects/${PROJECT_ID}/ci/runs/${RUN_ID}/ingest" \
-      || curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-        -d "${PAYLOAD}" \
-        "${API_URL}/api/v1/runs/${RUN_ID}/ingest")"
+      "${BODY_FILE}" \
+      || curl_json_file POST \
+        "${API_URL}/api/v1/runs/${RUN_ID}/ingest" \
+        "${BODY_FILE}")"
   else
-    RESP="$(curl -fsS "${AUTH[@]}" -H 'Content-Type: application/json' \
-      -d "${PAYLOAD}" \
-      "${API_URL}/api/v1/runs/${RUN_ID}/ingest")"
+    RESP="$(curl_json_file POST \
+      "${API_URL}/api/v1/runs/${RUN_ID}/ingest" \
+      "${BODY_FILE}")"
   fi
   echo "${RESP}"
 fi
@@ -369,7 +450,7 @@ fi
 JOB_ID="$(printf '%s' "${RESP}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("job_id") or "")')"
 if [[ -n "${JOB_ID}" ]]; then
   for _ in $(seq 1 60); do
-    JOB="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/jobs/${JOB_ID}")"
+    JOB="$(curl -fsS ${AUTH[@]+"${AUTH[@]}"} "${API_URL}/api/v1/jobs/${JOB_ID}")"
     STATUS="$(printf '%s' "${JOB}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))')"
     if [[ "${STATUS}" == "completed" || "${STATUS}" == "failed" || "${STATUS}" == "cancelled" ]]; then
       echo "${JOB}"
