@@ -1,3 +1,13 @@
 [
-  { "id": "overview", "file": "overview.md", "title": "Overview" }
+  { "id": "overview", "file": "overview.md", "title": "Overview" },
+  { "id": "concepts", "file": "concepts.md", "title": "Concepts" },
+  { "id": "cases", "file": "cases.md", "title": "Cases" },
+  { "id": "requirements", "file": "requirements.md", "title": "Requirements" },
+  { "id": "import", "file": "import.md", "title": "Import" },
+  { "id": "ai", "file": "ai.md", "title": "AI assist" },
+  { "id": "runs", "file": "runs.md", "title": "Runs and executions" },
+  { "id": "cicd", "file": "cicd.md", "title": "CI/CD integration" },
+  { "id": "admin", "file": "admin.md", "title": "Admin" },
+  { "id": "api", "file": "api.md", "title": "API tokens and OpenAPI" },
+  { "id": "troubleshooting", "file": "troubleshooting.md", "title": "Troubleshooting" }
 ]
