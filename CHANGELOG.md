@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-16
+
+Minor release: Jenkins CI integration (J1–J9 + native provider), human-readable
+never-reused run/iteration/campaign IDs, in-app dialogs replacing browser
+popups, and docs/README cleanup since 0.4.0.
+
+### Added
+
+- **Native Jenkins CI provider (J4)** — configure base URL, job path, username,
+  API token, crumb handling, and **Test connection**; **Dispatch** triggers
+  `buildWithParameters` with `VULYK_RUN_ID` (run slug) / `VULYK_PROJECT_ID`,
+  follows the queue to the build URL on the run; sample Playwright and Selenide
+  Jenkinsfiles under `ci/` (#257 / #222).
+- **Readable never-reused IDs** — per-project monotonic display IDs
+  (`{PREFIX}-C-{n}`, `{PREFIX}-IT-{n}`, `{PREFIX}-R-{n}`) and run URL slugs
+  (`{PREFIX}-R-{source}-{n}-{timestamp}`); UUID PKs retained; UUID URLs redirect
+  to the canonical slug; API accepts display id, slug, or UUID; Bitbucket
+  recognised as a CI source; backfill migration from 0.4.0 (#214 / #223).
+- **In-app dialogs** — bee-themed `Dialog` / `ConfirmDialog` / `PromptDialog` /
+  campaign and folder-delete modals replace `window.prompt` / `confirm` /
+  `alert`; dirty-case `useBlocker`; ESLint `no-alert` / `no-restricted-globals`;
+  FileDropZone drag-and-drop (#215 / #224).
+- Offline **Doc links** CI job (`lychee`) and `SECURITY.md`; contributor docs
+  under `docs/dev/` (#216 / #225).
+
+### Changed
+
+- **vulyk-upload.sh (J1–J3)** — export run id on open, close with project key,
+  stream large payloads (#208 / #217).
+- Surface **`pipeline_url`** on run reports and executions UI (J5) (#209 / #218).
+- Deep-linked run routes **switch the active project** (J6) (#210 / #219).
+- Docs/README cleanup: remove dated audit/review reports; reorganise
+  contributor vs user docs (#216 / #225).
+- Env-upgrade CI default previous tag prefers `v0.4.0` when present.
+- Version bump 0.4.0 → 0.5.0 across `VERSION`, Cargo workspace, frontend, and
+  Helm `appVersion`.
+
+### Fixed
+
+- Flexible case-key matching (underscore/compact) + JUnit skipped count
+  (J7/J8) (#211 / #220).
+- Race-safe pipeline ingest find-or-create for campaign/iteration (J9)
+  (#213 / #221).
+
 ## [0.4.0] - 2026-11-16
 
 Minor release: in-app user documentation, stability and i18n fixes since 0.3.1,
