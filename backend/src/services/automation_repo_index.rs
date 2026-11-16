@@ -84,6 +84,7 @@ pub async fn sync_and_index(
     let provider = row.provider.to_lowercase();
     if matches!(provider.as_str(), "github" | "gitlab") {
         let known = repo_svc::load_content_hashes(pool, row.id).await?;
+        let ci_policy = crate::settings::load_ci_url_policy(pool).await?;
         let (commit_sha, changed, tree_paths) = remote_svc::index_from_archive(
             &provider,
             &row.remote_url,
@@ -91,6 +92,7 @@ pub async fn sync_and_index(
             &row.subpath,
             token,
             &known,
+            &ci_policy,
         )
         .await?;
         let (fc, cc) = repo_svc::persist_index_incremental(
@@ -117,8 +119,15 @@ pub async fn sync_and_index(
     let branch = row.branch.clone();
     let subpath = row.subpath.clone();
     let token_owned = token.map(str::to_string);
+    let ci_policy = crate::settings::load_ci_url_policy(pool).await?;
     let sha = tokio::task::spawn_blocking(move || {
-        repo_svc::sync_repo(repo_id, &remote_url, &branch, token_owned.as_deref())
+        repo_svc::sync_repo(
+            repo_id,
+            &remote_url,
+            &branch,
+            token_owned.as_deref(),
+            &ci_policy,
+        )
     })
     .await
     .map_err(|e| AppError::Internal(format!("git sync task: {e}")))??;

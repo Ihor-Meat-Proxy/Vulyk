@@ -1059,6 +1059,15 @@ const uk: Dict = {
   'admin.noLogYet': "(журналу ще немає)",
   'admin.loadingSettings': "Завантаження налаштувань…",
   'admin.defaultProjectRole': "Типова роль у проєкті",
+  'admin.ciPrivateUrls': "Приватні / HTTP URL для CI",
+  'admin.ciAllowPrivateUrls': "Дозволити http і приватні CI-хости",
+  'admin.ciAllowPrivateUrlsWarning':
+    "Увага: це послаблює захист від серверних запитів до внутрішньої мережі лише для CI (Jenkins, Forgejo, GitLab). Краще вказати перелік дозволених хостів або діапазонів. Не вмикайте на публічних інстансах без жорсткого переліку — приватні діапазони можуть включати метадані хмари.",
+  'admin.ciUrlAllowlist': "Перелік дозволених URL для CI (необов’язково)",
+  'admin.ciUrlAllowlistPlaceholder':
+    "localhost\n10.0.0.0/8\njenkins.lan",
+  'admin.ciUrlAllowlistHelp':
+    "Порожній + увімкнено = будь-який приватний або локальний хост (і http). Непорожній = лише перелічені хости чи діапазони. Публічні https залишаються дозволеними.",
   'admin.genericHttpsGit': "Загальний HTTPS Git",
   'admin.backupsOwner': "Власник",
   'admin.backupsRepo': "Репозиторій",

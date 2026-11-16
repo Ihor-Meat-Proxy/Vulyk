@@ -29,6 +29,8 @@ pub struct UpdateInstanceSettings {
     pub registration_mode: Option<crate::settings::RegistrationMode>,
     pub default_role: Option<crate::auth::ProjectRole>,
     pub allowed_email_domains: Option<Vec<String>>,
+    pub ci_allow_private_urls: Option<bool>,
+    pub ci_url_allowlist: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -89,9 +91,20 @@ pub async fn put_settings(
     if let Some(v) = body.allowed_email_domains {
         current.allowed_email_domains = v;
     }
+    if let Some(v) = body.ci_allow_private_urls {
+        current.ci_allow_private_urls = v;
+    }
+    if let Some(v) = body.ci_url_allowlist {
+        current.ci_url_allowlist = v
+            .into_iter()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+    }
     // Never allow clearing setup_completed via this endpoint.
     settings::save_settings(&state.pool, &current).await?;
-    Ok(Json(current))
+    // Re-load so env overrides (if any) are reflected in the response.
+    Ok(Json(settings::load_settings(&state.pool).await?))
 }
 
 #[utoipa::path(

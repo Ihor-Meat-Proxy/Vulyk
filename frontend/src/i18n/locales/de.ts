@@ -1059,6 +1059,15 @@ const de: Dict = {
   'admin.noLogYet': "(noch kein Protokoll)",
   'admin.loadingSettings': "Einstellungen werden geladen…",
   'admin.defaultProjectRole': "Standard-Projektrolle",
+  'admin.ciPrivateUrls': "Private / HTTP-CI-URLs",
+  'admin.ciAllowPrivateUrls': "HTTP und private CI-Hosts erlauben",
+  'admin.ciAllowPrivateUrlsWarning':
+    "Warnung: Dies schwächt den SSRF-Schutz nur für CI-Ziele (Jenkins, Forgejo, GitLab). Bevorzugen Sie eine Host-/CIDR-Allowlist. Nicht auf internetexponierten Instanzen ohne enge Allowlist aktivieren — private Bereiche können Cloud-Metadaten einschließen.",
+  'admin.ciUrlAllowlist': "CI-URL-Allowlist (optional)",
+  'admin.ciUrlAllowlistPlaceholder':
+    "localhost\n10.0.0.0/8\njenkins.lan",
+  'admin.ciUrlAllowlistHelp':
+    "Leer + aktiviert = jedes private/localhost (und http). Nicht leer = nur gelistete Hosts/CIDRs. Öffentliches HTTPS bleibt erlaubt.",
   'admin.genericHttpsGit': "Generisches HTTPS-Git",
   'admin.backupsOwner': "Eigentümer",
   'admin.backupsRepo': "Repo",

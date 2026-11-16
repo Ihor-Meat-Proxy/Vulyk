@@ -1,6 +1,7 @@
 //! Egress URL policy: block SSRF to private/link-local/metadata addresses.
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
+use std::str::FromStr;
 
 use crate::error::{AppError, AppResult};
 
@@ -8,6 +9,43 @@ fn allow_private_egress() -> bool {
     std::env::var("VULYK_EGRESS_ALLOW_PRIVATE")
         .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes"))
         .unwrap_or(false)
+}
+
+/// Admin / env policy for CI destinations (Jenkins, GitHub-compatible Forgejo, GitLab).
+///
+/// When [`Self::allow_private`] is false (default), behaviour matches
+/// [`validate_public_https_url`]. When true:
+/// - `http://` and `https://` are accepted
+/// - private / loopback / link-local hosts are accepted
+/// - if [`Self::allowlist`] is **empty**, any such host is allowed
+/// - if [`Self::allowlist`] is **non-empty**, only listed hosts / CIDRs match
+///
+/// Public `https://` destinations remain allowed regardless of the opt-in.
+/// `file://` and other schemes are never allowed for CI.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CiUrlPolicy {
+    pub allow_private: bool,
+    pub allowlist: Vec<String>,
+}
+
+impl CiUrlPolicy {
+    pub fn strict() -> Self {
+        Self::default()
+    }
+
+    pub fn from_parts(allow_private: bool, allowlist: impl IntoIterator<Item = String>) -> Self {
+        let mut entries: Vec<String> = allowlist
+            .into_iter()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        entries.sort();
+        entries.dedup();
+        Self {
+            allow_private,
+            allowlist: entries,
+        }
+    }
 }
 
 /// Validate that `raw` is an `https://` URL whose host resolves only to public IPs.
@@ -39,29 +77,109 @@ pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
         ));
     }
 
-    let without_scheme = &raw[8..];
+    let host = extract_url_host(raw)?;
+    validate_host_public_only(&host)
+}
+
+/// Validate a CI base / remote URL under [`CiUrlPolicy`].
+///
+/// Lab hatch `VULYK_EGRESS_ALLOW_PRIVATE=1` still relaxes checks (http + private),
+/// but never permits `file://` for CI destinations.
+pub fn validate_ci_url(raw: &str, policy: &CiUrlPolicy) -> AppResult<()> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return Err(AppError::BadRequest("URL is required".into()));
+    }
+    let lower = raw.to_ascii_lowercase();
+    if lower.starts_with("file://") || lower.starts_with("git://") {
+        return Err(AppError::BadRequest(
+            "only http(s):// URLs are allowed for CI destinations".into(),
+        ));
+    }
+
+    let lab = allow_private_egress();
+    let allow_insecure = lab || policy.allow_private;
+
+    if allow_insecure {
+        if !(lower.starts_with("https://") || lower.starts_with("http://")) {
+            return Err(AppError::BadRequest(
+                "only http(s):// URLs are allowed for CI destinations".into(),
+            ));
+        }
+    } else if !lower.starts_with("https://") {
+        return Err(AppError::BadRequest(
+            "only https:// URLs are allowed for CI destinations (enable Admin → Allow private CI URLs for http/LAN hosts)".into(),
+        ));
+    }
+
+    let host = extract_url_host(raw)?;
+    let is_https = lower.starts_with("https://");
+    let public = host_is_public_ok(&host).unwrap_or(false);
+
+    // Public HTTPS is always allowed (allowlist only scopes the private/http opt-in).
+    if is_https && public {
+        return Ok(());
+    }
+
+    // Everything else (http, private, localhost) requires the opt-in.
+    if !allow_insecure {
+        if !is_https {
+            return Err(AppError::BadRequest(
+                "only https:// URLs are allowed for CI destinations (enable Admin → Allow private CI URLs for http/LAN hosts)".into(),
+            ));
+        }
+        return Err(AppError::BadRequest(
+            "URL host is not allowed (private or reserved); enable Admin → Allow private CI URLs"
+                .into(),
+        ));
+    }
+
+    // Opt-in + empty allowlist = any private/localhost (and http, including public http).
+    if policy.allowlist.is_empty() {
+        return Ok(());
+    }
+
+    // Non-empty allowlist: only listed hosts/CIDRs for the relaxed destinations.
+    ensure_allowlist_match(&host, &policy.allowlist)
+}
+
+fn extract_url_host(raw: &str) -> AppResult<String> {
+    let lower = raw.to_ascii_lowercase();
+    let scheme_len = if lower.starts_with("https://") {
+        8
+    } else if lower.starts_with("http://") {
+        7
+    } else {
+        return Err(AppError::BadRequest(
+            "only http(s):// URLs are allowed".into(),
+        ));
+    };
+    let without_scheme = &raw[scheme_len..];
     let authority = without_scheme.split(['/', '?', '#']).next().unwrap_or("");
     if authority.is_empty() {
         return Err(AppError::BadRequest("URL host is required".into()));
     }
-
-    // Strip userinfo if present (https://user:pass@host).
     let hostport = authority.rsplit('@').next().unwrap_or(authority);
     let host = if hostport.starts_with('[') {
         let end = hostport
             .find(']')
             .ok_or_else(|| AppError::BadRequest("invalid IPv6 URL host".into()))?;
-        &hostport[1..end]
+        hostport[1..end].to_string()
     } else {
-        hostport.split(':').next().unwrap_or(hostport)
+        hostport.split(':').next().unwrap_or(hostport).to_string()
     };
-    if host.is_empty() || host.eq_ignore_ascii_case("localhost") {
+    if host.is_empty() {
+        return Err(AppError::BadRequest("URL host is required".into()));
+    }
+    Ok(host)
+}
+
+fn validate_host_public_only(host: &str) -> AppResult<()> {
+    if host.eq_ignore_ascii_case("localhost") {
         return Err(AppError::BadRequest(
             "URL host is not allowed (localhost)".into(),
         ));
     }
-
-    // Literal IP — check without DNS.
     if let Ok(ip) = host.parse::<IpAddr>() {
         if !is_public_ip(ip) {
             return Err(AppError::BadRequest(
@@ -70,8 +188,6 @@ pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
         }
         return Ok(());
     }
-
-    // DNS resolve (with dummy port); every A/AAAA must be public.
     let addrs = (host, 443)
         .to_socket_addrs()
         .map_err(|e| AppError::BadRequest(format!("URL host could not be resolved: {e}")))?;
@@ -90,6 +206,118 @@ pub fn validate_public_https_url(raw: &str) -> AppResult<()> {
         ));
     }
     Ok(())
+}
+
+/// Returns `Ok(true)` when the host is clearly public, `Ok(false)` when clearly
+/// private/loopback/link-local, or `Err` on DNS failure for non-literal hosts
+/// that must resolve under the strict policy. For CI private mode we treat
+/// localhost and literal private IPs as non-public without DNS.
+fn host_is_public_ok(host: &str) -> AppResult<bool> {
+    if host.eq_ignore_ascii_case("localhost") {
+        return Ok(false);
+    }
+    if let Ok(ip) = host.parse::<IpAddr>() {
+        return Ok(is_public_ip(ip));
+    }
+    // Hostname: try DNS. If resolution fails, treat as not-public so private
+    // mode + allowlist can still match by hostname string without DNS.
+    match (host, 443).to_socket_addrs() {
+        Ok(addrs) => {
+            let mut any = false;
+            let mut all_public = true;
+            for addr in addrs {
+                any = true;
+                if !is_public_ip(addr.ip()) {
+                    all_public = false;
+                }
+            }
+            if !any {
+                return Ok(false);
+            }
+            Ok(all_public)
+        }
+        Err(_) => Ok(false),
+    }
+}
+
+fn ensure_allowlist_match(host: &str, allowlist: &[String]) -> AppResult<()> {
+    if allowlist_matches(host, allowlist) {
+        return Ok(());
+    }
+    Err(AppError::BadRequest(
+        "URL host is not on the CI URL allowlist".into(),
+    ))
+}
+
+fn allowlist_matches(host: &str, allowlist: &[String]) -> bool {
+    let host_l = host.to_ascii_lowercase();
+    for entry in allowlist {
+        let e = entry.trim();
+        if e.is_empty() {
+            continue;
+        }
+        // Hostname (exact, case-insensitive)
+        if e.eq_ignore_ascii_case(host) || e.eq_ignore_ascii_case(&host_l) {
+            return true;
+        }
+        // Literal IP equality
+        if let (Ok(host_ip), Ok(entry_ip)) = (host.parse::<IpAddr>(), e.parse::<IpAddr>()) {
+            if host_ip == entry_ip {
+                return true;
+            }
+        }
+        // CIDR
+        if let Some((net, prefix)) = parse_cidr(e) {
+            if let Ok(host_ip) = host.parse::<IpAddr>() {
+                if ip_in_cidr(host_ip, net, prefix) {
+                    return true;
+                }
+            } else if let Ok(addrs) = (host, 443).to_socket_addrs() {
+                for addr in addrs {
+                    if ip_in_cidr(addr.ip(), net, prefix) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    false
+}
+
+fn parse_cidr(s: &str) -> Option<(IpAddr, u8)> {
+    let (addr_s, pref_s) = s.split_once('/')?;
+    let prefix: u8 = pref_s.parse().ok()?;
+    let addr = IpAddr::from_str(addr_s.trim()).ok()?;
+    match addr {
+        IpAddr::V4(_) if prefix > 32 => return None,
+        IpAddr::V6(_) if prefix > 128 => return None,
+        _ => {}
+    }
+    Some((addr, prefix))
+}
+
+fn ip_in_cidr(ip: IpAddr, network: IpAddr, prefix: u8) -> bool {
+    match (ip, network) {
+        (IpAddr::V4(ip), IpAddr::V4(net)) => {
+            let mask = if prefix == 0 {
+                0u32
+            } else {
+                u32::MAX << (32 - prefix)
+            };
+            (u32::from(ip) & mask) == (u32::from(net) & mask)
+        }
+        (IpAddr::V6(ip), IpAddr::V6(net)) => {
+            let ip_bytes = u128::from(ip);
+            let net_bytes = u128::from(net);
+            let mask = if prefix == 0 {
+                0u128
+            } else {
+                u128::MAX << (128 - prefix)
+            };
+            (ip_bytes & mask) == (net_bytes & mask)
+        }
+        _ => false,
+    }
 }
 
 fn is_public_ip(ip: IpAddr) -> bool {
@@ -186,21 +414,37 @@ pub fn redact_url_credentials(text: &str) -> String {
 mod tests {
     use super::*;
 
+    fn with_cleared_lab_hatch<T>(f: impl FnOnce() -> T) -> T {
+        // Ensure unit tests are not affected by ambient lab hatch.
+        let prev = std::env::var("VULYK_EGRESS_ALLOW_PRIVATE").ok();
+        std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE");
+        let out = f();
+        match prev {
+            Some(v) => std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", v),
+            None => std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE"),
+        }
+        out
+    }
+
     #[test]
     fn rejects_non_https_and_localhost() {
-        assert!(validate_public_https_url("file:///etc/passwd").is_err());
-        assert!(validate_public_https_url("http://example.com/repo.git").is_err());
-        assert!(validate_public_https_url("https://localhost/repo.git").is_err());
-        assert!(validate_public_https_url("https://127.0.0.1/repo.git").is_err());
-        assert!(validate_public_https_url("https://10.0.0.5/repo.git").is_err());
-        assert!(validate_public_https_url("https://169.254.169.254/latest").is_err());
-        assert!(validate_public_https_url("https://192.168.1.1/x").is_err());
+        with_cleared_lab_hatch(|| {
+            assert!(validate_public_https_url("file:///etc/passwd").is_err());
+            assert!(validate_public_https_url("http://example.com/repo.git").is_err());
+            assert!(validate_public_https_url("https://localhost/repo.git").is_err());
+            assert!(validate_public_https_url("https://127.0.0.1/repo.git").is_err());
+            assert!(validate_public_https_url("https://10.0.0.5/repo.git").is_err());
+            assert!(validate_public_https_url("https://169.254.169.254/latest").is_err());
+            assert!(validate_public_https_url("https://192.168.1.1/x").is_err());
+        });
     }
 
     #[test]
     fn accepts_public_literal() {
-        // 8.8.8.8 is public; no DNS needed.
-        assert!(validate_public_https_url("https://8.8.8.8/repo.git").is_ok());
+        with_cleared_lab_hatch(|| {
+            // 8.8.8.8 is public; no DNS needed.
+            assert!(validate_public_https_url("https://8.8.8.8/repo.git").is_ok());
+        });
     }
 
     #[test]
@@ -210,5 +454,86 @@ mod tests {
         );
         assert!(!s.contains("glpat-SECRET"));
         assert!(s.contains("https://***@gitlab.com/a/b.git"));
+    }
+
+    #[test]
+    fn ci_https_public_ok_always() {
+        with_cleared_lab_hatch(|| {
+            let strict = CiUrlPolicy::strict();
+            assert!(validate_ci_url("https://8.8.8.8/job/x", &strict).is_ok());
+            let open = CiUrlPolicy::from_parts(true, Vec::<String>::new());
+            assert!(validate_ci_url("https://8.8.8.8/job/x", &open).is_ok());
+        });
+    }
+
+    #[test]
+    fn ci_http_and_private_denied_by_default() {
+        with_cleared_lab_hatch(|| {
+            let strict = CiUrlPolicy::strict();
+            assert!(validate_ci_url("http://example.com/job", &strict).is_err());
+            assert!(validate_ci_url("http://localhost:8090/", &strict).is_err());
+            assert!(validate_ci_url("https://127.0.0.1:8090/", &strict).is_err());
+            assert!(validate_ci_url("https://10.0.0.5/", &strict).is_err());
+            assert!(validate_ci_url("https://192.168.1.10/job", &strict).is_err());
+            assert!(validate_ci_url("file:///etc/passwd", &strict).is_err());
+        });
+    }
+
+    #[test]
+    fn ci_opt_in_allows_http_localhost_and_private() {
+        with_cleared_lab_hatch(|| {
+            let open = CiUrlPolicy::from_parts(true, Vec::<String>::new());
+            assert!(validate_ci_url("http://localhost:8090/", &open).is_ok());
+            assert!(validate_ci_url("http://127.0.0.1:8090/job", &open).is_ok());
+            assert!(validate_ci_url("https://10.0.0.5/job", &open).is_ok());
+            assert!(validate_ci_url("http://192.168.1.10:8080/", &open).is_ok());
+            assert!(validate_ci_url("https://8.8.8.8/job", &open).is_ok());
+            // Still no file://
+            assert!(validate_ci_url("file:///tmp/x", &open).is_err());
+        });
+    }
+
+    #[test]
+    fn ci_allowlist_restricts_when_non_empty() {
+        with_cleared_lab_hatch(|| {
+            let policy = CiUrlPolicy::from_parts(
+                true,
+                vec![
+                    "localhost".into(),
+                    "10.0.0.0/8".into(),
+                    "jenkins.lan".into(),
+                ],
+            );
+            assert!(validate_ci_url("http://localhost:8090/", &policy).is_ok());
+            assert!(validate_ci_url("http://10.1.2.3:8080/", &policy).is_ok());
+            assert!(validate_ci_url("https://jenkins.lan/job", &policy).is_ok());
+            // Not on allowlist
+            assert!(validate_ci_url("http://192.168.1.10/", &policy).is_err());
+            assert!(validate_ci_url("http://127.0.0.1:8090/", &policy).is_err());
+            // Public https remains allowed even with a non-empty allowlist
+            assert!(validate_ci_url("https://8.8.8.8/job", &policy).is_ok());
+        });
+    }
+
+    #[test]
+    fn ci_allowlist_cidr_and_literal_ip() {
+        with_cleared_lab_hatch(|| {
+            let policy =
+                CiUrlPolicy::from_parts(true, vec!["192.168.0.0/16".into(), "172.16.5.5".into()]);
+            assert!(validate_ci_url("http://192.168.10.20/", &policy).is_ok());
+            assert!(validate_ci_url("https://172.16.5.5/", &policy).is_ok());
+            assert!(validate_ci_url("http://172.16.5.6/", &policy).is_err());
+            assert!(validate_ci_url("http://10.0.0.1/", &policy).is_err());
+        });
+    }
+
+    #[test]
+    fn ci_ssrf_weird_schemes_still_blocked() {
+        with_cleared_lab_hatch(|| {
+            let open = CiUrlPolicy::from_parts(true, Vec::<String>::new());
+            assert!(validate_ci_url("git://localhost/repo", &open).is_err());
+            assert!(validate_ci_url("ftp://10.0.0.1/", &open).is_err());
+            assert!(validate_ci_url("", &open).is_err());
+        });
     }
 }

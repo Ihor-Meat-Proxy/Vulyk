@@ -71,11 +71,18 @@ pub enum HeadCheck {
 
 /// Parse `https://github.com/owner/repo(.git)?` or GitLab HTTPS remotes.
 ///
-/// Always runs the SSRF egress check before shape-parsing. Unit tests that only
+/// Always runs the CI egress check before shape-parsing. Unit tests that only
 /// need owner/repo extraction should call [`parse_remote_shape`] so they stay
 /// independent of ambient DNS (e.g. github.com resolving into 198.18.0.0/15).
-pub fn parse_remote(provider: &str, remote_url: &str) -> AppResult<HostKind> {
-    egress::validate_public_https_url(remote_url)?;
+///
+/// Pass [`egress::CiUrlPolicy::strict`] unless the admin private-CI opt-in applies
+/// (Forgejo / self-hosted GitHub Enterprise on LAN).
+pub fn parse_remote(
+    provider: &str,
+    remote_url: &str,
+    policy: &egress::CiUrlPolicy,
+) -> AppResult<HostKind> {
+    egress::validate_ci_url(remote_url, policy)?;
     parse_remote_shape(provider, remote_url)
 }
 
@@ -257,8 +264,9 @@ pub async fn check_branch_head(
     branch: &str,
     token: Option<&str>,
     etag: Option<&str>,
+    policy: &egress::CiUrlPolicy,
 ) -> AppResult<HeadCheck> {
-    let host = parse_remote(provider, remote_url)?;
+    let host = parse_remote(provider, remote_url, policy)?;
     let client = reqwest::Client::new();
     match host {
         HostKind::GitHub {
@@ -338,8 +346,9 @@ pub async fn list_branches(
     remote_url: &str,
     token: Option<&str>,
     seen: &[String],
+    policy: &egress::CiUrlPolicy,
 ) -> AppResult<Vec<RemoteBranch>> {
-    let host = parse_remote(provider, remote_url)?;
+    let host = parse_remote(provider, remote_url, policy)?;
     let client = reqwest::Client::new();
     let seen_set: std::collections::HashSet<&str> = seen.iter().map(String::as_str).collect();
     let mut out = Vec::new();
@@ -445,15 +454,16 @@ pub async fn index_from_archive(
     subpath: &str,
     token: Option<&str>,
     known_hashes: &HashMap<String, String>,
+    policy: &egress::CiUrlPolicy,
 ) -> AppResult<(String, Vec<IndexedFile>, HashMap<String, String>)> {
-    let host = parse_remote(provider, remote_url)?;
+    let host = parse_remote(provider, remote_url, policy)?;
     let client = reqwest::Client::builder()
         .redirect(reqwest::redirect::Policy::limited(10))
         .build()
         .map_err(|e| AppError::Internal(format!("http client: {e}")))?;
 
     // Resolve tip SHA first (also used when archive filename lacks it).
-    let head = check_branch_head(provider, remote_url, branch, token, None).await?;
+    let head = check_branch_head(provider, remote_url, branch, token, None, policy).await?;
     let commit_sha = match head {
         HeadCheck::Modified { commit_sha, .. } => commit_sha,
         HeadCheck::NotModified { .. } => {
@@ -694,8 +704,9 @@ pub async fn fetch_tree(
     branch: &str,
     subpath: &str,
     token: Option<&str>,
+    policy: &egress::CiUrlPolicy,
 ) -> AppResult<RemoteIndex> {
-    let head = check_branch_head(provider, remote_url, branch, token, None).await?;
+    let head = check_branch_head(provider, remote_url, branch, token, None, policy).await?;
     let commit_sha = match head {
         HeadCheck::Modified { commit_sha, .. } => commit_sha,
         HeadCheck::NotModified { .. } => {
@@ -716,8 +727,9 @@ pub async fn test_remote(
     remote_url: &str,
     branch: &str,
     token: Option<&str>,
+    policy: &egress::CiUrlPolicy,
 ) -> AppResult<(bool, String, Option<String>)> {
-    match check_branch_head(provider, remote_url, branch, token, None).await {
+    match check_branch_head(provider, remote_url, branch, token, None, policy).await {
         Ok(HeadCheck::Modified { commit_sha, .. }) => Ok((
             true,
             format!(
@@ -836,7 +848,12 @@ mod tests {
 
     #[test]
     fn parse_remote_still_runs_ssrf_on_literal_private() {
-        let err = parse_remote("github", "https://127.0.0.1/acme/demo.git").unwrap_err();
+        let err = parse_remote(
+            "github",
+            "https://127.0.0.1/acme/demo.git",
+            &egress::CiUrlPolicy::strict(),
+        )
+        .unwrap_err();
         assert!(
             err.to_string().contains("private") || err.to_string().contains("not allowed"),
             "unexpected: {err}"

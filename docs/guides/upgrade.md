@@ -280,10 +280,21 @@ UUID, display_id, or slug.
 
 Forward migration `20261116195000_ci_configs_jenkins_provider.sql` widens
 `ci_configs.provider` to allow `jenkins`, `bitbucket`, and `other` alongside
-`github` / `gitlab` (CHECK constraint). Existing rows stay valid. No new `.env`
-keys; private Jenkins remotes still need `VULYK_EGRESS_ALLOW_PRIVATE=1` (already
-synced from `.env.example` when missing). Configure under **CI triggers**; see
-[ci-integration.md](./ci-integration.md#jenkins-dispatch).
+`github` / `gitlab` (CHECK constraint). Existing rows stay valid. Configure under
+**CI triggers**; see [ci-integration.md](./ci-integration.md#jenkins-dispatch).
+
+### Private / HTTP CI URLs (J10)
+
+Upgrade sync adds optional `.env` keys from `.env.example` when missing (never
+overwrites existing values):
+
+- `VULYK_CI_ALLOW_PRIVATE_URLS=0` — env override for the Admin setting (off by default)
+- `VULYK_CI_URL_ALLOWLIST=` — optional host/CIDR list
+
+No DB schema migration: settings live in `system_settings` and default to off /
+empty until an admin enables them in **Admin → Settings**. Prefer the UI
+allowlist over the lab-only `VULYK_EGRESS_ALLOW_PRIVATE` hatch. See
+[ci-integration.md](./ci-integration.md#private--http-ci-urls-j10).
 
 ## Web image build context
 

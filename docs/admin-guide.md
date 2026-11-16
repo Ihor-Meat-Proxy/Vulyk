@@ -215,6 +215,8 @@ Rollback: `--confirm=ROLLBACK` (or `VULYK_ROLLBACK_CONFIRM=ROLLBACK`).
 | `VULYK_SECRETS_KEY` | Envelope encryption for LLM / integration / SSO / backup destination secrets |
 | `VULYK_COOKIE_SECURE` | Force `Secure` on the session cookie (`1`/`true`) |
 | `VULYK_EGRESS_ALLOW_PRIVATE` | Lab/tests only — allow private/link-local/metadata URLs and `file://` git; **never** in production |
+| `VULYK_CI_ALLOW_PRIVATE_URLS` | Optional env override for Admin → Settings **Allow http and private-network CI hosts** (CI destinations only; prefer UI + allowlist) |
+| `VULYK_CI_URL_ALLOWLIST` | Optional hosts/CIDRs (comma/newline) scoping the CI private opt-in; empty + opt-in = any private/localhost |
 | `VULYK_CONTENT_BACKUP_DIR` | Root for local content-backup destinations (default `./data/content-backups`) |
 | `VULYK_REPO_CACHE` | Shallow clone cache for **generic** HTTPS automation repos (default `/tmp/vulyk-repos`); GitHub/GitLab index via REST |
 | `VULYK_VERSION_BACKUP_DIR` / `VULYK_ROLLBACK_RETENTION_DAYS` / `VULYK_VERSION_BACKUP_COUNT` | Post-upgrade rollback points — [guides/upgrade.md](guides/upgrade.md) |

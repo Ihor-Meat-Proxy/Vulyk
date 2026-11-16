@@ -51,12 +51,16 @@ async fn poll_one(
         (Some(ct), Some(nonce)) => Some(secrets.decrypt(ct, nonce).map_err(|e| e.to_string())?),
         _ => None,
     };
+    let ci_policy = crate::settings::load_ci_url_policy(pool)
+        .await
+        .map_err(|e| e.to_string())?;
     let head = remote_svc::check_branch_head(
         &row.provider,
         &row.remote_url,
         &row.branch,
         token.as_deref(),
         row.poll_etag.as_deref(),
+        &ci_policy,
     )
     .await
     .map_err(|e| e.to_string())?;

@@ -262,9 +262,10 @@ Declarative Pipelines [`ci/Jenkinsfile`](../../ci/Jenkinsfile) (Playwright) and
 **Outbound (Dispatch):** under **CI triggers**, save a Jenkins config (base URL,
 job path, username, API token, CSRF crumb) and use **Test connection** / **Dispatch**.
 Vulyk calls `buildWithParameters` with `VULYK_RUN_ID` (run slug preferred) and
-follows the queue to a build URL. Private Jenkins needs
-`VULYK_EGRESS_ALLOW_PRIVATE=1` on the API. Details:
-[ci-integration.md](../guides/ci-integration.md#jenkins-dispatch).
+follows the queue to a build URL. Self-hosted `http://` or LAN Jenkins requires an
+admin to enable **Allow http and private-network CI hosts** (optional allowlist)
+under **Admin → Settings**. Details:
+[ci-integration.md](../guides/ci-integration.md#private--http-ci-urls-j10).
 
 **Important:** `--open-run` does not set Jenkins environment variables by itself.
 Capture the run id with `--print-run-id` (or `--run-id-file`) and pass it to
@@ -389,7 +390,7 @@ Under **Settings → Test automation repositories**:
 | Field | Notes |
 |-------|--------|
 | Provider | `github`, `gitlab`, or `generic` |
-| Remote URL | Public HTTPS (SSRF-guarded) |
+| Remote URL | Public HTTPS by default (SSRF-guarded). Self-hosted Forgejo/`http` needs Admin → **Allow http and private-network CI hosts** |
 | Branch | Dropdown lists remote branches; **Refresh branches**; newly seen names marked |
 | Token | Encrypted; raises GitHub rate limits vs anonymous |
 | Actions write token / workflow | For Run in CI |

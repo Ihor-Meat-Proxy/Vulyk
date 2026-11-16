@@ -233,7 +233,8 @@ pub async fn create_repo(
     if body.remote_url.trim().is_empty() {
         return Err(AppError::BadRequest("remote_url required".into()));
     }
-    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
@@ -379,7 +380,8 @@ pub async fn update_repo(
         .filter(|s| !s.is_empty())
         .unwrap_or(existing.remote_url.as_str())
         .to_string();
-    crate::services::egress::validate_public_https_url(&remote_url)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    crate::services::egress::validate_ci_url(&remote_url, &ci_policy)?;
     let branch = body
         .branch
         .as_deref()
@@ -561,11 +563,13 @@ pub async fn test_repo_preview(
     } else {
         body.branch.trim().to_string()
     };
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let (ok, message, commit_sha) = test_provider_connection(
         &provider,
         body.remote_url.trim(),
         &branch,
         body.token.as_deref(),
+        &ci_policy,
     )
     .await?;
     Ok(Json(AutomationRepoTestResult {
@@ -595,11 +599,13 @@ pub async fn test_repo_by_id(
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
     let token = decrypt_token(&state, &row)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let (ok, message, commit_sha) = test_provider_connection(
         &row.provider,
         &row.remote_url,
         &row.branch,
         token.as_deref(),
+        &ci_policy,
     )
     .await?;
     Ok(Json(AutomationRepoTestResult {
@@ -659,11 +665,13 @@ pub async fn list_repo_branches(
         ));
     }
     let token = decrypt_token(&state, &row)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let branches = remote_svc::list_branches(
         &provider,
         &row.remote_url,
         token.as_deref(),
         &row.seen_branches,
+        &ci_policy,
     )
     .await?;
     let names: Vec<String> = branches.iter().map(|b| b.name.clone()).collect();
@@ -700,12 +708,14 @@ pub async fn list_branches_preview(
             "branch listing is only available for github and gitlab providers".into(),
         ));
     }
-    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
     let branches = remote_svc::list_branches(
         &provider,
         body.remote_url.trim(),
         body.token.as_deref(),
         &[],
+        &ci_policy,
     )
     .await?;
     Ok(Json(AutomationRepoBranchesResponse {
@@ -811,7 +821,8 @@ pub async fn upsert_repo(
     if body.remote_url.trim().is_empty() {
         return Err(AppError::BadRequest("remote_url required".into()));
     }
-    crate::services::egress::validate_public_https_url(body.remote_url.trim())?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    crate::services::egress::validate_ci_url(body.remote_url.trim(), &ci_policy)?;
     let branch = if body.branch.trim().is_empty() {
         "main".to_string()
     } else {
@@ -1027,11 +1038,13 @@ pub async fn test_repo(
             )
         })?;
     let token = decrypt_token(&state, &row)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let (ok, message, commit_sha) = test_provider_connection(
         &row.provider,
         &row.remote_url,
         &row.branch,
         token.as_deref(),
+        &ci_policy,
     )
     .await?;
     Ok(Json(AutomationRepoTestResult {
@@ -1079,10 +1092,11 @@ async fn test_provider_connection(
     remote_url: &str,
     branch: &str,
     token: Option<&str>,
+    policy: &crate::services::egress::CiUrlPolicy,
 ) -> AppResult<(bool, String, Option<String>)> {
     let provider = provider.trim().to_lowercase();
     if matches!(provider.as_str(), "github" | "gitlab") {
-        return remote_svc::test_remote(&provider, remote_url, branch, token).await;
+        return remote_svc::test_remote(&provider, remote_url, branch, token, policy).await;
     }
     if !repo_svc::git_available() {
         return Ok((
@@ -1096,8 +1110,9 @@ async fn test_provider_connection(
     let remote_url = remote_url.to_string();
     let branch = branch.to_string();
     let token_owned = token.map(str::to_string);
+    let policy = policy.clone();
     tokio::task::spawn_blocking(move || {
-        repo_svc::test_connection(&remote_url, &branch, token_owned.as_deref())
+        repo_svc::test_connection(&remote_url, &branch, token_owned.as_deref(), &policy)
     })
     .await
     .map_err(|e| AppError::Internal(format!("git test task: {e}")))?

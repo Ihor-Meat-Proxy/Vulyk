@@ -106,6 +106,8 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'import.importer',
   'login.email',
   'login.emailPlaceholder',
+  // Example host/CIDR lines — intentionally identical across locales
+  'admin.ciUrlAllowlistPlaceholder',
   'nav.admin',
   'nav.chat',
   'nav.ci',
