@@ -167,7 +167,7 @@ mktemp_payload() {
 # POST JSON body from a file (avoids ARG_MAX / env size limits).
 curl_json_file() {
   local method="$1" url="$2" body_file="$3"
-  curl -fsS -X "${method}" "${AUTH[@]}" \
+  curl -fsS -X "${method}" ${AUTH[@]+"${AUTH[@]}"} \
     -H 'Content-Type: application/json' \
     --data-binary @"${body_file}" \
     "${url}"
@@ -205,7 +205,7 @@ resolve_project_id() {
     exit 2
   fi
   local projects
-  projects="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/projects")"
+  projects="$(curl -fsS ${AUTH[@]+"${AUTH[@]}"} "${API_URL}/api/v1/projects")"
   PROJECT_ID="$(PROJECT_KEY="${PROJECT_KEY}" PROJECTS="${projects}" python3 - <<'PY'
 import json, os
 key = os.environ["PROJECT_KEY"].upper()
@@ -450,7 +450,7 @@ fi
 JOB_ID="$(printf '%s' "${RESP}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("job_id") or "")')"
 if [[ -n "${JOB_ID}" ]]; then
   for _ in $(seq 1 60); do
-    JOB="$(curl -fsS "${AUTH[@]}" "${API_URL}/api/v1/jobs/${JOB_ID}")"
+    JOB="$(curl -fsS ${AUTH[@]+"${AUTH[@]}"} "${API_URL}/api/v1/jobs/${JOB_ID}")"
     STATUS="$(printf '%s' "${JOB}" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("status",""))')"
     if [[ "${STATUS}" == "completed" || "${STATUS}" == "failed" || "${STATUS}" == "cancelled" ]]; then
       echo "${JOB}"
