@@ -24,6 +24,52 @@
         "playwright",
         "type:positive"
       ]
+    },
+    {
+      "id": "in-app-docs-gear-docs-opens-in-app-help-toc-navigates-api-docs-opens-scalar",
+      "key": "VUE-235",
+      "title": "gear Docs opens in-app help; TOC navigates; API docs opens Scalar",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test in-app-docs.spec.ts -g \"gear Docs opens in-app help\"",
+          "expected": "Test passes; Docs and API docs menu items work."
+        }
+      ],
+      "spec": "in-app-docs.spec.ts",
+      "test": "gear Docs opens in-app help; TOC navigates; API docs opens Scalar",
+      "external_key": "e2e:in-app-docs.spec.ts gear Docs opens in-app help; TOC navigates; API docs opens Scalar",
+      "automation_link": "e2e/tests/in-app-docs.spec.ts :: gear Docs opens in-app help; TOC navigates; API docs opens Scalar",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
+    },
+    {
+      "id": "in-app-docs-openapi-includes-public-ci-ingest-endpoints-used-in-docs-examples",
+      "key": "VUE-236",
+      "title": "OpenAPI includes public CI ingest endpoints used in docs examples",
+      "type": "positive",
+      "priority": "high",
+      "preconditions": "Isolated e2e stack up (./scripts/e2e-local.sh); seeded admin; VULYK_LLM_MOCK=1.",
+      "steps": [
+        {
+          "action": "Run Playwright: npx playwright test in-app-docs.spec.ts -g \"OpenAPI includes public CI ingest\"",
+          "expected": "OpenAPI lists ci/runs, ingest, and close paths."
+        }
+      ],
+      "spec": "in-app-docs.spec.ts",
+      "test": "OpenAPI includes public CI ingest endpoints used in docs examples",
+      "external_key": "e2e:in-app-docs.spec.ts OpenAPI includes public CI ingest endpoints used in docs examples",
+      "automation_link": "e2e/tests/in-app-docs.spec.ts :: OpenAPI includes public CI ingest endpoints used in docs examples",
+      "tags": [
+        "e2e",
+        "playwright",
+        "type:positive"
+      ]
     }
   ]
 }
