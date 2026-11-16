@@ -1,9 +1,14 @@
 #!/usr/bin/env node
 /**
- * Static audit: fail on duplicate data-testid string literals in a file,
- * interactive JSX missing test id wiring, and suspicious PII/secret literals.
+ * Static audit: fail on duplicate data-testid string literals (per-file and
+ * global for non-list ids), interactive JSX missing test id wiring, suspicious
+ * PII/secret literals, and TestIds values missing from
+ * docs/dev/testing/test-ids.md (catalog section).
  *
  * Heuristic JSX scan (handles `=>` inside attrs). See docs/dev/testing/test-ids.md
+ *
+ * Flags:
+ *   --write-catalog  refresh the auto-generated catalog section in the docs
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -11,6 +16,11 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const srcRoot = path.resolve(__dirname, '../src')
+const repoRoot = path.resolve(__dirname, '../..')
+const docsPath = path.join(repoRoot, 'docs/dev/testing/test-ids.md')
+const CATALOG_BEGIN = '<!-- BEGIN:test-ids-catalog -->'
+const CATALOG_END = '<!-- END:test-ids-catalog -->'
+const writeCatalog = process.argv.includes('--write-catalog')
 
 const INTERACTIVE_START =
   /<(button|input|select|textarea|a|NavLink|Link)\b/g
@@ -297,6 +307,108 @@ function checkFile(file) {
   return errors
 }
 
+function buildCatalogMarkdown(canonical) {
+  const ids = [...canonical.keys()].sort()
+  const lines = [
+    CATALOG_BEGIN,
+    '',
+    '## Catalog (auto-generated)',
+    '',
+    'Generated from `frontend/src/testing/testIds.ts`. Do not edit by hand —',
+    'run `npm run check:test-ids -- --write-catalog` (from `frontend/`).',
+    '',
+    `| Test id | TestIds key |`,
+    `| --- | --- |`,
+  ]
+  for (const id of ids) {
+    lines.push(`| \`${id}\` | \`${canonical.get(id)}\` |`)
+  }
+  lines.push('', CATALOG_END, '')
+  return lines.join('\n')
+}
+
+function syncDocsCatalog(canonical) {
+  let docs
+  try {
+    docs = fs.readFileSync(docsPath, 'utf8')
+  } catch (err) {
+    if (err && err.code === 'ENOENT') {
+      return [`missing docs catalog file: ${docsPath}`]
+    }
+    throw err
+  }
+  const catalog = buildCatalogMarkdown(canonical)
+  if (!docs.includes(CATALOG_BEGIN) || !docs.includes(CATALOG_END)) {
+    if (!docs.endsWith('\n')) docs += '\n'
+    docs += `\n${catalog}`
+  } else {
+    const re = new RegExp(
+      `${CATALOG_BEGIN}[\\s\\S]*?${CATALOG_END}\\n?`,
+      'm',
+    )
+    docs = docs.replace(re, catalog)
+  }
+
+  if (writeCatalog) {
+    fs.writeFileSync(docsPath, docs)
+    console.log(
+      `check-test-ids: wrote catalog (${canonical.size} ids) → docs/dev/testing/test-ids.md`,
+    )
+  }
+
+  const errors = []
+  for (const id of canonical.keys()) {
+    // Require the id to appear as a documented token (catalog backticks or prose).
+    if (!docs.includes(`\`${id}\``) && !docs.includes(id)) {
+      errors.push(
+        `docs/dev/testing/test-ids.md: missing test id "${id}" (run npm run check:test-ids -- --write-catalog)`,
+      )
+    }
+  }
+
+  const begin = docs.indexOf(CATALOG_BEGIN)
+  const end = docs.indexOf(CATALOG_END)
+  if (begin < 0 || end < 0) {
+    errors.push(
+      'docs/dev/testing/test-ids.md: missing catalog markers (BEGIN/END:test-ids-catalog)',
+    )
+  } else {
+    const section = docs.slice(begin, end + CATALOG_END.length)
+    if (section !== catalog.trimEnd() && section + '\n' !== catalog) {
+      // Normalize trailing newline comparison
+      if (section.replace(/\s+$/, '') !== catalog.replace(/\s+$/, '')) {
+        errors.push(
+          'docs/dev/testing/test-ids.md: catalog section out of date (run npm run check:test-ids -- --write-catalog)',
+        )
+      }
+    }
+  }
+  return errors
+}
+
+function checkGlobalDuplicates(files) {
+  const errors = []
+  const locations = new Map()
+  for (const file of files) {
+    const rel = path.relative(srcRoot, file)
+    const src = stripComments(fs.readFileSync(file, 'utf8'))
+    for (const { id, via } of extractLiteralTestIds(src)) {
+      if (via === 'template' || LIST_BASE_IDS.has(id)) continue
+      if (!locations.has(id)) locations.set(id, [])
+      locations.get(id).push(rel)
+    }
+  }
+  for (const [id, locs] of locations) {
+    const uniqueFiles = [...new Set(locs)]
+    if (uniqueFiles.length > 1) {
+      errors.push(
+        `duplicate data-testid "${id}" across files: ${uniqueFiles.join(', ')}`,
+      )
+    }
+  }
+  return errors
+}
+
 function main() {
   const canonical = loadCanonicalIds()
   const valueToKeys = new Map()
@@ -318,14 +430,19 @@ function main() {
   for (const f of files) {
     errors.push(...checkFile(f))
   }
+  errors.push(...checkGlobalDuplicates(files))
+  errors.push(...syncDocsCatalog(canonical))
 
   if (errors.length) {
     console.error(`check-test-ids: ${errors.length} issue(s)\n`)
-    for (const e of errors) console.error(`  ${e}`)
+    for (const e of errors.slice(0, 200)) console.error(`  ${e}`)
+    if (errors.length > 200) {
+      console.error(`  …and ${errors.length - 200} more`)
+    }
     process.exit(1)
   }
   console.log(
-    `check-test-ids: ok (${files.length} files, ${canonical.size} canonical ids)`,
+    `check-test-ids: ok (${files.length} files, ${canonical.size} canonical ids, docs catalog in sync)`,
   )
 }
 

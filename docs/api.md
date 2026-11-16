@@ -10,7 +10,10 @@ no CDN; works offline / air-gapped):
 | OpenAPI JSON | http://localhost:8080/api/openapi.json |
 
 The machine-readable OpenAPI document is generated via **utoipa** (`ApiDoc` in
-`backend/src/openapi.rs`) and exposed at **`GET /api/openapi.json`**. The docs
+`backend/src/openapi.rs`) and exposed at **`GET /api/openapi.json`**. A committed
+copy lives at [`docs/api/openapi.json`](./api/openapi.json) for drift CI
+(`./scripts/generate-openapi.sh`, `./scripts/check-openapi-drift.sh` — fails on
+diff, and on `oasdiff` breaking changes unless `VERSION` is bumped). The docs
 UI loads a vendored `@scalar/api-reference` bundle from
 `/api/docs/assets/scalar.js` under a path-scoped CSP (`script-src 'self'`,
 `connect-src 'self'`, `withDefaultFonts: false` — no `fonts.scalar.com`).

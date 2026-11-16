@@ -12,6 +12,7 @@
 ^ms$
 # Example placeholders (not translated copy)
 ^Europe/Kyiv$
+^folder/e2e$
 ^\.github/workflows/
 # Baseline hard-coded strings on main (remove after i18n extract #187 merges)
 ^A\ new\ Vulyk\ version\ is\ ready\.$
