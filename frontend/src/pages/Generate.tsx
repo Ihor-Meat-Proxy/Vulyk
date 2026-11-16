@@ -13,6 +13,7 @@ import {
   CasePicker,
   type PickedCase,
 } from '../components/CasePicker'
+import { DocsLink } from '../components/DocsLink'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { TestIds, testIdProps } from '../testing'
@@ -232,7 +233,10 @@ export function Generate({ projectId }: Props) {
     <div className="generate-page" {...testIdProps(TestIds.generatePage)}>
       <header className="panel-header">
         <h2>{t('generate.title')}</h2>
-        <p className="muted">{t('generate.subtitle')}</p>
+        <p className="muted">
+          {t('generate.subtitle')}{' '}
+          <DocsLink to="/docs/ai" testIdSuffix="generate" />
+        </p>
       </header>
 
       {error && (

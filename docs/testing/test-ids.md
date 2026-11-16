@@ -17,6 +17,7 @@ Examples:
 | Gear → Docs (`/docs`) | `docs-menu-link` |
 | Gear → API docs (`/api/docs`) | `api-docs-menu-link` |
 | In-app docs page / TOC / article | `docs-page` / `docs-toc` / `docs-article` |
+| Detailed guide link (per page) | `docs-guide-link-<suffix>` |
 | Sidebar brand home link | `brand-logo-link-sidebar` |
 | Mobile topbar brand home link | `brand-logo-link-topbar` |
 | Admin Updates status / check error | `admin-updates-status` / `admin-updates-check-error` |

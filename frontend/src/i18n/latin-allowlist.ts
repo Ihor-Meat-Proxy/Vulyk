@@ -11,7 +11,6 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'VULYK_API_TOKEN',
     'OpenProject',
     'Jira',
-    'TestRail',
     'GitHub',
     'GitLab',
     'GitHub/GitLab',

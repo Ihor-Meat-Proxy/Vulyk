@@ -2490,7 +2490,7 @@ button.trend-seg.clickable:focus-visible {
   min-height: 2.5rem;
 }
 
-/* --- Case folder tree (SquashTM-style) --- */
+/* --- Case folder tree --- */
 .case-browser-split {
   display: grid;
   grid-template-columns: minmax(16rem, 22rem) 1fr;
@@ -3973,4 +3973,17 @@ button.trend-seg.clickable:focus-visible {
     position: static;
     max-height: none;
   }
+}
+
+.docs-guide-link {
+  display: inline;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.docs-guide-link:hover,
+.docs-guide-link:focus-visible {
+  color: var(--accent);
 }

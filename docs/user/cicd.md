@@ -86,7 +86,7 @@ JUnit XML shape Vulyk maps:
 </testcase>
 ```
 
-Compatible with Xray-style `test_key` / TestRail-style `test_id` property names. Unknown keys appear in `unmatched_case_keys` in the API response — fix the test or create the case, then re-run.
+Compatible with common property names such as `test_key` and `test_id`. Unknown keys appear in `unmatched_case_keys` in the API response — fix the test or create the case, then re-run.
 
 ### pytest
 

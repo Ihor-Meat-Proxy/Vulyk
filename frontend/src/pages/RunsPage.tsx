@@ -8,6 +8,7 @@ import {
   type TestRun,
 } from '../api'
 import { useAuth } from '../auth'
+import { DocsLink } from '../components/DocsLink'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
@@ -236,7 +237,8 @@ export function RunsPage({ projectId, suites }: Props) {
         <section className="panel" style={{ marginBottom: '1rem' }}>
           <h2 style={{ marginTop: 0 }}>{t('runs.startTitle')}</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            {t('runs.startHelp')}
+            {t('runs.startHelp')}{' '}
+            <DocsLink to="/docs/runs" testIdSuffix="runs-start" />
           </p>
           <div className="form-row">
             <input
@@ -289,7 +291,8 @@ export function RunsPage({ projectId, suites }: Props) {
         <section className="panel" style={{ marginBottom: '1rem' }}>
           <h3 style={{ marginTop: 0 }}>{t('runs.uploadJunit')}</h3>
           <p className="muted" style={{ marginTop: 0 }}>
-            {t('runs.uploadHelp')}
+            {t('runs.uploadHelp')}{' '}
+            <DocsLink to="/docs/cicd" testIdSuffix="runs-upload" />
           </p>
           <div className="form-row">
             <select

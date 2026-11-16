@@ -8,6 +8,7 @@ import {
   type TestRun,
 } from '../api'
 import { useAuth } from '../auth'
+import { DocsLink } from '../components/DocsLink'
 import { SampleBadge } from '../components/SampleBadge'
 import { StatusBadge } from '../components/StatusBadge'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
@@ -164,7 +165,8 @@ export function Runs({ projectId }: Props) {
             {...testIdProps(TestIds.runsCiTokensLink)}
           >
             {t('runs.ciTokensLink')}
-          </Link>
+          </Link>{' '}
+          <DocsLink to="/docs/cicd" testIdSuffix="ci-ingest" />
         </p>
         {canExecute && (
           <div className="toolbar">
@@ -283,7 +285,8 @@ export function Runs({ projectId }: Props) {
         <section className="panel">
           <h2>{t('runs.ciTriggers')}</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            {t('runs.ciTriggersHelp')}
+            {t('runs.ciTriggersHelp')}{' '}
+            <DocsLink to="/docs/cicd" testIdSuffix="ci-triggers" />
           </p>
           {canManageCi && (
             <>

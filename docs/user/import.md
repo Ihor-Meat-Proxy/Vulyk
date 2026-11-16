@@ -52,4 +52,4 @@ Always preview large exports first. Fix mapping warnings before committing.
 
 ## Config export / import (not case import)
 
-**Admin → Export / import** is a different feature: versioned JSON/YAML **configuration** bundles (fields, lists, settings; secrets redacted), optionally with case/requirement/run data. That path is for operators moving instance config, not day-to-day case migration from TestRail/Xray. See [Admin](admin.md).
+**Admin → Export / import** is a different feature: versioned JSON/YAML **configuration** bundles (fields, lists, settings; secrets redacted), optionally with case/requirement/run data. That path is for operators moving instance config, not day-to-day case migration from other tools. See [Admin](admin.md).

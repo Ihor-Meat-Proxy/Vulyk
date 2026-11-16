@@ -11,6 +11,7 @@ import {
   type RequirementFolder,
   type Suite,
 } from '../api'
+import { DocsLink } from '../components/DocsLink'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
@@ -335,7 +336,9 @@ export function Chat({ projectId }: Props) {
     <div className="chat-page" {...testIdProps(TestIds.chatPage)}>
       <header className="panel-header">
         <h2>{t('chat.title')}</h2>
-        <p className="muted">{t('chat.subtitle')}</p>
+        <p className="muted">
+          {t('chat.subtitle')} <DocsLink to="/docs/ai" testIdSuffix="chat" />
+        </p>
       </header>
 
       <label className="field chat-model">

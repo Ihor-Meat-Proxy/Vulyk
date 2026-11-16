@@ -74,7 +74,7 @@ Combine search with folder selection, status/priority filters, and custom-field 
 
 ## Import and export
 
-- **Import** (`/import`) brings cases from TestLink, TestRail, Xray, Zephyr, Squash, qTest, Qase, Kiwi, or CSV. Imported keys come from the project counter; original IDs are stored as `external_key`. See [Import](import.md).
+- **Import** (`/import`) brings cases from supported importers (and CSV). Imported keys come from the project counter; original IDs are stored as `external_key`. See [Import](import.md).
 - **Export as PDF** on case detail (and per-row / bulk on the Cases list) downloads a server-generated PDF: header metadata, steps table, linked requirements, and the latest mixed manual + automated results (default 5). Multiple selected cases download as a ZIP of PDFs (**at most 100** cases per bulk request). Labels follow your UI language. Requires the **export reports** permission (available to all project roles that can view reports).
 
 ## Versioning
