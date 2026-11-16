@@ -8,6 +8,7 @@ import {
   type UpdateIteration,
 } from '../api'
 import { AutomatedSuitesTable } from '../components/AutomatedSuitesTable'
+import { DocsLink } from '../components/DocsLink'
 import { ExecutionsTree } from '../components/ExecutionsTree'
 import { IterationDashboard } from '../components/IterationDashboard'
 import { RunDetailsDrawer } from '../components/RunDetailsDrawer'
@@ -141,7 +142,8 @@ export function ExecutionsPage({ projectId }: Props) {
       <header className="executions-page-header">
         <h1 style={{ margin: 0 }}>{t('executions.title')}</h1>
         <p className="muted" style={{ margin: '0.25rem 0 0' }}>
-          {t('executions.subtitle')}
+          {t('executions.subtitle')}{' '}
+          <DocsLink to="/docs/runs" testIdSuffix="executions" />
         </p>
       </header>
 

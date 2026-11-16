@@ -6,6 +6,7 @@ import {
   type ImportReport,
   type ImporterInfo,
 } from '../api'
+import { DocsLink } from '../components/DocsLink'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { TestIds, listItemProps, testIdProps } from '../testing'
@@ -123,7 +124,8 @@ export function ImportPage({ projectId }: Props) {
     <div className="panel import-panel" {...testIdProps(TestIds.importPage)}>
       <h2>{t('import.title')}</h2>
       <p className="muted" style={{ marginTop: 0 }}>
-        {t('import.subtitle')}
+        {t('import.subtitle')}{' '}
+        <DocsLink to="/docs/import" testIdSuffix="import" />
       </p>
 
       <div className="import-grid">

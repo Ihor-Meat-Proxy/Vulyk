@@ -14,7 +14,7 @@ Creating a project while signed in grants you project **Admin** membership. Syst
 
 ## Folders (suites)
 
-Cases live in a nested **folder tree** on the Cases page (SquashTM-style). The tree is the only folder UI — it is not duplicated in the app sidebar.
+Cases live in a nested **folder tree** on the Cases page. The tree is the only folder UI — it is not duplicated in the app sidebar.
 
 - **All cases** is the tree root.
 - Folder badges show the **recursive** case total (tooltip includes the direct count).

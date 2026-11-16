@@ -46,6 +46,8 @@ export const TestIds = {
   docsTocHeading: 'docs-toc-heading',
   docsContentLink: 'docs-content-link',
   docsArticle: 'docs-article',
+  /** Prefix for page-specific guide links: `docs-guide-link-<suffix>`. */
+  docsGuideLink: 'docs-guide-link',
   navDrawer: 'nav-drawer',
   navDrawerClose: 'nav-drawer-close',
   navDrawerBackdrop: 'nav-drawer-backdrop',
