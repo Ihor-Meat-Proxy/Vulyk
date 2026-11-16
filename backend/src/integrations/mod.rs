@@ -3,11 +3,12 @@
 //! ALM clients talk to OpenProject / Jira over HTTP. This repository never
 //! opens PRs, issues, or commits against those upstreams.
 //!
-//! CI adapters dispatch GitHub Actions / GitLab pipelines and verify webhooks.
+//! CI adapters dispatch GitHub Actions / GitLab pipelines / Jenkins jobs and verify webhooks.
 
 pub mod ci;
 pub mod github;
 pub mod gitlab;
+pub mod jenkins;
 pub mod jira_cloud;
 pub mod jira_dc;
 pub mod openproject;

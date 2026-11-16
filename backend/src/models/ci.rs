@@ -123,7 +123,7 @@ pub fn merge_ci_config(existing: &Value, incoming: Value) -> Value {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCiConfig {
-    /// `github` or `gitlab`
+    /// `github`, `gitlab`, `jenkins`, `bitbucket`, or `other`
     pub provider: String,
     pub name: String,
     #[schema(value_type = Object)]
@@ -131,6 +131,12 @@ pub struct CreateCiConfig {
     pub webhook_secret: Option<String>,
     #[serde(default = "default_true")]
     pub enabled: bool,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct CiConfigTestResult {
+    pub ok: bool,
+    pub message: String,
 }
 
 fn default_true() -> bool {

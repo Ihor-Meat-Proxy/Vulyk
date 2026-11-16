@@ -254,13 +254,30 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 
 ## Jenkins
 
-There is no Jenkins-specific plugin required. Call the same shell uploader from a pipeline stage (ensure `curl`/bash/python3 and the results file are available).
+**Inbound:** no Jenkins-specific plugin is required. Call the same shell uploader
+from a pipeline stage (`curl` / bash / python3 + results file). Prefer the sample
+Declarative Pipelines [`ci/Jenkinsfile`](../../ci/Jenkinsfile) (Playwright) and
+[`ci/Jenkinsfile.selenide`](../../ci/Jenkinsfile.selenide).
 
-**Important:** `--open-run` does not set Jenkins environment variables by itself. Capture the run id with `--print-run-id` (or `--run-id-file`) and pass it to upload/close. Prefer a single concrete XML path (globbing inside one `sh` step can expand to many arguments).
+**Outbound (Dispatch):** under **CI triggers**, save a Jenkins config (base URL,
+job path, username, API token, CSRF crumb) and use **Test connection** / **Dispatch**.
+Vulyk calls `buildWithParameters` with `VULYK_RUN_ID` (run slug preferred) and
+follows the queue to a build URL. Private Jenkins needs
+`VULYK_EGRESS_ALLOW_PRIVATE=1` on the API. Details:
+[ci-integration.md](../guides/ci-integration.md#jenkins-dispatch).
+
+**Important:** `--open-run` does not set Jenkins environment variables by itself.
+Capture the run id with `--print-run-id` (or `--run-id-file`) and pass it to
+upload/close — or use the `VULYK_RUN_ID` job parameter when Vulyk started the
+build. Prefer a single concrete XML path (globbing inside one `sh` step can
+expand to many arguments).
 
 ```groovy
 pipeline {
   agent any
+  parameters {
+    string(name: 'VULYK_RUN_ID', defaultValue: '')
+  }
   environment {
     VULYK_API_URL     = 'https://vulyk.example.com'
     VULYK_API_TOKEN   = credentials('vulyk-ci-token')
@@ -280,16 +297,20 @@ pipeline {
               https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
             chmod +x vulyk-upload.sh
           '''
-          // Capture run id on stdout (GitHub Actions uses $GITHUB_ENV instead).
-          env.VULYK_RUN_ID = sh(
-            returnStdout: true,
-            script: '''
-              ./vulyk-upload.sh --open-run --print-run-id \
-                --suite-name "Jenkins #${BUILD_NUMBER}" \
-                --provider other --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
-                --pipeline-url "${BUILD_URL}"
-            '''
-          ).trim()
+          // Capture run id on stdout when Jenkins opens the run itself.
+          if (!params.VULYK_RUN_ID?.trim()) {
+            env.VULYK_RUN_ID = sh(
+              returnStdout: true,
+              script: '''
+                ./vulyk-upload.sh --open-run --print-run-id \
+                  --suite-name "Jenkins #${BUILD_NUMBER}" \
+                  --provider jenkins --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
+                  --pipeline-url "${BUILD_URL}"
+              '''
+            ).trim()
+          } else {
+            env.VULYK_RUN_ID = params.VULYK_RUN_ID.trim()
+          }
           sh '''
             set -euo pipefail
             # Prefer a single file; merge surefire XMLs beforehand if needed.

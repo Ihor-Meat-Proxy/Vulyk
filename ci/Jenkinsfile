@@ -1,0 +1,109 @@
+// Playwright → Vulyk (Jenkins).
+//
+// Two modes:
+// 1) Vulyk-triggered ("Run in CI" / Dispatch): job parameters include VULYK_RUN_ID
+//    (slug or UUID). Attach to that run; do not open a new one.
+// 2) Jenkins-first: leave VULYK_RUN_ID empty; open a run, then upload + close.
+//
+// Credentials / variables (Jenkins credentials or folder properties):
+//   VULYK_API_URL, VULYK_CI_TOKEN (or VULYK_API_TOKEN), VULYK_PROJECT_KEY or VULYK_PROJECT_ID
+//
+// Vendor scripts/vulyk-upload.sh in the automation repo when possible.
+
+pipeline {
+  agent any
+
+  parameters {
+    string(name: 'VULYK_RUN_ID', defaultValue: '', description: 'Existing Vulyk run id/slug from Dispatch')
+    string(name: 'VULYK_PROJECT_ID', defaultValue: '', description: 'Optional project UUID override')
+    string(name: 'CASE_KEYS', defaultValue: '', description: 'Optional comma-separated case keys to filter')
+  }
+
+  environment {
+    VULYK_API_URL   = "${env.VULYK_API_URL}"
+    VULYK_API_TOKEN = credentials('vulyk-ci-token')
+    VULYK_PROJECT_KEY = "${env.VULYK_PROJECT_KEY ?: 'KOC'}"
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Install + test') {
+      steps {
+        dir('e2e') {
+          sh '''
+            set -euo pipefail
+            npm ci
+            ARGS=()
+            if [ -n "${CASE_KEYS:-}" ]; then
+              IFS=',' read -ra KEYS <<< "${CASE_KEYS}"
+              for k in "${KEYS[@]}"; do
+                k="$(echo "$k" | xargs)"
+                [ -n "$k" ] && ARGS+=(-g "$k")
+              done
+            fi
+            npx playwright test "${ARGS[@]}" || true
+          '''
+        }
+      }
+    }
+
+    stage('Report to Vulyk') {
+      steps {
+        script {
+          sh '''
+            set -euo pipefail
+            if [ ! -f ./scripts/vulyk-upload.sh ]; then
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            else
+              UPLOADER=./scripts/vulyk-upload.sh
+            fi
+
+            export VULYK_API_URL VULYK_API_TOKEN
+            PROJECT_ARGS=()
+            if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+              PROJECT_ARGS+=(--project-id "${VULYK_PROJECT_ID}")
+            else
+              PROJECT_ARGS+=(--project-key "${VULYK_PROJECT_KEY}")
+            fi
+
+            if [ -z "${VULYK_RUN_ID:-}" ]; then
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "Jenkins Playwright #${BUILD_NUMBER}" \
+                --provider jenkins --branch "${GIT_BRANCH:-}" --commit "${GIT_COMMIT:-}" \
+                --pipeline-url "${BUILD_URL}" \
+                "${PROJECT_ARGS[@]}")"
+              export VULYK_RUN_ID
+            else
+              # Attach: mark queued run in_progress + store pipeline URL
+              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+                curl -fsS -X POST \
+                  -H "Authorization: Bearer ${VULYK_API_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"pipeline_url\":\"${BUILD_URL}\",\"branch\":\"${GIT_BRANCH:-}\",\"commit\":\"${GIT_COMMIT:-}\"}" \
+                  "${VULYK_API_URL%/}/api/v1/projects/${VULYK_PROJECT_ID}/ci/runs/${VULYK_RUN_ID}/start" || true
+              fi
+            fi
+
+            FILE=""
+            for cand in e2e/playwright-report/results.xml playwright-report/results.xml results.xml; do
+              if [ -f "$cand" ]; then FILE="$cand"; break; fi
+            done
+            test -n "$FILE"
+
+            "$UPLOADER" --file "$FILE" --format junit \
+              --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+          '''
+        }
+      }
+    }
+  }
+}

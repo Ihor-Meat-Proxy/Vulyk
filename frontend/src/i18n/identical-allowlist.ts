@@ -135,6 +135,7 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'runs.colStatus',
   'runs.githubActions',
   'runs.gitlabPipeline',
+  'runs.jenkinsJob',
   'runs.live',
   'runs.plans',
   'settings.automationName',

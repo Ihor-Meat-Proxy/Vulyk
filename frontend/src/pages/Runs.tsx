@@ -20,6 +20,23 @@ type Props = {
   projectId: string | null
 }
 
+type CiProvider = 'github' | 'gitlab' | 'jenkins'
+
+const GITHUB_JSON = `{
+  "token": "",
+  "owner": "org",
+  "repo": "repo",
+  "workflow_id": "ci.yml",
+  "ref": "main"
+}`
+
+const GITLAB_JSON = `{
+  "base_url": "https://gitlab.com",
+  "project_id": "group/project",
+  "trigger_token": "",
+  "ref": "main"
+}`
+
 export function Runs({ projectId }: Props) {
   const { t } = useI18n()
   const { user, status } = useAuth()
@@ -43,10 +60,16 @@ export function Runs({ projectId }: Props) {
   const [busy, setBusy] = useState(false)
   const [runName, setRunName] = useState(() => t('runs.manualSmoke'))
   const [ciName, setCiName] = useState(() => t('runs.githubActions'))
-  const [provider, setProvider] = useState<'github' | 'gitlab'>('github')
-  const [ciJson, setCiJson] = useState(
-    '{\n  "token": "",\n  "owner": "org",\n  "repo": "repo",\n  "workflow_id": "ci.yml",\n  "ref": "main"\n}',
+  const [provider, setProvider] = useState<CiProvider>('github')
+  const [ciJson, setCiJson] = useState(GITHUB_JSON)
+  const [jenkinsBaseUrl, setJenkinsBaseUrl] = useState(
+    'https://jenkins.example.com',
   )
+  const [jenkinsJobPath, setJenkinsJobPath] = useState('folder/e2e')
+  const [jenkinsUsername, setJenkinsUsername] = useState('')
+  const [jenkinsToken, setJenkinsToken] = useState('')
+  const [jenkinsUseCrumb, setJenkinsUseCrumb] = useState(true)
+  const [testMessage, setTestMessage] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     if (!projectId) {
@@ -93,6 +116,20 @@ export function Runs({ projectId }: Props) {
     }
   }, [selectedRunId])
 
+  const applyProviderDefaults = (next: CiProvider) => {
+    setProvider(next)
+    setTestMessage(null)
+    if (next === 'github') {
+      setCiName(t('runs.githubActions'))
+      setCiJson(GITHUB_JSON)
+    } else if (next === 'gitlab') {
+      setCiName(t('runs.gitlabPipeline'))
+      setCiJson(GITLAB_JSON)
+    } else {
+      setCiName(t('runs.jenkinsJob'))
+    }
+  }
+
   const onCreateRun = async () => {
     if (!projectId) return
     setBusy(true)
@@ -111,16 +148,31 @@ export function Runs({ projectId }: Props) {
     }
   }
 
+  const buildJenkinsConfig = () => ({
+    base_url: jenkinsBaseUrl.trim(),
+    job_path: jenkinsJobPath.trim(),
+    username: jenkinsUsername.trim(),
+    token: jenkinsToken,
+    use_crumb: jenkinsUseCrumb,
+  })
+
   const onSaveCi = async () => {
     if (!projectId) return
     setBusy(true)
+    setTestMessage(null)
     try {
-      const config = JSON.parse(ciJson) as Record<string, unknown>
+      const config =
+        provider === 'jenkins'
+          ? buildJenkinsConfig()
+          : (JSON.parse(ciJson) as Record<string, unknown>)
       await api.createCiConfig(projectId, {
         provider,
         name: ciName.trim() || provider,
         config,
       })
+      if (provider === 'jenkins') {
+        setJenkinsToken('')
+      }
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
@@ -131,6 +183,7 @@ export function Runs({ projectId }: Props) {
 
   const onDispatch = async (configId: string) => {
     setBusy(true)
+    setTestMessage(null)
     try {
       await api.dispatchCi(configId, {
         run_name: t('runs.uiTrigger', { time: new Date().toISOString() }),
@@ -139,6 +192,27 @@ export function Runs({ projectId }: Props) {
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onTestConnection = async (configId: string) => {
+    setBusy(true)
+    setTestMessage(null)
+    try {
+      const res = await api.testCiConfig(configId)
+      setTestMessage(
+        res.ok
+          ? t('runs.testConnectionOk', { message: res.message })
+          : t('runs.testConnectionFail', { message: res.message }),
+      )
+    } catch (err) {
+      setTestMessage(
+        t('runs.testConnectionFail', {
+          message: err instanceof Error ? err.message : String(err),
+        }),
+      )
     } finally {
       setBusy(false)
     }
@@ -293,25 +367,15 @@ export function Runs({ projectId }: Props) {
               <div className="toolbar">
                 <select
                   value={provider}
-                  onChange={(e) => {
-                    const next = e.target.value as 'github' | 'gitlab'
-                    setProvider(next)
-                    setCiName(
-                      next === 'github'
-                        ? t('runs.githubActions')
-                        : t('runs.gitlabPipeline'),
-                    )
-                    setCiJson(
-                      next === 'github'
-                        ? '{\n  "token": "",\n  "owner": "org",\n  "repo": "repo",\n  "workflow_id": "ci.yml",\n  "ref": "main"\n}'
-                        : '{\n  "base_url": "https://gitlab.com",\n  "project_id": "group/project",\n  "trigger_token": "",\n  "ref": "main"\n}',
-                    )
-                  }}
+                  onChange={(e) =>
+                    applyProviderDefaults(e.target.value as CiProvider)
+                  }
                   aria-label={t('a11y.ciProvider')}
                   {...testIdProps(TestIds.runsCiProviderSelect)}
                 >
                   <option value="github">GitHub</option>
                   <option value="gitlab">GitLab</option>
+                  <option value="jenkins">Jenkins</option>
                 </select>
                 <input
                   value={ciName}
@@ -330,15 +394,87 @@ export function Runs({ projectId }: Props) {
                   {t('runs.saveConfig')}
                 </button>
               </div>
-              <textarea
-                className="code-input"
-                value={ciJson}
-                onChange={(e) => setCiJson(e.target.value)}
-                rows={8}
-                aria-label={t('a11y.ciConfigJson')}
-                {...testIdProps(TestIds.runsCiJsonInput)}
-              />
+              {provider === 'jenkins' ? (
+                <div className="stack" style={{ gap: '0.75rem' }}>
+                  <label>
+                    <span className="muted">{t('runs.ciBaseUrl')}</span>
+                    <input
+                      value={jenkinsBaseUrl}
+                      onChange={(e) => setJenkinsBaseUrl(e.target.value)}
+                      aria-label={t('a11y.ciBaseUrl')}
+                      placeholder="https://jenkins.example.com"
+                      {...testIdProps(TestIds.runsCiBaseUrlInput)}
+                    />
+                  </label>
+                  <label>
+                    <span className="muted">{t('runs.ciJobPath')}</span>
+                    <input
+                      value={jenkinsJobPath}
+                      onChange={(e) => setJenkinsJobPath(e.target.value)}
+                      aria-label={t('a11y.ciJobPath')}
+                      placeholder="folder/e2e"
+                      {...testIdProps(TestIds.runsCiJobPathInput)}
+                    />
+                  </label>
+                  <label>
+                    <span className="muted">{t('runs.ciUsername')}</span>
+                    <input
+                      value={jenkinsUsername}
+                      onChange={(e) => setJenkinsUsername(e.target.value)}
+                      aria-label={t('a11y.ciUsername')}
+                      autoComplete="username"
+                      {...testIdProps(TestIds.runsCiUsernameInput)}
+                    />
+                  </label>
+                  <label>
+                    <span className="muted">{t('runs.ciToken')}</span>
+                    <input
+                      type="password"
+                      value={jenkinsToken}
+                      onChange={(e) => setJenkinsToken(e.target.value)}
+                      aria-label={t('a11y.ciToken')}
+                      autoComplete="new-password"
+                      {...testIdProps(TestIds.runsCiTokenInput)}
+                    />
+                  </label>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={jenkinsUseCrumb}
+                      onChange={(e) => setJenkinsUseCrumb(e.target.checked)}
+                      aria-label={t('a11y.ciUseCrumb')}
+                      {...testIdProps(TestIds.runsCiUseCrumbCheckbox)}
+                    />
+                    <span>{t('runs.ciUseCrumb')}</span>
+                  </label>
+                </div>
+              ) : (
+                <textarea
+                  className="code-input"
+                  value={ciJson}
+                  onChange={(e) => setCiJson(e.target.value)}
+                  rows={8}
+                  aria-label={t('a11y.ciConfigJson')}
+                  {...testIdProps(TestIds.runsCiJsonInput)}
+                />
+              )}
             </>
+          )}
+
+          {testMessage && (
+            <p
+              className="muted"
+              style={{ marginTop: '0.75rem' }}
+              {...testIdProps(TestIds.runsCiTestConnectionResult)}
+            >
+              {testMessage}
+            </p>
           )}
 
           {configs.length > 0 && (
@@ -356,20 +492,42 @@ export function Runs({ projectId }: Props) {
                     <td>{cfg.name}</td>
                     <td>{cfg.provider}</td>
                     <td>
-                      {canTrigger && (
-                        <button
-                          type="button"
-                          className="btn secondary"
-                          disabled={busy || !cfg.enabled}
-                          onClick={() => void onDispatch(cfg.id)}
-                          {...listItemProps(TestIds.runsCiDispatchButton, {
-                            entityId: cfg.id,
-                            index,
-                          })}
-                        >
-                          {t('runs.dispatch')}
-                        </button>
-                      )}
+                      <div
+                        className="toolbar"
+                        style={{ justifyContent: 'flex-end' }}
+                      >
+                        {canManageCi && cfg.provider === 'jenkins' && (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={busy || !cfg.enabled}
+                            onClick={() => void onTestConnection(cfg.id)}
+                            {...listItemProps(
+                              TestIds.runsCiTestConnectionButton,
+                              {
+                                entityId: cfg.id,
+                                index,
+                              },
+                            )}
+                          >
+                            {t('runs.testConnection')}
+                          </button>
+                        )}
+                        {canTrigger && (
+                          <button
+                            type="button"
+                            className="btn secondary"
+                            disabled={busy || !cfg.enabled}
+                            onClick={() => void onDispatch(cfg.id)}
+                            {...listItemProps(TestIds.runsCiDispatchButton, {
+                              entityId: cfg.id,
+                              index,
+                            })}
+                          >
+                            {t('runs.dispatch')}
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

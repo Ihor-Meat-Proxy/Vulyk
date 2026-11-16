@@ -276,6 +276,15 @@ automatically on upgrade — no operator `.env` changes. Deleted entities never
 reuse sequence numbers. UI URLs prefer the run `slug`; API path params accept
 UUID, display_id, or slug.
 
+### Jenkins CI provider (`ci_configs`)
+
+Forward migration `20261116195000_ci_configs_jenkins_provider.sql` widens
+`ci_configs.provider` to allow `jenkins`, `bitbucket`, and `other` alongside
+`github` / `gitlab` (CHECK constraint). Existing rows stay valid. No new `.env`
+keys; private Jenkins remotes still need `VULYK_EGRESS_ALLOW_PRIVATE=1` (already
+synced from `.env.example` when missing). Configure under **CI triggers**; see
+[ci-integration.md](./ci-integration.md#jenkins-dispatch).
+
 ## Web image build context
 
 The `vulyk-web` image is built from the **repository root** (`docker build -f frontend/Dockerfile .`)

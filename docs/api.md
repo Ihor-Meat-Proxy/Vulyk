@@ -45,7 +45,7 @@ UI loads a vendored `@scalar/api-reference` bundle from
 | Case list column prefs | `GET/PUT/DELETE /api/v1/projects/{id}/preferences/case-list-columns` — per-user layout (order/visibility + optional sort); Title cannot be hidden |
 | Automation repos | `/api/v1/automation-repos` (+ project links); legacy `/api/v1/projects/{id}/automation-repo` — [automation-repo.md](automation-repo.md) |
 | CI reporting | `/api/v1/projects/{id}/ci/runs` (open / results / ingest / close), project CI tokens — [guides/ci-integration.md](guides/ci-integration.md) |
-| CI configs / webhooks | `/api/v1/projects/{id}/ci-configs`; `/api/v1/webhooks/github|gitlab[/{config_id}]` — webhook secret **required** (fail-closed); responses redact secrets (`has_webhook_secret` / `has_token`) |
+| CI configs / webhooks | `/api/v1/projects/{id}/ci-configs`; `POST …/ci-configs/{id}/test` (Jenkins crumb/whoAmI/job); `POST …/dispatch` (GitHub / GitLab / Jenkins); `/api/v1/webhooks/github|gitlab[/{config_id}]` — webhook secret **required** (fail-closed); responses redact secrets (`has_webhook_secret` / `has_token`) |
 | LLM generate | `config_id` optional; generate-code returns `context_files` from the automation repo index |
 | Plans / runs / results | `/api/v1/projects/{id}/plans`, `/runs` — run path params accept **UUID, `display_id` (`PREFIX-R-n`), or URL `slug`**; responses include `display_id`, `slug`, `seq_number` |
 | Executions (campaigns / iterations / suites) | `/api/v1/projects/{id}/executions/tree`, `/campaigns`, `/iterations`, `/suites-runs` — campaign/iteration path params accept **UUID or `display_id`** (`PREFIX-C-n` / `PREFIX-IT-n`); see [guides/executions.md](guides/executions.md) |
