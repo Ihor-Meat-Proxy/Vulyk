@@ -146,15 +146,20 @@ fi
 TMP_FILES=()
 cleanup() {
   local f
-  for f in "${TMP_FILES[@]:-}"; do
-    rm -f "${f}" 2>/dev/null || true
-  done
+  # Bash 3.2 (macOS): empty "${arr[@]}" under set -u can abort.
+  if [ "${#TMP_FILES[@]}" -gt 0 ]; then
+    for f in "${TMP_FILES[@]}"; do
+      rm -f "${f}" 2>/dev/null || true
+    done
+  fi
 }
 trap cleanup EXIT
 
 mktemp_payload() {
   local t
-  t="$(mktemp "${TMPDIR:-/tmp}/vulyk-upload.XXXXXX")"
+  # macOS mktemp needs the Xs at the end of the template path.
+  t="$(mktemp "${TMPDIR:-/tmp}/vulyk-upload.XXXXXX" 2>/dev/null \
+    || mktemp -t vulyk-upload)"
   TMP_FILES+=("${t}")
   printf '%s' "${t}"
 }
