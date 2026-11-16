@@ -220,9 +220,10 @@ async fn updates_preferences_roundtrip() {
         "updates-prefs+{}@example.com",
         uuid::Uuid::new_v4().simple()
     );
-    insert_admin(&pool, &email, "admin-password-16").await;
+    let password = test_password();
+    insert_admin(&pool, &email, &password).await;
     let client = reqwest::Client::new();
-    let token = login(&client, &base, &email, "admin-password-16").await;
+    let token = login(&client, &base, &email, &password).await;
 
     let put = client
         .put(format!("{base}/api/v1/admin/updates/preferences"))
