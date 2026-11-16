@@ -2170,6 +2170,27 @@ button.trend-seg.clickable:focus-visible {
   padding-left: 1.1rem;
 }
 
+/* Keep requirement title and linked-case count from running together (e.g. "standard3"). */
+.coverage-req-list > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+}
+
+.coverage-req-list > li > strong {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.coverage-req-list > li > .muted {
+  flex-shrink: 0;
+}
+
+.coverage-req-list > li > .coverage-case-list {
+  flex: 1 1 100%;
+}
+
 .comparison-pill {
   display: inline-block;
   margin-left: 0.35rem;
@@ -2534,7 +2555,10 @@ button.trend-seg.clickable:focus-visible {
 }
 
 .folder-tree-root {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.55rem;
@@ -2610,12 +2634,17 @@ button.trend-seg.clickable:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--ink);
+  flex: 1;
+  min-width: 0;
 }
 
 .folder-tree-count {
   margin-left: auto;
+  flex-shrink: 0;
   font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
   color: var(--ink-muted);
+  padding-left: 0.35rem;
   padding-right: 0.25rem;
 }
 
