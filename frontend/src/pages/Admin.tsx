@@ -26,7 +26,9 @@ import {
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
 import { SampleBadge } from '../components/SampleBadge'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { usePromptDialog } from '../hooks/usePromptDialog'
 import { useI18n } from '../i18n'
 import { DEFAULT_PASSWORD_POLICY } from '../passwordPolicy'
 import { PROJECT_ROLES, roleDisplayName } from '../permissions'
@@ -1327,6 +1329,8 @@ function translateUpdateCheckError(
 
 function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const { t, formatDate } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
+  const { promptAsync, promptDialog } = usePromptDialog()
   const [status, setStatus] = useState<UpdatesStatus | null>(null)
   const [jobs, setJobs] = useState<UpdateJob[]>([])
   const [checking, setChecking] = useState(false)
@@ -1465,11 +1469,13 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const onApply = async () => {
     if (!status?.latest_version) return
     const version = status.latest_version
-    if (
-      !window.confirm(t('admin.updates.confirm').replace('{version}', version))
-    ) {
-      return
-    }
+    const ok = await confirmAsync({
+      title: t('admin.updates'),
+      message: t('admin.updates.confirm').replace('{version}', version),
+      confirmLabel: t('common.confirm'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setApplying(true)
     try {
       const res = await api.applyAdminUpdate(version)
@@ -1485,14 +1491,18 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
   const onRollback = async () => {
     if (!status?.rollback) return
     const version = status.rollback.version
-    const typed = window.prompt(
-      t('admin.updates.rollbackPrompt').replace('{version}', version),
-      '',
-    )
+    const typed = await promptAsync({
+      title: t('admin.updates.rollback').replace('{version}', version),
+      message: t('admin.updates.rollbackPrompt').replace('{version}', version),
+      label: t('admin.updates.rollbackConfirm'),
+      requiredExactValue: 'ROLLBACK',
+      confirmLabel: t('admin.updates.rollback').replace('{version}', version),
+      variant: 'danger',
+      inputTestId: TestIds.adminRollbackDialogInput,
+    })
+    if (typed == null) return
     if (typed !== 'ROLLBACK') {
-      if (typed !== null) {
-        onError(t('admin.updates.rollbackConfirm'))
-      }
+      onError(t('admin.updates.rollbackConfirm'))
       return
     }
     setRollingBack(true)
@@ -1857,6 +1867,8 @@ function UpdatesPanel({ onError }: { onError: (msg: string) => void }) {
           ))
         )}
       </ul>
+      {confirmDialog}
+      {promptDialog}
     </div>
   )
 }
@@ -2031,6 +2043,7 @@ function SampleDataPanel({
   onError: (msg: string) => void
 }) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const [status, setStatus] = useState<SampleDataStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -2048,7 +2061,13 @@ function SampleDataPanel({
   }, [refresh])
 
   const onRemove = async () => {
-    if (!window.confirm(t('admin.sampleConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('admin.sampleRemove'),
+      message: t('admin.sampleConfirm'),
+      confirmLabel: t('admin.sampleRemove'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     setNotice(null)
     try {
@@ -2139,6 +2158,7 @@ function SampleDataPanel({
           {t('admin.sampleReseed')}
         </button>
       </div>
+      {confirmDialog}
     </section>
   )
 }

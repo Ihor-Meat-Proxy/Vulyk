@@ -289,8 +289,8 @@ test('admin abandon cancels in-progress run; StatusBadge shows Cancelled', {
   const abandon = page.getByTestId('run-detail-abandon-button')
   await expect(abandon).toBeVisible({ timeout: 20_000 })
 
-  page.once('dialog', (dialog) => dialog.accept())
   await abandon.click()
+  await page.getByTestId('confirm-dialog-confirm').click()
 
   const badge = page.getByTestId('run-detail-status-badge')
   await expect(badge).toHaveAttribute('data-status', 'cancelled', {

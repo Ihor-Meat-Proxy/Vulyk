@@ -5,6 +5,7 @@ import {
   type OptionListDetail,
   type OptionListItem,
 } from '../../api'
+import { useConfirmDialog } from '../../hooks/useConfirmDialog'
 import { useI18n } from '../../i18n'
 import { TestIds, listItemProps, testIdProps } from '../../testing'
 
@@ -14,6 +15,7 @@ type Props = {
 
 export function ListsPanel({ onError }: Props) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const [lists, setLists] = useState<OptionList[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<OptionListDetail | null>(null)
@@ -143,7 +145,13 @@ export function ListsPanel({ onError }: Props) {
 
   const deleteItem = async (item: OptionListItem) => {
     if (!detail) return
-    if (!window.confirm(t('admin.lists.deleteItemConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('common.delete'),
+      message: t('admin.lists.deleteItemConfirm'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await api.deleteAdminListItem(detail.id, item.id)
@@ -371,6 +379,7 @@ export function ListsPanel({ onError }: Props) {
           </>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

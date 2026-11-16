@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type AutomatedSuite, type AutomatedSuitesParams } from '../api'
 import { useAuth } from '../auth'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useI18n } from '../i18n'
 import {
   TestIds,
@@ -40,6 +41,7 @@ export function AutomatedSuitesTable({
   refreshKey = 0,
 }: Props) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { user, status: authStatus } = useAuth()
   const [items, setItems] = useState<AutomatedSuite[]>([])
   const [total, setTotal] = useState(0)
@@ -90,7 +92,13 @@ export function AutomatedSuitesTable({
 
   const onDelete = async (suite: AutomatedSuite) => {
     if (!canDelete) return
-    if (!window.confirm(t('executions.deleteConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('executions.delete'),
+      message: t('executions.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusyId(suite.id)
     try {
       await api.deleteSuiteRun(projectId, suite.id)
@@ -412,6 +420,7 @@ export function AutomatedSuitesTable({
           </div>
         </>
       )}
+      {confirmDialog}
     </section>
   )
 }

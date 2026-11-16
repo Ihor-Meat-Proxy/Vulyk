@@ -9,6 +9,7 @@ import {
 } from '../api'
 import { CiPipelineLink } from '../components/CiRunBadges'
 import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
@@ -58,6 +59,7 @@ function isAbandonableStatus(status: string): boolean {
 export function RunDetail({ projectId, onEnsureProject }: Props) {
   const { runId } = useParams()
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { can } = useProjectPermissions(projectId)
   const canAbandon = can('delete_project')
   const [detail, setDetail] = useState<TestRunDetail | null>(null)
@@ -272,7 +274,13 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
 
   const abandonRun = async () => {
     if (!projectId || !runId || !detail) return
-    if (!window.confirm(t('runs.abandonConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('runs.abandon'),
+      message: t('runs.abandonConfirm'),
+      confirmLabel: t('runs.abandon'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setAbandoning(true)
     setNotice(null)
     try {
@@ -747,6 +755,7 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
           </>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

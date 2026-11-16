@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ExecutionsTreeNode } from '../api'
 import { useI18n } from '../i18n'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
+import {
+  CampaignFormDialog,
+  type CampaignFormValues,
+} from './CampaignFormDialog'
 import { StatusBadge } from './StatusBadge'
 
 type Props = {
@@ -9,8 +13,11 @@ type Props = {
   selectedIterationId: string | null
   onSelectIteration: (id: string) => void
   canManage?: boolean
-  onCreateCampaign?: (name: string) => void
-  onCreateIteration?: (campaignId: string, name: string) => void
+  onCreateCampaign?: (values: CampaignFormValues) => void | Promise<void>
+  onCreateIteration?: (
+    campaignId: string,
+    values: CampaignFormValues,
+  ) => void | Promise<void>
 }
 
 function TreeNode({
@@ -20,7 +27,7 @@ function TreeNode({
   selectedIterationId,
   onSelectIteration,
   canManage,
-  onCreateIteration,
+  onRequestCreateIteration,
 }: {
   node: ExecutionsTreeNode
   depth: number
@@ -28,7 +35,7 @@ function TreeNode({
   selectedIterationId: string | null
   onSelectIteration: (id: string) => void
   canManage?: boolean
-  onCreateIteration?: (campaignId: string, name: string) => void
+  onRequestCreateIteration?: (campaign: ExecutionsTreeNode) => void
 }) {
   const { t } = useI18n()
   const [open, setOpen] = useState(true)
@@ -81,15 +88,12 @@ function TreeNode({
             <StatusBadge status={node.status} />
           ) : null}
         </button>
-        {isCampaign && canManage && onCreateIteration ? (
+        {isCampaign && canManage && onRequestCreateIteration ? (
           <button
             type="button"
             className="btn secondary exec-tree-add"
             title={t('executions.newIteration')}
-            onClick={() => {
-              const name = window.prompt(t('executions.iterationName'))
-              if (name?.trim()) onCreateIteration(node.id, name.trim())
-            }}
+            onClick={() => onRequestCreateIteration(node)}
             {...listChildProps(TestIds.executionNode, 'add-iteration')}
           >
             +
@@ -106,7 +110,7 @@ function TreeNode({
               selectedIterationId={selectedIterationId}
               onSelectIteration={onSelectIteration}
               canManage={canManage}
-              onCreateIteration={onCreateIteration}
+              onRequestCreateIteration={onRequestCreateIteration}
             />
           ))
         : null}
@@ -123,6 +127,53 @@ export function ExecutionsTree({
   onCreateIteration,
 }: Props) {
   const { t } = useI18n()
+  const [campaignOpen, setCampaignOpen] = useState(false)
+  const [iterationCampaign, setIterationCampaign] =
+    useState<ExecutionsTreeNode | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [apiError, setApiError] = useState<string | null>(null)
+
+  const campaignNames = useMemo(
+    () => nodes.filter((n) => n.kind === 'campaign').map((n) => n.name),
+    [nodes],
+  )
+
+  const iterationNames = useMemo(() => {
+    if (!iterationCampaign) return []
+    return iterationCampaign.children
+      .filter((c) => c.kind === 'iteration')
+      .map((c) => c.name)
+  }, [iterationCampaign])
+
+  const submitCampaign = async (values: CampaignFormValues) => {
+    if (!onCreateCampaign) return
+    setBusy(true)
+    setApiError(null)
+    try {
+      await onCreateCampaign(values)
+      setCampaignOpen(false)
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : String(err))
+      throw err
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const submitIteration = async (values: CampaignFormValues) => {
+    if (!onCreateIteration || !iterationCampaign) return
+    setBusy(true)
+    setApiError(null)
+    try {
+      await onCreateIteration(iterationCampaign.id, values)
+      setIterationCampaign(null)
+    } catch (err) {
+      setApiError(err instanceof Error ? err.message : String(err))
+      throw err
+    } finally {
+      setBusy(false)
+    }
+  }
 
   return (
     <aside
@@ -137,8 +188,8 @@ export function ExecutionsTree({
             type="button"
             className="btn secondary"
             onClick={() => {
-              const name = window.prompt(t('executions.campaignName'))
-              if (name?.trim()) onCreateCampaign(name.trim())
+              setApiError(null)
+              setCampaignOpen(true)
             }}
             {...testIdProps(TestIds.executionsNewCampaignButton)}
           >
@@ -161,11 +212,43 @@ export function ExecutionsTree({
               selectedIterationId={selectedIterationId}
               onSelectIteration={onSelectIteration}
               canManage={canManage}
-              onCreateIteration={onCreateIteration}
+              onRequestCreateIteration={
+                onCreateIteration
+                  ? (campaign) => {
+                      setApiError(null)
+                      setIterationCampaign(campaign)
+                    }
+                  : undefined
+              }
             />
           ))}
         </div>
       )}
+
+      <CampaignFormDialog
+        open={campaignOpen}
+        mode="campaign"
+        existingNames={campaignNames}
+        busy={busy}
+        apiError={campaignOpen ? apiError : null}
+        onCancel={() => {
+          setCampaignOpen(false)
+          setApiError(null)
+        }}
+        onSubmit={submitCampaign}
+      />
+      <CampaignFormDialog
+        open={iterationCampaign != null}
+        mode="iteration"
+        existingNames={iterationNames}
+        busy={busy}
+        apiError={iterationCampaign ? apiError : null}
+        onCancel={() => {
+          setIterationCampaign(null)
+          setApiError(null)
+        }}
+        onSubmit={submitIteration}
+      />
     </aside>
   )
 }

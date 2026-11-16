@@ -101,29 +101,36 @@ export function ExecutionsPage({ projectId }: Props) {
     navigate(`/executions/iterations/${id}`)
   }
 
-  const createCampaign = async (name: string) => {
+  const createCampaign = async (values: {
+    name: string
+    description: string
+  }) => {
     if (!projectId) return
-    try {
-      await api.createCampaign(projectId, { name })
-      await refreshTree()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    await api.createCampaign(projectId, {
+      name: values.name,
+      description: values.description || undefined,
+    })
+    await refreshTree()
   }
 
-  const createIteration = async (campaignId: string, name: string) => {
+  const createIteration = async (
+    campaignId: string,
+    values: {
+      name: string
+      description: string
+      cadence?: string
+      mode?: string
+    },
+  ) => {
     if (!projectId) return
-    try {
-      const iteration = await api.createIteration(projectId, campaignId, {
-        name,
-        cadence: 'manual',
-        mode: 'automated',
-      })
-      await refreshTree()
-      selectIteration(iteration.id)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    const iteration = await api.createIteration(projectId, campaignId, {
+      name: values.name,
+      description: values.description || undefined,
+      cadence: values.cadence ?? 'manual',
+      mode: values.mode ?? 'automated',
+    })
+    await refreshTree()
+    selectIteration(iteration.id)
   }
 
   const saveSchedule = async (body: UpdateIteration) => {
@@ -164,8 +171,8 @@ export function ExecutionsPage({ projectId }: Props) {
           selectedIterationId={selectedId}
           onSelectIteration={selectIteration}
           canManage={canManage}
-          onCreateCampaign={(name) => void createCampaign(name)}
-          onCreateIteration={(cid, name) => void createIteration(cid, name)}
+          onCreateCampaign={createCampaign}
+          onCreateIteration={createIteration}
         />
 
         <div className="executions-content">

@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { api, type ConfigImportPreview, type Project } from '../../api'
+import { useConfirmDialog } from '../../hooks/useConfirmDialog'
 import { useI18n } from '../../i18n'
 import { TestIds, listItemProps, testIdProps } from '../../testing'
 
@@ -10,6 +11,7 @@ type Props = {
 
 export function ExportConfigPanel({ projects, onError }: Props) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const [scope, setScope] = useState<'all' | 'selected'>('all')
   const [projectIds, setProjectIds] = useState<string[]>([])
   const [includeMemberships, setIncludeMemberships] = useState(false)
@@ -101,7 +103,13 @@ export function ExportConfigPanel({ projects, onError }: Props) {
       onError(t('admin.export.needFile'))
       return
     }
-    if (!window.confirm(t('admin.export.applyConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('admin.export.apply'),
+      message: t('admin.export.applyConfirm'),
+      confirmLabel: t('admin.export.apply'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       const res = await api.importAdminConfig({
@@ -280,6 +288,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

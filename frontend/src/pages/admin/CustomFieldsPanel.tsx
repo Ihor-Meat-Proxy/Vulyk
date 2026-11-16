@@ -5,6 +5,7 @@ import {
   type OptionList,
   type Project,
 } from '../../api'
+import { useConfirmDialog } from '../../hooks/useConfirmDialog'
 import { useI18n } from '../../i18n'
 import { TestIds, listItemProps, testIdProps } from '../../testing'
 
@@ -84,6 +85,7 @@ function parseDefault(fieldType: string, raw: string): unknown {
 
 export function CustomFieldsPanel({ projects, onError }: Props) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const [fields, setFields] = useState<CustomFieldDefinitionDetail[]>([])
   const [lists, setLists] = useState<OptionList[]>([])
   const [form, setForm] = useState<FormState>(emptyForm)
@@ -180,7 +182,11 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           (form.scope === 'selected' &&
             (existing.project_ids?.length ?? 0) > form.project_ids.length))
       if (narrowing) {
-        const ok = window.confirm(t('admin.customFields.scopeWarn'))
+        const ok = await confirmAsync({
+          title: t('dialog.confirmTitle'),
+          message: t('admin.customFields.scopeWarn'),
+          variant: 'danger',
+        })
         if (!ok) return
         acknowledge = true
       }
@@ -204,7 +210,11 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       if (msg.toLowerCase().includes('acknowledge') && editingId) {
-        const ok = window.confirm(t('admin.customFields.scopeWarn'))
+        const ok = await confirmAsync({
+          title: t('dialog.confirmTitle'),
+          message: t('admin.customFields.scopeWarn'),
+          variant: 'danger',
+        })
         if (ok) {
           try {
             await api.updateAdminCustomField(editingId, buildBody(true))
@@ -224,7 +234,13 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
   }
 
   const onDelete = async (f: CustomFieldDefinitionDetail) => {
-    if (!window.confirm(t('admin.customFields.deleteConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('common.delete'),
+      message: t('admin.customFields.deleteConfirm'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await api.deleteAdminCustomField(f.id)
@@ -525,6 +541,7 @@ export function CustomFieldsPanel({ projects, onError }: Props) {
           )}
         </div>
       </form>
+      {confirmDialog}
     </div>
   )
 }

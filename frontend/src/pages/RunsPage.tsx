@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../auth'
 import { DocsLink } from '../components/DocsLink'
 import { StatusBadge } from '../components/StatusBadge'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { hasLiveRuns, LIVE_RUN_POLL_MS } from '../lib/liveRun'
@@ -34,6 +35,7 @@ type Props = {
 export function RunsPage({ projectId, suites }: Props) {
   const navigate = useNavigate()
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { user, status } = useAuth()
   const { can } = useProjectPermissions(projectId)
   const canExecute = can('execute_runs')
@@ -65,7 +67,13 @@ export function RunsPage({ projectId, suites }: Props) {
 
   const abandonRun = async (runId: string) => {
     if (!projectId) return
-    if (!window.confirm(t('runs.abandonConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('runs.abandon'),
+      message: t('runs.abandonConfirm'),
+      confirmLabel: t('runs.abandon'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setAbandoningId(runId)
     try {
       const updated = await api.abandonRun(projectId, runId, {
@@ -478,6 +486,7 @@ export function RunsPage({ projectId, suites }: Props) {
           </>
         )}
       </section>
+      {confirmDialog}
     </div>
   )
 }

@@ -156,11 +156,11 @@ export class CasesPage {
   }
 
   async createFolder(name: string) {
-    // window.prompt blocks the click until the dialog is handled — accept in parallel.
-    await Promise.all([
-      this.page.waitForEvent("dialog").then((dialog) => dialog.accept(name)),
-      this.folderTree().getByTestId(TestIds.folderTreeNewButton).click(),
-    ]);
+    await this.folderTree().getByTestId(TestIds.folderTreeNewButton).click();
+    const input = this.page.getByTestId(TestIds.folderCreateDialogInput);
+    await input.waitFor({ state: "visible" });
+    await input.fill(name);
+    await this.page.getByTestId(TestIds.promptDialogConfirm).click();
   }
 
   async editSteps(action: string, expected: string) {
