@@ -25,14 +25,16 @@ test('settings: automation repo + project CI token CRUD', {
   await settings.expectAutomationHeading()
 
   const repoName = `e2e-repo-${key}`
-  const before = await settings.repoRows().count()
   await settings.fillNewRepo({
     name: repoName,
     remoteUrl: 'https://github.com/example/e2e-tests.git',
     projectId: project.id,
   })
   await settings.submitAddRepo()
-  await expect(settings.repoRows()).toHaveCount(before + 1, { timeout: 15_000 })
+  // Assert the uniquely named row — never global table length (leftovers flake).
+  const createdRow = settings.repoRows().filter({ hasText: repoName })
+  await expect(createdRow).toHaveCount(1, { timeout: 15_000 })
+  await expect(createdRow).toBeVisible()
 
   await settings.expectCiTokensHeading()
   await settings.selectCiProject(project.id)

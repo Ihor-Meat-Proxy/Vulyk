@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   dismissPwaToasts,
   ensureAdminSession,
@@ -119,7 +120,9 @@ test('executions tree, dashboard, suites drawer', {
   await expect(page.locator('.status-pill').first()).toBeVisible()
 
   await executions.expectSuites()
-  await expect(page.getByText('WALL-E-rror')).toBeVisible()
+  await expect(
+    page.getByTestId(TestIds.automatedSuitesTable).getByText('WALL-E-rror'),
+  ).toBeVisible()
   await executions.openFirstSuiteDetails()
 })
 
@@ -144,9 +147,13 @@ test('case executions tab shows history sparkline', {
   if (idx >= 0) await select.selectOption({ index: idx })
 
   await page.goto(`/cases/${caseId}`)
-  await page.getByRole('tab', { name: /Executions|Виконання/i }).click()
+  await page.getByTestId(TestIds.caseDetailTabExecutions).click()
   await expect(page.locator('.exec-sparkline')).toBeVisible({
     timeout: 20_000,
   })
-  await expect(page.getByText(/Pass rate/i)).toBeVisible()
+  // Prefer test id: global /Pass rate/i matches leftover project names
+  // (e.g. "Pass rate …" from ui-layout-polish).
+  await expect(
+    page.getByTestId(TestIds.caseDetailExecutionsPassRate),
+  ).toBeVisible()
 })

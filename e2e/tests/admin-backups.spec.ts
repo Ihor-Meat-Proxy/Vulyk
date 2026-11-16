@@ -54,9 +54,27 @@ test.describe('Admin content backups', () => {
       )
       .toBeTruthy()
 
-    await page.getByTestId(TestIds.adminBackupsRestore).first().click()
+    // Newest run is first (ORDER BY started_at DESC). Wait for the dry-run
+    // restore response rather than a bare visibility timeout.
+    const newestSuccess = page
+      .getByTestId(TestIds.adminBackupsRunRow)
+      .filter({
+        has: page.getByTestId(TestIds.adminBackupsRunStatus).filter({
+          hasText: /^\s*success\s*$/,
+        }),
+      })
+      .first()
+    const restoreResponse = page.waitForResponse(
+      (res) =>
+        res.url().includes('/api/v1/admin/backups/restore') &&
+        res.request().method() === 'POST',
+      { timeout: 90_000 },
+    )
+    await newestSuccess.getByTestId(TestIds.adminBackupsRestore).click()
+    const previewRes = await restoreResponse
+    expect(previewRes.ok()).toBeTruthy()
     await expect(page.getByTestId(TestIds.adminBackupsRestorePreview)).toBeVisible({
-      timeout: 30_000,
+      timeout: 15_000,
     })
     await expect(page.getByTestId(TestIds.adminBackupsRestoreCounts)).toBeVisible()
   })
