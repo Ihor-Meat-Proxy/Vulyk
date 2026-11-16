@@ -137,32 +137,23 @@ pub async fn find_or_create_campaign(
     parent_id: Option<Uuid>,
 ) -> AppResult<Campaign> {
     let name = name.trim();
-    if let Some(existing) = sqlx::query_as::<_, Campaign>(
-        r#"SELECT id, project_id, parent_id, name, description, sort_order, created_at, updated_at
-           FROM campaigns
-           WHERE project_id = $1 AND name = $2
-             AND (($3::uuid IS NULL AND parent_id IS NULL) OR parent_id = $3)
-           LIMIT 1"#,
+    if name.is_empty() {
+        return Err(AppError::BadRequest("name is required".into()));
+    }
+    // Race-safe: unique index + ON CONFLICT (NULLS NOT DISTINCT on parent_id).
+    sqlx::query_as::<_, Campaign>(
+        r#"INSERT INTO campaigns (project_id, parent_id, name, description, sort_order)
+           VALUES ($1, $2, $3, '', 0)
+           ON CONFLICT (project_id, parent_id, name) DO UPDATE
+             SET updated_at = campaigns.updated_at
+           RETURNING id, project_id, parent_id, name, description, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
-    .bind(name)
     .bind(parent_id)
-    .fetch_optional(pool)
-    .await?
-    {
-        return Ok(existing);
-    }
-    create_campaign(
-        pool,
-        project_id,
-        &CreateCampaign {
-            name: name.into(),
-            description: String::new(),
-            parent_id,
-            sort_order: 0,
-        },
-    )
+    .bind(name)
+    .fetch_one(pool)
     .await
+    .map_err(AppError::from)
 }
 
 pub async fn list_iterations(
@@ -356,39 +347,38 @@ pub async fn find_or_create_iteration(
     reference: &str,
     cadence: &str,
 ) -> AppResult<Iteration> {
-    if let Some(existing) = sqlx::query_as::<_, Iteration>(
-        r#"SELECT id, project_id, campaign_id, name, reference, description, status, mode,
-                  cadence, scheduled_start, scheduled_end, created_at, updated_at
-           FROM iterations
-           WHERE project_id = $1 AND campaign_id = $2 AND name = $3
-           LIMIT 1"#,
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(AppError::BadRequest("name is required".into()));
+    }
+    ensure_campaign(pool, project_id, campaign_id).await?;
+    // Do not stamp Running on create — sync_iteration_item_statuses owns lifecycle.
+    sqlx::query_as::<_, Iteration>(
+        r#"INSERT INTO iterations
+             (project_id, campaign_id, name, reference, description, status, mode, cadence,
+              scheduled_start, scheduled_end)
+           VALUES ($1, $2, $3, $4, '', 'Undefined', 'automated', $5, NULL, NULL)
+           ON CONFLICT (project_id, campaign_id, name) DO UPDATE
+             SET cadence = CASE
+                   WHEN EXCLUDED.cadence <> '' THEN EXCLUDED.cadence
+                   ELSE iterations.cadence
+                 END,
+                 reference = CASE
+                   WHEN EXCLUDED.reference <> '' THEN EXCLUDED.reference
+                   ELSE iterations.reference
+                 END,
+                 updated_at = iterations.updated_at
+           RETURNING id, project_id, campaign_id, name, reference, description, status, mode,
+                     cadence, scheduled_start, scheduled_end, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(campaign_id)
-    .bind(name.trim())
-    .fetch_optional(pool)
-    .await?
-    {
-        return Ok(existing);
-    }
-    create_iteration(
-        pool,
-        project_id,
-        campaign_id,
-        &CreateIteration {
-            name: name.into(),
-            reference: reference.into(),
-            description: String::new(),
-            status: "Running".into(),
-            mode: "automated".into(),
-            cadence: cadence.into(),
-            scheduled_start: None,
-            scheduled_end: None,
-            case_ids: vec![],
-            suite_ids: vec![],
-        },
-    )
+    .bind(name)
+    .bind(reference.trim())
+    .bind(cadence.trim())
+    .fetch_one(pool)
     .await
+    .map_err(AppError::from)
 }
 
 pub async fn executions_tree(

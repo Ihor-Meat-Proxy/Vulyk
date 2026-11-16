@@ -853,6 +853,8 @@ pub async fn pipeline_ingest(
             5,
         )
         .await?;
+        // Sync now so a new empty iteration is Undefined (not stuck Running).
+        let _ = camp::sync_iteration_item_statuses(&state.pool, iteration.id).await;
         return Ok(Json(PipelineIngestResponse {
             campaign_id: campaign.id,
             iteration_id: iteration.id,
