@@ -49,6 +49,8 @@ const es: Dict = {
   'a11y.sort': "Ordenar",
   'a11y.updatesCheckError': "Error de comprobación de actualizaciones",
   'a11y.uploadTargetRun': "Ejecución destino de la carga",
+  'a11y.runsPlanSelect': "Plan para la nueva ejecución",
+  'a11y.runsSuiteSelect': "Suite para la nueva ejecución",
   'admin.automationBranch': "Rama",
   'admin.automationProvider': "Proveedor",
   'admin.automationReindex': "Reindexar",

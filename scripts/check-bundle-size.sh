@@ -115,7 +115,7 @@ print(f"growth: {pct:+.2f}% (limit {max_g*100:.0f}%)")
 if growth > max_g + 1e-12:
     raise SystemExit(
         f"error: main JS bundle grew {pct:.2f}% "
-        f"({base} → {cur} bytes); limit is {max_g*100:.0f}%"
+        f"({base} -> {cur} bytes); limit is {max_g*100:.0f}%"
     )
 print("OK: bundle size within budget")
 PY
