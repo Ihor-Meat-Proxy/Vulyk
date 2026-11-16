@@ -161,6 +161,48 @@ async fn updates_status_requires_admin_and_reports_manual() {
 }
 
 #[tokio::test]
+async fn updates_status_exposes_persisted_check_error_and_keeps_last_good() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+    let (base, pool) = spawn_app().await;
+    let email = format!("updates-err+{}@example.com", uuid::Uuid::new_v4().simple());
+    insert_admin(&pool, &email, "admin-password-16").await;
+    let client = reqwest::Client::new();
+    let token = login(&client, &base, &email, "admin-password-16").await;
+
+    // Seed a last-good release cache + a durable check error.
+    for (key, value) in [
+        ("updates_latest_version", "1.2.3"),
+        ("updates_latest_notes", "cached notes"),
+        ("updates_latest_url", "https://example.com/v1.2.3"),
+        ("updates_last_checked_at", "2024-01-01T00:00:00Z"),
+        ("updates_last_check_error_code", "git_host_rate_limit"),
+        ("updates_last_check_error_at", "2024-06-01T12:00:00Z"),
+        ("updates_last_check_error_reset_at", "2024-06-01T13:00:00Z"),
+    ] {
+        vulyk_api::settings::set_value(&pool, key, serde_json::Value::String(value.into()))
+            .await
+            .expect("set setting");
+    }
+
+    let res = client
+        .get(format!("{base}/api/v1/admin/updates"))
+        .bearer_auth(&token)
+        .send()
+        .await
+        .expect("get updates");
+    assert!(res.status().is_success());
+    let body: Value = res.json().await.expect("json");
+    assert_eq!(body["latest_version"], "1.2.3");
+    assert_eq!(body["last_checked_at"], "2024-01-01T00:00:00Z");
+    assert_eq!(body["last_check_error_code"], "git_host_rate_limit");
+    assert_eq!(body["last_check_error_at"], "2024-06-01T12:00:00Z");
+    assert_eq!(body["last_check_error_reset_at"], "2024-06-01T13:00:00Z");
+}
+
+#[tokio::test]
 async fn updates_preferences_roundtrip() {
     if std::env::var("DATABASE_URL").is_err() {
         eprintln!("skipping: DATABASE_URL not set");

@@ -994,6 +994,10 @@ export type UpdatesStatus = {
   latest_url: string | null
   update_available: boolean
   last_checked_at: string | null
+  /** Stable code: git_host_rate_limit | network_error | github_http_error | github_parse_error */
+  last_check_error_code?: string | null
+  last_check_error_at?: string | null
+  last_check_error_reset_at?: string | null
   check_interval_hours: number
   capability: UpdatesCapability
   manual_command: string

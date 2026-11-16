@@ -69,6 +69,7 @@ services:
       VULYK_UPDATER_URL: ${VULYK_UPDATER_URL:-http://updater:9091}
       VULYK_UPDATER_TOKEN: ${VULYK_UPDATER_TOKEN:-}
       VULYK_GITHUB_REPO: ${VULYK_GITHUB_REPO:-Ihor-Meat-Proxy/Vulyk}
+      VULYK_GITHUB_TOKEN: ${VULYK_GITHUB_TOKEN:-}
     ports:
       - "${API_PORT:-8080}:8080"
     volumes:

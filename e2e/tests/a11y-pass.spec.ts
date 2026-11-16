@@ -220,13 +220,27 @@ test('Updates check error region uses alert live region', {
       return
     }
     await route.fulfill({
-      status: 400,
+      status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        error: {
-          code: 'bad_request',
-          message: 'github releases HTTP 403: API rate limit exceeded',
-        },
+        current_version: '0.0.0-test',
+        latest_version: null,
+        latest_notes: null,
+        latest_url: null,
+        update_available: false,
+        last_checked_at: null,
+        last_check_error_code: 'git_host_rate_limit',
+        last_check_error_at: '2024-06-01T12:00:00Z',
+        last_check_error_reset_at: null,
+        check_interval_hours: 24,
+        capability: 'manual_only',
+        manual_command: './scripts/install.sh upgrade',
+        rollback_command: './scripts/install.sh rollback',
+        github_repo: 'Ihor-Meat-Proxy/Vulyk',
+        active_job: null,
+        rollback: null,
+        version_backups: [],
+        retention: { rollback_days: 7, version_count: 3 },
       }),
     })
   })

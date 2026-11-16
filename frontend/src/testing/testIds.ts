@@ -679,6 +679,8 @@ export const TestIds = {
   adminUpdatesReleaseLink: 'admin-updates-release-link',
   adminUpdatesNotes: 'admin-updates-notes',
   adminUpdatesCheckButton: 'admin-updates-check-button',
+  /** Alias: Retry reuses the Check button (label switches on error). */
+  adminUpdatesRetryButton: 'admin-updates-check-button',
   adminUpdatesApplyButton: 'admin-updates-apply-button',
   adminUpdatesManualCommand: 'admin-updates-manual-command',
   adminUpdatesProgress: 'admin-updates-progress',
