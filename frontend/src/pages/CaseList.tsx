@@ -32,8 +32,14 @@ import {
 import { CaseFolderTree } from '../components/CaseFolderTree'
 import { CaseListColumnSettings } from '../components/CaseListColumnSettings'
 import { CaseStatusIcon } from '../components/CaseStatusIcon'
+import {
+  FolderDeleteDialog,
+  type FolderDeleteStrategy,
+} from '../components/FolderDeleteDialog'
 import { VirtualList } from '../components/VirtualList'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
+import { usePromptDialog } from '../hooks/usePromptDialog'
 import { useI18n } from '../i18n'
 import { enumLabel } from '../i18n/enumLabel'
 import { casePath } from '../lib/caseUrls'
@@ -93,6 +99,12 @@ export function CaseList({
   const canExport = can('export_reports')
   const showCheckbox = canBulkEdit || canLlm || canExport
   const [exporting, setExporting] = useState(false)
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
+  const { promptAsync, promptDialog } = usePromptDialog()
+  const [deleteFolderTarget, setDeleteFolderTarget] = useState<Suite | null>(
+    null,
+  )
+  const [folderBusy, setFolderBusy] = useState(false)
 
   const exportSelected = async () => {
     if (!projectId || selected.size === 0) return
@@ -581,7 +593,11 @@ export function CaseList({
 
   const onCreateFolder = async (parentId: string | null) => {
     if (!projectId || !canManageFolders) return
-    const name = window.prompt(t('folders.promptName'))
+    const name = await promptAsync({
+      title: t('folders.new'),
+      label: t('folders.promptName'),
+      inputTestId: TestIds.folderCreateDialogInput,
+    })
     if (!name?.trim()) return
     try {
       await api.createSuite(projectId, {
@@ -597,7 +613,12 @@ export function CaseList({
 
   const onRenameFolder = async (suite: Suite) => {
     if (!projectId || !canManageFolders) return
-    const name = window.prompt(t('folders.promptRename'), suite.name)
+    const name = await promptAsync({
+      title: t('folders.rename'),
+      label: t('folders.promptRename'),
+      initialValue: suite.name,
+      inputTestId: TestIds.folderRenameDialogInput,
+    })
     if (!name?.trim() || name.trim() === suite.name) return
     try {
       await api.updateSuite(projectId, suite.id, { name: name.trim() })
@@ -607,36 +628,43 @@ export function CaseList({
     }
   }
 
+  const performDeleteFolder = async (
+    suite: Suite,
+    onNonempty: FolderDeleteStrategy,
+  ) => {
+    if (!projectId) return
+    setFolderBusy(true)
+    try {
+      await api.deleteSuite(projectId, suite.id, onNonempty)
+      if (suiteId === suite.id) selectSuite(null)
+      onSuitesChanged()
+      await reloadList()
+      setDeleteFolderTarget(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setFolderBusy(false)
+    }
+  }
+
   const onDeleteFolder = async (suite: Suite) => {
     if (!projectId || !canManageFolders) return
     const hasContent =
       (suite.case_count ?? 0) > 0 ||
       (suite.direct_case_count ?? 0) > 0 ||
       suites.some((s) => s.parent_id === suite.id)
-    let onNonempty: 'move_to_parent' | 'delete_cases' = 'move_to_parent'
     if (hasContent) {
-      const choice = window.prompt(t('folders.deleteConfirm'), 'move_to_parent')
-      if (choice == null) return
-      if (choice.trim() === 'delete_cases') {
-        if (!canDeleteCases) {
-          setError(t('folders.deleteCasesForbidden'))
-          return
-        }
-        onNonempty = 'delete_cases'
-      } else {
-        onNonempty = 'move_to_parent'
-      }
-    } else if (!window.confirm(t('folders.deleteEmpty'))) {
+      setDeleteFolderTarget(suite)
       return
     }
-    try {
-      await api.deleteSuite(projectId, suite.id, onNonempty)
-      if (suiteId === suite.id) selectSuite(null)
-      onSuitesChanged()
-      await reloadList()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-    }
+    const ok = await confirmAsync({
+      title: t('folders.delete'),
+      message: t('folders.deleteEmpty'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    await performDeleteFolder(suite, 'move_to_parent')
   }
 
   const onMoveCase = async (caseId: string, nextSuiteId: string | null) => {
@@ -1258,6 +1286,32 @@ export function CaseList({
           </>
         )}
       </div>
+      {confirmDialog}
+      {promptDialog}
+      <FolderDeleteDialog
+        open={deleteFolderTarget != null}
+        folderName={deleteFolderTarget?.name ?? ''}
+        caseCount={
+          deleteFolderTarget
+            ? (deleteFolderTarget.case_count ??
+              deleteFolderTarget.direct_case_count ??
+              0)
+            : 0
+        }
+        childFolderCount={
+          deleteFolderTarget
+            ? suites.filter((s) => s.parent_id === deleteFolderTarget.id).length
+            : 0
+        }
+        canDeleteCases={canDeleteCases}
+        busy={folderBusy}
+        onCancel={() => setDeleteFolderTarget(null)}
+        onConfirm={(strategy) => {
+          if (deleteFolderTarget) {
+            void performDeleteFolder(deleteFolderTarget, strategy)
+          }
+        }}
+      />
     </div>
   )
 }

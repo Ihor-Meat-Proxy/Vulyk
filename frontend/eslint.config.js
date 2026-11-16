@@ -49,6 +49,26 @@ export default tseslint.config(
       'jsx-a11y/label-has-associated-control': 'warn',
       // Day-one: treat hook dependency gaps as warnings (ratchet to error later).
       'react-hooks/exhaustive-deps': 'warn',
+      // Prefer in-app Dialog / ConfirmDialog / PromptDialog (bee theme).
+      'no-alert': 'error',
+      'no-restricted-globals': [
+        'error',
+        {
+          name: 'alert',
+          message:
+            'Use in-app Dialog components instead of window.alert / alert().',
+        },
+        {
+          name: 'confirm',
+          message:
+            'Use useConfirmDialog() / ConfirmDialog instead of window.confirm / confirm().',
+        },
+        {
+          name: 'prompt',
+          message:
+            'Use usePromptDialog() / PromptDialog instead of window.prompt / prompt().',
+        },
+      ],
     },
   },
 )

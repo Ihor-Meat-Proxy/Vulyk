@@ -8,7 +8,9 @@ import {
   type TestRunDetail,
 } from '../api'
 import { CiPipelineLink } from '../components/CiRunBadges'
+import { FileDropZone } from '../components/FileDropZone'
 import { StatusActionButton, StatusBadge } from '../components/StatusBadge'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { cacheRun, enqueueStepResult, getCachedRun } from '../pwa/offlineDb'
 import { bumpPendingCount } from '../pwa/offlineSync'
@@ -58,6 +60,7 @@ function isAbandonableStatus(status: string): boolean {
 export function RunDetail({ projectId, onEnsureProject }: Props) {
   const { runId } = useParams()
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { can } = useProjectPermissions(projectId)
   const canAbandon = can('delete_project')
   const [detail, setDetail] = useState<TestRunDetail | null>(null)
@@ -272,7 +275,13 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
 
   const abandonRun = async () => {
     if (!projectId || !runId || !detail) return
-    if (!window.confirm(t('runs.abandonConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('runs.abandon'),
+      message: t('runs.abandonConfirm'),
+      confirmLabel: t('runs.abandon'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setAbandoning(true)
     setNotice(null)
     try {
@@ -710,29 +719,32 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
             )}
 
             <div className="attach-row">
-              <input
-                ref={cameraInputRef}
-                type="file"
+              <FileDropZone
                 accept="image/*"
                 capture="environment"
-                className="sr-only"
-                aria-label={t('a11y.attachPhoto')}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void attachPhoto(file)
-                  e.target.value = ''
-                }}
-                {...testIdProps(TestIds.executionCameraInput)}
-              />
-              <button
-                type="button"
-                className="btn secondary"
                 disabled={saving || !active.latest_result}
-                onClick={() => cameraInputRef.current?.click()}
-                {...testIdProps(TestIds.executionCameraButton)}
+                aria-label={t('a11y.attachPhotoDropZone')}
+                dropZoneTestId={TestIds.executionAttachDropZone}
+                inputTestId={TestIds.executionCameraInput}
+                inputRef={cameraInputRef}
+                onFiles={(files) => {
+                  const file = files[0]
+                  if (file) void attachPhoto(file)
+                }}
               >
-                {t('runs.cameraPhoto')}
-              </button>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={saving || !active.latest_result}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    cameraInputRef.current?.click()
+                  }}
+                  {...testIdProps(TestIds.executionCameraButton)}
+                >
+                  {t('runs.cameraPhoto')}
+                </button>
+              </FileDropZone>
               {active.latest_result && (
                 <button
                   type="button"
@@ -747,6 +759,7 @@ export function RunDetail({ projectId, onEnsureProject }: Props) {
           </>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

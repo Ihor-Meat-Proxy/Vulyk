@@ -6,7 +6,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useBlocker, useNavigate, useParams } from 'react-router-dom'
 import {
   ApiError,
   api,
@@ -23,11 +23,13 @@ import { useAuth } from '../auth'
 import { shouldModEnterAddStep, shouldTabAddStep } from '../caseEditShortcuts'
 import { CaseBreadcrumbs } from '../components/CaseBreadcrumbs'
 import { CaseKeyBadge } from '../components/CaseKeyBadge'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { CustomFieldInput } from '../components/CustomFieldInput'
 import { StatusBadge } from '../components/StatusBadge'
 import { useToast } from '../components/ToastProvider'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
 import { useCaseEditorSaveShortcut } from '../hooks/useCaseEditorSaveShortcut'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { enumLabel } from '../i18n/enumLabel'
@@ -130,6 +132,7 @@ export function CaseDetail({
 }: Props) {
   const { user, status: authStatus } = useAuth()
   const { t, locale } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const navigate = useNavigate()
   const { can } = useProjectPermissions(projectId)
   const canEdit = can('create_edit_cases')
@@ -248,14 +251,24 @@ export function CaseDetail({
     setStepHintVisible(false)
   }
 
+  const askLeaveUnsaved = () =>
+    confirmAsync({
+      title: t('dialog.confirmTitle'),
+      message: t('cases.unsavedConfirm'),
+      confirmLabel: t('common.confirm'),
+      variant: 'danger',
+    })
+
   const confirmDiscard = () => {
-    if (!dirty) {
-      discardEditing()
-      return
-    }
-    if (window.confirm(t('cases.unsavedConfirm'))) {
-      discardEditing()
-    }
+    void (async () => {
+      if (!dirty) {
+        discardEditing()
+        return
+      }
+      if (await askLeaveUnsaved()) {
+        discardEditing()
+      }
+    })()
   }
 
   const focusAction = (index: number) => {
@@ -278,11 +291,19 @@ export function CaseDetail({
   }
 
   const goBack = useCallback(() => {
-    if (editing && dirty) {
-      if (!window.confirm(t('cases.unsavedConfirm'))) return
-    }
-    onBackToList(detail?.case.suite_id ?? null)
-  }, [detail?.case.suite_id, onBackToList, editing, dirty, t])
+    void (async () => {
+      if (editing && dirty) {
+        const ok = await confirmAsync({
+          title: t('dialog.confirmTitle'),
+          message: t('cases.unsavedConfirm'),
+          confirmLabel: t('common.confirm'),
+          variant: 'danger',
+        })
+        if (!ok) return
+      }
+      onBackToList(detail?.case.suite_id ?? null)
+    })()
+  }, [detail?.case.suite_id, onBackToList, editing, dirty, confirmAsync, t])
 
   // Backspace-to-parent: never while editing (inputs already guarded; avoid leaving dirty editor)
   useBackspaceNavigate(goBack, !loading && !deleted && !editing)
@@ -535,35 +556,19 @@ export function CaseDetail({
     },
   })
 
+  const blocker = useBlocker(Boolean(editing && dirty))
+
   useEffect(() => {
     if (!editing || !dirty) return
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault()
       e.returnValue = ''
     }
-    const onDocumentClick = (e: MouseEvent) => {
-      const anchor = (e.target as Element | null)?.closest?.('a[href]')
-      if (!anchor) return
-      const href = anchor.getAttribute('href')
-      if (!href || href.startsWith('#') || href.startsWith('mailto:')) return
-      if (
-        /^https?:\/\//i.test(href) &&
-        !href.startsWith(window.location.origin)
-      ) {
-        return
-      }
-      if (!window.confirm(t('cases.unsavedConfirm'))) {
-        e.preventDefault()
-        e.stopPropagation()
-      }
-    }
     window.addEventListener('beforeunload', onBeforeUnload)
-    document.addEventListener('click', onDocumentClick, true)
     return () => {
       window.removeEventListener('beforeunload', onBeforeUnload)
-      document.removeEventListener('click', onDocumentClick, true)
     }
-  }, [editing, dirty, t])
+  }, [editing, dirty])
 
   const onStepKeyDown = (
     e: ReactKeyboardEvent<HTMLTextAreaElement>,
@@ -1503,6 +1508,21 @@ export function CaseDetail({
           </div>
         </div>
       )}
+      {confirmDialog}
+      <ConfirmDialog
+        open={blocker.state === 'blocked'}
+        title={t('dialog.confirmTitle')}
+        message={t('cases.unsavedConfirm')}
+        confirmLabel={t('common.confirm')}
+        variant="danger"
+        onConfirm={() => {
+          discardEditing()
+          if (blocker.state === 'blocked') blocker.proceed()
+        }}
+        onCancel={() => {
+          if (blocker.state === 'blocked') blocker.reset()
+        }}
+      />
     </div>
   )
 }

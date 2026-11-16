@@ -9,7 +9,9 @@ import {
 } from '../api'
 import { useAuth } from '../auth'
 import { DocsLink } from '../components/DocsLink'
+import { FileDropZone } from '../components/FileDropZone'
 import { StatusBadge } from '../components/StatusBadge'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { hasLiveRuns, LIVE_RUN_POLL_MS } from '../lib/liveRun'
@@ -34,6 +36,7 @@ type Props = {
 export function RunsPage({ projectId, suites }: Props) {
   const navigate = useNavigate()
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { user, status } = useAuth()
   const { can } = useProjectPermissions(projectId)
   const canExecute = can('execute_runs')
@@ -65,7 +68,13 @@ export function RunsPage({ projectId, suites }: Props) {
 
   const abandonRun = async (runId: string) => {
     if (!projectId) return
-    if (!window.confirm(t('runs.abandonConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('runs.abandon'),
+      message: t('runs.abandonConfirm'),
+      confirmLabel: t('runs.abandon'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setAbandoningId(runId)
     try {
       const updated = await api.abandonRun(projectId, runId, {
@@ -309,24 +318,34 @@ export function RunsPage({ projectId, suites }: Props) {
                 </option>
               ))}
             </select>
-            <label
-              className={`file-input-label${!uploadRunId || uploading ? ' is-disabled' : ''}`}
+            <FileDropZone
+              accept=".xml,text/xml,application/xml"
+              disabled={!uploadRunId || uploading}
+              aria-label={t('a11y.junitXmlDropZone')}
+              dropZoneTestId={TestIds.runsUploadDropZone}
+              inputTestId={TestIds.runsUploadFileInput}
+              onFiles={(files) => {
+                const file = files[0]
+                if (file) void uploadJunit(file)
+              }}
             >
-              <span className="btn secondary">{t('runs.chooseJunitFile')}</span>
-              <input
-                type="file"
-                className="file-input"
-                accept=".xml,text/xml,application/xml"
-                aria-label={t('a11y.junitXmlFile')}
+              <button
+                type="button"
+                className="btn secondary"
                 disabled={!uploadRunId || uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) void uploadJunit(file)
-                  e.target.value = ''
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const input = e.currentTarget
+                    .closest('.file-drop-zone')
+                    ?.querySelector<HTMLInputElement>('input[type="file"]')
+                  input?.click()
                 }}
-                {...testIdProps(TestIds.runsUploadFileInput)}
-              />
-            </label>
+                {...testIdProps(TestIds.runsUploadChooseButton)}
+              >
+                {t('runs.chooseJunitFile')}
+              </button>
+            </FileDropZone>
           </div>
           {!uploadRunId && (
             <p
@@ -478,6 +497,7 @@ export function RunsPage({ projectId, suites }: Props) {
           </>
         )}
       </section>
+      {confirmDialog}
     </div>
   )
 }

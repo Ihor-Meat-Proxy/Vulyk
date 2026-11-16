@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { api, type ConfigImportPreview, type Project } from '../../api'
+import { FileDropZone } from '../../components/FileDropZone'
+import { useConfirmDialog } from '../../hooks/useConfirmDialog'
 import { useI18n } from '../../i18n'
 import { TestIds, listItemProps, testIdProps } from '../../testing'
 
@@ -10,6 +12,7 @@ type Props = {
 
 export function ExportConfigPanel({ projects, onError }: Props) {
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const [scope, setScope] = useState<'all' | 'selected'>('all')
   const [projectIds, setProjectIds] = useState<string[]>([])
   const [includeMemberships, setIncludeMemberships] = useState(false)
@@ -101,7 +104,13 @@ export function ExportConfigPanel({ projects, onError }: Props) {
       onError(t('admin.export.needFile'))
       return
     }
-    if (!window.confirm(t('admin.export.applyConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('admin.export.apply'),
+      message: t('admin.export.applyConfirm'),
+      confirmLabel: t('admin.export.apply'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       const res = await api.importAdminConfig({
@@ -224,16 +233,37 @@ export function ExportConfigPanel({ projects, onError }: Props) {
       <div className="stack-form">
         <h3>{t('admin.export.importTitle')}</h3>
         <p className="muted">{t('admin.export.importHelp')}</p>
-        <label className="field">
+        <div className="field">
           <span>{t('admin.export.file')}</span>
-          <input
-            type="file"
+          <FileDropZone
             accept=".json,.yaml,.yml,application/json"
-            {...testIdProps(TestIds.adminConfigImportInput)}
-            onChange={(e) => void onFile(e.target.files?.[0] ?? null)}
-          />
-          {fileName ? <span className="muted">{fileName}</span> : null}
-        </label>
+            disabled={busy}
+            aria-label={t('a11y.configImportDropZone')}
+            dropZoneTestId={TestIds.adminConfigImportDropZone}
+            inputTestId={TestIds.adminConfigImportInput}
+            onFiles={(files) => {
+              void onFile(files[0] ?? null)
+            }}
+          >
+            <button
+              type="button"
+              className="btn secondary"
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                const input = e.currentTarget
+                  .closest('.file-drop-zone')
+                  ?.querySelector<HTMLInputElement>('input[type="file"]')
+                input?.click()
+              }}
+              {...testIdProps(TestIds.adminConfigImportChooseButton)}
+            >
+              {t('admin.export.chooseFile')}
+            </button>
+            {fileName ? <span className="muted">{fileName}</span> : null}
+          </FileDropZone>
+        </div>
         <label className="field">
           <span>{t('admin.export.strategy')}</span>
           <select
@@ -280,6 +310,7 @@ export function ExportConfigPanel({ projects, onError }: Props) {
           </div>
         )}
       </div>
+      {confirmDialog}
     </div>
   )
 }

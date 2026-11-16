@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { TestIds } from '../../frontend/src/testing/testIds'
 import {
   createCase,
   createPlan,
@@ -102,7 +103,7 @@ test('create plan and run, execute pass/fail/blocked, attach, close', {
     timeout: 15_000,
   })
 
-  await page.getByLabel('Attach photo from camera').setInputFiles({
+  await page.getByTestId(TestIds.executionCameraInput).setInputFiles({
     name: 'shot.png',
     mimeType: 'image/png',
     buffer: Buffer.from(

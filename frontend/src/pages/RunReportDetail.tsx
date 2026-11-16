@@ -17,6 +17,7 @@ import {
 } from '../api'
 import { StatusBadge } from '../components/StatusBadge'
 import { useBackspaceNavigate } from '../hooks/useBackspaceNavigate'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
@@ -49,6 +50,7 @@ export function RunReportDetail({ projectId, onEnsureProject }: Props) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t } = useI18n()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const { can } = useProjectPermissions(projectId)
   const canExport = can('export_reports')
   const canAbandon = can('delete_project')
@@ -200,7 +202,13 @@ export function RunReportDetail({ projectId, onEnsureProject }: Props) {
 
   const onAbandon = async () => {
     if (!projectId || !runId) return
-    if (!window.confirm(t('runs.abandonConfirm'))) return
+    const ok = await confirmAsync({
+      title: t('runs.abandon'),
+      message: t('runs.abandonConfirm'),
+      confirmLabel: t('runs.abandon'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setAbandoning(true)
     try {
       await api.abandonRun(projectId, runId, {
@@ -824,6 +832,7 @@ export function RunReportDetail({ projectId, onEnsureProject }: Props) {
           </div>
         </section>
       )}
+      {confirmDialog}
     </div>
   )
 }

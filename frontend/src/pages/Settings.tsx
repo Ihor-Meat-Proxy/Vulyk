@@ -11,7 +11,10 @@ import {
 } from '../api'
 import { useAuth } from '../auth'
 import { PasswordRequirements } from '../components/PasswordRequirements'
+import { useToast } from '../components/ToastProvider'
+import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { LOCALES, useI18n, type Locale } from '../i18n'
+import { writeClipboard } from '../lib/clipboard'
 import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
 import { can } from '../permissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
@@ -154,6 +157,8 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     changePassword: changePasswordAuth,
   } = useAuth()
   const { t, locale, setLocale } = useI18n()
+  const { toast } = useToast()
+  const { confirmAsync, confirmDialog } = useConfirmDialog()
   const policy = status?.password_policy ?? DEFAULT_PASSWORD_POLICY
   const [displayName, setDisplayName] = useState(user?.display_name ?? '')
   const [timezone, setTimezone] = useState(
@@ -539,7 +544,13 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
   }
 
   const onDeleteRepo = async (id: string) => {
-    if (!window.confirm(t('settings.automationDelete') + '?')) return
+    const ok = await confirmAsync({
+      title: t('settings.automationDelete'),
+      message: `${t('settings.automationDelete')}?`,
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setRepoBusy(true)
     setError(null)
     try {
@@ -657,10 +668,13 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
 
   const copyText = async (text: string, notice: string) => {
     try {
-      await navigator.clipboard.writeText(text)
+      await writeClipboard(text)
       setCiCopyNotice(notice)
+      toast(notice)
     } catch {
-      setCiCopyNotice(t('cases.copyFailed'))
+      const failed = t('cases.copyFailed')
+      setCiCopyNotice(failed)
+      toast(failed)
     }
   }
 
@@ -1509,6 +1523,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
           </form>
         </section>
       ) : null}
+      {confirmDialog}
     </div>
   )
 }

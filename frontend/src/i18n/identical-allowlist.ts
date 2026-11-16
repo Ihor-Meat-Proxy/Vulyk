@@ -92,6 +92,7 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'executions.filterStatus',
   'executions.message',
   'executions.mode',
+  'executions.modeManual',
   'executions.pipelineLink',
   'executions.planTypeIteration',
   'executions.sortNameAsc',
