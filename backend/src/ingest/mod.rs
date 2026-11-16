@@ -7,7 +7,8 @@ mod pytest_json;
 mod vulyk_json;
 
 pub use case_key::{
-    extract_case_key, extract_case_key_with_project, resolve_case_key, resolve_case_key_with_project,
+    extract_case_key, extract_case_key_with_project, resolve_case_key,
+    resolve_case_key_with_project,
 };
 pub use junit::parse_junit;
 pub use playwright_json::parse_playwright_json;

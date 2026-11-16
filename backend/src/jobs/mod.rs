@@ -182,8 +182,7 @@ async fn handle_ingest(
     let project_key = ingest_svc::project_key(pool, payload.project_id)
         .await
         .map_err(|e| e.to_string())?;
-    let parsed =
-        parse_payload_with_project(&payload.format, &payload.content, Some(&project_key))?;
+    let parsed = parse_payload_with_project(&payload.format, &payload.content, Some(&project_key))?;
     let report = ingest_svc::persist_results(
         pool,
         payload.run_id,

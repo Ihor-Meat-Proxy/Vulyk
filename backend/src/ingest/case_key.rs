@@ -110,8 +110,10 @@ fn extract_underscore_key(text: &str) -> Option<String> {
     // Note: do not require \b after digits — `_` is a word char, so
     // `110_login` would not match `\d+\b`.
     let re = RE.get_or_init(|| {
-        Regex::new(r"(?i)(?:^|[^A-Za-z0-9])(?:test[_-]?)?([A-Z][A-Z0-9]{1,7})[_-](\d{1,8})(?:[^0-9]|$)")
-            .expect("underscore case key regex")
+        Regex::new(
+            r"(?i)(?:^|[^A-Za-z0-9])(?:test[_-]?)?([A-Z][A-Z0-9]{1,7})[_-](\d{1,8})(?:[^0-9]|$)",
+        )
+        .expect("underscore case key regex")
     });
     re.captures(text).map(|c| {
         format!(
@@ -129,22 +131,15 @@ fn extract_compact_project_key(text: &str, project_key: &str) -> Option<String> 
     }
     let pat = format!(r"(?i)\b{}(\d{{1,8}})\b", regex::escape(pk));
     let re = Regex::new(&pat).ok()?;
-    re.captures(text).map(|c| {
-        format!(
-            "{}-{}",
-            pk.to_ascii_uppercase(),
-            c.get(1).unwrap().as_str()
-        )
-    })
+    re.captures(text)
+        .map(|c| format!("{}-{}", pk.to_ascii_uppercase(), c.get(1).unwrap().as_str()))
 }
 
 fn extract_annotation_key(text: &str) -> Option<String> {
     static RE: OnceLock<Regex> = OnceLock::new();
     let re = RE.get_or_init(|| {
-        Regex::new(
-            r"(?i)(?:@vulyk:|@key=|key=|case_key=|\[)([A-Z][A-Z0-9]{1,7}-\d{1,8})(?:\])?",
-        )
-        .expect("annotation regex")
+        Regex::new(r"(?i)(?:@vulyk:|@key=|key=|case_key=|\[)([A-Z][A-Z0-9]{1,7}-\d{1,8})(?:\])?")
+            .expect("annotation regex")
     });
     re.captures(text)
         .and_then(|c| c.get(1))
