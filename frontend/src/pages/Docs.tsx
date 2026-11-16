@@ -87,10 +87,7 @@ export function Docs() {
             <ul className="docs-toc-headings">
               {filteredToc.map((h) => (
                 <li key={h.id} className={`docs-toc-h${h.level}`}>
-                  <a
-                    href={`#${h.id}`}
-                    {...testIdProps(TestIds.docsTocHeading)}
-                  >
+                  <a href={`#${h.id}`} {...testIdProps(TestIds.docsTocHeading)}>
                     {h.text}
                   </a>
                 </li>
