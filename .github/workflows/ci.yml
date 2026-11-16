@@ -328,6 +328,7 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
+          bash -n scripts/test-vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check-e2e-case-keys.sh
@@ -343,6 +344,7 @@ jobs:
           bash -n scripts/githooks/pre-commit
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
+            scripts/test-vulyk-upload.sh \
             scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check-e2e-case-keys.sh scripts/check.sh \
             scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/test-install-backup-capture.sh \
             scripts/check-version.sh \
@@ -356,7 +358,8 @@ jobs:
           python3 scripts/test-version-backups.py -q
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
-          chmod +x scripts/test-install-backup-capture.sh
+          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh
+          ./scripts/test-vulyk-upload.sh
           ./scripts/test-install-backup-capture.sh
           ./scripts/install.sh check
       - name: Env upgrade from previous release
@@ -384,6 +387,7 @@ jobs:
           bash -n scripts/install.sh
           bash -n scripts/perf-smoke.sh
           bash -n scripts/vulyk-upload.sh
+          bash -n scripts/test-vulyk-upload.sh
           bash -n scripts/check-migrations.sh
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check-e2e-case-keys.sh
@@ -398,7 +402,8 @@ jobs:
           bash -n scripts/e2e-local.sh
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
-          chmod +x scripts/test-install-backup-capture.sh
+          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh
+          ./scripts/test-vulyk-upload.sh
           ./scripts/test-install-backup-capture.sh
           ./scripts/install.sh check
           ./scripts/ci-env-upgrade-test.sh

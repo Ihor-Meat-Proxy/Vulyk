@@ -212,11 +212,12 @@ export VULYK_PROJECT_KEY=KOC
   --branch "${GITHUB_REF_NAME}" --commit "$GITHUB_SHA" \
   --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
+# $VULYK_RUN_ID is written to $GITHUB_ENV by --open-run on Actions.
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
-./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
+./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID" --project-key "$VULYK_PROJECT_KEY"
 ```
 
-A thinner one-shot Action also exists at `action/action.yml` for simple uploads.
+On Jenkins/GitLab/generic shells, capture the id with `--print-run-id` or `--run-id-file` (see Jenkins below). A thinner one-shot Action also exists at `action/action.yml` for simple uploads.
 
 ## GitLab CI
 
@@ -253,14 +254,16 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 
 ## Jenkins
 
-There is no Jenkins-specific plugin required. Call the same shell uploader from a pipeline stage (ensure `curl`/bash and the results file are available):
+There is no Jenkins-specific plugin required. Call the same shell uploader from a pipeline stage (ensure `curl`/bash/python3 and the results file are available).
+
+**Important:** `--open-run` does not set Jenkins environment variables by itself. Capture the run id with `--print-run-id` (or `--run-id-file`) and pass it to upload/close. Prefer a single concrete XML path (globbing inside one `sh` step can expand to many arguments).
 
 ```groovy
 pipeline {
   agent any
   environment {
-    VULYK_API_URL   = 'https://vulyk.example.com'
-    VULYK_API_TOKEN = credentials('vulyk-ci-token')
+    VULYK_API_URL     = 'https://vulyk.example.com'
+    VULYK_API_TOKEN   = credentials('vulyk-ci-token')
     VULYK_PROJECT_KEY = 'KOC'
   }
   stages {
@@ -271,27 +274,43 @@ pipeline {
     }
     stage('Report to Vulyk') {
       steps {
-        sh '''
-          curl -fsSL -o vulyk-upload.sh \
-            https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
-          chmod +x vulyk-upload.sh
-          ./vulyk-upload.sh --open-run \
-            --suite-name "Jenkins #${BUILD_NUMBER}" \
-            --provider other --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
-            --pipeline-url "${BUILD_URL}"
-          ./vulyk-upload.sh --file target/surefire-reports/junitreports/TEST-*.xml \
-            --format junit --run-id "$VULYK_RUN_ID" || \
-          ./vulyk-upload.sh --file target/surefire-reports/*.xml \
-            --format junit --run-id "$VULYK_RUN_ID"
-          ./vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
-        '''
+        script {
+          sh '''
+            curl -fsSL -o vulyk-upload.sh \
+              https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+            chmod +x vulyk-upload.sh
+          '''
+          // Capture run id on stdout (GitHub Actions uses $GITHUB_ENV instead).
+          env.VULYK_RUN_ID = sh(
+            returnStdout: true,
+            script: '''
+              ./vulyk-upload.sh --open-run --print-run-id \
+                --suite-name "Jenkins #${BUILD_NUMBER}" \
+                --provider other --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
+                --pipeline-url "${BUILD_URL}"
+            '''
+          ).trim()
+          sh '''
+            set -euo pipefail
+            # Prefer a single file; merge surefire XMLs beforehand if needed.
+            FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+            if [ -z "${FILE}" ]; then
+              FILE="$(ls target/surefire-reports/junitreports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+            fi
+            test -n "${FILE}"
+            ./vulyk-upload.sh --file "${FILE}" --format junit \
+              --run-id "${VULYK_RUN_ID}" --project-key "${VULYK_PROJECT_KEY}"
+            ./vulyk-upload.sh --close-run --run-id "${VULYK_RUN_ID}" \
+              --project-key "${VULYK_PROJECT_KEY}"
+          '''
+        }
       }
     }
   }
 }
 ```
 
-Prefer vendoring `scripts/vulyk-upload.sh` in your automation repo instead of downloading each build.
+Prefer vendoring `scripts/vulyk-upload.sh` in your automation repo instead of downloading each build. Large JUnit files are streamed via a temp JSON body (`curl --data-binary @file`) so Linux agents do not hit `Argument list too long`.
 
 ## CLI reporter
 

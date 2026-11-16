@@ -1,0 +1,186 @@
+#!/usr/bin/env bash
+# Unit-ish tests for scripts/vulyk-upload.sh (mock HTTP server; no live API).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT="${ROOT}/scripts/vulyk-upload.sh"
+[[ -x "${SCRIPT}" ]] || chmod +x "${SCRIPT}"
+
+WORKDIR="$(mktemp -d /tmp/vulyk-upload-test.XXXXXX)"
+cleanup() { rm -rf "${WORKDIR}"; }
+trap cleanup EXIT
+
+pass=0
+fail=0
+assert_eq() {
+  local name="$1" got="$2" want="$3"
+  if [[ "${got}" == "${want}" ]]; then
+    echo "PASS ${name}"
+    pass=$((pass + 1))
+  else
+    echo "FAIL ${name}: got='${got}' want='${want}'" >&2
+    fail=$((fail + 1))
+  fi
+}
+
+# --- mock API ---
+PROJECT_ID="11111111-1111-1111-1111-111111111111"
+RUN_ID="22222222-2222-2222-2222-222222222222"
+cat > "${WORKDIR}/server.py" <<'PY'
+import json, os, threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+
+PORT = int(os.environ["PORT"])
+PROJECT_ID = os.environ["PROJECT_ID"]
+RUN_ID = os.environ["RUN_ID"]
+LOG = Path(os.environ["LOG"])
+MAX_BODY = Path(os.environ["MAX_BODY"])
+
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a):  # quiet
+        pass
+
+    def _read(self):
+        n = int(self.headers.get("Content-Length") or 0)
+        body = self.rfile.read(n) if n else b""
+        MAX_BODY.write_text(str(max(int(MAX_BODY.read_text() or "0"), len(body))))
+        with LOG.open("a") as f:
+            f.write(f"{self.command} {self.path} bytes={len(body)}\n")
+        return body
+
+    def _json(self, code, obj):
+        data = json.dumps(obj).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def do_GET(self):
+        if self.path.startswith("/api/v1/projects"):
+            self._json(200, [{"id": PROJECT_ID, "key": "KOC"}])
+            return
+        self._json(404, {"error": "not found"})
+
+    def do_POST(self):
+        body = self._read()
+        path = self.path
+        if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs":
+            self._json(200, {"id": RUN_ID, "status": "open"})
+            return
+        if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs/{RUN_ID}/close":
+            self._json(200, {"id": RUN_ID, "status": "closed"})
+            return
+        if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs/{RUN_ID}/ingest":
+            # Ensure body was JSON with a content field (large ok).
+            payload = json.loads(body.decode("utf-8"))
+            assert "content" in payload and len(payload["content"]) > 0
+            self._json(200, {"run_id": RUN_ID, "matched": 0})
+            return
+        if path == f"/api/v1/projects/_/ci/runs/{RUN_ID}/close":
+            self._json(404, {"error": "not found"})
+            return
+        if path == f"/api/v1/runs/{RUN_ID}":
+            self._json(405, {"error": "method not allowed"})
+            return
+        self._json(404, {"error": f"unexpected {path}"})
+
+httpd = HTTPServer(("127.0.0.1", PORT), H)
+threading.Thread(target=httpd.serve_forever, daemon=True).start()
+Path(os.environ["READY"]).write_text("ok")
+threading.Event().wait()
+PY
+
+: > "${WORKDIR}/log.txt"
+echo 0 > "${WORKDIR}/max_body.txt"
+: > "${WORKDIR}/ready"
+PORT=0
+# pick a free port
+PORT="$(python3 - <<'PY'
+import socket
+s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()
+PY
+)"
+PORT="${PORT}" PROJECT_ID="${PROJECT_ID}" RUN_ID="${RUN_ID}" \
+  LOG="${WORKDIR}/log.txt" MAX_BODY="${WORKDIR}/max_body.txt" READY="${WORKDIR}/ready" \
+  python3 "${WORKDIR}/server.py" &
+SERVER_PID=$!
+for _ in $(seq 1 50); do
+  [[ -s "${WORKDIR}/ready" ]] && break
+  sleep 0.05
+done
+API="http://127.0.0.1:${PORT}"
+
+# J1: --print-run-id + dotenv
+DOT="${WORKDIR}/vulyk.env"
+OUT="$("${SCRIPT}" --api-url "${API}" --project-key KOC --open-run \
+  --suite-name "test" --print-run-id --dotenv-file "${DOT}" 2>"${WORKDIR}/err.txt" | tr -d '\r')"
+assert_eq "print-run-id" "${OUT}" "${RUN_ID}"
+assert_eq "dotenv" "$(grep '^VULYK_RUN_ID=' "${DOT}")" "VULYK_RUN_ID=${RUN_ID}"
+grep -q "VULYK_RUN_ID=${RUN_ID}" "${WORKDIR}/err.txt" || {
+  echo "FAIL stderr export line" >&2
+  fail=$((fail + 1))
+}
+
+# J1: upload without run id fails loudly
+set +e
+"${SCRIPT}" --api-url "${API}" --project-key KOC --file /etc/hosts --format junit \
+  >/dev/null 2>"${WORKDIR}/no-run.txt"
+rc=$?
+set -e
+assert_eq "upload-without-run-id-exit" "${rc}" "2"
+grep -qi 'run-id' "${WORKDIR}/no-run.txt" || {
+  echo "FAIL expected run-id error message" >&2
+  fail=$((fail + 1))
+}
+
+# J2: close with project-key (must not hit /projects/_/… or POST /runs/{id})
+: > "${WORKDIR}/log.txt"
+"${SCRIPT}" --api-url "${API}" --project-key KOC --close-run --run-id "${RUN_ID}" >/dev/null
+if grep -q '/projects/_/' "${WORKDIR}/log.txt"; then
+  echo "FAIL close used placeholder project _" >&2
+  fail=$((fail + 1))
+else
+  echo "PASS close-resolves-project-key"
+  pass=$((pass + 1))
+fi
+if grep -q "POST /api/v1/runs/${RUN_ID} " "${WORKDIR}/log.txt"; then
+  echo "FAIL close fell back to POST /runs/{id}" >&2
+  fail=$((fail + 1))
+else
+  echo "PASS close-no-bogus-fallback"
+  pass=$((pass + 1))
+fi
+
+# J3: >1 MiB junit streamed (body must exceed 1MiB on server)
+BIG="${WORKDIR}/big.xml"
+python3 - <<PY
+from pathlib import Path
+# ~1.2 MiB of testcases
+parts = ['<?xml version="1.0"?><testsuite name="big" tests="1">']
+chunk = "x" * 8000
+# keep under parser limits but large content overall
+parts.append(f'<testcase classname="C" name="n" time="0"><system-out>{chunk}</system-out></testcase>' * 160)
+parts.append("</testsuite>")
+Path("${BIG}").write_text("".join(parts), encoding="utf-8")
+print(Path("${BIG}").stat().st_size)
+PY
+: > "${WORKDIR}/log.txt"
+echo 0 > "${WORKDIR}/max_body.txt"
+"${SCRIPT}" --api-url "${API}" --project-id "${PROJECT_ID}" \
+  --file "${BIG}" --format junit --run-id "${RUN_ID}" >/dev/null
+MAX_B="$(cat "${WORKDIR}/max_body.txt")"
+if [[ "${MAX_B}" -gt 1048576 ]]; then
+  echo "PASS large-file-streamed (${MAX_B} bytes)"
+  pass=$((pass + 1))
+else
+  echo "FAIL large-file body too small: ${MAX_B}" >&2
+  fail=$((fail + 1))
+fi
+
+kill "${SERVER_PID}" 2>/dev/null || true
+wait "${SERVER_PID}" 2>/dev/null || true
+
+echo "summary: pass=${pass} fail=${fail}"
+[[ "${fail}" -eq 0 ]]
