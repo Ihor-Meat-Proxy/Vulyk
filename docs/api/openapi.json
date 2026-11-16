@@ -17026,6 +17026,17 @@
           "base_url": {
             "type": "string"
           },
+          "ci_allow_private_urls": {
+            "type": "boolean",
+            "description": "Admin opt-in: allow `http://` and private/LAN/localhost CI destinations.\nOff by default. Prefer a non-empty [`Self::ci_url_allowlist`] in production."
+          },
+          "ci_url_allowlist": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Optional hosts / CIDRs that may use the private CI opt-in.\nEmpty + opt-in = any private/localhost; non-empty = only these entries\n(public `https://` remotes remain allowed either way)."
+          },
           "default_locale": {
             "type": "string"
           },
@@ -22602,6 +22613,21 @@
               "string",
               "null"
             ]
+          },
+          "ci_allow_private_urls": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "ci_url_allowlist": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
           },
           "default_locale": {
             "type": [
