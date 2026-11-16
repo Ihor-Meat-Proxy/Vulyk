@@ -121,12 +121,42 @@ jobs:
           if-no-files-found: error
 
   migrations:
+    # Required-check-ready: always runs on PR + main (no path filters).
+    # Hard-fail: uniqueness, release-tag immutability, fresh migrate verify,
+    # reversibility (when downs exist), Squawk proof fixture.
+    # Soft: Squawk findings on PR migrations (annotations + continue-on-error).
     name: Migration integrity
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+      VULYK_API_URL: http://127.0.0.1:8080
+      BIND_ADDR: 127.0.0.1:8080
+      SQUAWK_VERSION: "2.73.0"
+      VULYK_RELEASE_TAG: v0.5.0
+      # Lighter upgrade-from-release path inside this job (full suite stays in upgrade-test).
+      PERF_CASES: "0"
     steps:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install psql client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
       - name: Check immutable migrations + unique versions
         run: |
           chmod +x scripts/check-migrations.sh
@@ -135,6 +165,20 @@ jobs:
           else
             ./scripts/check-migrations.sh "origin/main~1" || ./scripts/check-migrations.sh "HEAD~1" || ./scripts/check-migrations.sh
           fi
+      - name: Squawk lint (warnings)
+        id: squawk
+        continue-on-error: true
+        run: |
+          chmod +x scripts/lint-migrations-squawk.sh
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ./scripts/lint-migrations-squawk.sh "origin/${{ github.base_ref }}"
+          else
+            ./scripts/lint-migrations-squawk.sh "origin/main~1" || ./scripts/lint-migrations-squawk.sh "HEAD~1"
+          fi
+      - name: Squawk proof fixture (must flag bad SQL)
+        run: |
+          chmod +x scripts/test-migration-lint.sh
+          ./scripts/test-migration-lint.sh
       - name: Sample seed key uniqueness
         run: |
           chmod +x scripts/check-seed-keys.sh
@@ -143,6 +187,29 @@ jobs:
         run: |
           chmod +x scripts/check-e2e-case-keys.sh
           ./scripts/check-e2e-case-keys.sh
+      - name: Verify fresh migrate + schema smoke
+        run: |
+          chmod +x scripts/ci-migrations-verify.sh
+          ./scripts/ci-migrations-verify.sh
+      - name: Reversibility (up/down/up when *.down.sql exist)
+        run: |
+          chmod +x scripts/ci-migrations-reversibility.sh
+          ./scripts/ci-migrations-reversibility.sh
+      - name: Upgrade from release tag (v0.5.0)
+        run: |
+          chmod +x scripts/ci-upgrade-test.sh
+          # Reset DB after verify/reversibility so base seed starts clean.
+          psql "${DATABASE_URL}" -v ON_ERROR_STOP=1 -c \
+            "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;" >/dev/null
+          if ! git rev-parse --verify "refs/tags/${VULYK_RELEASE_TAG}" >/dev/null 2>&1; then
+            git fetch --tags --force origin || true
+          fi
+          if ! git rev-parse --verify "refs/tags/${VULYK_RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "::warning::Release tag ${VULYK_RELEASE_TAG} missing; skipping upgrade-from-release"
+            exit 0
+          fi
+          python3 -m pip install -q cryptography
+          VULYK_UPGRADE_BASE_REF="${VULYK_RELEASE_TAG}" ./scripts/ci-upgrade-test.sh
 
   upgrade-test:
     name: Upgrade (base → PR)
@@ -349,6 +416,10 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/test-vulyk-upload.sh
           bash -n scripts/check-migrations.sh
+          bash -n scripts/lint-migrations-squawk.sh
+          bash -n scripts/test-migration-lint.sh
+          bash -n scripts/ci-migrations-verify.sh
+          bash -n scripts/ci-migrations-reversibility.sh
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check-e2e-case-keys.sh
           bash -n scripts/check.sh
@@ -364,7 +435,10 @@ jobs:
           bash -n scripts/githooks/pre-push
           shellcheck -x scripts/install.sh scripts/perf-smoke.sh scripts/vulyk-upload.sh \
             scripts/test-vulyk-upload.sh \
-            scripts/check-migrations.sh scripts/check-seed-keys.sh scripts/check-e2e-case-keys.sh scripts/check.sh \
+            scripts/check-migrations.sh scripts/lint-migrations-squawk.sh \
+            scripts/test-migration-lint.sh scripts/ci-migrations-verify.sh \
+            scripts/ci-migrations-reversibility.sh \
+            scripts/check-seed-keys.sh scripts/check-e2e-case-keys.sh scripts/check.sh \
             scripts/ci-upgrade-test.sh scripts/ci-env-upgrade-test.sh scripts/test-install-backup-capture.sh \
             scripts/check-version.sh \
             scripts/check-security.sh scripts/check-quality.sh scripts/check-api-coverage.sh \
@@ -377,9 +451,11 @@ jobs:
           python3 scripts/test-version-backups.py -q
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
-          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh
+          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh \
+            scripts/test-migration-lint.sh
           ./scripts/test-vulyk-upload.sh
           ./scripts/test-install-backup-capture.sh
+          ./scripts/test-migration-lint.sh
           ./scripts/install.sh check
       - name: Env upgrade from previous release
         run: |
@@ -408,6 +484,10 @@ jobs:
           bash -n scripts/vulyk-upload.sh
           bash -n scripts/test-vulyk-upload.sh
           bash -n scripts/check-migrations.sh
+          bash -n scripts/lint-migrations-squawk.sh
+          bash -n scripts/test-migration-lint.sh
+          bash -n scripts/ci-migrations-verify.sh
+          bash -n scripts/ci-migrations-reversibility.sh
           bash -n scripts/check-seed-keys.sh
           bash -n scripts/check-e2e-case-keys.sh
           bash -n scripts/check.sh
@@ -421,9 +501,11 @@ jobs:
           bash -n scripts/e2e-local.sh
           python3 -m py_compile scripts/env_settings.py
           ./scripts/check-version.sh
-          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh
+          chmod +x scripts/test-install-backup-capture.sh scripts/test-vulyk-upload.sh \
+            scripts/test-migration-lint.sh
           ./scripts/test-vulyk-upload.sh
           ./scripts/test-install-backup-capture.sh
+          ./scripts/test-migration-lint.sh
           ./scripts/install.sh check
           ./scripts/ci-env-upgrade-test.sh
 

@@ -8,7 +8,7 @@ Local mirrors live in `./scripts/check.sh`, `./scripts/check-security.sh`,
 
 | Workflow | File | When | Role |
 | --- | --- | --- | --- |
-| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, migrations, upgrade, frontend, Docker, Playwright, doc links, …) |
+| **CI** | `.github/workflows/ci.yml` | PR + push `main` | Required product gates (fmt, clippy, tests, API coverage, **Migration integrity** verify/lint/upgrade-from-release, upgrade base→PR, frontend, Docker, Playwright, doc links, …) |
 | **Security** | `.github/workflows/security.yml` | PR + push `main` + **weekly** Monday | CVE/deps, containers, SAST, secrets |
 | **Dependabot auto-merge** | `.github/workflows/dependabot-auto-merge.yml` | `pull_request_target` (Dependabot only) | Enables squash auto-merge for **patch** + **≥1.x minor** only; **0.x minor treated as breaking**; majors stay manual |
 | **Release** | `.github/workflows/release.yml` | tags / release | Publish images |
@@ -113,6 +113,23 @@ When adding or changing an endpoint, update the Axum registration and
 test for its business behavior. Only add a manifest exception when an error
 class is genuinely inapplicable; include a concrete justification.
 
+## Migrations
+
+Required job **Migration integrity** always runs (no path filter). It hard-fails on
+version collisions, edits to migrations that exist on `main`/the release tag,
+failed fresh migrate verify, and a Squawk proof fixture. Squawk findings on real
+migration diffs are **warnings** (annotations + `continue-on-error`). Details and
+local commands: [migrations.md](migrations.md).
+
+```bash
+./scripts/check-migrations.sh
+./scripts/lint-migrations-squawk.sh
+./scripts/test-migration-lint.sh
+DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk ./scripts/ci-migrations-verify.sh
+```
+
 ## Upgrade path
 
 Security/quality workflows must **not** change operator `.env`, Compose layout, or migrations. If a follow-up does, update `.env.example`, `install.sh`, and `./scripts/ci-env-upgrade-test.sh` in the **same** PR ([upgrade-path rule](../../.cursor/rules/upgrade-path.mdc)).
+The Migration integrity job also runs `VULYK_UPGRADE_BASE_REF=v0.5.0` through
+`scripts/ci-upgrade-test.sh` (in addition to the base→PR **Upgrade** job).

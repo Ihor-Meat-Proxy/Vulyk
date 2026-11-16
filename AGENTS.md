@@ -116,7 +116,8 @@ When a PR adds or changes a **user-visible UI flow**:
 - Forward-only SQLx files under `backend/migrations/`.
 - **Unique** `YYYYMMDDHHMMSS_description.sql` timestamps (UTC). If two PRs pick the same second, rename yours after rebase.
 - **Never edit** a migration that already exists on `main` — ship a follow-up.
-- CI: `./scripts/check-migrations.sh`. Details in `CONTRIBUTING.md`.
+- CI: `./scripts/check-migrations.sh` (+ Squawk / verify / upgrade-from-release).
+  Details: [`docs/dev/migrations.md`](docs/dev/migrations.md), `CONTRIBUTING.md`.
 
 ## i18n (FR / ES / DE)
 

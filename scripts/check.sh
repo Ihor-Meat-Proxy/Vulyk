@@ -37,6 +37,13 @@ chmod +x scripts/check-e2e-case-keys.sh
 echo "==> migrations"
 chmod +x scripts/check-migrations.sh
 ./scripts/check-migrations.sh
+if command -v squawk >/dev/null 2>&1 || [[ -x /tmp/squawk-${SQUAWK_VERSION:-2.73.0} ]]; then
+  echo "==> migration Squawk lint (optional; soft locally)"
+  chmod +x scripts/lint-migrations-squawk.sh
+  ./scripts/lint-migrations-squawk.sh || echo "warning: Squawk reported findings (CI soft-fails these)"
+else
+  echo "==> migration Squawk lint (skipped; install squawk or run scripts/lint-migrations-squawk.sh)"
+fi
 
 if [[ -x scripts/check-version.sh ]]; then
   echo "==> version alignment"
