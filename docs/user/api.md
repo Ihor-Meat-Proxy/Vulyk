@@ -4,7 +4,7 @@ Use the HTTP API for CI reporters, CLI, MCP, and custom integrations. Interactiv
 
 ## OpenAPI UI
 
-Open the in-app docs at **[/api/docs](/api/docs)** (same origin as your Vulyk UI when proxied). Machine-readable schema: `/api/openapi.json`.
+Open the in-app docs at **`/api/docs`** (same origin as your Vulyk UI when proxied). Machine-readable schema: `/api/openapi.json`.
 
 ### Using Scalar
 
@@ -71,4 +71,4 @@ CI open/upload/close helpers: `scripts/vulyk-upload.sh` and [.github/actions/vul
 | Tokens | `/api/v1/tokens` |
 | Admin updates / backups | `/api/v1/admin/updates*`, `/api/v1/admin/backups/*` |
 
-For Try-it examples and full schemas, use [/api/docs](/api/docs).
+For Try-it examples and full schemas, use `/api/docs`.
