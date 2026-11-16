@@ -67,6 +67,11 @@ async fn login(client: &reqwest::Client, base: &str, email: &str, password: &str
     login["token"].as_str().expect("token").to_string()
 }
 
+/// Unique per call so CodeQL does not flag a hard-coded credential.
+fn test_password() -> String {
+    format!("upd-{}", uuid::Uuid::new_v4())
+}
+
 #[tokio::test]
 async fn updates_status_requires_admin_and_reports_manual() {
     if std::env::var("DATABASE_URL").is_err() {
@@ -78,7 +83,8 @@ async fn updates_status_requires_admin_and_reports_manual() {
         "updates-admin+{}@example.com",
         uuid::Uuid::new_v4().simple()
     );
-    insert_admin(&pool, &email, "admin-password-16").await;
+    let password = test_password();
+    insert_admin(&pool, &email, &password).await;
     let client = reqwest::Client::new();
 
     let anon = client
@@ -91,7 +97,7 @@ async fn updates_status_requires_admin_and_reports_manual() {
         "anonymous must not read updates"
     );
 
-    let token = login(&client, &base, &email, "admin-password-16").await;
+    let token = login(&client, &base, &email, &password).await;
     let res = client
         .get(format!("{base}/api/v1/admin/updates"))
         .bearer_auth(&token)
@@ -168,9 +174,10 @@ async fn updates_status_exposes_persisted_check_error_and_keeps_last_good() {
     }
     let (base, pool) = spawn_app().await;
     let email = format!("updates-err+{}@example.com", uuid::Uuid::new_v4().simple());
-    insert_admin(&pool, &email, "admin-password-16").await;
+    let password = test_password();
+    insert_admin(&pool, &email, &password).await;
     let client = reqwest::Client::new();
-    let token = login(&client, &base, &email, "admin-password-16").await;
+    let token = login(&client, &base, &email, &password).await;
 
     // Seed a last-good release cache + a durable check error.
     for (key, value) in [
