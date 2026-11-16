@@ -307,8 +307,9 @@ select {
   backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
-  /* Above case-list sticky headers (z-index 2) so the gear menu is not clipped. */
-  z-index: 50;
+  /* Above case-list sticky headers (z-index 2); keep below mobile drawers (25–35).
+     Gear menu is portaled to body at z-index 80, so topbar need not be 50. */
+  z-index: 5;
 }
 
 .topbar h1 {
