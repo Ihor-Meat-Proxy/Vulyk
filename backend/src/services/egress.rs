@@ -2,6 +2,7 @@
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, ToSocketAddrs};
 use std::str::FromStr;
+use std::sync::{Arc, RwLock};
 
 use crate::error::{AppError, AppResult};
 
@@ -9,6 +10,73 @@ fn allow_private_egress() -> bool {
     std::env::var("VULYK_EGRESS_ALLOW_PRIVATE")
         .map(|v| matches!(v.to_lowercase().as_str(), "1" | "true" | "yes"))
         .unwrap_or(false)
+}
+
+/// Optional DNS override for tests.
+///
+/// Return `Some(Ok(ips))` / `Some(Err(_))` to short-circuit system DNS, or
+/// `None` to fall through to the OS resolver. Production leaves this unset.
+pub type DnsResolverHook =
+    Arc<dyn Fn(&str) -> Option<Result<Vec<IpAddr>, String>> + Send + Sync + 'static>;
+
+static DNS_RESOLVER_HOOK: RwLock<Option<DnsResolverHook>> = RwLock::new(None);
+
+/// Install (or clear with `None`) a process-wide DNS hook used by egress checks.
+///
+/// Intended for unit/integration tests so fixtures can keep reserved names like
+/// `gitlab.example.com` without live DNS. Never set in production.
+pub fn set_dns_resolver_for_tests(hook: Option<DnsResolverHook>) {
+    if let Ok(mut guard) = DNS_RESOLVER_HOOK.write() {
+        *guard = hook;
+    }
+}
+
+/// Stub RFC 2606 / special-use documentation hostnames as a public IP so CI
+/// URL validation does not require network. Other hosts fall through to OS DNS.
+pub fn install_documentation_dns_stub_for_tests() {
+    set_dns_resolver_for_tests(Some(Arc::new(|host: &str| {
+        if is_documentation_hostname(host) {
+            Some(Ok(vec![IpAddr::V4(Ipv4Addr::new(8, 8, 8, 8))]))
+        } else {
+            None
+        }
+    })));
+}
+
+fn is_documentation_hostname(host: &str) -> bool {
+    let h = host.to_ascii_lowercase();
+    h == "example"
+        || h == "example.com"
+        || h == "example.net"
+        || h == "example.org"
+        || h.ends_with(".example")
+        || h.ends_with(".example.com")
+        || h.ends_with(".example.net")
+        || h.ends_with(".example.org")
+        || h.ends_with(".test")
+        || h.ends_with(".invalid")
+}
+
+fn resolve_host_ips(host: &str) -> AppResult<Vec<IpAddr>> {
+    if let Ok(guard) = DNS_RESOLVER_HOOK.read() {
+        if let Some(hook) = guard.as_ref() {
+            if let Some(outcome) = hook(host) {
+                return outcome.map_err(|e| {
+                    AppError::BadRequest(format!("URL host could not be resolved: {e}"))
+                });
+            }
+        }
+    }
+    let addrs = (host, 443)
+        .to_socket_addrs()
+        .map_err(|e| AppError::BadRequest(format!("URL host could not be resolved: {e}")))?;
+    let ips: Vec<IpAddr> = addrs.map(|a| a.ip()).collect();
+    if ips.is_empty() {
+        return Err(AppError::BadRequest(
+            "URL host could not be resolved".into(),
+        ));
+    }
+    Ok(ips)
 }
 
 /// Admin / env policy for CI destinations (Jenkins, GitHub-compatible Forgejo, GitLab).
@@ -206,22 +274,13 @@ fn validate_host_public_only(host: &str) -> AppResult<()> {
         }
         return Ok(());
     }
-    let addrs = (host, 443)
-        .to_socket_addrs()
-        .map_err(|e| AppError::BadRequest(format!("URL host could not be resolved: {e}")))?;
-    let mut any = false;
-    for addr in addrs {
-        any = true;
-        if !is_public_ip(addr.ip()) {
+    let ips = resolve_host_ips(host)?;
+    for ip in ips {
+        if !is_public_ip(ip) {
             return Err(AppError::BadRequest(
                 "URL host resolves to a private or reserved address".into(),
             ));
         }
-    }
-    if !any {
-        return Err(AppError::BadRequest(
-            "URL host could not be resolved".into(),
-        ));
     }
     Ok(())
 }
@@ -237,22 +296,15 @@ fn host_is_public_ok(host: &str) -> AppResult<bool> {
     if let Ok(ip) = host.parse::<IpAddr>() {
         return Ok(is_public_ip(ip));
     }
-    // Hostname: try DNS. If resolution fails, treat as not-public so private
-    // mode + allowlist can still match by hostname string without DNS.
-    match (host, 443).to_socket_addrs() {
-        Ok(addrs) => {
-            let mut any = false;
-            let mut all_public = true;
-            for addr in addrs {
-                any = true;
-                if !is_public_ip(addr.ip()) {
-                    all_public = false;
-                }
-            }
-            if !any {
+    // Hostname: try DNS (or the test hook). If resolution fails, treat as
+    // not-public so private mode + allowlist can still match by hostname
+    // string without DNS.
+    match resolve_host_ips(host) {
+        Ok(ips) => {
+            if ips.is_empty() {
                 return Ok(false);
             }
-            Ok(all_public)
+            Ok(ips.iter().copied().all(is_public_ip))
         }
         Err(_) => Ok(false),
     }
@@ -290,9 +342,9 @@ fn allowlist_matches(host: &str, allowlist: &[String]) -> bool {
                 if ip_in_cidr(host_ip, net, prefix) {
                     return true;
                 }
-            } else if let Ok(addrs) = (host, 443).to_socket_addrs() {
-                for addr in addrs {
-                    if ip_in_cidr(addr.ip(), net, prefix) {
+            } else if let Ok(ips) = resolve_host_ips(host) {
+                for ip in ips {
+                    if ip_in_cidr(ip, net, prefix) {
                         return true;
                     }
                 }
@@ -568,5 +620,24 @@ mod tests {
         // CI destinations still reject file:// even with the lab hatch.
         assert!(validate_ci_url("file:///tmp/fixture.git", &open).is_err());
         std::env::remove_var("VULYK_EGRESS_ALLOW_PRIVATE");
+    }
+
+    #[test]
+    fn documentation_dns_stub_allows_example_hosts_offline() {
+        with_cleared_lab_hatch(|| {
+            set_dns_resolver_for_tests(None);
+            // Without a stub, NXDOMAIN documentation hosts are not public.
+            let strict = CiUrlPolicy::strict();
+            assert!(validate_ci_url("https://gitlab.example.com/", &strict).is_err());
+
+            install_documentation_dns_stub_for_tests();
+            assert!(validate_ci_url("https://gitlab.example.com/", &strict).is_ok());
+            assert!(validate_ci_url("https://ci.example/job", &strict).is_ok());
+            assert!(validate_public_https_url("https://gitlab.example.com/a.git").is_ok());
+            // Stub does not weaken literal private / localhost checks.
+            assert!(validate_ci_url("https://127.0.0.1/", &strict).is_err());
+            assert!(validate_ci_url("http://gitlab.example.com/", &strict).is_err());
+            set_dns_resolver_for_tests(None);
+        });
     }
 }
