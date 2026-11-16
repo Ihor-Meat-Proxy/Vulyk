@@ -216,3 +216,129 @@ jobs:
         run: |
           chmod +x scripts/check-openapi-drift.sh scripts/generate-openapi.sh
           ./scripts/check-openapi-drift.sh
+
+  bundle-size:
+    name: Bundle size budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Resolve base ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$BASE_REF" ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_REF"
+            echo "BUNDLE_BASE_REF=origin/${BASE_REF}" >> "$GITHUB_ENV"
+          else
+            git fetch --no-tags --depth=1 origin main || true
+            echo "BUNDLE_BASE_REF=origin/main" >> "$GITHUB_ENV"
+          fi
+      - name: check-bundle-size.sh (≤10% vs base)
+        run: |
+          chmod +x scripts/check-bundle-size.sh
+          ./scripts/check-bundle-size.sh
+
+  a11y-smoke:
+    name: Accessibility smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vulyk
+          POSTGRES_PASSWORD: vulyk
+          POSTGRES_DB: vulyk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vulyk -d vulyk"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
+      VULYK_API_URL: http://127.0.0.1:8080
+      BIND_ADDR: 127.0.0.1:8080
+      VULYK_AUTH_REQUIRED: "true"
+      VULYK_JWT_SECRET: e2e-ci-jwt-secret
+      VULYK_SECRETS_KEY: e2e-ci-secrets-key
+      VULYK_LLM_MOCK: "1"
+      VULYK_ADMIN_EMAIL: admin@vulyk.local
+      VULYK_ADMIN_PASSWORD: admin12345678901
+      VULYK_SEED_DEMO: "1"
+      VULYK_SEED_SAMPLE: "0"
+      VULYK_DEMO_EMAIL: user@vulyk.local
+      VULYK_DEMO_PASSWORD: user123456789012
+      VULYK_REGISTRATION_MODE: open
+      VULYK_DEFAULT_LOCALE: en
+      VULYK_DEFAULT_TIMEZONE: UTC
+      VULYK_BASE_URL: http://127.0.0.1:5173
+      E2E_BASE_URL: http://127.0.0.1:5173
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Build API
+        run: cargo build -p vulyk-api --release
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Install Playwright Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Start API
+        run: |
+          ./target/release/vulyk-api > /tmp/vulyk-api-a11y.log 2>&1 &
+          echo $! > /tmp/vulyk-api-a11y.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "$VULYK_API_URL/health" >/dev/null; then
+              echo "API ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "API failed to start" >&2
+          cat /tmp/vulyk-api-a11y.log >&2
+          exit 1
+      - name: Start frontend preview
+        working-directory: frontend
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 5173 > /tmp/vulyk-web-a11y.log 2>&1 &
+          echo $! > /tmp/vulyk-web-a11y.pid
+          for i in $(seq 1 60); do
+            if curl -fsS "$E2E_BASE_URL" >/dev/null; then
+              echo "UI ready"
+              exit 0
+            fi
+            sleep 0.5
+          done
+          echo "UI failed to start" >&2
+          cat /tmp/vulyk-web-a11y.log >&2
+          exit 1
+      - name: axe smoke (5 pages, serious/critical)
+        working-directory: e2e
+        run: npx playwright test --project=a11y-smoke
+      - name: Stop services
+        if: always()
+        run: |
+          if [[ -f /tmp/vulyk-api-a11y.pid ]]; then kill "$(cat /tmp/vulyk-api-a11y.pid)" || true; fi
+          if [[ -f /tmp/vulyk-web-a11y.pid ]]; then kill "$(cat /tmp/vulyk-web-a11y.pid)" || true; fi
