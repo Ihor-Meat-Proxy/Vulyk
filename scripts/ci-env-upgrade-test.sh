@@ -83,6 +83,18 @@ else
   log "Operator .env intentionally missing VULYK_UPDATER_TOKEN (pre-sync)"
 fi
 
+# F5 fixture: force an operator who opted out of auth, regardless of whether the
+# previous release .env.example defaulted AUTH_REQUIRED to false (≤0.3) or true (0.4+).
+if grep -qE '^VULYK_AUTH_REQUIRED=' "${OPERATOR_ENV}"; then
+  # portable in-place edit (Linux + macOS BSD sed)
+  tmp_auth="${OPERATOR_ENV}.auth"
+  sed 's/^VULYK_AUTH_REQUIRED=.*/VULYK_AUTH_REQUIRED=false/' "${OPERATOR_ENV}" >"${tmp_auth}"
+  mv "${tmp_auth}" "${OPERATOR_ENV}"
+else
+  printf 'VULYK_AUTH_REQUIRED=false\n' >>"${OPERATOR_ENV}"
+fi
+log "Forced operator VULYK_AUTH_REQUIRED=false for never-overwrite fixture"
+
 BEFORE="$(grep -cE '^[A-Za-z_][A-Za-z0-9_]*=' "${OPERATOR_ENV}" || true)"
 log "Syncing missing keys from HEAD .env.example..."
 SYNC_JSON="$(python3 scripts/env_settings.py sync --example "${ROOT}/.env.example" "${OPERATOR_ENV}")"
