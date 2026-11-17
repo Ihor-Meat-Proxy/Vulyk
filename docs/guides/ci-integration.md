@@ -1,10 +1,10 @@
 # CI integration guide
 
-Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Actions**, **GitLab CI**, **Jenkins**, **Woodpecker**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
+Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Actions**, **GitLab CI**, **Jenkins**, **Woodpecker**, **Bitbucket Pipelines**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
 
 Formats, dispatch, and **webhooks** (secrets required, fail-closed): [ingest-and-ci.md](./ingest-and-ci.md).
 Automation Git repos: [automation-repo.md](../automation-repo.md).
-In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / Woodpecker / JUnit): [../user/cicd.md](../user/cicd.md).
+In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / Woodpecker / Bitbucket / JUnit): [../user/cicd.md](../user/cicd.md).
 
 ## How it fits together
 
@@ -109,6 +109,50 @@ Example pipeline (POSIX sh, `$${VAR}` escaping):
 
 Self-hosted `http://` or LAN Woodpecker needs **Allow http and private-network
 CI hosts** under **Admin → Settings**.
+
+### Bitbucket Pipelines (ingest + links)
+
+Bitbucket is an **ingest-first** provider: open → upload → close from your
+pipeline with `scripts/vulyk-upload.sh` or the Playwright reporter. Vulyk does
+**not** dispatch Bitbucket Pipelines from **CI triggers** (no outbound webhook in
+this release).
+
+`vulyk-upload.sh` auto-detects when `BITBUCKET_BUILD_NUMBER`,
+`BITBUCKET_REPO_FULL_NAME`, `BITBUCKET_BRANCH`, or `BITBUCKET_COMMIT` is set
+(`provider=bitbucket`). When `pipeline_url` is omitted, it defaults to
+`https://bitbucket.org/{repo}/pipelines/results/{build}`.
+
+Example step: [`ci/bitbucket-pipelines.yml`](../../ci/bitbucket-pipelines.yml).
+Store `VULYK_API_URL` and `VULYK_CI_TOKEN` as secured repository variables.
+
+```bash
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
+  --suite-name "Bitbucket #${BITBUCKET_BUILD_NUMBER}" \
+  --provider bitbucket \
+  --repo "${BITBUCKET_REPO_FULL_NAME}" \
+  --branch "${BITBUCKET_BRANCH}" \
+  --commit "${BITBUCKET_COMMIT}")"
+./scripts/vulyk-upload.sh --file report.xml --format junit --run-id "$VULYK_RUN_ID"
+./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
+```
+
+Runs appear with source **Bitbucket** and a clickable pipeline link on
+**Executions**.
+
+### Other / generic CI (curl only)
+
+For Jenkinsfile-less agents, bespoke runners, or anything without a dedicated
+adapter, register a **CI config** with `provider=other` if you want a saved
+label — but reporting works without dispatch:
+
+1. Create a project **CI token** (Settings → Project CI tokens).
+2. `--open-run` with `--provider other` (plus branch/commit/pipeline URL when
+   you have them).
+3. Upload JUnit / JSON, then `--close-run` (use `--cancelled` when interrupted).
+
+There is **no** Vulyk → external **Run in CI** dispatch for `other`; use
+`vulyk-upload.sh` or `curl` against `/api/v1/projects/{id}/ci/runs` and ingest
+endpoints only. See [Generic JUnit](../user/cicd.md#generic-junit-xml-via-curl--shell).
 
 ### Forgejo / Gitea Actions
 
@@ -403,7 +447,7 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 | Closed | Job finished successfully or with failures |
 | Cancelled | Job interrupted / cancelled close (`status=cancelled`, not a passed-looking Closed badge) |
 
-On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** / **Forgejo** / **Gitea** / **Woodpecker** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
+On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** / **Forgejo** / **Gitea** / **Woodpecker** / **Bitbucket** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 
 ```mermaid
 stateDiagram-v2

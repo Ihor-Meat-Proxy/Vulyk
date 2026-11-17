@@ -16100,7 +16100,7 @@
           },
           "provider": {
             "type": "string",
-            "description": "`github`, `gitlab`, `jenkins`, `bitbucket`, or `other`"
+            "description": "`github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `woodpecker`, `bitbucket`, or `other`"
           },
           "webhook_secret": {
             "type": [

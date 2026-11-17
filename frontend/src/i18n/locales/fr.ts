@@ -759,6 +759,7 @@ const fr: Dict = {
   'executions.sourceForgejo': "Forgejo",
   'executions.sourceGitea': "Gitea",
   'executions.sourceWoodpecker': "Woodpecker",
+  'executions.sourceBitbucket': "Bitbucket",
   'executions.pipelineLink': "Pipeline",
   'executions.statusOpen': "Ouvert",
   'executions.statusInProgress': "En cours",

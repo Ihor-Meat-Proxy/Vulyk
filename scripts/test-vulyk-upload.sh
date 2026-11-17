@@ -36,6 +36,7 @@ PROJECT_ID = os.environ["PROJECT_ID"]
 RUN_ID = os.environ["RUN_ID"]
 LOG = Path(os.environ["LOG"])
 MAX_BODY = Path(os.environ["MAX_BODY"])
+OPEN_BODY = Path(os.environ["OPEN_BODY"])
 
 class H(BaseHTTPRequestHandler):
     def log_message(self, *a):  # quiet
@@ -67,6 +68,7 @@ class H(BaseHTTPRequestHandler):
         body = self._read()
         path = self.path
         if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs":
+            OPEN_BODY.write_text(body.decode("utf-8") or "{}")
             self._json(200, {"id": RUN_ID, "status": "open"})
             return
         if path == f"/api/v1/projects/{PROJECT_ID}/ci/runs/{RUN_ID}/start":
@@ -107,8 +109,10 @@ import socket
 s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()
 PY
 )"
+: > "${WORKDIR}/open_body.json"
 PORT="${PORT}" PROJECT_ID="${PROJECT_ID}" RUN_ID="${RUN_ID}" \
-  LOG="${WORKDIR}/log.txt" MAX_BODY="${WORKDIR}/max_body.txt" READY="${WORKDIR}/ready" \
+  LOG="${WORKDIR}/log.txt" MAX_BODY="${WORKDIR}/max_body.txt" \
+  OPEN_BODY="${WORKDIR}/open_body.json" READY="${WORKDIR}/ready" \
   python3 -u "${WORKDIR}/server.py" &
 SERVER_PID=$!
 ready=0
@@ -128,6 +132,28 @@ if [ "${ready}" -ne 1 ]; then
 fi
 API="http://127.0.0.1:${PORT}"
 echo "mock API at ${API}"
+
+# Bitbucket auto-detect + default pipeline_url on open-run
+: > "${WORKDIR}/open_body.json"
+BITBUCKET_BUILD_NUMBER=42 BITBUCKET_REPO_FULL_NAME='acme/widgets' \
+  BITBUCKET_BRANCH=main BITBUCKET_COMMIT=deadbeef \
+  "${SCRIPT}" --api-url "${API}" --project-key KOC --open-run \
+  --suite-name "bb" --print-run-id >/dev/null 2>"${WORKDIR}/bb-err.txt"
+BB_PAYLOAD="$(cat "${WORKDIR}/open_body.json")"
+if PAYLOAD="${BB_PAYLOAD}" python3 - <<'PY'
+import json, os, sys
+payload = json.loads(os.environ["PAYLOAD"])
+assert payload.get("provider") == "bitbucket", payload
+want = "https://bitbucket.org/acme/widgets/pipelines/results/42"
+assert payload.get("pipeline_url") == want, payload
+PY
+then
+  echo "PASS bitbucket-open-run-detect"
+  pass=$((pass + 1))
+else
+  echo "FAIL bitbucket-open-run-detect payload=${BB_PAYLOAD}" >&2
+  fail=$((fail + 1))
+fi
 
 # J1: --print-run-id + dotenv
 DOT="${WORKDIR}/vulyk.env"

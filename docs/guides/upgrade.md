@@ -303,6 +303,14 @@ uses `POST /api/repos/{id}/pipelines` with Bearer PAT; Test connection probes
 `/api/user` + repo lookup. No new required `.env` keys. See
 [ci-integration.md](./ci-integration.md#woodpecker).
 
+### Bitbucket / `other` CI ingest (docs only)
+
+No new migration: `bitbucket` and `other` were already allowed on
+`ci_configs.provider` (migration `20261116195000_ci_configs_jenkins_provider.sql`).
+This release completes **ingest detection**, pipeline links, UI badges, and docs
+for Bitbucket Pipelines and the generic `other` curl-only flow (no dispatch).
+See [ci-integration.md](./ci-integration.md#bitbucket-pipelines-ingest--links).
+
 ### Case `automation_id` (#227)
 
 Forward migration `20261117064000_case_automation_id.sql` adds nullable

@@ -123,7 +123,7 @@ pub fn merge_ci_config(existing: &Value, incoming: Value) -> Value {
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateCiConfig {
-    /// `github`, `gitlab`, `jenkins`, `bitbucket`, or `other`
+    /// `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `woodpecker`, `bitbucket`, or `other`
     pub provider: String,
     pub name: String,
     #[schema(value_type = Object)]

@@ -1,0 +1,44 @@
+# Example Bitbucket Pipelines step for Vulyk CI reporting (ingest only).
+#
+# Add to bitbucket-pipelines.yml in the automation repo. Configure a project
+# CI token (Settings → Project CI tokens) and store VULYK_API_URL / VULYK_API_TOKEN
+# as secured repository variables.
+#
+# Auto-detect sets provider=bitbucket and defaults pipeline_url from
+# BITBUCKET_REPO_FULL_NAME + BITBUCKET_BUILD_NUMBER when unset.
+# Vulyk does not dispatch Bitbucket Pipelines from the UI — curl / shell only.
+
+image: atlassian/default-image:4
+
+pipelines:
+  default:
+    - step:
+        name: report-vulyk
+        script:
+          - |
+            set -eu
+            if [ ! -f ./scripts/vulyk-upload.sh ]; then
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            else
+              UPLOADER=./scripts/vulyk-upload.sh
+            fi
+
+            export VULYK_API_URL="${VULYK_API_URL}"
+            export VULYK_API_TOKEN="${VULYK_API_TOKEN}"
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            VULYK_RUN_ID="$("${UPLOADER}" --open-run --print-run-id \
+              --suite-name "Bitbucket #${BITBUCKET_BUILD_NUMBER}" \
+              --provider bitbucket \
+              --repo "${BITBUCKET_REPO_FULL_NAME}" \
+              --branch "${BITBUCKET_BRANCH}" \
+              --commit "${BITBUCKET_COMMIT}")"
+            export VULYK_RUN_ID
+
+            if [ -f report.xml ]; then
+              "${UPLOADER}" --file report.xml --format junit
+            fi
+            "${UPLOADER}" --close-run

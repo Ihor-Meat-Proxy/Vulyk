@@ -146,6 +146,7 @@ export const IDENTICAL_TO_EN_ALLOWLIST = new Set<string>([
   'executions.sourceForgejo',
   'executions.sourceGitea',
   'executions.sourceWoodpecker',
+  'executions.sourceBitbucket',
   'runs.live',
   'runs.plans',
   'settings.automationName',

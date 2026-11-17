@@ -76,8 +76,29 @@ function detectCiProvider(): string {
     return 'github'
   }
   if (process.env.GITLAB_CI) return 'gitlab'
+  if (
+    process.env.BITBUCKET_BUILD_NUMBER ||
+    process.env.BITBUCKET_REPO_FULL_NAME ||
+    process.env.BITBUCKET_BRANCH ||
+    process.env.BITBUCKET_COMMIT
+  ) {
+    return 'bitbucket'
+  }
   if (process.env.JENKINS_URL || process.env.BUILD_URL) return 'jenkins'
   return 'other'
+}
+
+function defaultPipelineUrl(): string | undefined {
+  if (process.env.CI_PIPELINE_URL) return process.env.CI_PIPELINE_URL
+  const repo = process.env.BITBUCKET_REPO_FULL_NAME?.trim()
+  const build = process.env.BITBUCKET_BUILD_NUMBER?.trim()
+  if (repo && build) {
+    return `https://bitbucket.org/${repo}/pipelines/results/${build}`
+  }
+  if (process.env.GITHUB_SERVER_URL) {
+    return `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+  }
+  return undefined
 }
 
 function caseKeyFromTest(test: TestCase): string | null {
@@ -145,11 +166,7 @@ export default class VulykReporter implements Reporter {
         '[vulyk-reporter] dry-run enabled — logging open/start/results/close without POSTing',
       )
     }
-    this.pipelineUrl =
-      process.env.CI_PIPELINE_URL ||
-      (process.env.GITHUB_SERVER_URL
-        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-        : undefined)
+    this.pipelineUrl = defaultPipelineUrl()
 
     this.openReady = this.openAndStart().catch((err) => {
       console.error('[vulyk-reporter] failed to open/start run:', err)
