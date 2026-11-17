@@ -5,7 +5,7 @@
 # Usage:
 #   ./scripts/ci-upgrade-test.sh <base-sha>
 #   VULYK_UPGRADE_BASE_SHA=<sha> ./scripts/ci-upgrade-test.sh
-#   VULYK_UPGRADE_BASE_REF=v0.5.0 ./scripts/ci-upgrade-test.sh
+#   VULYK_UPGRADE_BASE_REF=v0.5.1 ./scripts/ci-upgrade-test.sh
 #     Resolves the ref (fetching tags if needed) to a commit SHA, then runs the
 #     same seed-at-base -> migrate-to-HEAD smoke path.
 set -euo pipefail

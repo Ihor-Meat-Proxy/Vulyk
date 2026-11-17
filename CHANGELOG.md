@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-17
+
+Patch release: CI provider expansion (Forgejo/Gitea/Woodpecker), admin opt-in
+for private/HTTP CI URLs (J10), Jenkins POSIX/report fixes (J11), migration CI
+gates, and faster required PR quality checks since 0.5.0.
+
+### Added
+
+- **Forgejo / Gitea CI providers** — first-class `forgejo` / `gitea` sources with
+  `/api/v1` workflow_dispatch, GitHub-compatible webhooks, run slugs/badges, and
+  `VULYK_FORGEJO_PUBLIC_BASE_URL` / `VULYK_GITEA_PUBLIC_BASE_URL` pipeline URL
+  rewrites for internal Docker hosts (#273 / #263).
+- **Woodpecker CI provider** — server URL + Bearer token + `owner/name` repo,
+  Test connection, Dispatch with `VULYK_RUN_ID` variables and status follow,
+  example `.woodpecker.yml` with POSIX sh / `$${VAR}` escaping (#274 / #264).
+- **Private / HTTP CI URLs (J10)** — Admin opt-in for `http://` and private/LAN
+  CI hosts with optional allowlist; CI-scoped egress separate from the lab-only
+  private-egress hatch (#270 / #261).
+- **Injectable DNS stub for CI URL fixtures** — offline/NXDOMAIN-safe tests keep
+  reserved `*.example.com` names without live DNS (#271 / Part of #261).
+- **Migration integrity CI** — unique versions, immutability vs main/release,
+  Squawk lint, upgrade-from-release smoke (#260 / #259).
+- **Fast CI quality gates** — required PR hygiene (i18n, test-id catalog,
+  OpenAPI drift, bundle budget, axe smoke) for safer auto-merges (#266–#269 /
+  #265).
+
+### Changed
+
+- **Jenkins / upload (J11)** — POSIX-safe Jenkinsfiles, `ci_branch` / `ci_commit`
+  on runs, `--start-run` / `--print-run-id`, pytest marker-skip keys via
+  `ci/pytest_vulyk.py` (#272 / #262).
+- Env-upgrade CI default previous tag prefers `v0.5.0` when present.
+- Version bump 0.5.0 → 0.5.1 across `VERSION`, Cargo workspace, frontend, and
+  Helm `appVersion`.
+
+### Fixed
+
+- Prettier formatting for Woodpecker CI UI surfaces (#275 / Part of #264).
+
 ## [0.5.0] - 2026-11-16
 
 Minor release: Jenkins CI integration (J1–J9 + native provider), human-readable
