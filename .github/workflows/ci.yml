@@ -37,7 +37,7 @@ jobs:
             --no-progress
             --include-fragments
             README.md AGENTS.md CONTRIBUTING.md SECURITY.md
-            'docs/**/*.md' e2e/README.md
+            'docs/**/*.md' e2e/README.md 'examples/**/*.md'
           fail: true
 
   backend:

@@ -1,0 +1,62 @@
+// Jenkins Declarative Pipeline for the playwright example.
+// Credentials id: vulyk-ci-token -> secret text for VULYK_API_TOKEN.
+
+pipeline {
+  agent any
+  parameters {
+    string(name: 'VULYK_RUN_ID', defaultValue: '', description: 'Existing Vulyk run id from Dispatch')
+  }
+  environment {
+    VULYK_API_URL     = "${env.VULYK_API_URL}"
+    VULYK_API_TOKEN   = credentials('vulyk-ci-token')
+    VULYK_PROJECT_KEY = "${env.VULYK_PROJECT_KEY ?: 'KOC'}"
+  }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+    stage('Test') {
+      steps {
+        sh '''
+          set -eu
+          npm ci || npm install && npx playwright install --with-deps chromium && npx playwright test || true
+        '''
+      }
+    }
+    stage('Report to Vulyk') {
+      steps {
+        sh '''
+            set -eu
+            if [ -f ./scripts/vulyk-upload.sh ]; then
+              UPLOADER=./scripts/vulyk-upload.sh
+            elif [ -f ../../scripts/vulyk-upload.sh ]; then
+              UPLOADER=../../scripts/vulyk-upload.sh
+            else
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            fi
+            export VULYK_API_URL VULYK_API_TOKEN
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            if [ -n "${VULYK_RUN_ID:-}" ]; then
+              "$UPLOADER" --start-run \
+                --branch "${GIT_BRANCH#origin/}" --commit "${GIT_COMMIT}" \
+                --pipeline-url "${BUILD_URL}" || true
+            else
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "playwright #${BUILD_NUMBER}" \
+                --provider jenkins \
+                --branch "${GIT_BRANCH#origin/}" --commit "${GIT_COMMIT}" \
+                --pipeline-url "${BUILD_URL}")"
+              export VULYK_RUN_ID
+            fi
+            if [ -e "results.xml" ]; then
+              "$UPLOADER" --file "results.xml" --format junit
+            fi
+            "$UPLOADER" --close-run
+
+        '''
+      }
+    }
+  }
+}

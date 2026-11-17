@@ -96,10 +96,12 @@ auto-roll back. Full guarantees:
 
 ## CI integrations
 
-Publish results from **GitHub Actions**, **GitLab CI**, **Jenkins**, or any
-pipeline that can POST **JUnit** / Playwright / pytest / Vulyk JSON:
+Publish results from **GitHub Actions**, **Forgejo / Gitea**, **GitLab CI**,
+**Jenkins**, **Woodpecker**, **Bitbucket Pipelines**, or any pipeline that can
+POST **JUnit** / Playwright / pytest / Vulyk JSON:
 
 - Operator & token flow: [docs/guides/ci-integration.md](docs/guides/ci-integration.md)
+- Framework samples (Selenide / pytest / Playwright on every CI): [examples/](examples/) · [docs/guides/framework-examples.md](docs/guides/framework-examples.md)
 - Formats, dispatch, webhooks: [docs/guides/ingest-and-ci.md](docs/guides/ingest-and-ci.md)
 - In-app CI/CD help: [docs/user/cicd.md](docs/user/cicd.md)
 

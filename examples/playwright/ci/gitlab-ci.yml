@@ -1,0 +1,57 @@
+# Copy into .gitlab-ci.yml (or include remotely). Masked vars:
+# VULYK_API_URL, VULYK_API_TOKEN, VULYK_PROJECT_KEY
+
+stages: [test, report]
+
+test:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.49.0-jammy
+  script:
+    - npm ci || npm install
+    - npx playwright test || true
+  artifacts:
+    when: always
+    paths:
+      - results.xml
+    expire_in: 1 day
+
+report-vulyk:
+  stage: report
+  image: python:3.12-alpine
+  needs: [test]
+  when: always
+  before_script:
+    - apk add --no-cache curl bash
+  script:
+    - |
+            set -eu
+            if [ -f ./scripts/vulyk-upload.sh ]; then
+              UPLOADER=./scripts/vulyk-upload.sh
+            elif [ -f ../../scripts/vulyk-upload.sh ]; then
+              UPLOADER=../../scripts/vulyk-upload.sh
+            else
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            fi
+            export VULYK_API_URL VULYK_API_TOKEN
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            if [ -n "${VULYK_RUN_ID:-}" ]; then
+              "$UPLOADER" --start-run \
+                --branch "${CI_COMMIT_REF_NAME}" --commit "${CI_COMMIT_SHA}" \
+                --pipeline-url "${CI_PIPELINE_URL}" || true
+            else
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "playwright #${CI_PIPELINE_ID}" \
+                --provider gitlab \
+                --branch "${CI_COMMIT_REF_NAME}" --commit "${CI_COMMIT_SHA}" \
+                --pipeline-url "${CI_PIPELINE_URL}")"
+              export VULYK_RUN_ID
+            fi
+            if [ -e "results.xml" ]; then
+              "$UPLOADER" --file "results.xml" --format junit
+            fi
+            "$UPLOADER" --close-run
+

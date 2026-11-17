@@ -1,0 +1,16 @@
+[project]
+name = "vulyk-pytest-example"
+version = "0.1.0"
+description = "Minimal pytest suite with Vulyk case-key marks for CI ingest"
+requires-python = ">=3.11"
+dependencies = [
+  "pytest>=8.3.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-p pytest_vulyk --junitxml=report.xml -o junit_family=xunit1"
+testpaths = ["tests"]
+markers = [
+  "vulyk(key): Vulyk case key embedded into JUnit <property name=\"case_key\">",
+  "case_key(key): alias for vulyk mark",
+]

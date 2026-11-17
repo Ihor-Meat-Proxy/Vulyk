@@ -2,6 +2,10 @@
 
 Publish automated results into Vulyk and optionally start pipelines from **Executions → Run in CI**. Preferred lifecycle: **open run → upload results → close run** (including on failure).
 
+Runnable samples (Selenide / Maven, pytest, Playwright) with CI configs for every
+supported provider: see the [`examples/`](../../examples/) folder and the
+[framework examples guide](../guides/framework-examples.md).
+
 ## Prerequisites
 
 1. A Vulyk project with case keys (for example `KOC-12` or `VQA-42`).
@@ -17,6 +21,7 @@ CI tokens are narrowly scoped to reporting (open / upload / close) for that proj
 
 ### Playwright (TypeScript)
 
+Full sample project: [`examples/playwright/`](../../examples/playwright/).
 Preferred: annotation (also accepted as tag `@VQA-123` / `@KEY`):
 
 ```ts
@@ -56,7 +61,7 @@ Environment variables:
 
 ### Selenide / JUnit 5
 
-Emit Surefire/Gradle JUnit XML and set a property recognized by Vulyk (`test_key`, `case_key`, or `vulyk_key`). Keys in the test name / `@DisplayName` also work; `@vulyk:KOC-12` in the name is recognized.
+Emit Surefire/Gradle JUnit XML and set a property recognized by Vulyk (`test_key`, `case_key`, or `vulyk_key`). Keys in the test name / `@DisplayName` also work; `@vulyk:KOC-12` in the name is recognized. Full sample project: [`examples/selenide-maven/`](../../examples/selenide-maven/).
 
 ```java
 import org.junit.jupiter.api.Test;
@@ -102,6 +107,7 @@ Skipped tests still map when the key is in a **property**, the **test name**, or
 
 Put the key in the node id / test name, a mark, or a property. Upload JUnit XML
 (`--junitxml=report.xml`) or pytest JSON with `--format pytest_json`.
+Full sample project: [`examples/pytest/`](../../examples/pytest/).
 
 ```python
 import pytest

@@ -5,6 +5,7 @@ Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Action
 Formats, dispatch, and **webhooks** (secrets required, fail-closed): [ingest-and-ci.md](./ingest-and-ci.md).
 Automation Git repos: [automation-repo.md](../automation-repo.md).
 In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / Woodpecker / Bitbucket / JUnit): [../user/cicd.md](../user/cicd.md).
+Runnable Selenide / pytest / Playwright samples (every provider): [framework-examples.md](./framework-examples.md) and [`examples/`](../../examples/).
 
 ## How it fits together
 

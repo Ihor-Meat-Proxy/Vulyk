@@ -1,0 +1,54 @@
+# Save as .woodpecker.yml. Secrets: VULYK_API_URL, VULYK_API_TOKEN, VULYK_PROJECT_KEY.
+# Woodpecker interpolates ${VAR} — use $$ so the shell sees ${VAR}.
+
+when:
+  - event: [push, manual]
+    branch: [main]
+
+steps:
+  - name: test
+    image: python:3.12
+    commands:
+      - |
+        set -eu
+        pip install -e . && pytest || true
+  - name: report-vulyk
+    image: alpine:3.20
+    depends_on: [test]
+    when:
+      - status: [success, failure]
+    commands:
+      - |
+        set -eu
+        apk add --no-cache curl bash >/dev/null
+            set -eu
+            if [ -f ./scripts/vulyk-upload.sh ]; then
+              UPLOADER=./scripts/vulyk-upload.sh
+            elif [ -f ../../scripts/vulyk-upload.sh ]; then
+              UPLOADER=../../scripts/vulyk-upload.sh
+            else
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            fi
+            export VULYK_API_URL VULYK_API_TOKEN
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            if [ -n "$${VULYK_RUN_ID:-}" ]; then
+              "$UPLOADER" --start-run \
+                --branch "$${CI_COMMIT_BRANCH:-$${CI_COMMIT_SOURCE_BRANCH:-main}}" --commit "$${CI_COMMIT_SHA}" \
+                --pipeline-url "$${CI_PIPELINE_URL}" || true
+            else
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "pytest #$${CI_PIPELINE_NUMBER}" \
+                --provider woodpecker \
+                --branch "$${CI_COMMIT_BRANCH:-$${CI_COMMIT_SOURCE_BRANCH:-main}}" --commit "$${CI_COMMIT_SHA}" \
+                --pipeline-url "$${CI_PIPELINE_URL}")"
+              export VULYK_RUN_ID
+            fi
+            if [ -e "report.xml" ]; then
+              "$UPLOADER" --file "report.xml" --format junit
+            fi
+            "$UPLOADER" --close-run
+
