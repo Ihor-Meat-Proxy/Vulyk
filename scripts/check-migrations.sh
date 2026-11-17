@@ -5,7 +5,7 @@
 #   ./scripts/check-migrations.sh
 #   ./scripts/check-migrations.sh origin/main
 # Env:
-#   VULYK_RELEASE_TAG  Preferred release tag (default: v0.5.0). Falls back to
+#   VULYK_RELEASE_TAG  Preferred release tag (default: v0.5.1). Falls back to
 #                      latest v* tag when the preferred tag is missing.
 set -euo pipefail
 
@@ -107,7 +107,7 @@ fi
 # Release-tag immutability (hard-fail for already-released migration files)
 # ---------------------------------------------------------------------------
 resolve_release_tag() {
-  local prefer="${VULYK_RELEASE_TAG:-v0.5.0}"
+  local prefer="${VULYK_RELEASE_TAG:-v0.5.1}"
   local tag
 
   # Ensure tags are visible (shallow clones / sparse fetch)
