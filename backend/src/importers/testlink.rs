@@ -73,6 +73,7 @@ fn parse_xml(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             suite_name: None,
             steps,
             external_id,
+            automation_id: None,
             source_fields: json!({ "name": name }),
             custom_fields: Default::default(),
         });

@@ -259,6 +259,7 @@ pub fn row_to_list_item(row: &sqlx::postgres::PgRow) -> AppResult<TestCaseListIt
         status: row.try_get("status")?,
         version: row.try_get("version")?,
         external_key: row.try_get("external_key")?,
+        automation_id: row.try_get("automation_id")?,
         sort_order: row.try_get("sort_order")?,
         created_at: row.try_get("created_at")?,
         updated_at: row.try_get("updated_at")?,

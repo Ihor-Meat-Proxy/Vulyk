@@ -303,6 +303,15 @@ uses `POST /api/repos/{id}/pipelines` with Bearer PAT; Test connection probes
 `/api/user` + repo lookup. No new required `.env` keys. See
 [ci-integration.md](./ci-integration.md#woodpecker).
 
+### Case `automation_id` (#227)
+
+Forward migration `20261117064000_case_automation_id.sql` adds nullable
+`test_cases.automation_id` with a unique index on `(project_id, automation_id)`
+where set. Applied automatically on upgrade — no operator `.env` changes.
+CI/ingest matches case **key** first, then `automation_id`, then `external_key`.
+JUnit properties `automation_id` / `vulyk_automation_id` / `vulyk:automation_id`
+can link results without putting the case key in the test title.
+
 ### Private / HTTP CI URLs (J10)
 
 Upgrade sync adds optional `.env` keys from `.env.example` when missing (never

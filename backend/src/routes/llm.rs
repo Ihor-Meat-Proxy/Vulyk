@@ -403,6 +403,7 @@ pub async fn generate_cases(
                 tag_ids: vec![],
                 tag_names: vec![],
                 external_key: Some(draft.key.clone()),
+                automation_id: None,
                 sort_order: None,
             };
             persisted.push(insert_case(&state.pool, project_id, create).await?);
@@ -457,7 +458,7 @@ pub async fn generate_code(
     for case_id in &body.case_ids {
         let case = sqlx::query_as::<_, TestCase>(
             r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                      priority, status, version, external_key, sort_order, created_at, updated_at
+                      priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
                FROM test_cases WHERE id = $1 AND project_id = $2"#,
         )
         .bind(case_id)
@@ -572,7 +573,7 @@ pub async fn ask_tests(
     let cases: Vec<TestCase> = if body.case_ids.is_empty() {
         sqlx::query_as::<_, TestCase>(
             r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                      priority, status, version, external_key, sort_order, created_at, updated_at
+                      priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
                FROM test_cases WHERE project_id = $1
                ORDER BY updated_at DESC LIMIT 40"#,
         )
@@ -582,7 +583,7 @@ pub async fn ask_tests(
     } else {
         sqlx::query_as::<_, TestCase>(
             r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                      priority, status, version, external_key, sort_order, created_at, updated_at
+                      priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
                FROM test_cases WHERE project_id = $1 AND id = ANY($2)"#,
         )
         .bind(project_id)
@@ -822,12 +823,18 @@ async fn insert_case(
 
     let mut tx = pool.begin().await?;
     let (key, _) = allocate_case_key(&mut tx, project_id).await?;
+    let automation_id = body
+        .automation_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
     let case = sqlx::query_as::<_, TestCase>(
         r#"INSERT INTO test_cases
-            (project_id, suite_id, key, title, description, precondition, priority, status, external_key)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            (project_id, suite_id, key, title, description, precondition, priority, status,
+             external_key, automation_id)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
+                     priority, status, version, external_key, automation_id, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(body.suite_id)
@@ -838,6 +845,7 @@ async fn insert_case(
     .bind(&body.priority)
     .bind(&body.status)
     .bind(body.external_key.as_deref())
+    .bind(automation_id)
     .fetch_one(&mut *tx)
     .await?;
     let steps = replace_steps(&mut tx, case.id, &body.steps).await?;

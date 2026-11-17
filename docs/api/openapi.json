@@ -6,7 +6,7 @@
     "license": {
       "name": "AGPL-3.0"
     },
-    "version": "0.5.0"
+    "version": "0.5.1"
   },
   "servers": [
     {
@@ -12552,6 +12552,13 @@
           "status"
         ],
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Explicit automation_id from JUnit/ingest properties (matched after case key)."
+          },
           "case_id": {
             "type": [
               "string",
@@ -14407,6 +14414,12 @@
               "type": "string"
             }
           },
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "custom_fields": {
             "type": "array",
             "items": {
@@ -15139,6 +15152,13 @@
           "title"
         ],
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable automation / CI identifier (unique per project when set)."
+          },
           "description": {
             "type": "string"
           },
@@ -16457,6 +16477,9 @@
         "type": "object",
         "description": "Field mapping from source columns/keys to Vulyk case fields.",
         "properties": {
+          "automation_id": {
+            "type": "string"
+          },
           "custom_fields": {
             "type": "object",
             "description": "Map of Vulyk custom field key → source column/key.",
@@ -16827,6 +16850,12 @@
           "title"
         ],
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "custom_fields": {
             "type": "object",
             "description": "Custom field values keyed by field definition key.",
@@ -17125,6 +17154,12 @@
           "status"
         ],
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "case_id": {
             "type": [
               "string",
@@ -18460,6 +18495,13 @@
                 "updated_at"
               ],
               "properties": {
+                "automation_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stable automation / CI identifier (unique per project when set)."
+                },
                 "created_at": {
                   "type": "string",
                   "format": "date-time"
@@ -18569,6 +18611,12 @@
                 "automated": {
                   "type": "boolean",
                   "description": "True when the case has an `external_key` (automation / import link)\n**or** `last_automation_at` (CI/ingest has posted results)."
+                },
+                "automation_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "created_at": {
                   "type": "string",
@@ -21514,6 +21562,13 @@
           "updated_at"
         ],
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable automation / CI identifier (unique per project when set)."
+          },
           "created_at": {
             "type": "string",
             "format": "date-time"
@@ -21627,6 +21682,12 @@
           "automated": {
             "type": "boolean",
             "description": "True when the case has an `external_key` (automation / import link)\n**or** `last_automation_at` (CI/ingest has posted results)."
+          },
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "created_at": {
             "type": "string",
@@ -22451,6 +22512,13 @@
       "UpdateCase": {
         "type": "object",
         "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stable automation / CI identifier. `Some(\"\")` clears; omit / null keeps existing."
+          },
           "change_summary": {
             "type": [
               "string",

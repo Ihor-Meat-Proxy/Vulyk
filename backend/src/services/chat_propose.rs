@@ -396,7 +396,7 @@ async fn search_cases_context(pool: &PgPool, project_id: Uuid, q: &str) -> AppRe
     let pattern = format!("%{}%", q.chars().take(64).collect::<String>());
     let rows: Vec<TestCase> = sqlx::query_as(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases
            WHERE project_id = $1
              AND (title ILIKE $2 OR description ILIKE $2 OR key ILIKE $2)
@@ -716,7 +716,7 @@ async fn load_case_detail_tx(
 ) -> AppResult<TestCaseDetail> {
     let case: TestCase = sqlx::query_as(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases WHERE id = $1 AND project_id = $2"#,
     )
     .bind(case_id)

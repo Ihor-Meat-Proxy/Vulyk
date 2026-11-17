@@ -40,6 +40,9 @@ pub fn draft_from_row(
         .unwrap_or_else(|| defaults.status.unwrap_or_else(|| "draft".into()));
     let suite_name = get_mapped_owned(row, &mapping.suite).filter(|s| !s.is_empty());
     let steps = parse_steps_field(row, &mapping.steps);
+    let automation_id = get_mapped_owned(row, &mapping.automation_id)
+        .filter(|s| !s.trim().is_empty())
+        .or(defaults.automation_id);
 
     let mut custom_fields = std::collections::HashMap::new();
     for (field_key, source_key) in &mapping.custom_fields {
@@ -60,6 +63,7 @@ pub fn draft_from_row(
         suite_name,
         steps,
         external_id: defaults.external_id,
+        automation_id,
         source_fields: row.clone(),
         custom_fields,
     }
@@ -71,6 +75,7 @@ pub struct DraftDefaults {
     pub priority: Option<String>,
     pub status: Option<String>,
     pub external_id: Option<String>,
+    pub automation_id: Option<String>,
 }
 
 fn parse_steps_field(row: &Value, mapping_key: &str) -> Vec<ImportStepDraft> {

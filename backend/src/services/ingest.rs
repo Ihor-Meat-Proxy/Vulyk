@@ -59,6 +59,18 @@ pub async fn persist_results(
         for item in chunk {
             let mut row = item.clone();
             row.status = normalize_result_status(&row.status);
+            if let Some(ref aid) = row.automation_id {
+                let aid = aid.trim();
+                if aid.is_empty() {
+                    row.automation_id = None;
+                } else {
+                    let aid = aid.to_ascii_uppercase();
+                    row.automation_id = Some(aid.clone());
+                    if row.case_id.is_none() {
+                        keys_needed.push(aid);
+                    }
+                }
+            }
             if row.case_id.is_none() {
                 if row.case_key.is_none() {
                     row.case_key = crate::ingest::resolve_case_key(
@@ -91,11 +103,22 @@ pub async fn persist_results(
                     unmatched_case_keys.push(format!("case_id:{cid}"));
                     continue;
                 }
-            } else if let Some(ref key) = row.case_key {
-                match by_key.get(key) {
+            } else if row.case_key.is_some() || row.automation_id.is_some() {
+                // Prefer case key match, then automation_id (same order as lookup).
+                let matched = row
+                    .case_key
+                    .as_ref()
+                    .and_then(|k| by_key.get(k))
+                    .or_else(|| row.automation_id.as_ref().and_then(|a| by_key.get(a)));
+                match matched {
                     Some(id) => row.case_id = Some(*id),
                     None => {
-                        unmatched_case_keys.push(key.clone());
+                        let label = row
+                            .case_key
+                            .clone()
+                            .or_else(|| row.automation_id.clone())
+                            .unwrap_or_else(|| "unknown".into());
+                        unmatched_case_keys.push(label);
                         // Design: do not persist unmatched keys as orphan results.
                         continue;
                     }
@@ -212,10 +235,8 @@ async fn ensure_run(pool: &PgPool, run_id: Uuid, project_id: Uuid) -> AppResult<
     row.ok_or_else(|| AppError::NotFound("run".into()))
 }
 
-/// Resolve case keys (and external_key fallback) in two queries per chunk.
-/// Prefer matching `test_cases.key`; fall back to `external_key` only when the
-/// lookup token was not already claimed by a primary key (same as the prior
-/// per-row lookup order). Keys are matched case-insensitively (uppercase).
+/// Resolve lookup tokens in order: `test_cases.key`, then `automation_id`,
+/// then `external_key` for still-unmatched tokens. Case-insensitive (uppercase).
 async fn lookup_cases_by_keys(
     pool: &PgPool,
     project_id: Uuid,
@@ -239,17 +260,36 @@ async fn lookup_cases_by_keys(
 
     let mut map: HashMap<String, Uuid> = by_key.into_iter().map(|(id, k)| (k, id)).collect();
 
-    let missing: Vec<String> = unique
+    let missing_after_key: Vec<String> = unique
+        .iter()
+        .filter(|k| !map.contains_key(*k))
+        .cloned()
+        .collect();
+    if !missing_after_key.is_empty() {
+        let by_automation: Vec<(Uuid, String)> = sqlx::query_as(
+            r#"SELECT id, upper(automation_id) FROM test_cases
+               WHERE project_id = $1 AND upper(automation_id) = ANY($2)"#,
+        )
+        .bind(project_id)
+        .bind(&missing_after_key)
+        .fetch_all(pool)
+        .await?;
+        for (id, aid) in by_automation {
+            map.entry(aid).or_insert(id);
+        }
+    }
+
+    let missing_after_automation: Vec<String> = unique
         .into_iter()
         .filter(|k| !map.contains_key(k))
         .collect();
-    if !missing.is_empty() {
+    if !missing_after_automation.is_empty() {
         let by_external: Vec<(Uuid, String)> = sqlx::query_as(
             r#"SELECT id, upper(external_key) FROM test_cases
                WHERE project_id = $1 AND upper(external_key) = ANY($2)"#,
         )
         .bind(project_id)
-        .bind(&missing)
+        .bind(&missing_after_automation)
         .fetch_all(pool)
         .await?;
         for (id, ext) in by_external {

@@ -1,5 +1,6 @@
 //! JUnit / XUnit XML parser (pytest, Playwright, Surefire, cargo-nextest friendly).
-//! Recognizes Xray/TestRail-style properties: test_key, test_id, case_key, vulyk_key.
+//! Recognizes Xray/TestRail-style properties: test_key, test_id, case_key, vulyk_key,
+//! and automation_id / vulyk_automation_id / vulyk:automation_id.
 
 use chrono::Utc;
 use quick_xml::events::Event;
@@ -19,6 +20,8 @@ struct CaseBuilder {
     body_text: String,
     /// Explicit key from `<property name="test_key|test_id|case_key|vulyk_key" …>`.
     property_key: Option<String>,
+    /// Explicit automation id from `<property name="automation_id|…" …>`.
+    property_automation_id: Option<String>,
 }
 
 /// Parse JUnit XML into bulk result items.
@@ -193,12 +196,15 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
         }
     }
     let key_name = name.to_ascii_lowercase();
+    let v = value.trim();
+    if v.is_empty() {
+        return;
+    }
     if matches!(
         key_name.as_str(),
         "test_key" | "test_id" | "case_key" | "vulyk_key" | "vulyk:key"
     ) {
-        let v = value.trim();
-        if !v.is_empty() {
+        if c.property_key.is_none() {
             // First matching property wins; comma-separated → take first.
             let first = v.split(',').next().unwrap_or(v).trim();
             // Strip TestRail-style C prefix if present; keep Vulyk PREFIX-N as-is.
@@ -207,6 +213,15 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
                 .filter(|s| s.chars().all(|c| c.is_ascii_digit()))
                 .unwrap_or(first);
             c.property_key = Some(cleaned.to_string());
+        }
+    } else if matches!(
+        key_name.as_str(),
+        "automation_id" | "vulyk_automation_id" | "vulyk:automation_id"
+    ) && c.property_automation_id.is_none()
+    {
+        let first = v.split(',').next().unwrap_or(v).trim();
+        if !first.is_empty() {
+            c.property_automation_id.replace(first.to_string());
         }
     }
 }
@@ -274,6 +289,7 @@ fn finish_case(c: CaseBuilder, project_key: Option<&str>) -> BulkResultItem {
         message: c.message,
         case_id: None,
         case_key,
+        automation_id: c.property_automation_id,
         external_id: Some(external_id.clone()),
         title: Some(title),
         duration_ms,
@@ -355,6 +371,35 @@ mod tests {
 </testsuite>"#;
         let items = parse_junit(xml).expect("parse");
         assert_eq!(items[0].case_key.as_deref(), Some("KOC-12"));
+    }
+
+    #[test]
+    fn maps_automation_id_property_without_key_in_title() {
+        let xml = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1">
+  <testcase classname="tests.Login" name="valid_password" time="0.4">
+    <properties>
+      <property name="automation_id" value="login.valid_password"/>
+    </properties>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml).expect("parse");
+        assert!(items[0].case_key.is_none());
+        assert_eq!(
+            items[0].automation_id.as_deref(),
+            Some("login.valid_password")
+        );
+
+        let xml_alias = r#"<?xml version="1.0"?>
+<testsuite name="s" tests="1">
+  <testcase name="anonymous" time="0.1">
+    <properties>
+      <property name="vulyk:automation_id" value="suite::anon"/>
+    </properties>
+  </testcase>
+</testsuite>"#;
+        let items = parse_junit(xml_alias).expect("parse");
+        assert_eq!(items[0].automation_id.as_deref(), Some("suite::anon"));
     }
 
     #[test]

@@ -423,7 +423,7 @@ async fn apply(
                 sqlx::query(
                     r#"UPDATE test_cases SET title=$2, description=$3, precondition=$4,
                        priority=$5, status=$6, suite_id=$7, sort_order=$8, external_key=$9,
-                       version=$10, updated_at=NOW()
+                       automation_id=$10, version=$11, updated_at=NOW()
                        WHERE id=$1"#,
                 )
                 .bind(id)
@@ -435,6 +435,7 @@ async fn apply(
                 .bind(suite_id)
                 .bind(case.sort_order)
                 .bind(&case.external_key)
+                .bind(&case.automation_id)
                 .bind(case.version.max(1))
                 .execute(pool)
                 .await?;
@@ -461,8 +462,8 @@ async fn apply(
                 let id: Uuid = sqlx::query_scalar(
                     r#"INSERT INTO test_cases
                        (project_id, suite_id, key, title, description, precondition,
-                        priority, status, version, external_key, sort_order)
-                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                        priority, status, version, external_key, automation_id, sort_order)
+                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
                        RETURNING id"#,
                 )
                 .bind(project_id)
@@ -475,6 +476,7 @@ async fn apply(
                 .bind(&case.status)
                 .bind(case.version.max(1))
                 .bind(&case.external_key)
+                .bind(&case.automation_id)
                 .bind(case.sort_order)
                 .fetch_one(pool)
                 .await?;

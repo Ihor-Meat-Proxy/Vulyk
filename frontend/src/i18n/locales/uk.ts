@@ -883,6 +883,8 @@ const uk: Dict = {
   'cases.tabDetails': "Деталі",
   'cases.tabHistory': "Історія / Результати",
   'cases.preconditions': "Передумови",
+  'cases.automationId': "ID автоматизації",
+  'cases.automationIdHelp': "Стабільний ідентифікатор для зіставлення результатів автоматизації (унікальний у проєкті). Краще за ключ кейсу в назві тесту.",
   'cases.description': "Опис",
   'cases.version': "Версія",
   'cases.linkedRequirements': "Привʼязані вимоги",

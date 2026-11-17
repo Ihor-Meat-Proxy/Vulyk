@@ -19,6 +19,9 @@ pub struct TestCase {
     pub version: i32,
     #[serde(default)]
     pub external_key: Option<String>,
+    /// Stable automation / CI identifier (unique per project when set).
+    #[serde(default)]
+    pub automation_id: Option<String>,
     #[serde(default)]
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
@@ -82,6 +85,9 @@ pub struct CreateCase {
     /// Original external identifier from an import (stored separately from the Vulyk key).
     #[serde(default)]
     pub external_key: Option<String>,
+    /// Stable automation / CI identifier (unique per project when set).
+    #[serde(default)]
+    pub automation_id: Option<String>,
     #[serde(default)]
     pub sort_order: Option<i32>,
 }
@@ -104,6 +110,9 @@ pub struct UpdateCase {
     pub change_summary: Option<String>,
     pub sort_order: Option<i32>,
     pub external_key: Option<String>,
+    /// Stable automation / CI identifier. `Some("")` clears; omit / null keeps existing.
+    #[serde(default)]
+    pub automation_id: Option<String>,
     /// When set, update fails with 409 unless the case is still at this version
     /// (optimistic concurrency / review #7). Omit for last-write-wins clients.
     #[serde(default)]

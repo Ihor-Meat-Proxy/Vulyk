@@ -58,14 +58,20 @@ pub async fn persist_cases(
             .clone()
             .or_else(|| draft.key.clone())
             .filter(|k| !k.trim().is_empty());
+        let automation_id = draft
+            .automation_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty());
 
         let mut tx = pool.begin().await?;
         let (key, _) = allocate_case_key(&mut tx, project_id).await?;
 
         let inserted: Result<(Uuid,), sqlx::Error> = sqlx::query_as(
             r#"INSERT INTO test_cases
-               (project_id, suite_id, key, title, description, precondition, priority, status, external_key)
-               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+               (project_id, suite_id, key, title, description, precondition, priority, status,
+                external_key, automation_id)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                RETURNING id"#,
         )
         .bind(project_id)
@@ -85,6 +91,7 @@ pub async fn persist_cases(
             draft.status.as_str()
         })
         .bind(external_key.as_deref())
+        .bind(automation_id)
         .fetch_one(&mut *tx)
         .await;
 

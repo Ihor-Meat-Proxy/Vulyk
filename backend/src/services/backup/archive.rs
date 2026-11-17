@@ -375,12 +375,13 @@ async fn export_one_project(
         String,
         String,
         Option<String>,
+        Option<String>,
         Option<Uuid>,
         i32,
         i32,
     )> = sqlx::query_as(
         r#"SELECT id, key, title, description, precondition, priority, status,
-                  external_key, suite_id, sort_order, version
+                  external_key, automation_id, suite_id, sort_order, version
            FROM test_cases WHERE project_id = $1 ORDER BY key"#,
     )
     .bind(project_id)
@@ -397,6 +398,7 @@ async fn export_one_project(
         priority,
         status,
         external_key,
+        automation_id,
         suite_id,
         sort_order,
         version,
@@ -496,6 +498,7 @@ async fn export_one_project(
             priority,
             status,
             external_key,
+            automation_id,
             folder_path,
             sort_order,
             version,

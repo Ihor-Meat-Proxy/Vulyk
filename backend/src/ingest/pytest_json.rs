@@ -87,11 +87,20 @@ fn to_item(t: PytestTest) -> BulkResultItem {
             }
         }
     }
+    let automation_id = t.metadata.as_ref().and_then(|meta| {
+        meta.get("automation_id")
+            .or_else(|| meta.get("vulyk_automation_id"))
+            .and_then(|v| v.as_str())
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+    });
     BulkResultItem {
         status,
         message,
         case_id: None,
         case_key: key,
+        automation_id,
         external_id: Some(t.nodeid.clone()),
         title: Some(t.nodeid.clone()),
         duration_ms,

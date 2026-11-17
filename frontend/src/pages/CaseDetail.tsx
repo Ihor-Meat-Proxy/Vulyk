@@ -73,6 +73,7 @@ type EditSnapshot = {
   title: string
   description: string
   precondition: string
+  automationId: string
   priority: string
   status: string
   tagInput: string
@@ -157,6 +158,7 @@ export function CaseDetail({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [precondition, setPrecondition] = useState('')
+  const [automationId, setAutomationId] = useState('')
   const [priority, setPriority] = useState('medium')
   const [status, setStatus] = useState('draft')
   const [tagInput, setTagInput] = useState('')
@@ -189,6 +191,7 @@ export function CaseDetail({
     title,
     description,
     precondition,
+    automationId,
     priority,
     status,
     tagInput,
@@ -210,6 +213,7 @@ export function CaseDetail({
     const nextTitle = data.case.title
     const nextDescription = data.case.description
     const nextPrecondition = data.case.precondition
+    const nextAutomationId = data.case.automation_id ?? ''
     const nextPriority = data.case.priority
     const nextStatus = data.case.status
     const nextTagInput = data.tags.map((tag) => tag.name).join(', ')
@@ -221,6 +225,7 @@ export function CaseDetail({
     setTitle(nextTitle)
     setDescription(nextDescription)
     setPrecondition(nextPrecondition)
+    setAutomationId(nextAutomationId)
     setPriority(nextPriority)
     setStatus(nextStatus)
     setTagInput(nextTagInput)
@@ -230,6 +235,7 @@ export function CaseDetail({
       title: nextTitle,
       description: nextDescription,
       precondition: nextPrecondition,
+      automationId: nextAutomationId,
       priority: nextPriority,
       status: nextStatus,
       tagInput: nextTagInput,
@@ -516,6 +522,7 @@ export function CaseDetail({
         title,
         description,
         precondition,
+        automation_id: automationId.trim(),
         priority,
         status,
         steps: stepsForApi(steps),
@@ -890,6 +897,33 @@ export function CaseDetail({
                 style={{ margin: 0, whiteSpace: 'pre-wrap' }}
               >
                 {c.precondition || '—'}
+              </p>
+            )}
+          </section>
+
+          <section style={{ marginBottom: '1rem' }}>
+            <h3 style={{ marginBottom: '0.35rem' }}>
+              {t('cases.automationId')}
+            </h3>
+            {editing ? (
+              <>
+                <input
+                  className="search-input"
+                  value={automationId}
+                  onChange={(e) => setAutomationId(e.target.value)}
+                  placeholder={t('cases.automationId')}
+                  {...testIdProps(TestIds.caseDetailAutomationIdInput)}
+                />
+                <p className="muted" style={{ margin: '0.35rem 0 0' }}>
+                  {t('cases.automationIdHelp')}
+                </p>
+              </>
+            ) : (
+              <p
+                className="muted"
+                style={{ margin: 0, whiteSpace: 'pre-wrap' }}
+              >
+                {c.automation_id || '—'}
               </p>
             )}
           </section>
