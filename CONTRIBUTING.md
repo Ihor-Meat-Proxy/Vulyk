@@ -19,6 +19,11 @@ cargo run -p vulyk-api
 ./scripts/npm-ci-secure.sh frontend && (cd frontend && npm run dev)
 ```
 
+**Dev Container (recommended for isolation):** open the repo in VS Code / Cursor
+and “Reopen in Container” (see [`.devcontainer/`](.devcontainer/)). That
+installs Rust + Node 22 + Docker Compose away from the host; details in
+[docs/dev/supply-chain.md](docs/dev/supply-chain.md#dev-container).
+
 ## Checks (same as CI)
 
 Prefer the single entrypoint (also used by git hooks):

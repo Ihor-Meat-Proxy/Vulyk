@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Supply-chain hardening (partial #294)** — Dependabot cooldown + security
-  fast path, locked installs / npm `min-release-age` override, Dependabot dep
-  scan, and **keyless cosign + SBOM attestations** on Release GHCR images with
-  opt-in `install.sh --verify-images` / `VULYK_VERIFY_IMAGES` (#295–#298).
+- **Supply-chain hardening (#294)** — Dependabot cooldown + security fast path,
+  locked installs / npm `min-release-age` override, Dependabot dep scan + review
+  gate, **keyless cosign + SBOM** on Release GHCR images with opt-in
+  `install.sh --verify-images`, contributor **Dev Container**, and
+  [`docs/dev/supply-chain.md`](docs/dev/supply-chain.md) (#295–#299).
 
 ## [0.6.0] - 2026-11-17
 
