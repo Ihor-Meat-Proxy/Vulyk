@@ -15,7 +15,10 @@ async fn spawn_app() -> (String, sqlx::PgPool) {
         .await
         .expect("connect db");
     vulyk_api::db::migrate(&pool).await.expect("migrate");
-    vulyk_api::jobs::spawn_worker(pool.clone());
+    vulyk_api::jobs::spawn_worker(
+        pool.clone(),
+        vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
+    );
 
     let state = vulyk_api::routes::AppState {
         pool: pool.clone(),
@@ -414,7 +417,8 @@ async fn vulyk_json_async_job() {
             // Free locks held longer than 1s (dead peer workers).
             let _ = vulyk_api::services::jobs::reclaim_stale(&pool, 1).await;
         }
-        let _ = vulyk_api::jobs::process_one(&pool, "ingest-ci-local").await;
+        let secrets = vulyk_api::crypto::SecretsKey::parse("test-secrets-key");
+        let _ = vulyk_api::jobs::process_one(&pool, &secrets, "ingest-ci-local").await;
         // First few iterations give the local spawn_worker a chance before we
         // reclaim aggressively.
         let delay = if i < 4 { 100 } else { 200 };

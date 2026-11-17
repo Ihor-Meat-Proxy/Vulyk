@@ -96,6 +96,7 @@ CI open/upload/close helpers: `scripts/vulyk-upload.sh` and [.github/actions/vul
 | Projects / folders / cases | `/api/v1/projects…`, `/api/v1/cases/by-key/{key}` |
 | Runs / ingest | `/api/v1/projects/{id}/runs`, `/ingest`, `/api/v1/runs/{id}/ingest` |
 | CI reporting | `/api/v1/projects/{id}/ci/runs`, project CI tokens |
+| Outbound webhooks | `/api/v1/projects/{id}/outbound-webhooks` (tag `outbound-webhooks`) — see [outbound webhooks](../guides/outbound-webhooks.md) |
 | Executions | `/api/v1/projects/{id}/executions/…` |
 | Reports | `/api/v1/projects/{id}/reports/*` |
 | Requirements | `/requirements` |

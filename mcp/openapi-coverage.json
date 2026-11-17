@@ -4,7 +4,8 @@
   "excluded_tags": [
     "admin",
     "backups",
-    "webhooks"
+    "webhooks",
+    "outbound-webhooks"
   ],
   "tools": {
     "list_projects": [

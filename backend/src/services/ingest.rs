@@ -356,6 +356,16 @@ pub async fn persist_results(
         )));
     }
 
+    if inserted > 0 {
+        crate::services::outbound_webhooks::enqueue_event(
+            pool,
+            project_id,
+            crate::services::outbound_webhooks::EVENT_RESULT_CREATED,
+            serde_json::json!({ "inserted": inserted, "run_id": run_id }),
+        )
+        .await;
+    }
+
     Ok(BulkResultsResponse {
         inserted,
         updated,

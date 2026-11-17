@@ -592,6 +592,17 @@ export const TestIds = {
   settingsCiTokensNavLink: 'settings-ci-tokens-nav-link',
   adminIntegrationsCiTokensLink: 'admin-integrations-ci-tokens-link',
   runsCiTokensLink: 'runs-ci-tokens-link',
+  settingsOutboundWebhooksPanel: 'settings-outbound-webhooks-panel',
+  settingsOutboundWhProjectSelect: 'settings-outbound-wh-project-select',
+  settingsOutboundWhNameInput: 'settings-outbound-wh-name-input',
+  settingsOutboundWhUrlInput: 'settings-outbound-wh-url-input',
+  settingsOutboundWhCreateButton: 'settings-outbound-wh-create-button',
+  settingsOutboundWhSecret: 'settings-outbound-wh-secret',
+  settingsOutboundWhList: 'settings-outbound-wh-list',
+  settingsOutboundWhRow: 'settings-outbound-wh-row',
+  settingsOutboundWhDeliveries: 'settings-outbound-wh-deliveries',
+  settingsOutboundWhRedeliverButton: 'settings-outbound-wh-redeliver-button',
+  settingsOutboundWhTestButton: 'settings-outbound-wh-test-button',
 
   // —— Admin ——
   adminPage: 'admin-page',

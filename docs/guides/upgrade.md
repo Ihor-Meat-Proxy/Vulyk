@@ -367,6 +367,14 @@ empty until an admin enables them in **Admin → Settings**. Prefer the UI
 allowlist over the lab-only `VULYK_EGRESS_ALLOW_PRIVATE` hatch. See
 [ci-integration.md](./ci-integration.md#private--http-ci-urls-j10).
 
+### Outbound signed webhooks (#231)
+
+Forward migration `20261117093000_outbound_webhooks.sql` creates
+`outbound_webhook_endpoints` and `outbound_webhook_deliveries`. No new `.env`
+keys. Configure endpoints in **Settings → Outbound webhooks** or via the
+`outbound-webhooks` OpenAPI tag. Existing installs gain empty tables until
+operators add endpoints. See [outbound-webhooks.md](./outbound-webhooks.md).
+
 ## Web image build context
 
 The `vulyk-web` image is built from the **repository root** (`docker build -f frontend/Dockerfile .`)

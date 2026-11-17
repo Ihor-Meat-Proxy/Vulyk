@@ -7,8 +7,9 @@ use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+use crate::crypto::SecretsKey;
 use crate::ingest::parse_payload_with_project;
-use crate::services::{ingest as ingest_svc, jobs as jobs_svc};
+use crate::services::{ingest as ingest_svc, jobs as jobs_svc, outbound_webhooks};
 
 #[derive(Debug, Deserialize)]
 struct IngestJobPayload {
@@ -23,7 +24,7 @@ struct IngestJobPayload {
     dry_run: bool,
 }
 
-pub fn spawn_worker(pool: PgPool) {
+pub fn spawn_worker(pool: PgPool, secrets: SecretsKey) {
     let worker_id = format!("api-{}", Uuid::new_v4());
     tokio::spawn(async move {
         tracing::info!(%worker_id, "job worker started");
@@ -31,7 +32,7 @@ pub fn spawn_worker(pool: PgPool) {
         let _ = expire_stale_in_progress_runs(&pool).await;
         let _ = expire_stale_queued_ci_runs(&pool).await;
         loop {
-            match tick(&pool, &worker_id).await {
+            match tick(&pool, &secrets, &worker_id).await {
                 Ok(true) => { /* keep draining */ }
                 Ok(false) => {
                     tokio::time::sleep(Duration::from_millis(750)).await;
@@ -47,11 +48,15 @@ pub fn spawn_worker(pool: PgPool) {
 
 /// Claim and run at most one pending job (used by integration tests that share
 /// a Postgres with other test binaries whose workers may die mid-job).
-pub async fn process_one(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
-    tick(pool, worker_id).await
+pub async fn process_one(
+    pool: &PgPool,
+    secrets: &SecretsKey,
+    worker_id: &str,
+) -> Result<bool, String> {
+    tick(pool, secrets, worker_id).await
 }
 
-async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
+async fn tick(pool: &PgPool, secrets: &SecretsKey, worker_id: &str) -> Result<bool, String> {
     // Best-effort: mark abandoned Queued CI runs (never started by the workflow)
     // and age out stale in_progress / running runs (hard-killed reporters).
     let _ = expire_stale_queued_ci_runs(pool).await;
@@ -67,6 +72,17 @@ async fn tick(pool: &PgPool, worker_id: &str) -> Result<bool, String> {
     tracing::info!(job_id = %job.id, kind = %job.kind, "claimed job");
     let result = match job.kind.as_str() {
         "ingest_junit" | "ingest_json" | "ingest" => handle_ingest(pool, &job.payload).await,
+        "outbound_webhook_deliver" => {
+            let delivery_id = job
+                .payload
+                .get("delivery_id")
+                .and_then(|v| v.as_str())
+                .and_then(|s| Uuid::parse_str(s).ok())
+                .ok_or_else(|| "missing delivery_id".to_string())?;
+            outbound_webhooks::deliver_one(pool, secrets, job.id, delivery_id)
+                .await
+                .map(|()| json!({ "delivery_id": delivery_id }))
+        }
         other => Err(format!("unknown job kind '{other}'")),
     };
 

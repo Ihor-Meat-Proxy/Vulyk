@@ -279,11 +279,25 @@ pub async fn create_run(
 
     let progress = run_progress(&state.pool, run.id).await?;
     let items = load_run_items(&state.pool, run.id).await?;
-    Ok(Json(TestRunDetail {
-        run,
+    let detail = TestRunDetail {
+        run: run.clone(),
         progress,
         items,
-    }))
+    };
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        project_id,
+        crate::services::outbound_webhooks::EVENT_RUN_CREATED,
+        serde_json::json!({
+            "id": run.id,
+            "display_id": run.display_id,
+            "name": run.name,
+            "status": run.status,
+            "source": run.source,
+        }),
+    )
+    .await;
+    Ok(Json(detail))
 }
 
 #[utoipa::path(
@@ -385,11 +399,24 @@ pub async fn update_run(
 
     let progress = run_progress(&state.pool, run.id).await?;
     let items = load_run_items(&state.pool, run.id).await?;
-    Ok(Json(TestRunDetail {
-        run,
+    let detail = TestRunDetail {
+        run: run.clone(),
         progress,
         items,
-    }))
+    };
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        project_id,
+        crate::services::outbound_webhooks::EVENT_RUN_UPDATED,
+        serde_json::json!({
+            "id": run.id,
+            "display_id": run.display_id,
+            "name": run.name,
+            "status": run.status,
+        }),
+    )
+    .await;
+    Ok(Json(detail))
 }
 
 #[utoipa::path(
@@ -1272,6 +1299,18 @@ pub async fn update_run_by_id(
     .bind(finished_at)
     .fetch_one(&state.pool)
     .await?;
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        existing.project_id,
+        crate::services::outbound_webhooks::EVENT_RUN_UPDATED,
+        serde_json::json!({
+            "id": row.id,
+            "display_id": row.display_id,
+            "name": row.name,
+            "status": row.status,
+        }),
+    )
+    .await;
     Ok(Json(row))
 }
 

@@ -11,7 +11,10 @@ async fn spawn_app() -> String {
         .await
         .expect("connect db");
     vulyk_api::db::migrate(&pool).await.expect("migrate");
-    vulyk_api::jobs::spawn_worker(pool.clone());
+    vulyk_api::jobs::spawn_worker(
+        pool.clone(),
+        vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
+    );
 
     let state = vulyk_api::routes::AppState {
         pool,

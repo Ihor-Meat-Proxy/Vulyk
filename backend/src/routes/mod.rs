@@ -20,6 +20,7 @@ pub mod jobs;
 pub mod llm;
 pub mod memberships;
 pub mod option_lists;
+pub mod outbound_webhooks;
 pub mod plans;
 pub mod project_preferences;
 pub mod projects;
@@ -75,6 +76,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(jobs::router())
         .merge(ci::router())
         .merge(ci_report::router())
+        .merge(outbound_webhooks::router())
         .merge(llm::router())
         .merge(chat_propose::router())
         .merge(automation_repos::router())
