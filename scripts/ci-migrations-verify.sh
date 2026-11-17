@@ -46,7 +46,7 @@ ensure_sqlx_cli() {
 }
 
 log "Building vulyk-api..."
-cargo build -p vulyk-api
+cargo build --locked -p vulyk-api
 
 API_BIN="${ROOT}/target/debug/vulyk-api"
 [[ -x "${API_BIN}" ]] || die "missing ${API_BIN}"
@@ -89,7 +89,7 @@ if has_sqlx_offline_data; then
 else
   log "No backend/.sqlx / query! macros; skipping sqlx prepare --check"
   log "Running DB-backed migrate_cli test instead..."
-  cargo test -p vulyk-api --test migrate_cli -- --nocapture
+  cargo test --locked -p vulyk-api --test migrate_cli -- --nocapture
 fi
 
 log "Migrations verify passed"

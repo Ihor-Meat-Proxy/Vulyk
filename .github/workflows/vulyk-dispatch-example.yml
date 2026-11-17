@@ -34,8 +34,7 @@ jobs:
           node-version: '20'
 
       - name: Install
-        run: npm ci
-        working-directory: e2e
+        run: ./scripts/npm-ci-secure.sh e2e
 
       # First step after setup: mark the Queued Vulyk run In progress and store
       # this Actions run URL (optional if the Playwright reporter does start).

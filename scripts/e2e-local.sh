@@ -268,7 +268,7 @@ run_playwright_once() {
      apt-get update -qq >/dev/null
      apt-get install -y -qq postgresql-client >/dev/null
      cd /work/e2e
-     npm ci --no-audit --no-fund
+     /work/scripts/npm-ci-secure.sh /work/e2e --no-audit --no-fund
      mkdir -p artifacts/html-report artifacts/test-results artifacts/traces
      ${pw_cmd[*]}
     "

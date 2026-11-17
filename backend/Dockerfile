@@ -5,7 +5,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY backend ./backend
 COPY mcp ./mcp
 COPY cli ./cli
-RUN cargo build --release -p vulyk-api
+RUN cargo build --locked --release -p vulyk-api
 
 # Runtime
 FROM debian:bookworm-slim

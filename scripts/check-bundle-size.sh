@@ -55,10 +55,10 @@ NODE
 build_frontend() {
   local workdir="$1"
   (
-    cd "${workdir}/frontend"
-    if [[ ! -d node_modules ]]; then
-      npm ci --silent
+    if [[ ! -d "${workdir}/frontend/node_modules" ]]; then
+      (cd "${workdir}" && ./scripts/npm-ci-secure.sh frontend --silent)
     fi
+    cd "${workdir}/frontend"
     npm run build
   )
 }

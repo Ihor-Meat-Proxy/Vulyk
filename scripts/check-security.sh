@@ -44,15 +44,15 @@ if [[ "${MODE}" != "quick" ]]; then
   need_cmd npm "https://nodejs.org"
   echo "==> frontend npm audit (high+)"
   (
+    if [[ ! -d frontend/node_modules ]]; then ./scripts/npm-ci-secure.sh frontend; fi
     cd frontend
-    if [[ ! -d node_modules ]]; then npm ci; fi
     # Fast CI gate uses --omit=dev; full tree (incl. dev) remains useful locally.
     npm audit --omit=dev --audit-level=high
   )
   echo "==> e2e npm audit (prod, high+)"
   (
+    if [[ ! -d e2e/node_modules ]]; then ./scripts/npm-ci-secure.sh e2e; fi
     cd e2e
-    if [[ ! -d node_modules ]]; then npm ci; fi
     npm audit --omit=dev --audit-level=high
   )
 fi
