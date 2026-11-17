@@ -60,7 +60,7 @@ FRAMEWORKS = {
         "results": "target/surefire-reports",
         "suite": "selenide",
         "github_setup": """\
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: '17'
@@ -86,7 +86,7 @@ FRAMEWORKS = {
         "results": "report.xml",
         "suite": "pytest",
         "github_setup": """\
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
           cache: pip
@@ -109,7 +109,7 @@ FRAMEWORKS = {
         "results": "results.xml",
         "suite": "playwright",
         "github_setup": """\
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: '20'
           cache: npm
@@ -186,7 +186,7 @@ jobs:
   test-and-report:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 {setup.rstrip()}
       - name: Report to Vulyk
         if: always()

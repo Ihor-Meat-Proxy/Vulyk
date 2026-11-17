@@ -852,7 +852,7 @@ pub async fn pipeline_ingest(
         .clone()
         .or_else(|| auth.as_ref().map(|a| a.user.display_name.clone()));
 
-    let run = camp::create_automated_suite_run(
+    let run = camp::create_automated_suite_run_with_meta(
         &state.pool,
         project_id,
         iteration.id,
@@ -862,6 +862,13 @@ pub async fn pipeline_ingest(
         body.external_ref.as_deref(),
         body.environment.clone(),
         body.artifacts.clone(),
+        camp::AutomatedSuiteMeta {
+            provider: body.provider.as_deref(),
+            pipeline_url: body.pipeline_url.as_deref(),
+            repo: body.repo.as_deref(),
+            branch: body.branch.as_deref(),
+            commit: body.commit.as_deref(),
+        },
     )
     .await?;
 

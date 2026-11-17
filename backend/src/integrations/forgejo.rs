@@ -3,7 +3,10 @@
 //! JSON body matches GitHub Actions (`ref` + `inputs`). Auth and API root differ:
 //! `Authorization: token …` and `{base}/api/v1/repos/.../actions/workflows/.../dispatches`.
 
+use std::time::Duration;
+
 use serde_json::{json, Value};
+use tokio::time::sleep;
 
 use super::ci::{optional_str, require_str, CiDispatchHandle};
 use crate::error::{AppError, AppResult};
@@ -61,15 +64,131 @@ pub async fn dispatch(
         )));
     }
 
-    // No run id in the 204 response; UI links to the workflow Actions page.
-    // Callers correlate concrete runs via webhook (GitHub-compatible workflow_run).
+    let workflow_list_url =
+        format!("{public_base}/{owner}/{repo}/actions?workflow={workflow_id}&actor=0&status=0");
+
+    // workflow_dispatch returns 204 with no run id. Prefer resolving the new run
+    // via the Actions runs list (same idea as Jenkins/Woodpecker short follow).
+    // Webhooks still update terminal status when configured.
+    if let Some((run_id, run_url)) = resolve_dispatched_run(
+        &client,
+        &base_url,
+        &public_base,
+        &token,
+        &owner,
+        &repo,
+        &workflow_id,
+        &git_ref,
+    )
+    .await
+    {
+        return Ok(CiDispatchHandle {
+            external_id: Some(run_id),
+            external_url: Some(run_url),
+            status: "dispatched".into(),
+        });
+    }
+
     Ok(CiDispatchHandle {
         external_id: None,
-        external_url: Some(format!(
-            "{public_base}/{owner}/{repo}/actions?workflow={workflow_id}&actor=0&status=0"
-        )),
+        external_url: Some(workflow_list_url),
         status: "dispatched".into(),
     })
+}
+
+/// Poll the Actions runs list briefly for the just-dispatched workflow + ref.
+#[allow(clippy::too_many_arguments)]
+async fn resolve_dispatched_run(
+    client: &reqwest::Client,
+    api_base: &str,
+    public_base: &str,
+    token: &str,
+    owner: &str,
+    repo: &str,
+    workflow_id: &str,
+    git_ref: &str,
+) -> Option<(String, String)> {
+    let list_url = format!("{api_base}/api/v1/repos/{owner}/{repo}/actions/runs");
+    let branch = git_ref
+        .trim()
+        .trim_start_matches("refs/heads/")
+        .trim_start_matches("refs/tags/");
+
+    for _ in 0..8 {
+        sleep(Duration::from_millis(400)).await;
+        let res = client
+            .get(&list_url)
+            .header("Accept", "application/json")
+            .header("User-Agent", "vulyk-ci")
+            .header("Authorization", format!("token {token}"))
+            .query(&[("event", "workflow_dispatch"), ("limit", "10")])
+            .send()
+            .await
+            .ok()?;
+        if !res.status().is_success() {
+            continue;
+        }
+        let body: Value = res.json().await.ok()?;
+        let runs = body
+            .get("workflow_runs")
+            .or_else(|| body.get("runs"))
+            .and_then(|v| v.as_array())
+            .cloned()
+            .unwrap_or_default();
+        for run in runs {
+            if !run_matches_dispatch(&run, workflow_id, branch) {
+                continue;
+            }
+            let id = run.get("id").and_then(|v| {
+                v.as_i64()
+                    .map(|n| n.to_string())
+                    .or_else(|| v.as_u64().map(|n| n.to_string()))
+                    .or_else(|| v.as_str().map(str::to_string))
+            })?;
+            let html = run
+                .get("html_url")
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+                .unwrap_or_else(|| format!("{public_base}/{owner}/{repo}/actions/runs/{id}"));
+            return Some((id, html));
+        }
+    }
+    None
+}
+
+fn run_matches_dispatch(run: &Value, workflow_id: &str, branch: &str) -> bool {
+    let path = run
+        .get("path")
+        .or_else(|| run.get("workflow_path"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let name = run.get("name").and_then(|v| v.as_str()).unwrap_or("");
+    let wf_id = run
+        .get("workflow_id")
+        .and_then(|v| {
+            v.as_i64()
+                .map(|n| n.to_string())
+                .or_else(|| v.as_u64().map(|n| n.to_string()))
+                .or_else(|| v.as_str().map(str::to_string))
+        })
+        .unwrap_or_default();
+    let workflow_ok = path.ends_with(workflow_id)
+        || path.contains(workflow_id)
+        || name == workflow_id
+        || wf_id == workflow_id
+        || workflow_id.is_empty();
+    if !workflow_ok {
+        return false;
+    }
+    if branch.is_empty() {
+        return true;
+    }
+    let head = run
+        .get("head_branch")
+        .or_else(|| run.get("branch"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    head == branch || head.is_empty()
 }
 
 /// Env / config public base for rewriting inbound pipeline URLs.

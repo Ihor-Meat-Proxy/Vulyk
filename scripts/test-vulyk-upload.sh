@@ -85,6 +85,12 @@ class H(BaseHTTPRequestHandler):
             assert "content" in payload and len(payload["content"]) > 0
             self._json(200, {"run_id": RUN_ID, "matched": 0})
             return
+        if path == f"/api/v1/projects/{PROJECT_ID}/ingest":
+            payload = json.loads(body.decode("utf-8"))
+            OPEN_BODY.write_text(json.dumps(payload))
+            assert payload.get("content")
+            self._json(200, {"run_id": RUN_ID, "inserted": 0})
+            return
         if path == f"/api/v1/projects/_/ci/runs/{RUN_ID}/close":
             self._json(404, {"error": "not found"})
             return
@@ -179,6 +185,33 @@ grep -qi 'run-id' "${WORKDIR}/no-run.txt" || {
   echo "FAIL expected run-id error message" >&2
   fail=$((fail + 1))
 }
+grep -qi 'same shell\|GITHUB_ENV\|Jenkins' "${WORKDIR}/no-run.txt" || {
+  echo "FAIL expected same-step / GITHUB_ENV migration hint" >&2
+  fail=$((fail + 1))
+}
+
+# J12: --pipeline forwards provider + pipeline_url
+: > "${WORKDIR}/open_body.json"
+echo '<testsuite tests="0"/>' > "${WORKDIR}/empty.xml"
+"${SCRIPT}" --api-url "${API}" --project-key KOC --pipeline \
+  --file "${WORKDIR}/empty.xml" --format junit \
+  --provider gitlab --pipeline-url "https://gitlab.example/p/-/pipelines/9" \
+  --branch main --commit deadbeef >/dev/null
+if PAYLOAD="$(cat "${WORKDIR}/open_body.json")" python3 - <<'PY'
+import json, os, sys
+payload = json.loads(os.environ["PAYLOAD"])
+assert payload.get("provider") == "gitlab", payload
+assert payload.get("pipeline_url") == "https://gitlab.example/p/-/pipelines/9", payload
+assert payload.get("branch") == "main", payload
+assert payload.get("commit") == "deadbeef", payload
+PY
+then
+  echo "PASS pipeline-provider-url"
+  pass=$((pass + 1))
+else
+  echo "FAIL pipeline-provider-url payload=$(cat "${WORKDIR}/open_body.json")" >&2
+  fail=$((fail + 1))
+fi
 
 # J11: --start-run with project-key (attach branch/commit/pipeline_url)
 : > "${WORKDIR}/log.txt"

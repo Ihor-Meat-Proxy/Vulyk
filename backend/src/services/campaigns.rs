@@ -872,6 +872,15 @@ fn suite_from_run(run: TestRun) -> AutomatedSuite {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct AutomatedSuiteMeta<'a> {
+    pub provider: Option<&'a str>,
+    pub pipeline_url: Option<&'a str>,
+    pub repo: Option<&'a str>,
+    pub branch: Option<&'a str>,
+    pub commit: Option<&'a str>,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub async fn create_automated_suite_run(
     pool: &PgPool,
@@ -884,18 +893,53 @@ pub async fn create_automated_suite_run(
     environment: Value,
     artifacts: Value,
 ) -> AppResult<TestRun> {
+    create_automated_suite_run_with_meta(
+        pool,
+        project_id,
+        iteration_id,
+        name,
+        source,
+        created_by_name,
+        external_ref,
+        environment,
+        artifacts,
+        AutomatedSuiteMeta::default(),
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+pub async fn create_automated_suite_run_with_meta(
+    pool: &PgPool,
+    project_id: Uuid,
+    iteration_id: Uuid,
+    name: &str,
+    source: &str,
+    created_by_name: Option<&str>,
+    external_ref: Option<&str>,
+    environment: Value,
+    artifacts: Value,
+    meta: AutomatedSuiteMeta<'_>,
+) -> AppResult<TestRun> {
     get_iteration(pool, project_id, iteration_id).await?;
     let created_at = Utc::now();
-    let src = normalize_run_source(None, Some(source), None);
+    let src = normalize_run_source(meta.provider, Some(source), Some("ci"));
     let mut tx = pool.begin().await?;
     let (display_id, slug, seq_number) =
         allocate_run_ids(&mut tx, project_id, src, created_at).await?;
+    let provider = meta
+        .provider
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_ascii_lowercase);
     let run = sqlx::query_as::<_, TestRun>(&format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
               created_by_name, environment, artifacts, started_at, created_at,
-              display_id, slug, seq_number)
-           VALUES ($1, $2, $3, '', 'running', $4, $5, $6, $7, $8, $9, $9, $10, $11, $12)
+              display_id, slug, seq_number,
+              ci_provider, ci_repo, ci_branch, ci_commit, pipeline_url, job_url)
+           VALUES ($1, $2, $3, '', 'running', $4, $5, $6, $7, $8, $9, $9, $10, $11, $12,
+                   $13, $14, $15, $16, $17, $17)
            RETURNING {RUN_COLS}"#
     ))
     .bind(project_id)
@@ -910,6 +954,11 @@ pub async fn create_automated_suite_run(
     .bind(&display_id)
     .bind(&slug)
     .bind(seq_number)
+    .bind(&provider)
+    .bind(meta.repo)
+    .bind(meta.branch)
+    .bind(meta.commit)
+    .bind(meta.pipeline_url)
     .fetch_one(&mut *tx)
     .await?;
     tx.commit().await?;

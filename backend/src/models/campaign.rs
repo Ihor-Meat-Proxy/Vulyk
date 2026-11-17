@@ -350,6 +350,13 @@ pub struct PipelineIngestRequest {
     /// When true, report cases that would be auto-created without persisting creates.
     #[serde(default)]
     pub dry_run: bool,
+    /// CI provider hint (`github`, `gitlab`, `jenkins`, …) for readable run ids / badges.
+    pub provider: Option<String>,
+    /// Clickable pipeline URL stored on the suite run.
+    pub pipeline_url: Option<String>,
+    pub repo: Option<String>,
+    pub branch: Option<String>,
+    pub commit: Option<String>,
 }
 
 fn default_ci_source() -> String {

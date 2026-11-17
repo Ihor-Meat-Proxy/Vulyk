@@ -123,8 +123,11 @@ def test_health(record_property):
     pytest.skip("not ready")
 ```
 
-**Marker skips** (`@pytest.mark.skip`) never run the body, so `record_property`
-inside the function never fires. Use one of:
+**Prefer `@pytest.mark.vulyk("KOC-12")`** as the primary mapping. A skip that only
+calls `record_property` inside the test body is fine for **runtime**
+`pytest.skip(...)` (property must be recorded *before* the skip). Marker skips
+(`@pytest.mark.skip`) never run the body, so `record_property` inside the
+function never fires. Use one of:
 
 1. Key in the skip reason: `@pytest.mark.skip(reason="KOC-12 not ready")`
 2. Key on a mark + [`ci/pytest_vulyk.py`](../../ci/pytest_vulyk.py) so JUnit still
@@ -137,8 +140,14 @@ def test_health():
     ...
 ```
 
+Load the plugin from a root **`conftest.py`** (`pytest_plugins = ["pytest_vulyk"]`),
+`pytest -p …`, or `addopts` — **not** `pytest_plugins` in `pytest.ini` (pytest
+rejects that and the plugin never loads):
+
 ```bash
+# From repo root (module path) or examples/pytest (local module name):
 pytest -p ci.pytest_vulyk --junitxml=report.xml -o junit_family=xunit1
+# examples/pytest already ships conftest.py + addopts for the same plugin.
 ```
 
 ### Generic JUnit XML via curl / shell (`other`)

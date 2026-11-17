@@ -439,6 +439,75 @@ async fn follow_queue(
     Ok(None)
 }
 
+/// Map Jenkins build `result` (+ `building`) to a Vulyk dispatch status.
+pub fn map_build_result(building: bool, result: Option<&str>) -> &'static str {
+    if building {
+        return "running";
+    }
+    match result.map(|s| s.trim().to_ascii_uppercase()).as_deref() {
+        Some("SUCCESS") => "succeeded",
+        Some("ABORTED") => "cancelled",
+        Some("FAILURE") | Some("UNSTABLE") | Some("NOT_BUILT") => "failed",
+        Some("") | None => "running",
+        Some(_) => "failed",
+    }
+}
+
+/// Poll a concrete Jenkins build until it leaves `building` or attempts are exhausted.
+///
+/// Returns `(status, build_url)` where status is a Vulyk dispatch status.
+pub async fn poll_build_once(
+    cfg: &Value,
+    build_url: &str,
+    policy: &egress::CiUrlPolicy,
+) -> AppResult<(String, String)> {
+    let target = parse_target(cfg, policy)?;
+    let http = client()?;
+    let crumb = if target.use_crumb {
+        fetch_crumb(&http, &target).await?
+    } else {
+        None
+    };
+    let api = if build_url.contains("/api/json") {
+        build_url.to_string()
+    } else {
+        format!("{}/api/json", build_url.trim_end_matches('/'))
+    };
+    let req = apply_crumb(
+        http.get(&api)
+            .basic_auth(&target.username, Some(&target.token))
+            .header("User-Agent", "vulyk-ci")
+            .query(&[("tree", "building,result,number,url")]),
+        &crumb,
+    );
+    let res = req
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Jenkins build poll failed: {e}")))?;
+    if !res.status().is_success() {
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        return Err(AppError::BadRequest(format!(
+            "Jenkins build poll failed ({status}): {text}"
+        )));
+    }
+    let body: Value = res
+        .json()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Jenkins build decode failed: {e}")))?;
+    let building = body
+        .get("building")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+    let result = body.get("result").and_then(|v| v.as_str());
+    let url = body
+        .get("url")
+        .and_then(|v| v.as_str())
+        .map(|s| format!("{}/", s.trim_end_matches('/')))
+        .unwrap_or_else(|| format!("{}/", build_url.trim_end_matches('/')));
+    Ok((map_build_result(building, result).to_string(), url))
+}
+
 /// Build the trigger URL used for a given config + whether parameters are present.
 pub fn trigger_url(base_url: &str, job_path: &str, with_params: bool) -> String {
     let path = if with_params {
@@ -543,5 +612,15 @@ mod tests {
             queue_item_id("https://jenkins.example/queue/item/42/"),
             Some("queue:42".into())
         );
+    }
+
+    #[test]
+    fn map_build_result_terminal() {
+        assert_eq!(map_build_result(true, None), "running");
+        assert_eq!(map_build_result(false, Some("SUCCESS")), "succeeded");
+        assert_eq!(map_build_result(false, Some("FAILURE")), "failed");
+        assert_eq!(map_build_result(false, Some("ABORTED")), "cancelled");
+        assert_eq!(map_build_result(false, Some("UNSTABLE")), "failed");
+        assert_eq!(map_build_result(false, None), "running");
     }
 }
