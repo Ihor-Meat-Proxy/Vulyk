@@ -50,7 +50,7 @@ pub async fn get_job(
         .await?;
     } else if state.auth.required {
         match &auth {
-            Some(user) if user.is_system_admin() => {}
+            Some(user) if user.bypasses_as_system_admin() => {}
             Some(_) => {
                 return Err(AppError::Forbidden(
                     "job is not scoped to a project you can view".into(),

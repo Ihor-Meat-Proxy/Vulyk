@@ -237,6 +237,77 @@ impl Permission {
                 | Self::ManageGlobalIntegrations
         )
     }
+
+    /// All project-scoped permissions (excludes system-only).
+    pub fn all_project() -> &'static [Permission] {
+        use Permission::*;
+        &[
+            ViewProject,
+            UpdateProject,
+            DeleteProject,
+            ManageMemberships,
+            ManageSuites,
+            CreateEditCases,
+            DeleteCases,
+            ManageRequirements,
+            ManagePlans,
+            ImportCases,
+            ViewReports,
+            ExportReports,
+            ExecuteRuns,
+            UploadResults,
+            ManageAttachments,
+            Comment,
+            TriggerCi,
+            ManageCiConfig,
+            LlmAssist,
+            ManageLlmConfig,
+            ManageAutomationRepo,
+            ManageApiTokens,
+        ]
+    }
+}
+
+impl std::fmt::Display for Permission {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl std::str::FromStr for Permission {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "manage_users" => Ok(Self::ManageUsers),
+            "manage_system_settings" => Ok(Self::ManageSystemSettings),
+            "manage_sso" => Ok(Self::ManageSso),
+            "manage_global_integrations" => Ok(Self::ManageGlobalIntegrations),
+            "view_project" => Ok(Self::ViewProject),
+            "update_project" => Ok(Self::UpdateProject),
+            "delete_project" => Ok(Self::DeleteProject),
+            "manage_memberships" => Ok(Self::ManageMemberships),
+            "manage_suites" => Ok(Self::ManageSuites),
+            "create_edit_cases" => Ok(Self::CreateEditCases),
+            "delete_cases" => Ok(Self::DeleteCases),
+            "manage_requirements" => Ok(Self::ManageRequirements),
+            "manage_plans" => Ok(Self::ManagePlans),
+            "import_cases" => Ok(Self::ImportCases),
+            "view_reports" => Ok(Self::ViewReports),
+            "export_reports" => Ok(Self::ExportReports),
+            "execute_runs" => Ok(Self::ExecuteRuns),
+            "upload_results" => Ok(Self::UploadResults),
+            "manage_attachments" => Ok(Self::ManageAttachments),
+            "comment" => Ok(Self::Comment),
+            "trigger_ci" => Ok(Self::TriggerCi),
+            "manage_ci_config" => Ok(Self::ManageCiConfig),
+            "llm_assist" => Ok(Self::LlmAssist),
+            "manage_llm_config" => Ok(Self::ManageLlmConfig),
+            "manage_automation_repo" => Ok(Self::ManageAutomationRepo),
+            "manage_api_tokens" => Ok(Self::ManageApiTokens),
+            other => Err(format!("unknown permission: {other}")),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

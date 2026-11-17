@@ -40,7 +40,17 @@ pub async fn list_projects(
 ) -> AppResult<Json<Vec<Project>>> {
     let projects = if state.auth.required {
         match &auth {
-            Some(user) if user.is_system_admin() => {
+            // Scoped API tokens only ever see their bound project.
+            Some(user) if user.api_token_scope().is_some() => {
+                let (token_project, _) = user.api_token_scope().expect("checked");
+                sqlx::query_as::<_, Project>(&format!(
+                    "SELECT {PROJECT_COLS} FROM projects WHERE id = $1 ORDER BY key"
+                ))
+                .bind(token_project)
+                .fetch_all(&state.pool)
+                .await?
+            }
+            Some(user) if user.bypasses_as_system_admin() => {
                 sqlx::query_as::<_, Project>(&format!(
                     "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
                 ))
@@ -92,11 +102,16 @@ pub async fn create_project(
     if state.auth.required && auth.is_none() {
         return Err(AppError::Unauthorized("authentication required".into()));
     }
-    // Project-scoped CI tokens must not create projects.
+    // Project-scoped CI / personal API tokens must not create projects.
     if let Some(user) = &auth {
         if matches!(user.via, AuthVia::CiToken { .. }) {
             return Err(AppError::Forbidden(
                 "CI tokens cannot create projects".into(),
+            ));
+        }
+        if matches!(user.via, AuthVia::ApiToken { .. }) {
+            return Err(AppError::Forbidden(
+                "scoped API tokens cannot create projects".into(),
             ));
         }
     }

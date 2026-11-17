@@ -19,7 +19,7 @@ Bearer auth accepts **JWT**, **session secrets** (`vulyk_s_…`), or **API token
 3. **Web wizard**: when setup is incomplete, use the one-time setup token printed in API logs (`vulyk_setup_…`).
 4. **Login**: `POST /api/v1/auth/login` → JWT + session cookie.
 5. **Register**: subject to [registration modes](#registration-modes).
-6. **Personal API tokens**: `POST /api/v1/tokens` → secret shown once. Use as `VULYK_API_TOKEN` for MCP/CLI.
+6. **Personal API tokens**: `POST /api/v1/tokens` with `project_id` + nonempty `permissions` → secret shown once. Use as `VULYK_API_TOKEN` for MCP/CLI. Tokens are limited to that project and allowlisted permissions (intersected with the owner’s membership).
 7. **Logout**: `POST /api/v1/auth/logout`.
 8. **SSO**: see [guides/sso.md](guides/sso.md).
 
@@ -126,8 +126,8 @@ Role keys: `admin`, `test_architect`, `test_automation_engineer`, `developer`, `
 
 ## Tokens & CI
 
-- **Personal API tokens** (`vulyk_at_…`): bound to a user. Tokens with `user_id IS NULL` are **rejected** (401) — they are never treated as system admin.
-- **Project CI tokens** (`vulyk_ci_…`): scoped to CI reporting (open/upload/close). They do **not** grant broad project admin (e.g. cannot `create_project`). See [guides/ci-integration.md](guides/ci-integration.md).
+- **Personal API tokens** (`vulyk_at_…`): bound to a user, **one project**, and an allowlist of project permissions. Effective access is the intersection of the token allowlist and the owner’s membership (system-admin owners still cannot exceed the token allowlist). Tokens with `user_id IS NULL`, missing `project_id`, or empty permissions are **rejected** (401). Upgrades revoke legacy unscoped tokens — recreate them with a project + permissions.
+- **Project CI tokens** (`vulyk_ci_…`): scoped to CI reporting (open/upload/close). They do **not** grant broad project admin (e.g. cannot `create_project`). Unchanged by personal-token scoping. See [guides/ci-integration.md](guides/ci-integration.md).
 - **Webhook secrets**: required for GitHub/GitLab webhook authorization (fail-closed). Responses expose `has_webhook_secret` only.
 
 ## Admin UI
@@ -138,5 +138,6 @@ Admin panel: **Users**, **Roles**, **Projects**, **Integrations**, **SSO**, **LL
 
 - `backend/migrations/20261025143000_auth_rbac.sql` — sessions, memberships, user admin columns, API token ownership
 - `backend/migrations/20261025150000_roles_setup_sso.sql` — five-role matrix, setup tokens, registration/invites, SSO providers
+- `backend/migrations/20261117074652_scoped_api_tokens.sql` — `api_tokens.project_id` + `permissions`; revokes existing personal tokens on upgrade
 
 Security policy and reporting: [SECURITY.md](../SECURITY.md).

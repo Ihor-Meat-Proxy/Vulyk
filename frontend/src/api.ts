@@ -1387,6 +1387,10 @@ export type ApiTokenPublic = {
   created_at: string
   last_used_at: string | null
   revoked_at: string | null
+  /** Project this token is scoped to (null only for revoked legacy rows). */
+  project_id: string | null
+  /** Allowlisted project permission strings. */
+  permissions: string[]
 }
 
 export type ProjectCiToken = {
@@ -2979,10 +2983,17 @@ export const api = {
     }),
 
   listTokens: () => request<ApiTokenPublic[]>('/api/v1/tokens'),
-  createToken: (name: string) =>
+  createToken: (
+    name: string,
+    opts: { projectId: string; permissions: string[] },
+  ) =>
     request<{ token: ApiTokenPublic; secret: string }>('/api/v1/tokens', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({
+        name,
+        project_id: opts.projectId,
+        permissions: opts.permissions,
+      }),
     }),
   revokeToken: (id: string) =>
     request<void>(`/api/v1/tokens/${id}`, { method: 'DELETE' }),

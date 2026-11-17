@@ -59,6 +59,10 @@ test('JUnit upload via API token', {
     request,
     adminToken,
     `e2e-junit-${projectKey}`,
+    {
+      projectId,
+      permissions: ['view_project', 'upload_results', 'execute_runs'],
+    },
   )
   const xml = fs.readFileSync(path.join(fixtures, 'sample-junit.xml'), 'utf8')
   const res = await request.post(`${API_URL}/api/v1/runs/${runId}/ingest`, {

@@ -11,11 +11,19 @@ pub struct ApiTokenPublic {
     pub created_at: DateTime<Utc>,
     pub last_used_at: Option<DateTime<Utc>>,
     pub revoked_at: Option<DateTime<Utc>>,
+    /// Project this token is scoped to (null only for revoked legacy rows).
+    pub project_id: Option<Uuid>,
+    /// Allowlisted project permission strings (`view_project`, …).
+    pub permissions: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateApiToken {
     pub name: String,
+    /// Project the token may access.
+    pub project_id: Uuid,
+    /// Non-empty subset of project permission strings.
+    pub permissions: Vec<String>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

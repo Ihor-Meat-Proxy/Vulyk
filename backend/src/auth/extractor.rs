@@ -150,8 +150,11 @@ pub struct AuthUser {
 pub enum AuthVia {
     Jwt,
     Session,
+    /// Personal API token scoped to one project + allowlisted permissions.
     ApiToken {
         token_id: Uuid,
+        project_id: Uuid,
+        permissions: Vec<Permission>,
     },
     /// Project-scoped CI reporting token (`vulyk_ci_…`).
     CiToken {
@@ -187,6 +190,24 @@ impl AuthUser {
 
     pub fn must_change_password(&self) -> bool {
         self.user.must_change_password
+    }
+
+    /// System-admin privilege that bypasses project RBAC / admin extractors.
+    /// Scoped API tokens never get this bypass — their allowlist always applies.
+    pub fn bypasses_as_system_admin(&self) -> bool {
+        self.is_system_admin() && !matches!(self.via, AuthVia::ApiToken { .. })
+    }
+
+    /// Project + permission allowlist when authenticated via a personal API token.
+    pub fn api_token_scope(&self) -> Option<(Uuid, &[Permission])> {
+        match &self.via {
+            AuthVia::ApiToken {
+                project_id,
+                permissions,
+                ..
+            } => Some((*project_id, permissions.as_slice())),
+            _ => None,
+        }
     }
 }
 
@@ -232,7 +253,7 @@ impl FromRequestParts<AppState> for RequireSystemAdmin {
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
         let RequireAuth(user) = RequireAuth::from_request_parts(parts, state).await?;
-        if !user.is_system_admin() {
+        if !user.bypasses_as_system_admin() {
             return Err(AppError::Forbidden(
                 "system administrator role required".into(),
             ));
@@ -369,7 +390,7 @@ pub async fn bearer_middleware(
                 return resp;
             }
             let token_id = match user.via {
-                AuthVia::ApiToken { token_id } => Some(token_id),
+                AuthVia::ApiToken { token_id, .. } => Some(token_id),
                 AuthVia::CiToken { token_id, .. } => Some(token_id),
                 _ => None,
             };
@@ -554,8 +575,8 @@ async fn authenticate_ci_token(pool: &PgPool, raw_token: &str) -> AppResult<Auth
 
 async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<AuthUser> {
     let token_hash = hash_secret(raw_token);
-    let row = sqlx::query_as::<_, (Uuid, Option<Uuid>)>(
-        r#"SELECT id, user_id FROM api_tokens
+    let row = sqlx::query_as::<_, (Uuid, Option<Uuid>, Option<Uuid>, Vec<String>)>(
+        r#"SELECT id, user_id, project_id, permissions FROM api_tokens
            WHERE token_hash = $1
              AND revoked_at IS NULL
              AND (expires_at IS NULL OR expires_at > NOW())"#,
@@ -565,7 +586,7 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
     .await?
     .ok_or_else(|| AppError::Unauthorized("invalid or revoked API token".into()))?;
 
-    let (token_id, user_id) = row;
+    let (token_id, user_id, project_id, permission_strs) = row;
     sqlx::query("UPDATE api_tokens SET last_used_at = NOW() WHERE id = $1")
         .bind(token_id)
         .execute(pool)
@@ -579,10 +600,36 @@ async fn authenticate_api_token(pool: &PgPool, raw_token: &str) -> AppResult<Aut
         )
     })?;
 
+    let project_id = project_id.ok_or_else(|| {
+        AppError::Unauthorized(
+            "API token is not scoped to a project; revoke it and create a new scoped token".into(),
+        )
+    })?;
+
+    let permissions: Vec<Permission> = permission_strs
+        .iter()
+        .map(|s| s.parse::<Permission>())
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Unauthorized(format!("API token has invalid permissions: {e}")))?;
+    if permissions.is_empty() {
+        return Err(AppError::Unauthorized(
+            "API token has no permissions; revoke it and create a new scoped token".into(),
+        ));
+    }
+    if permissions.iter().any(|p| p.is_system_only()) {
+        return Err(AppError::Unauthorized(
+            "API token must not include system-only permissions".into(),
+        ));
+    }
+
     let user = load_active_user(pool, user_id).await?;
     Ok(AuthUser {
         user,
-        via: AuthVia::ApiToken { token_id },
+        via: AuthVia::ApiToken {
+            token_id,
+            project_id,
+            permissions,
+        },
     })
 }
 
@@ -632,9 +679,58 @@ pub async fn require_permission(
     project_id: Uuid,
     permission: Permission,
 ) -> AppResult<()> {
+    // Scoped personal API tokens: allowlist always applies (even for system-admin owners).
+    if let Some(user) = auth {
+        if let AuthVia::ApiToken {
+            project_id: token_project,
+            permissions,
+            ..
+        } = &user.via
+        {
+            if permission.is_system_only() {
+                return Err(AppError::Forbidden(format!(
+                    "API token cannot grant system permission: {}",
+                    permission.as_str()
+                )));
+            }
+            if *token_project != project_id {
+                return Err(AppError::Forbidden(
+                    "API token is not scoped to this project".into(),
+                ));
+            }
+            if !permissions.contains(&permission) {
+                return Err(AppError::Forbidden(format!(
+                    "API token missing permission: {}",
+                    permission.as_str()
+                )));
+            }
+            // Still intersect with the owner's membership (sysadmin owners already cleared
+            // the allowlist above and may act within that project).
+            if user.is_system_admin() {
+                return Ok(());
+            }
+            let role = sqlx::query_scalar::<_, super::ProjectRole>(
+                r#"SELECT role FROM memberships
+                   WHERE project_id = $1 AND user_id = $2"#,
+            )
+            .bind(project_id)
+            .bind(user.id())
+            .fetch_optional(pool)
+            .await?;
+            return match role {
+                Some(r) if r.allows(permission) => Ok(()),
+                Some(_) => Err(AppError::Forbidden(format!(
+                    "missing permission: {}",
+                    permission.as_str()
+                ))),
+                None => Err(AppError::Forbidden("not a member of this project".into())),
+            };
+        }
+    }
+
     if permission.is_system_only() {
         return match auth {
-            Some(user) if user.is_system_admin() => Ok(()),
+            Some(user) if user.bypasses_as_system_admin() => Ok(()),
             Some(_) => Err(AppError::Forbidden(format!(
                 "requires system admin ({})",
                 permission.as_str()
@@ -645,7 +741,7 @@ pub async fn require_permission(
     }
 
     match auth {
-        Some(user) if user.is_system_admin() => Ok(()),
+        Some(user) if user.bypasses_as_system_admin() => Ok(()),
         Some(user) => {
             // Project CI tokens: least privilege — upload results + view their project only.
             // ExecuteRuns / manage / mutate APIs are not granted (use a user token instead).

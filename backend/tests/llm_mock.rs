@@ -185,24 +185,6 @@ async fn api_token_auth_and_runs_for_mcp() {
         .unwrap();
     let jwt = login["token"].as_str().unwrap();
 
-    let minted: Value = client
-        .post(format!("{base}/api/v1/tokens"))
-        .header("Authorization", format!("Bearer {jwt}"))
-        .json(&serde_json::json!({ "name": "mcp-ci" }))
-        .send()
-        .await
-        .unwrap()
-        .error_for_status()
-        .unwrap()
-        .json()
-        .await
-        .unwrap();
-    let secret = minted["secret"].as_str().unwrap().to_string();
-    assert!(
-        secret.starts_with("vulyk_at_") || secret.starts_with("vulk_"),
-        "unexpected token prefix: {secret}"
-    );
-
     let bad = client
         .get(format!("{base}/api/v1/projects"))
         .header("Authorization", "Bearer totally-invalid")
@@ -217,7 +199,7 @@ async fn api_token_auth_and_runs_for_mcp() {
     );
     let project: Value = client
         .post(format!("{base}/api/v1/projects"))
-        .header("Authorization", format!("Bearer {secret}"))
+        .header("Authorization", format!("Bearer {jwt}"))
         .json(&serde_json::json!({ "key": key, "name": "Runs" }))
         .send()
         .await
@@ -228,6 +210,34 @@ async fn api_token_auth_and_runs_for_mcp() {
         .await
         .unwrap();
     let project_id = project["id"].as_str().unwrap();
+
+    let minted: Value = client
+        .post(format!("{base}/api/v1/tokens"))
+        .header("Authorization", format!("Bearer {jwt}"))
+        .json(&serde_json::json!({
+            "name": "mcp-ci",
+            "project_id": project_id,
+            "permissions": [
+                "view_project",
+                "execute_runs",
+                "trigger_ci",
+                "upload_results",
+                "view_reports"
+            ]
+        }))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let secret = minted["secret"].as_str().unwrap().to_string();
+    assert!(
+        secret.starts_with("vulyk_at_") || secret.starts_with("vulk_"),
+        "unexpected token prefix: {secret}"
+    );
 
     let run: Value = client
         .post(format!("{base}/api/v1/projects/{project_id}/runs"))
