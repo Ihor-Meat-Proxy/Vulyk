@@ -30,14 +30,31 @@ cargo run -p vulyk-mcp -- http
 
 | Tool | Purpose |
 |------|---------|
-| `search_cases` | List/search cases (`q`, optional `suite_id`) |
-| `get_case` | Case + steps |
-| `create_case` / `update_case` | Mutate cases |
-| `list_runs` / `create_run` / `update_run` | Runs |
-| `trigger_run` | Mark run `running` |
-| `list_results` / `ingest_results` | Results |
-| `list_case_results` | Append-only case result history (filter/paginate) |
-| `ask_tests` | LLM Q&A over project tests |
+| `list_projects` / `get_project` | Discover projects (no out-of-band UUID) |
+| `search_cases` | List/search cases (`q`, suite, tag, status, priority, sort, pagination) |
+| `get_case` / `create_case` / `update_case` | Case CRUD |
+| `list_suites` | Folders with case counts |
+| `list_runs` / `get_run` / `create_run` / `update_run` | Runs (`get_run` accepts UUID, slug, or display ID) |
+| `trigger_run` | Mark run **status** `running` only — does **not** start CI |
+| `list_ci_configs` / `dispatch_ci` / `get_dispatch` | Start Jenkins/Forgejo/Gitea/Woodpecker/GitHub/GitLab pipelines; `external_url` is the build link |
+| `generate_cases` / `generate_code` / `ask_tests` / `chat` / `chat_confirm` | LLM assist |
+| `list_results` / `ingest_results` / `list_case_results` | Results |
+| `list_repos` / `get_repo` / `create_repo` | Automation/source repositories (multi-repo) |
+| `list_campaigns` / `get_campaign` / `create_campaign` | Campaigns (`PREFIX-C-n`, never reused) |
+| `list_iterations` / `get_iteration` / `create_iteration` | Iterations (`PREFIX-IT-n`, never reused) |
+| `list_requirements` / `get_requirement` / `create_requirement` / `link_requirement` | Requirements |
+| `report_dashboard` / `report_run_summary` / `report_run_detail` / `report_trends` / `report_coverage` / `report_flaky` | Reports |
+
+Admin, backups, and webhooks stay off the default tool surface.
+
+## OpenAPI coverage contract
+
+Every operation in [`docs/api/openapi.json`](api/openapi.json) must either:
+
+1. Be mapped to an MCP tool in [`mcp/openapi-coverage.json`](../mcp/openapi-coverage.json), or  
+2. Appear in that file’s `excluded_operations` with a justification.
+
+`excluded_tags` always includes `admin`, `backups`, and `webhooks`. CI / `./scripts/check.sh` runs `cargo test -p vulyk-mcp --test openapi_coverage` so new API routes fail the gate until they get a tool or an explicit exclusion.
 
 ## Client setup
 

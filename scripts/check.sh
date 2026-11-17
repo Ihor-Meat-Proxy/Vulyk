@@ -77,6 +77,13 @@ else
   cargo test -p vulyk-api api_coverage::tests --lib
 fi
 
+if [[ "${MODE}" != "quick" ]]; then
+  echo "==> MCP OpenAPI coverage"
+  cargo test -p vulyk-mcp --test openapi_coverage
+else
+  echo "==> MCP OpenAPI coverage (skipped in --quick)"
+fi
+
 echo "==> frontend lint / typecheck / test-ids"
 (
   cd frontend
