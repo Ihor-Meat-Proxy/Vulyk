@@ -92,9 +92,11 @@ cargo install lychee --locked   # once
 | `semgrep` | Semgrep community packs + `.semgrep.yml` | CI / Rust / JS / TS / OWASP |
 | `gitleaks` | gitleaks-action | Config: `.gitleaks.toml` |
 
-**Dependabot:** `.github/dependabot.yml` — weekly `cargo`, `npm` (frontend + e2e), `docker` (API/web/updater), `github-actions`.
+**Dependabot:** `.github/dependabot.yml` — weekly `cargo`, `npm` (frontend + e2e), `docker` (API/web/updater), `github-actions`. Version updates use a **cooldown** (3 days patches, 7 days minors/majors). **Security updates skip cooldown**.
 
-**Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps only: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**. **0.x “minor” bumps are treated as breaking** (Dependabot still labels them `semver-minor`) and are never auto-merged; neither are semver-majors. Grouped updates use fetch-metadata’s highest `update-type` / version pair. The job does not check out PR code and only needs `contents: write` + `pull-requests: write`.
+**Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**, plus **security-advisory** updates (including majors) once CI is green. **0.x “minor”** non-security bumps are treated as breaking. New packages, new maintainers, or new npm install scripts **block auto-merge** until owner review (`supply-chain-reviewed` label, or the Dependabot review gate). The auto-merge job does **not** check out PR code and only needs `contents: write` + `pull-requests: write`.
+
+**Dependabot review gate:** `.github/workflows/dependabot-review-gate.yml` + `scripts/check-dep-pr-review-gate.py` (read-only `pull_request`, no secrets). Fails when lockfiles add packages or install scripts unless `supply-chain-reviewed` is present.
 
 ### Justified advisory ignores
 

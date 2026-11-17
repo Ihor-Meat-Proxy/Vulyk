@@ -1,5 +1,8 @@
 # Dependabot — keep Rust, npm, Docker, and Actions deps current.
 # Security advisories also surface via .github/workflows/security.yml (weekly).
+# Policy: docs/dev/ci-checks.md (supply-chain section) / #294.
+#
+# Cooldown applies to version updates only; Dependabot security updates skip it.
 
 version: 2
 updates:
@@ -9,6 +12,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       rust-patch:
         update-types:
@@ -20,6 +28,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       frontend-dev:
         dependency-type: development
@@ -33,18 +46,33 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
 
   - package-ecosystem: docker
     directory: /backend
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
 
   - package-ecosystem: docker
     directory: /frontend
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
     ignore:
       # Stay on Node LTS (even majors: 22, 24, …). Ignore odd/non-LTS majors.
       - dependency-name: node
@@ -55,6 +83,11 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
     ignore:
       # Stay on Python 3.12 LTS line for the updater image; skip non-LTS majors.
       - dependency-name: python
@@ -66,6 +99,11 @@ updates:
       interval: weekly
       day: monday
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 7
+      semver-major-days: 7
+      semver-minor-days: 7
+      semver-patch-days: 3
     groups:
       actions:
         patterns:
