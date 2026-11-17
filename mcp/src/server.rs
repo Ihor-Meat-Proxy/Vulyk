@@ -243,6 +243,170 @@ pub struct GenerateCasesArgs {
     pub config_id: Option<String>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GenerateCodeArgs {
+    pub project_id: String,
+    pub case_ids: Vec<String>,
+    /// `playwright` or `pytest` (default playwright).
+    #[serde(default)]
+    pub framework: Option<String>,
+    #[serde(default)]
+    pub config_id: Option<String>,
+    /// When the project has multiple automation repos, select which to index.
+    #[serde(default)]
+    pub repo_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ChatArgs {
+    pub project_id: String,
+    pub message: String,
+    #[serde(default)]
+    pub history: Option<Value>,
+    #[serde(default)]
+    pub config_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ChatConfirmArgs {
+    pub project_id: String,
+    /// Full ChatConfirmRequest body (proposal + placement options).
+    pub body: Value,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ListRequirementsArgs {
+    pub project_id: String,
+    #[serde(default)]
+    pub q: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetRequirementArgs {
+    pub project_id: String,
+    pub requirement_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct CreateRequirementArgs {
+    pub project_id: String,
+    pub title: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub acceptance_criteria: Option<String>,
+    #[serde(default)]
+    pub folder_id: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
+    #[serde(default)]
+    pub external_key: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct LinkRequirementArgs {
+    pub project_id: String,
+    pub case_id: String,
+    pub requirement_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct CreateCampaignArgs {
+    pub project_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub parent_id: Option<String>,
+    #[serde(default)]
+    pub sort_order: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetCampaignArgs {
+    pub project_id: String,
+    /// Campaign UUID or display_id (PREFIX-C-n).
+    pub campaign_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ListIterationsArgs {
+    pub project_id: String,
+    #[serde(default)]
+    pub campaign_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetIterationArgs {
+    pub project_id: String,
+    /// Iteration UUID or display_id (PREFIX-IT-n).
+    pub iteration_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct CreateIterationArgs {
+    pub project_id: String,
+    pub campaign_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub reference: Option<String>,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub mode: Option<String>,
+    #[serde(default)]
+    pub cadence: Option<String>,
+    #[serde(default)]
+    pub case_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub suite_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct RepoIdArgs {
+    pub repo_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct CreateAutomationRepoArgs {
+    pub name: String,
+    pub provider: String,
+    pub remote_url: String,
+    #[serde(default)]
+    pub branch: Option<String>,
+    #[serde(default)]
+    pub subpath: Option<String>,
+    #[serde(default)]
+    pub token: Option<String>,
+    #[serde(default)]
+    pub actions_token: Option<String>,
+    #[serde(default)]
+    pub ci_workflow_file: Option<String>,
+    #[serde(default)]
+    pub ci_workflow_ref: Option<String>,
+    #[serde(default)]
+    pub poll_interval_minutes: Option<i32>,
+    #[serde(default)]
+    pub project_ids: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ReportRunArgs {
+    pub project_id: String,
+    pub run_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ReportTrendsArgs {
+    pub project_id: String,
+    #[serde(default)]
+    pub limit: Option<i64>,
+}
+
 #[tool_router(server_handler)]
 impl VulykMcp {
     #[tool(description = "List all Vulyk projects visible to the API token")]
@@ -673,6 +837,375 @@ impl VulykMcp {
         }
         let path = format!("/api/v1/projects/{}/llm/ask", args.project_id);
         let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Generate automation code (playwright or pytest) for case_ids via LLM. Optional repo_id when multiple automation repos are linked."
+    )]
+    async fn generate_code(
+        &self,
+        Parameters(args): Parameters<GenerateCodeArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({ "case_ids": args.case_ids });
+        if let Some(v) = args.framework {
+            body["framework"] = json!(v);
+        }
+        if let Some(v) = args.config_id {
+            body["config_id"] = json!(v);
+        }
+        if let Some(v) = args.repo_id {
+            body["repo_id"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/llm/generate-code", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "LLM chat propose: answer, clarify, or propose cases/requirements (POST …/llm/chat). Confirm with chat_confirm."
+    )]
+    async fn chat(
+        &self,
+        Parameters(args): Parameters<ChatArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({ "message": args.message });
+        if let Some(v) = args.history {
+            body["history"] = v;
+        }
+        if let Some(v) = args.config_id {
+            body["config_id"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/llm/chat", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Confirm an LLM chat proposal (create proposed cases/requirements)")]
+    async fn chat_confirm(
+        &self,
+        Parameters(args): Parameters<ChatConfirmArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/llm/chat/confirm", args.project_id);
+        let value = self
+            .client
+            .post(&path, args.body)
+            .await
+            .map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "List requirements for a project (optional title search q)")]
+    async fn list_requirements(
+        &self,
+        Parameters(args): Parameters<ListRequirementsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut path = format!("/api/v1/projects/{}/requirements", args.project_id);
+        if let Some(q) = args.q {
+            path.push_str(&format!("?q={}", urlencoding_lite(&q)));
+        }
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Get a requirement by id")]
+    async fn get_requirement(
+        &self,
+        Parameters(args): Parameters<GetRequirementArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!(
+            "/api/v1/projects/{}/requirements/{}",
+            args.project_id, args.requirement_id
+        );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Create a requirement")]
+    async fn create_requirement(
+        &self,
+        Parameters(args): Parameters<CreateRequirementArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({ "title": args.title });
+        if let Some(v) = args.description {
+            body["description"] = json!(v);
+        }
+        if let Some(v) = args.acceptance_criteria {
+            body["acceptance_criteria"] = json!(v);
+        }
+        if let Some(v) = args.folder_id {
+            body["folder_id"] = json!(v);
+        }
+        if let Some(v) = args.source {
+            body["source"] = json!(v);
+        }
+        if let Some(v) = args.external_key {
+            body["external_key"] = json!(v);
+        }
+        if let Some(v) = args.url {
+            body["url"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/requirements", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Link a case to a requirement")]
+    async fn link_requirement(
+        &self,
+        Parameters(args): Parameters<LinkRequirementArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/requirements:link", args.project_id);
+        let value = self
+            .client
+            .post(
+                &path,
+                json!({
+                    "case_id": args.case_id,
+                    "requirement_id": args.requirement_id,
+                }),
+            )
+            .await
+            .map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "List campaigns for a project (display_id PREFIX-C-n never reused)")]
+    async fn list_campaigns(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/campaigns", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Get a campaign by UUID or display_id (PREFIX-C-n)")]
+    async fn get_campaign(
+        &self,
+        Parameters(args): Parameters<GetCampaignArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!(
+            "/api/v1/projects/{}/campaigns/{}",
+            args.project_id, args.campaign_id
+        );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Create a campaign (gets never-reused PREFIX-C-n display_id)")]
+    async fn create_campaign(
+        &self,
+        Parameters(args): Parameters<CreateCampaignArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({ "name": args.name });
+        if let Some(v) = args.description {
+            body["description"] = json!(v);
+        }
+        if let Some(v) = args.parent_id {
+            body["parent_id"] = json!(v);
+        }
+        if let Some(v) = args.sort_order {
+            body["sort_order"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/campaigns", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "List iterations for a project (optional campaign_id filter). Display ids are PREFIX-IT-n and never reused."
+    )]
+    async fn list_iterations(
+        &self,
+        Parameters(args): Parameters<ListIterationsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut path = format!("/api/v1/projects/{}/iterations", args.project_id);
+        if let Some(cid) = args.campaign_id {
+            path.push_str(&format!("?campaign_id={cid}"));
+        }
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Get an iteration by UUID or display_id (PREFIX-IT-n)")]
+    async fn get_iteration(
+        &self,
+        Parameters(args): Parameters<GetIterationArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!(
+            "/api/v1/projects/{}/iterations/{}",
+            args.project_id, args.iteration_id
+        );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Create an iteration under a campaign (gets never-reused PREFIX-IT-n)")]
+    async fn create_iteration(
+        &self,
+        Parameters(args): Parameters<CreateIterationArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({
+            "campaign_id": args.campaign_id,
+            "name": args.name,
+        });
+        if let Some(v) = args.reference {
+            body["reference"] = json!(v);
+        }
+        if let Some(v) = args.description {
+            body["description"] = json!(v);
+        }
+        if let Some(v) = args.status {
+            body["status"] = json!(v);
+        }
+        if let Some(v) = args.mode {
+            body["mode"] = json!(v);
+        }
+        if let Some(v) = args.cadence {
+            body["cadence"] = json!(v);
+        }
+        if let Some(v) = args.case_ids {
+            body["case_ids"] = json!(v);
+        }
+        if let Some(v) = args.suite_ids {
+            body["suite_ids"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/iterations", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "List automation/source repositories linked to a project")]
+    async fn list_repos(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/automation-repos", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Get an automation/source repository by id")]
+    async fn get_repo(
+        &self,
+        Parameters(args): Parameters<RepoIdArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/automation-repos/{}", args.repo_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Create an automation/source repository and optionally link project_ids (multi-repo per project)."
+    )]
+    async fn create_repo(
+        &self,
+        Parameters(args): Parameters<CreateAutomationRepoArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({
+            "name": args.name,
+            "provider": args.provider,
+            "remote_url": args.remote_url,
+        });
+        if let Some(v) = args.branch {
+            body["branch"] = json!(v);
+        }
+        if let Some(v) = args.subpath {
+            body["subpath"] = json!(v);
+        }
+        if let Some(v) = args.token {
+            body["token"] = json!(v);
+        }
+        if let Some(v) = args.actions_token {
+            body["actions_token"] = json!(v);
+        }
+        if let Some(v) = args.ci_workflow_file {
+            body["ci_workflow_file"] = json!(v);
+        }
+        if let Some(v) = args.ci_workflow_ref {
+            body["ci_workflow_ref"] = json!(v);
+        }
+        if let Some(v) = args.poll_interval_minutes {
+            body["poll_interval_minutes"] = json!(v);
+        }
+        if let Some(v) = args.project_ids {
+            body["project_ids"] = json!(v);
+        }
+        let value = self
+            .client
+            .post("/api/v1/automation-repos", body)
+            .await
+            .map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Project reports dashboard (pass/fail overview)")]
+    async fn report_dashboard(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/reports/dashboard", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Run summary report (by run UUID, slug, or display id)")]
+    async fn report_run_summary(
+        &self,
+        Parameters(args): Parameters<ReportRunArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!(
+            "/api/v1/projects/{}/reports/runs/{}/summary",
+            args.project_id, args.run_id
+        );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Full run report detail")]
+    async fn report_run_detail(
+        &self,
+        Parameters(args): Parameters<ReportRunArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!(
+            "/api/v1/projects/{}/reports/runs/{}",
+            args.project_id, args.run_id
+        );
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Trend report across recent runs")]
+    async fn report_trends(
+        &self,
+        Parameters(args): Parameters<ReportTrendsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut path = format!("/api/v1/projects/{}/reports/trends", args.project_id);
+        if let Some(v) = args.limit {
+            path.push_str(&format!("?limit={v}"));
+        }
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Requirement/case coverage report")]
+    async fn report_coverage(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/reports/coverage", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Flaky-test report for a project")]
+    async fn report_flaky(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/reports/flaky", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
         Self::ok_json(value)
     }
 }
