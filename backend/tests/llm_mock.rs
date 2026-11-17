@@ -236,7 +236,7 @@ async fn api_token_auth_and_runs_for_mcp() {
     let secret = minted["secret"].as_str().unwrap().to_string();
     assert!(
         secret.starts_with("vulyk_at_") || secret.starts_with("vulk_"),
-        "unexpected token prefix: {secret}"
+        "unexpected token prefix (value redacted)"
     );
 
     let run: Value = client
