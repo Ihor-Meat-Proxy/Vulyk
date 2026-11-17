@@ -411,6 +411,11 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     [projects, projectRoles, user?.is_system_admin],
   )
 
+  useEffect(() => {
+    if (tokenProjectId) return
+    if (projectsForCi[0]?.id) setTokenProjectId(projectsForCi[0].id)
+  }, [projectsForCi, tokenProjectId])
+
   if (!user) {
     return (
       <div className="panel">
@@ -477,11 +482,6 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
       setBusy(false)
     }
   }
-
-  useEffect(() => {
-    if (tokenProjectId) return
-    if (projectsForCi[0]?.id) setTokenProjectId(projectsForCi[0].id)
-  }, [projectsForCi, tokenProjectId])
 
   const toggleTokenPerm = (perm: Permission) => {
     setTokenPerms((prev) =>
