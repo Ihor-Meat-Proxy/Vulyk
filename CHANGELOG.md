@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `list_applied_migrations` (Part of #234).
 - **quick-xml 0.42** — JUnit ingest uses string local names / attribute
   keys-values (0.42 API); all junit unit tests green (Part of #234).
+- **rand 0.10** — replace `thread_rng` / `RngCore` with `rand::rng()` + `Rng`
+  (`jsonwebtoken` still pulls rand 0.8 transitively) (Part of #234).
 
 ### Added
 

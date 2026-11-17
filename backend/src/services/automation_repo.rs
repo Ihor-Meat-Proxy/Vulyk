@@ -580,9 +580,9 @@ pub async fn mark_index_error(pool: &PgPool, repo_id: Uuid, err: &str) -> AppRes
 }
 
 pub fn generate_webhook_secret() -> String {
-    use rand::RngCore;
+    use rand::Rng;
     let mut bytes = [0u8; 24];
-    rand::thread_rng().fill_bytes(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     hex::encode(bytes)
 }
 

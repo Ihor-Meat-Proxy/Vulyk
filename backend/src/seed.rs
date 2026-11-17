@@ -1,6 +1,6 @@
 //! Idempotent first-start seeding of admin / demo users and setup token.
 
-use rand::RngCore;
+use rand::Rng;
 use sqlx::PgPool;
 
 use crate::auth::{hash_password, hash_secret, PasswordPolicy};
@@ -49,7 +49,7 @@ async fn ensure_setup_token(pool: &PgPool) -> AppResult<()> {
     }
 
     let mut bytes = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     let raw = format!("vulyk_setup_{}", hex::encode(bytes));
     let token_hash = hash_secret(&raw);
     sqlx::query("INSERT INTO setup_tokens (token_hash) VALUES ($1)")
@@ -303,6 +303,6 @@ pub async fn complete_setup_with_options(
 #[allow(dead_code)]
 pub fn random_password(len: usize) -> String {
     let mut buf = vec![0u8; len];
-    rand::thread_rng().fill_bytes(&mut buf);
+    rand::rng().fill_bytes(&mut buf);
     hex::encode(buf)
 }
