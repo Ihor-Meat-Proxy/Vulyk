@@ -184,7 +184,9 @@ async fn policy_create_passed_creates_draft_for_passed_only() {
 
     let case_id = created[0]["case_id"].as_str().unwrap();
     let detail: Value = client
-        .get(format!("{base}/api/v1/projects/{project_id}/cases/{case_id}"))
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/cases/{case_id}"
+        ))
         .send()
         .await
         .unwrap()

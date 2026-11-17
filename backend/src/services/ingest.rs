@@ -59,8 +59,18 @@ fn draft_title_for(row: &BulkResultItem) -> String {
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .or_else(|| row.automation_id.as_deref().map(str::trim).filter(|s| !s.is_empty()))
-        .or_else(|| row.case_key.as_deref().map(str::trim).filter(|s| !s.is_empty()))
+        .or_else(|| {
+            row.automation_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        })
+        .or_else(|| {
+            row.case_key
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        })
         .unwrap_or("CI auto-created case")
         .to_string()
 }
