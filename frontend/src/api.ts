@@ -117,10 +117,7 @@ export type Page<T> = {
 
 /** How ingest handles unmatched CI results (key / automation_id / external_key). */
 export type CiUnmatchedPolicy =
-  | 'off'
-  | 'create_passed'
-  | 'create_all'
-  | 'fail_unmatched'
+  'off' | 'create_passed' | 'create_all' | 'fail_unmatched'
 
 export type Project = {
   id: string

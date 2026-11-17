@@ -582,7 +582,8 @@ export const TestIds = {
   settingsCiTokenCreateButton: 'settings-ci-token-create-button',
   /** Unmatched CI result policy select (project settings). */
   settingsCiUnmatchedPolicySelect: 'settings-ci-unmatched-policy-select',
-  settingsCiUnmatchedPolicySaveButton: 'settings-ci-unmatched-policy-save-button',
+  settingsCiUnmatchedPolicySaveButton:
+    'settings-ci-unmatched-policy-save-button',
   settingsAutomationGuideLink: 'settings-automation-guide-link',
   settingsCiGuideLink: 'settings-ci-guide-link',
   settingsCiTokensNavLink: 'settings-ci-tokens-nav-link',
