@@ -74,6 +74,7 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'ID',
     'id',
     'SHA',
+    'HMAC-SHA256',
     'PAT',
     'IANA',
     'ETag',

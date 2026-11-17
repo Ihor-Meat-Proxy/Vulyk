@@ -60,29 +60,37 @@ async fn delivers_signed_webhook_payload() {
     vulyk_api::db::migrate(&pool).await.expect("migrate");
 
     let password = format!("owh-{}", uuid::Uuid::new_v4());
+    let hash = vulyk_api::auth::hash_password(&password).expect("hash");
     let user_id: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO users (email, password_hash, display_name)
-           VALUES ($1, crypt($2, gen_salt('bf')), 'Outbound WH')
+           VALUES ($1, $2, 'Outbound WH')
            RETURNING id"#,
     )
     .bind(format!("owh-{}@test.local", uuid::Uuid::new_v4()))
-    .bind(&password)
+    .bind(hash)
     .fetch_one(&pool)
     .await
     .expect("user");
 
+    // Prefix: ^[A-Z][A-Z0-9]{1,7}$; key may include underscores.
+    let suffix = uuid::Uuid::new_v4().simple().to_string()[..4].to_uppercase();
+    let prefix = format!("OW{suffix}"); // 6 chars
+    let key = format!("OWH_{suffix}");
     let project_id: uuid::Uuid = sqlx::query_scalar(
         r#"INSERT INTO projects (name, key, case_key_prefix)
-           VALUES ('OWH', 'OWH', 'OWH')
+           VALUES ($1, $2, $3)
            RETURNING id"#,
     )
+    .bind(format!("OWH {key}"))
+    .bind(&key)
+    .bind(&prefix)
     .fetch_one(&pool)
     .await
     .expect("project");
 
     sqlx::query(
         r#"INSERT INTO memberships (project_id, user_id, role)
-           VALUES ($1, $2, 'lead')"#,
+           VALUES ($1, $2, 'admin')"#,
     )
     .bind(project_id)
     .bind(user_id)
