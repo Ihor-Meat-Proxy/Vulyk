@@ -1,7 +1,24 @@
 # Supply-chain policy
 
-How Vulyk keeps dependencies fresh without blindly trusting brand-new or
-hijacked releases. Tracking: [#294](https://github.com/Ihor-Meat-Proxy/Vulyk/issues/294).
+How Vulyk keeps dependencies as fresh as possible without blindly trusting
+brand-new or hijacked releases. Implemented for
+[#294](https://github.com/Ihor-Meat-Proxy/Vulyk/issues/294).
+
+## Checklist (#294)
+
+| Control | Where |
+| --- | --- |
+| Dependabot cooldown (3d patch / 7d minor+major) | [`.github/dependabot.yml`](../../.github/dependabot.yml) |
+| Security fast path (skip cooldown; auto-merge when green) | Dependabot + [`dependabot-auto-merge.yml`](../../.github/workflows/dependabot-auto-merge.yml) |
+| Locked installs (`cargo --locked`, `npm ci`) | CI, Dockerfiles, [`npm-ci-secure.sh`](../../scripts/npm-ci-secure.sh) |
+| Block npm lifecycle scripts (+ allowlist) | `frontend/.npmrc` / `e2e/.npmrc`, allowlist file |
+| `min-release-age=7` with security override | `.npmrc` + `--min-release-age=0` (below) |
+| Dep-PR scans (deny/audit, OSV on changed pkgs, npm heuristics) | [`dependabot-dep-scan.yml`](../../.github/workflows/dependabot-dep-scan.yml) |
+| New package / maintainer / install-script review gate | [`dependabot-review-gate.yml`](../../.github/workflows/dependabot-review-gate.yml) |
+| CI isolation (read-only token, no secrets on dep PRs) | Review gate + dep scan `permissions:` (below) |
+| Signed releases (cosign + provenance + SPDX SBOM) | [`release.yml`](../../.github/workflows/release.yml) |
+| Optional verify on upgrade | `install.sh --verify-images` / `VULYK_VERIFY_IMAGES` |
+| Dev Container (toolchain isolated from host) | [`.devcontainer/`](../../.devcontainer/) |
 
 ## Dependabot
 
@@ -96,9 +113,24 @@ BASE_REF=origin/main HEAD_REF=HEAD ./scripts/check-npm-lock-heuristics.py
 ./scripts/test-npm-lock-heuristics.sh
 ```
 
+## CI isolation
+
+Dependency PR workflows that check out Dependabot code use **read-only**
+`permissions` and do **not** receive repository secrets:
+
+| Workflow | Trigger | Notes |
+| --- | --- | --- |
+| `dependabot-review-gate.yml` | `pull_request` | `contents: read`, `pull-requests: read` |
+| `dependabot-dep-scan.yml` | `pull_request` | same |
+| `dependabot-auto-merge.yml` | `pull_request_target` | **does not check out PR code**; only metadata + `gh pr merge` |
+
+Release / publish (`release.yml`) runs only from **tags** (or manual dispatch)
+on trusted refs and holds `packages: write`, `id-token: write`, and
+`attestations: write` for signing — never from Dependabot PR events.
+
 ## Signed releases (cosign + SBOM)
 
-From **v0.7.0** onward (Release workflow on this branch), published GHCR images are:
+Published GHCR images are:
 
 1. Built with Buildx **provenance** + **SBOM**
 2. **Cosign-signed** keyless (GitHub Actions OIDC → Fulcio; identity is
@@ -121,8 +153,8 @@ VULYK_VERIFY_IMAGES=1 ./scripts/install.sh upgrade --yes --version 0.7.0
 ./scripts/verify-release-images.sh 0.7.0
 ```
 
-Install [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
-first. Override identity / issuer with `VULYK_COSIGN_IDENTITY_REGEXP` /
+Install [cosign](https://docs.sigstore.dev/cosign/installation/) first.
+Override identity / issuer with `VULYK_COSIGN_IDENTITY_REGEXP` /
 `VULYK_COSIGN_OIDC_ISSUER` if you fork the Release workflow.
 
 Proof (no network / no cosign binary):
@@ -131,8 +163,24 @@ Proof (no network / no cosign binary):
 ./scripts/test-verify-release-images.sh
 ```
 
+## Dev Container
+
+[`.devcontainer/`](../../.devcontainer/) gives contributors a **host-isolated**
+toolchain (Rust stable + rustfmt/clippy, Node 22, Docker Compose via
+docker-outside-of-docker, GitHub CLI). Open the repo in VS Code / Cursor
+“Reopen in Container”, or Codespaces.
+
+`post-create.sh` installs components, sets `scripts/githooks`, and runs
+`./scripts/install.sh check`. Use the same secure install helpers as CI
+(`./scripts/npm-ci-secure.sh`). Validation:
+
+```bash
+./scripts/check-devcontainer.sh
+```
+
 ## Related
 
 - [ci-checks.md](ci-checks.md) - workflow index
 - [releasing.md](releasing.md) - tags / GHCR / verify
 - [upgrade.md](../guides/upgrade.md) - `--verify-images` on upgrade
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) - local / Dev Container setup

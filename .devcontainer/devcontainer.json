@@ -1,0 +1,46 @@
+{
+  "name": "Vulyk",
+  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "latest",
+      "profile": "default"
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nodeGypDependencies": true
+    },
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": true,
+      "dockerDashComposeVersion": "v2"
+    },
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "upgradePackages": true
+    }
+  },
+  "forwardPorts": [5173, 8080, 5432],
+  "portsAttributes": {
+    "5173": { "label": "frontend (Vite)" },
+    "8080": { "label": "API" },
+    "5432": { "label": "Postgres (compose)" }
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "remoteUser": "vscode",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "rust-lang.rust-analyzer",
+        "tamasfe.even-better-toml",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "rust-analyzer.check.command": "clippy"
+      }
+    }
+  }
+}

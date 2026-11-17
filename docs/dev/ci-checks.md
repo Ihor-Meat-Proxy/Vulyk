@@ -104,6 +104,8 @@ cargo install lychee --locked   # once
 
 **Release signing:** `.github/workflows/release.yml` cosign-signs GHCR digests (keyless OIDC), attests provenance + SPDX SBOM, and attaches `*.spdx.json` to the GitHub Release. Operators opt in with `./scripts/install.sh … --verify-images` / `VULYK_VERIFY_IMAGES=1` (proof: `./scripts/test-verify-release-images.sh`).
 
+**Dev Container:** [`.devcontainer/`](../../.devcontainer/) isolates the Rust/Node/Docker toolchain from the host (see [supply-chain.md](supply-chain.md#dev-container); proof: `./scripts/check-devcontainer.sh`).
+
 ### Justified advisory ignores
 
 Documented in `deny.toml` / `.cargo/audit.toml` with **review-by dates**:

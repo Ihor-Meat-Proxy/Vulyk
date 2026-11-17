@@ -41,6 +41,10 @@ echo "==> release image verify script (cosign dry-run)"
 chmod +x scripts/verify-release-images.sh scripts/test-verify-release-images.sh
 ./scripts/test-verify-release-images.sh
 
+echo "==> Dev Container config"
+chmod +x scripts/check-devcontainer.sh .devcontainer/post-create.sh
+./scripts/check-devcontainer.sh
+
 echo "==> seed keys"
 chmod +x scripts/check-seed-keys.sh
 ./scripts/check-seed-keys.sh
