@@ -151,13 +151,24 @@ export async function createApiToken(
   request: APIRequestContext,
   token: string,
   name: string,
+  opts: { projectId: string; permissions: string[] },
 ) {
-  return apiJson<{ token: { id: string; name: string }; secret: string }>(
-    request,
-    'POST',
-    '/api/v1/tokens',
-    { token, data: { name } },
-  )
+  return apiJson<{
+    token: {
+      id: string
+      name: string
+      project_id: string | null
+      permissions: string[]
+    }
+    secret: string
+  }>(request, 'POST', '/api/v1/tokens', {
+    token,
+    data: {
+      name,
+      project_id: opts.projectId,
+      permissions: opts.permissions,
+    },
+  })
 }
 
 export async function createRun(

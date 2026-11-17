@@ -320,6 +320,9 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `admin-token-create-button` | `adminTokenCreateButton` |
 | `admin-token-list` | `adminTokenList` |
 | `admin-token-name-input` | `adminTokenNameInput` |
+| `admin-token-permission-checkbox` | `adminTokenPermissionCheckbox` |
+| `admin-token-permissions` | `adminTokenPermissions` |
+| `admin-token-project-select` | `adminTokenProjectSelect` |
 | `admin-token-revoke-button` | `adminTokenRevokeButton` |
 | `admin-token-row` | `adminTokenRow` |
 | `admin-token-secret` | `adminTokenSecret` |
@@ -945,6 +948,9 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `settings-timezone-input` | `settingsTimezoneInput` |
 | `settings-token-list` | `settingsTokenList` |
 | `settings-token-name-input` | `settingsTokenNameInput` |
+| `settings-token-permission-checkbox` | `settingsTokenPermissionCheckbox` |
+| `settings-token-permissions` | `settingsTokenPermissions` |
+| `settings-token-project-select` | `settingsTokenProjectSelect` |
 | `settings-token-row` | `settingsTokenRow` |
 | `settings-token-secret` | `settingsTokenSecret` |
 | `setup-base-url-input` | `setupBaseUrlInput` |

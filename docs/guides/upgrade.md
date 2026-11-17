@@ -321,6 +321,18 @@ Forward migration `20261117070000_project_ci_unmatched_policy.sql` adds
 tokens**. Ingest requests may set `dry_run: true` to preview auto-creates without
 persisting them. See [ingest-and-ci.md](./ingest-and-ci.md).
 
+### Scoped personal API tokens (#229)
+
+Forward migration `20261117074652_scoped_api_tokens.sql` adds
+`api_tokens.project_id` and `api_tokens.permissions` (`TEXT[]`), and **revokes
+all active personal API tokens** (`revoked_at = NOW()`). Project CI tokens
+(`vulyk_ci_…` / `project_ci_tokens`) are unchanged.
+
+**Operator action:** after upgrade, recreate personal tokens (Settings → Tokens
+or Admin → Tokens) with a project and permission allowlist, then update
+`VULYK_API_TOKEN` for MCP/CLI. See [auth-and-rbac.md](../auth-and-rbac.md) and
+[user/api.md](../user/api.md).
+
 ### Private / HTTP CI URLs (J10)
 
 Upgrade sync adds optional `.env` keys from `.env.example` when missing (never

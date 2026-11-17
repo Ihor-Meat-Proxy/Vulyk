@@ -122,7 +122,7 @@ async fn require_manage_on_projects(
             return Ok(());
         }
         match auth {
-            Some(u) if u.is_system_admin() => Ok(()),
+            Some(u) if u.bypasses_as_system_admin() => Ok(()),
             Some(_) => Err(AppError::Forbidden(
                 "system admin required to create unlinked automation repos".into(),
             )),
@@ -154,7 +154,7 @@ async fn require_manage_linked_or_admin(
             return Ok(());
         }
         match auth {
-            Some(u) if u.is_system_admin() => Ok(()),
+            Some(u) if u.bypasses_as_system_admin() => Ok(()),
             Some(_) => Err(AppError::Forbidden(
                 "system admin required for unlinked automation repos".into(),
             )),
@@ -199,7 +199,10 @@ pub async fn list_repos(
     if state.auth.required && auth.is_none() {
         return Err(AppError::Unauthorized("authentication required".into()));
     }
-    let is_admin = auth.as_ref().map(|u| u.is_system_admin()).unwrap_or(false);
+    let is_admin = auth
+        .as_ref()
+        .map(|u| u.bypasses_as_system_admin())
+        .unwrap_or(false);
     let user_id = auth
         .as_ref()
         .map(|u| u.id())
@@ -312,7 +315,7 @@ pub async fn get_repo_by_id(
     if links.is_empty() {
         if state.auth.required {
             match &auth {
-                Some(u) if u.is_system_admin() => {}
+                Some(u) if u.bypasses_as_system_admin() => {}
                 Some(_) => return Err(AppError::Forbidden("not allowed to view this repo".into())),
                 None => return Err(AppError::Unauthorized("authentication required".into())),
             }

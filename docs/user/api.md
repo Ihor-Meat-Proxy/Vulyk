@@ -25,17 +25,18 @@ Open the in-app docs at **`/api/docs`** (same origin as your Vulyk UI when proxi
 
 | Prefix | Kind | Where to create | Scope |
 |--------|------|-----------------|-------|
-| `vulyk_at_…` | Personal API token | Gear → My settings → Tokens, or Admin → Tokens | Acts as that user (RBAC). Secret shown once |
+| `vulyk_at_…` | Personal API token | Gear → My settings → Tokens, or Admin → Tokens | One project + allowlisted permissions, intersected with the owner’s RBAC. Secret shown once |
 | `vulyk_ci_…` | Project CI token | Settings → Project CI tokens | Open / upload / close reporting for one project only |
 | JWT | Login access token | `POST /api/v1/auth/login` | Short-lived (`VULYK_JWT_TTL_HOURS`, default 12) |
 
-Tokens with no bound user are rejected (`401`). Prefer CI tokens in pipelines; prefer personal tokens for CLI/MCP as yourself.
+Tokens with no bound user, no project, or empty permissions are rejected (`401`). Prefer CI tokens in pipelines; prefer personal tokens for CLI/MCP as yourself. After upgrading to scoped tokens, recreate `VULYK_API_TOKEN` (legacy unscoped tokens are revoked).
 
 ### Create a personal token
 
 1. Sign in.
 2. Open gear → **My settings** (`/settings`) → Tokens (or **Admin → Tokens**).
-3. Create a token, copy `vulyk_at_…` once, store it as `VULYK_API_TOKEN`.
+3. Choose a **project** and the **permissions** the token may use.
+4. Create a token, copy `vulyk_at_…` once, store it as `VULYK_API_TOKEN`.
 
 ### Create a project CI token
 

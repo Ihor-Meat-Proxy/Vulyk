@@ -162,3 +162,6 @@ export const PROJECT_ROLES: ProjectRole[] = [
   'developer',
   'viewer',
 ]
+
+/** All project-scoped permissions (excludes system-only). Used for API token UI. */
+export const PROJECT_PERMISSIONS: readonly Permission[] = ROLE_PERMISSIONS.admin

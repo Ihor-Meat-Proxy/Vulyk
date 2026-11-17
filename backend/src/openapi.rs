@@ -705,8 +705,8 @@ impl Modify for SecurityAddon {
                         .scheme(HttpAuthScheme::Bearer)
                         .bearer_format("JWT or API token")
                         .description(Some(concat!(
-                            "Paste a session JWT (`POST /api/v1/auth/login` → `token`) or a personal API token ",
-                            "(Settings → Tokens / `POST /api/v1/tokens`). ",
+                            "Paste a session JWT (`POST /api/v1/auth/login` → `token`) or a project-scoped personal API token ",
+                            "(Settings → Tokens / `POST /api/v1/tokens` with `project_id` + `permissions`). ",
                             "Alternatively, when browsing /api/docs on this origin while logged in, the HttpOnly ",
                             "`vulyk_session` cookie is sent automatically with Test Request.",
                         )))

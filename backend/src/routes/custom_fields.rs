@@ -289,7 +289,10 @@ pub async fn create_field_compat(
 ) -> AppResult<Json<CustomField>> {
     // Only system admins may create definitions; project editors get 403 unless open auth.
     if state.auth.required {
-        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
+        let is_admin = auth
+            .as_ref()
+            .map(|a| a.bypasses_as_system_admin())
+            .unwrap_or(false);
         if !is_admin {
             return Err(AppError::Forbidden(
                 "only system administrators can create custom field definitions".into(),
@@ -429,7 +432,10 @@ pub async fn update_field_compat(
     Json(body): Json<UpdateCustomField>,
 ) -> AppResult<Json<CustomField>> {
     if state.auth.required {
-        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
+        let is_admin = auth
+            .as_ref()
+            .map(|a| a.bypasses_as_system_admin())
+            .unwrap_or(false);
         if !is_admin {
             // Allow per-project override of required/default for editors with create-edit.
             require_permission(
@@ -503,7 +509,10 @@ pub async fn delete_field_compat(
     Path((project_id, field_id)): Path<(Uuid, Uuid)>,
 ) -> AppResult<Json<serde_json::Value>> {
     if state.auth.required {
-        let is_admin = auth.as_ref().map(|a| a.is_system_admin()).unwrap_or(false);
+        let is_admin = auth
+            .as_ref()
+            .map(|a| a.bypasses_as_system_admin())
+            .unwrap_or(false);
         if !is_admin {
             require_permission(
                 &state.pool,

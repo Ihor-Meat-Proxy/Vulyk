@@ -6,11 +6,14 @@ use axum::{
 use uuid::Uuid;
 
 use crate::auth::{
-    generate_api_token, hash_secret, AuthUser, OptionalAuthUser, Permission, ProjectRole,
+    generate_api_token, hash_secret, require_permission, AuthUser, OptionalAuthUser, Permission,
 };
 use crate::error::{AppError, AppResult};
 use crate::models::{ApiTokenPublic, CreateApiToken, CreateApiTokenResponse};
 use crate::routes::AppState;
+
+const TOKEN_COLS: &str = "id, name, token_prefix, created_at, last_used_at, revoked_at, \
+                          project_id, permissions";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -18,8 +21,8 @@ pub fn router() -> Router<AppState> {
         .route("/api/v1/tokens/{id}", axum::routing::delete(revoke_token))
 }
 
-/// When auth is required: system admin, or any membership with ManageApiTokens.
-/// Viewers (and others without that permission on any project) get 403.
+/// When auth is required: system admin (session/JWT), or membership with ManageApiTokens
+/// on the target project. Viewers (and others without that permission) get 403.
 async fn ensure_can_manage_api_tokens(state: &AppState, auth: &Option<AuthUser>) -> AppResult<()> {
     if !state.auth.required {
         return Ok(());
@@ -27,14 +30,17 @@ async fn ensure_can_manage_api_tokens(state: &AppState, auth: &Option<AuthUser>)
     let Some(user) = auth.as_ref().filter(|u| u.id() != Uuid::nil()) else {
         return Err(AppError::Unauthorized("authentication required".into()));
     };
-    if user.is_system_admin() {
+    if user.bypasses_as_system_admin() {
         return Ok(());
     }
-    let roles =
-        sqlx::query_scalar::<_, ProjectRole>(r#"SELECT role FROM memberships WHERE user_id = $1"#)
-            .bind(user.id())
-            .fetch_all(&state.pool)
-            .await?;
+    // Any project membership with ManageApiTokens is enough to open the tokens UI /
+    // list own tokens; create further checks the selected project.
+    let roles = sqlx::query_scalar::<_, crate::auth::ProjectRole>(
+        r#"SELECT role FROM memberships WHERE user_id = $1"#,
+    )
+    .bind(user.id())
+    .fetch_all(&state.pool)
+    .await?;
     if roles
         .iter()
         .any(|role| role.allows(Permission::ManageApiTokens))
@@ -44,6 +50,40 @@ async fn ensure_can_manage_api_tokens(state: &AppState, auth: &Option<AuthUser>)
     Err(AppError::Forbidden(
         "missing permission: manage_api_tokens".into(),
     ))
+}
+
+fn parse_token_permissions(raw: &[String]) -> AppResult<Vec<Permission>> {
+    if raw.is_empty() {
+        return Err(AppError::BadRequest(
+            "permissions required (non-empty list of project permission strings)".into(),
+        ));
+    }
+    let mut out = Vec::with_capacity(raw.len());
+    let mut seen = std::collections::HashSet::new();
+    for s in raw {
+        let trimmed = s.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let perm: Permission = trimmed
+            .parse()
+            .map_err(|e: String| AppError::BadRequest(e))?;
+        if perm.is_system_only() {
+            return Err(AppError::BadRequest(format!(
+                "permission is system-only and cannot be granted to an API token: {}",
+                perm.as_str()
+            )));
+        }
+        if seen.insert(perm.as_str()) {
+            out.push(perm);
+        }
+    }
+    if out.is_empty() {
+        return Err(AppError::BadRequest(
+            "permissions required (non-empty list of project permission strings)".into(),
+        ));
+    }
+    Ok(out)
 }
 
 #[utoipa::path(
@@ -59,34 +99,34 @@ pub async fn list_tokens(
 ) -> AppResult<Json<Vec<ApiTokenPublic>>> {
     ensure_can_manage_api_tokens(&state, &auth).await?;
     let rows = if let Some(user) = auth.filter(|u| u.id() != Uuid::nil()) {
-        if user.is_system_admin() {
+        if user.bypasses_as_system_admin() {
             // Admins may list unbound legacy tokens so they can revoke them.
-            sqlx::query_as::<_, ApiTokenPublic>(
-                r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
+            sqlx::query_as::<_, ApiTokenPublic>(&format!(
+                r#"SELECT {TOKEN_COLS}
                    FROM api_tokens
                    WHERE user_id = $1 OR user_id IS NULL
-                   ORDER BY created_at DESC"#,
-            )
+                   ORDER BY created_at DESC"#
+            ))
             .bind(user.id())
             .fetch_all(&state.pool)
             .await?
         } else {
-            sqlx::query_as::<_, ApiTokenPublic>(
-                r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
+            sqlx::query_as::<_, ApiTokenPublic>(&format!(
+                r#"SELECT {TOKEN_COLS}
                    FROM api_tokens
                    WHERE user_id = $1
-                   ORDER BY created_at DESC"#,
-            )
+                   ORDER BY created_at DESC"#
+            ))
             .bind(user.id())
             .fetch_all(&state.pool)
             .await?
         }
     } else {
         // Open mode (auth not required): list all tokens.
-        sqlx::query_as::<_, ApiTokenPublic>(
-            r#"SELECT id, name, token_prefix, created_at, last_used_at, revoked_at
-               FROM api_tokens ORDER BY created_at DESC"#,
-        )
+        sqlx::query_as::<_, ApiTokenPublic>(&format!(
+            r#"SELECT {TOKEN_COLS}
+               FROM api_tokens ORDER BY created_at DESC"#
+        ))
         .fetch_all(&state.pool)
         .await?
     };
@@ -106,10 +146,12 @@ pub async fn create_token(
     OptionalAuthUser(auth): OptionalAuthUser,
     Json(body): Json<CreateApiToken>,
 ) -> AppResult<Json<CreateApiTokenResponse>> {
-    ensure_can_manage_api_tokens(&state, &auth).await?;
     if body.name.trim().is_empty() {
         return Err(AppError::BadRequest("name required".into()));
     }
+    let permissions = parse_token_permissions(&body.permissions)?;
+    let permission_strs: Vec<String> = permissions.iter().map(|p| p.as_str().to_string()).collect();
+
     // Tokens must be bound to a real user — unbound (headless) tokens are rejected
     // at authentication time and must not be created.
     let user_id = auth
@@ -121,18 +163,40 @@ pub async fn create_token(
                 "authentication required to create an API token bound to a user".into(),
             )
         })?;
+
+    // ManageApiTokens on the target project (or unscoped system admin).
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        body.project_id,
+        Permission::ManageApiTokens,
+    )
+    .await?;
+
+    let project_exists: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM projects WHERE id = $1)")
+            .bind(body.project_id)
+            .fetch_one(&state.pool)
+            .await?;
+    if !project_exists {
+        return Err(AppError::NotFound("project".into()));
+    }
+
     let (secret, prefix) = generate_api_token();
     let hash = hash_secret(&secret);
 
-    let row = sqlx::query_as::<_, ApiTokenPublic>(
-        r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id)
-           VALUES ($1, $2, $3, $4)
-           RETURNING id, name, token_prefix, created_at, last_used_at, revoked_at"#,
-    )
+    let row = sqlx::query_as::<_, ApiTokenPublic>(&format!(
+        r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id, project_id, permissions)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING {TOKEN_COLS}"#
+    ))
     .bind(body.name.trim())
     .bind(&prefix)
     .bind(&hash)
     .bind(user_id)
+    .bind(body.project_id)
+    .bind(&permission_strs)
     .fetch_one(&state.pool)
     .await?;
 
@@ -154,8 +218,8 @@ pub async fn revoke_token(
 ) -> AppResult<StatusNoContent> {
     ensure_can_manage_api_tokens(&state, &auth).await?;
     let res = if let Some(user) = auth.filter(|u| u.id() != Uuid::nil()) {
-        // Only system admins may revoke unbound legacy tokens.
-        let q = if user.is_system_admin() {
+        // Only unscoped system admins may revoke unbound legacy tokens.
+        let q = if user.bypasses_as_system_admin() {
             sqlx::query(
                 r#"UPDATE api_tokens SET revoked_at = NOW()
                    WHERE id = $1 AND revoked_at IS NULL

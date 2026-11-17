@@ -17,7 +17,7 @@ import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { LOCALES, useI18n, type Locale } from '../i18n'
 import { writeClipboard } from '../lib/clipboard'
 import { DEFAULT_PASSWORD_POLICY, passwordMeetsPolicy } from '../passwordPolicy'
-import { can } from '../permissions'
+import { can, PROJECT_PERMISSIONS, type Permission } from '../permissions'
 import { TestIds, listChildProps, listItemProps, testIdProps } from '../testing'
 import { browserTimeZone, normalizeTimeZone } from '../timezone'
 
@@ -170,6 +170,11 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
   )
   const [tokens, setTokens] = useState<ApiTokenPublic[]>([])
   const [tokenName, setTokenName] = useState('ci-mcp')
+  const [tokenProjectId, setTokenProjectId] = useState('')
+  const [tokenPerms, setTokenPerms] = useState<Permission[]>([
+    'view_project',
+    'view_reports',
+  ])
   const [secretOnce, setSecretOnce] = useState<string | null>(null)
   const [canTokens, setCanTokens] = useState(false)
   const [currentPassword, setCurrentPassword] = useState('')
@@ -406,6 +411,11 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     [projects, projectRoles, user?.is_system_admin],
   )
 
+  useEffect(() => {
+    if (tokenProjectId) return
+    if (projectsForCi[0]?.id) setTokenProjectId(projectsForCi[0].id)
+  }, [projectsForCi, tokenProjectId])
+
   if (!user) {
     return (
       <div className="panel">
@@ -473,11 +483,34 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     }
   }
 
+  const toggleTokenPerm = (perm: Permission) => {
+    setTokenPerms((prev) =>
+      prev.includes(perm) ? prev.filter((p) => p !== perm) : [...prev, perm],
+    )
+  }
+
+  const tokenProjectLabel = (id: string | null) => {
+    if (!id) return t('settings.tokensNoProject')
+    const p = projects.find((x) => x.id === id)
+    return p ? `${p.key} — ${p.name}` : id
+  }
+
   const onCreateToken = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
+    if (!tokenProjectId) {
+      setError(t('settings.tokensProjectRequired'))
+      return
+    }
+    if (tokenPerms.length === 0) {
+      setError(t('settings.tokensPermissionsRequired'))
+      return
+    }
     try {
-      const res = await api.createToken(tokenName.trim() || 'token')
+      const res = await api.createToken(tokenName.trim() || 'token', {
+        projectId: tokenProjectId,
+        permissions: tokenPerms,
+      })
       setSecretOnce(res.secret)
       await refreshTokens()
     } catch (err) {
@@ -968,6 +1001,12 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                     })}
                   >
                     <strong>{tok.name}</strong> · {tok.token_prefix}…
+                    <div className="muted" style={{ fontSize: '0.9em' }}>
+                      {tokenProjectLabel(tok.project_id)}
+                      {tok.permissions?.length
+                        ? ` · ${tok.permissions.join(', ')}`
+                        : ''}
+                    </div>
                     {tok.revoked_at ? null : (
                       <button
                         type="button"
@@ -1001,6 +1040,53 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                   {...testIdProps(TestIds.settingsTokenNameInput)}
                 />
               </label>
+              <label className="field">
+                <span>{t('settings.tokensProject')}</span>
+                <select
+                  value={tokenProjectId}
+                  onChange={(e) => setTokenProjectId(e.target.value)}
+                  required
+                  aria-label={t('settings.tokensProject')}
+                  {...testIdProps(TestIds.settingsTokenProjectSelect)}
+                >
+                  {projectsForCi.length === 0 && (
+                    <option value="">
+                      {t('admin.automationRepoNeedProject')}
+                    </option>
+                  )}
+                  {projectsForCi.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.key} — {p.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <fieldset
+                className="field"
+                {...testIdProps(TestIds.settingsTokenPermissions)}
+              >
+                <legend>{t('settings.tokensPermissions')}</legend>
+                <p className="muted" style={{ marginTop: 0 }}>
+                  {t('settings.tokensPermissionsHelp')}
+                </p>
+                <div className="stack-form" style={{ gap: '0.35rem' }}>
+                  {PROJECT_PERMISSIONS.map((perm) => (
+                    <label key={perm} className="inline-check">
+                      <input
+                        type="checkbox"
+                        checked={tokenPerms.includes(perm)}
+                        onChange={() => toggleTokenPerm(perm)}
+                        // kebab-case suffix — underscores fail assertSafeTestAttrs
+                        {...listChildProps(
+                          TestIds.settingsTokenPermissionCheckbox,
+                          perm.replaceAll('_', '-'),
+                        )}
+                      />
+                      <span>{perm}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
               <button
                 className="btn"
                 type="submit"

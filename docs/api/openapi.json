@@ -11477,7 +11477,8 @@
           "id",
           "name",
           "token_prefix",
-          "created_at"
+          "created_at",
+          "permissions"
         ],
         "properties": {
           "created_at": {
@@ -11497,6 +11498,21 @@
           },
           "name": {
             "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Allowlisted project permission strings (`view_project`, …)."
+          },
+          "project_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Project this token is scoped to (null only for revoked legacy rows)."
           },
           "revoked_at": {
             "type": [
@@ -11725,6 +11741,44 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "AutoCreatedCaseSummary": {
+        "type": "object",
+        "description": "Summary of a draft case auto-created (or that would be created under dry-run)\nfor an unmatched CI result.",
+        "required": [
+          "title",
+          "matched_by"
+        ],
+        "properties": {
+          "automation_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "case_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Set when the case was actually persisted; `null` under dry-run."
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Allocated Vulyk key when persisted; `null` under dry-run."
+          },
+          "matched_by": {
+            "type": "string",
+            "description": "Lookup token that failed to match (case key / automation_id)."
+          },
+          "title": {
+            "type": "string"
           }
         }
       },
@@ -12618,6 +12672,10 @@
           "results"
         ],
         "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "description": "When true, report cases that would be auto-created without persisting creates."
+          },
           "results": {
             "type": "array",
             "items": {
@@ -12638,6 +12696,17 @@
           "unmatched_case_keys"
         ],
         "properties": {
+          "auto_created_cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutoCreatedCaseSummary"
+            },
+            "description": "Draft cases created (or previewed) for unmatched results under the project policy."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Echo of the request dry-run flag."
+          },
           "idempotent_replays": {
             "type": "integer",
             "format": "int64",
@@ -13539,6 +13608,15 @@
           "idempotent_replays"
         ],
         "properties": {
+          "auto_created_cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutoCreatedCaseSummary"
+            }
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
           "idempotent_replays": {
             "type": "integer",
             "format": "int64"
@@ -13572,6 +13650,16 @@
             "format": "int64"
           }
         }
+      },
+      "CiUnmatchedPolicy": {
+        "type": "string",
+        "description": "How ingest handles results that do not match key / automation_id / external_key.",
+        "enum": [
+          "off",
+          "create_passed",
+          "create_all",
+          "fail_unmatched"
+        ]
       },
       "CloseCiRunRequest": {
         "type": "object",
@@ -14351,6 +14439,10 @@
           "case_key_prefix": {
             "type": "string"
           },
+          "ci_unmatched_policy": {
+            "type": "string",
+            "description": "Unmatched CI policy; defaults to `off` for older archives."
+          },
           "description": {
             "type": "string"
           },
@@ -14926,11 +15018,25 @@
       "CreateApiToken": {
         "type": "object",
         "required": [
-          "name"
+          "name",
+          "project_id",
+          "permissions"
         ],
         "properties": {
           "name": {
             "type": "string"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Non-empty subset of project permission strings."
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Project the token may access."
           }
         }
       },
@@ -15628,6 +15734,13 @@
               "null"
             ],
             "description": "Optional override for case key prefix (must be unique). Derived from name when omitted."
+          },
+          "ci_unmatched_policy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional unmatched CI policy (defaults to `off`)."
           },
           "description": {
             "type": "string"
@@ -17099,6 +17212,10 @@
             ],
             "description": "Optional CI actor / bot display name (stored on the run when provided)."
           },
+          "dry_run": {
+            "type": "boolean",
+            "description": "When true, report cases that would be auto-created without persisting creates."
+          },
           "environment": {
             "type": "object"
           },
@@ -17120,6 +17237,15 @@
           "parsed"
         ],
         "properties": {
+          "auto_created_cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutoCreatedCaseSummary"
+            }
+          },
+          "dry_run": {
+            "type": "boolean"
+          },
           "inserted": {
             "type": "integer",
             "format": "int64"
@@ -19181,6 +19307,10 @@
             ],
             "description": "CI bot / token / actor name shown in the suites table."
           },
+          "dry_run": {
+            "type": "boolean",
+            "description": "When true, report cases that would be auto-created without persisting creates."
+          },
           "environment": {
             "type": "object"
           },
@@ -19231,9 +19361,18 @@
           "parsed"
         ],
         "properties": {
+          "auto_created_cases": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AutoCreatedCaseSummary"
+            }
+          },
           "campaign_id": {
             "type": "string",
             "format": "uuid"
+          },
+          "dry_run": {
+            "type": "boolean"
           },
           "inserted": {
             "type": "integer",
@@ -19286,6 +19425,10 @@
           "case_key_prefix": {
             "type": "string",
             "description": "Auto-derived uppercase initials used for case keys (e.g. KOC)."
+          },
+          "ci_unmatched_policy": {
+            "type": "string",
+            "description": "Unmatched CI result policy: `off`, `create_passed`, `create_all`, `fail_unmatched`."
           },
           "created_at": {
             "type": "string",
@@ -23323,6 +23466,13 @@
             ],
             "description": "Editable only before any cases exist (next_case_number == 0 and no cases/tombstones)."
           },
+          "ci_unmatched_policy": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Unmatched CI result policy: `off`, `create_passed`, `create_all`, `fail_unmatched`."
+          },
           "description": {
             "type": [
               "string",
@@ -24133,7 +24283,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT or API token",
-        "description": "Paste a session JWT (`POST /api/v1/auth/login` → `token`) or a personal API token (Settings → Tokens / `POST /api/v1/tokens`). Alternatively, when browsing /api/docs on this origin while logged in, the HttpOnly `vulyk_session` cookie is sent automatically with Test Request."
+        "description": "Paste a session JWT (`POST /api/v1/auth/login` → `token`) or a project-scoped personal API token (Settings → Tokens / `POST /api/v1/tokens` with `project_id` + `permissions`). Alternatively, when browsing /api/docs on this origin while logged in, the HttpOnly `vulyk_session` cookie is sent automatically with Test Request."
       }
     }
   },

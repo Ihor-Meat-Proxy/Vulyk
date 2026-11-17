@@ -4,7 +4,10 @@
 
 ## Auth
 
-1. Create a token: `POST /api/v1/tokens` `{ "name": "cursor" }` (UI: **Admin → API tokens**).  
+1. Create a **project-scoped** token: `POST /api/v1/tokens`  
+   `{ "name": "cursor", "project_id": "<uuid>", "permissions": ["view_project", "create_edit_cases", …] }`  
+   (UI: **Admin → API tokens** or **Settings → Tokens** — pick project + permissions).  
+   After upgrade, recreate any previous `VULYK_API_TOKEN` — unscoped tokens are revoked.
 2. Export:
 
 ```bash
@@ -12,7 +15,7 @@ export VULYK_API_URL=http://localhost:8080
 export VULYK_API_TOKEN=vulyk_at_…   # shown once at creation (legacy vulk_… still accepted)
 ```
 
-The MCP process sends `Authorization: Bearer …` on every call. Invalid tokens are rejected by the API.
+The MCP process sends `Authorization: Bearer …` on every call. Invalid tokens are rejected by the API. The token only sees its bound project and allowlisted permissions.
 
 ## Transports
 

@@ -67,6 +67,7 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'MCP',
     'CI',
     'CI/MCP',
+    'MCP/CLI',
     'CLI',
     'UI',
     'QA',

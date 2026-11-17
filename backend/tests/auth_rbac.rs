@@ -160,37 +160,6 @@ async fn bootstrap_login_token_and_rbac() {
     let relogin = login(&client, &base, &email, password).await;
     assert!(relogin.len() > 20);
 
-    let token_resp: Value = client
-        .post(format!("{base}/api/v1/tokens"))
-        .header("Authorization", format!("Bearer {token}"))
-        .json(&serde_json::json!({
-            "name": "ci-mcp",
-            "scopes": ["api"]
-        }))
-        .send()
-        .await
-        .expect("token")
-        .error_for_status()
-        .expect("token status")
-        .json()
-        .await
-        .expect("token json");
-    let api_token = token_resp["secret"].as_str().expect("api token");
-    assert!(api_token.starts_with("vulyk_at_"));
-
-    let me_via_api: Value = client
-        .get(format!("{base}/api/v1/auth/me"))
-        .header("Authorization", format!("Bearer {api_token}"))
-        .send()
-        .await
-        .expect("me api")
-        .error_for_status()
-        .expect("me api status")
-        .json()
-        .await
-        .expect("me api json");
-    assert_eq!(me_via_api["id"], admin_id);
-
     let key = format!(
         "A{}",
         uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()
@@ -212,6 +181,39 @@ async fn bootstrap_login_token_and_rbac() {
         .await
         .expect("project json");
     let project_id = project["id"].as_str().expect("project id");
+
+    let token_resp: Value = client
+        .post(format!("{base}/api/v1/tokens"))
+        .header("Authorization", format!("Bearer {token}"))
+        .json(&serde_json::json!({
+            "name": "ci-mcp",
+            "project_id": project_id,
+            "permissions": ["view_project", "view_reports"]
+        }))
+        .send()
+        .await
+        .expect("token")
+        .error_for_status()
+        .expect("token status")
+        .json()
+        .await
+        .expect("token json");
+    let api_token = token_resp["secret"].as_str().expect("api token");
+    assert!(api_token.starts_with("vulyk_at_"));
+    assert_eq!(token_resp["token"]["project_id"], project_id);
+
+    let me_via_api: Value = client
+        .get(format!("{base}/api/v1/auth/me"))
+        .header("Authorization", format!("Bearer {api_token}"))
+        .send()
+        .await
+        .expect("me api")
+        .error_for_status()
+        .expect("me api status")
+        .json()
+        .await
+        .expect("me api json");
+    assert_eq!(me_via_api["id"], admin_id);
 
     let memberships: Value = client
         .get(format!("{base}/api/v1/projects/{project_id}/memberships"))
@@ -580,5 +582,192 @@ async fn cross_project_results_and_jobs_are_forbidden() {
         403,
         "cross-project job must be forbidden: {}",
         denied_job.text().await.unwrap_or_default()
+    );
+}
+
+#[tokio::test]
+async fn scoped_api_token_enforces_project_and_permissions() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+    let password = "password12345678";
+    let admin_email = unique_email("scoped-admin");
+    let _admin_id = insert_admin(&pool, &admin_email, password).await;
+    let jwt = login(&client, &base, &admin_email, password).await;
+
+    let project_a: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {jwt}"))
+        .json(&serde_json::json!({
+            "key": format!("S{}", &uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()),
+            "name": "Scoped A"
+        }))
+        .send()
+        .await
+        .expect("pa")
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_b: Value = client
+        .post(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {jwt}"))
+        .json(&serde_json::json!({
+            "key": format!("T{}", &uuid::Uuid::new_v4().simple().to_string()[..6].to_uppercase()),
+            "name": "Scoped B"
+        }))
+        .send()
+        .await
+        .expect("pb")
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let project_a_id = project_a["id"].as_str().unwrap();
+    let project_b_id = project_b["id"].as_str().unwrap();
+
+    let minted: Value = client
+        .post(format!("{base}/api/v1/tokens"))
+        .header("Authorization", format!("Bearer {jwt}"))
+        .json(&serde_json::json!({
+            "name": "view-only",
+            "project_id": project_a_id,
+            "permissions": ["view_project", "view_reports"]
+        }))
+        .send()
+        .await
+        .expect("mint")
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let secret = minted["secret"].as_str().unwrap();
+
+    // Lists only the scoped project.
+    let listed: Value = client
+        .get(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let arr = listed.as_array().unwrap();
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0]["id"], project_a_id);
+
+    // Allowed permission on scoped project.
+    let ok = client
+        .get(format!("{base}/api/v1/projects/{project_a_id}"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .send()
+        .await
+        .unwrap();
+    assert!(
+        ok.status().is_success(),
+        "{}",
+        ok.text().await.unwrap_or_default()
+    );
+
+    // Denied: permission not on allowlist (update).
+    let denied_perm = client
+        .put(format!("{base}/api/v1/projects/{project_a_id}"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .json(&serde_json::json!({ "name": "Nope" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(denied_perm.status().as_u16(), 403);
+
+    // Denied: other project.
+    let denied_proj = client
+        .get(format!("{base}/api/v1/projects/{project_b_id}"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(denied_proj.status().as_u16(), 403);
+
+    // Denied: create project.
+    let denied_create = client
+        .post(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .json(&serde_json::json!({ "name": "FromToken" }))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(denied_create.status().as_u16(), 403);
+
+    // Denied: system-only admin route.
+    let denied_admin = client
+        .get(format!("{base}/api/v1/users"))
+        .header("Authorization", format!("Bearer {secret}"))
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(denied_admin.status().as_u16(), 403);
+
+    // Missing project_id / permissions rejected on create.
+    let bad = client
+        .post(format!("{base}/api/v1/tokens"))
+        .header("Authorization", format!("Bearer {jwt}"))
+        .json(&serde_json::json!({ "name": "missing-scope" }))
+        .send()
+        .await
+        .unwrap();
+    let bad_status = bad.status().as_u16();
+    assert!(
+        bad_status == 400 || bad_status == 422,
+        "expected 400/422 got {bad_status}"
+    );
+}
+
+#[tokio::test]
+async fn revoked_legacy_api_token_is_rejected() {
+    if std::env::var("DATABASE_URL").is_err() {
+        eprintln!("skipping: DATABASE_URL not set");
+        return;
+    }
+
+    let (base, pool) = spawn_app(true).await;
+    let client = reqwest::Client::new();
+    let email = unique_email("legacy-tok");
+    let password = "password12345678";
+    let user_id = insert_admin(&pool, &email, password).await;
+
+    // Simulate a pre-scope token that the upgrade migration would have revoked.
+    let raw = format!("vulyk_at_{}", uuid::Uuid::new_v4().simple());
+    let hash = vulyk_api::auth::hash_secret(&raw);
+    sqlx::query(
+        r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id, revoked_at)
+           VALUES ('legacy-unscoped', 'vulyk_at_', $1, $2, NOW())"#,
+    )
+    .bind(&hash)
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .expect("insert revoked legacy");
+
+    let resp = client
+        .get(format!("{base}/api/v1/projects"))
+        .header("Authorization", format!("Bearer {raw}"))
+        .send()
+        .await
+        .expect("request");
+    assert_eq!(
+        resp.status().as_u16(),
+        401,
+        "revoked legacy tokens must not authenticate: {}",
+        resp.text().await.unwrap_or_default()
     );
 }
