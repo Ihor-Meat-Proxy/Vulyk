@@ -33,7 +33,7 @@ Help rendered in the product at `/docs`:
 | [dev/](dev/) | Contributor & agent documentation |
 | [dev/architecture.md](dev/architecture.md) | Modules, ERD, security summary |
 | [dev/ci-checks.md](dev/ci-checks.md) | CI / security / quality check index |
-| [dev/supply-chain.md](dev/supply-chain.md) | Dependabot cooldown, locked installs, npm security fast path |
+| [dev/supply-chain.md](dev/supply-chain.md) | Dependabot cooldown, locked installs, npm security fast path, cosign/SBOM |
 | [dev/ci-failures.md](dev/ci-failures.md) | CI failure catalog |
 | [dev/migrations.md](dev/migrations.md) | SQLx migrations, Squawk, verify / upgrade CI |
 | [dev/testing/test-ids.md](dev/testing/test-ids.md) | Playwright `data-testid` conventions |

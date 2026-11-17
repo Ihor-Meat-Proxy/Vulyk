@@ -16,9 +16,12 @@ on:
         type: boolean
         default: false
 
+# Tag-only / manual release. Signing uses keyless Sigstore via OIDC (id-token).
 permissions:
   contents: write
   packages: write
+  id-token: write
+  attestations: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -98,6 +101,9 @@ jobs:
     name: Build & push GHCR images
     needs: [version, test]
     runs-on: ubuntu-latest
+    outputs:
+      api_digest: ${{ steps.build_api.outputs.digest }}
+      web_digest: ${{ steps.build_web.outputs.digest }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -110,6 +116,8 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install cosign
+        uses: sigstore/cosign-installer@d7543c93d881b056812c1f26eabe18744ad904a4 # v3.10.0
       - name: Docker metadata (API)
         id: meta_api
         uses: docker/metadata-action@v6
@@ -127,6 +135,7 @@ jobs:
             type=raw,value=${{ needs.version.outputs.version }}
             type=raw,value=latest
       - name: Build and push API image
+        id: build_api
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -134,9 +143,12 @@ jobs:
           push: true
           tags: ${{ steps.meta_api.outputs.tags }}
           labels: ${{ steps.meta_api.outputs.labels }}
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=vulyk-api
           cache-to: type=gha,mode=max,scope=vulyk-api
       - name: Build and push web image
+        id: build_web
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -144,8 +156,61 @@ jobs:
           push: true
           tags: ${{ steps.meta_web.outputs.tags }}
           labels: ${{ steps.meta_web.outputs.labels }}
+          provenance: mode=max
+          sbom: true
           cache-from: type=gha,scope=vulyk-web
           cache-to: type=gha,mode=max,scope=vulyk-web
+      - name: Cosign sign API (keyless)
+        run: cosign sign --yes "${{ needs.version.outputs.api_image }}@${{ steps.build_api.outputs.digest }}"
+      - name: Cosign sign web (keyless)
+        run: cosign sign --yes "${{ needs.version.outputs.web_image }}@${{ steps.build_web.outputs.digest }}"
+      - name: Attest build provenance (API)
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ needs.version.outputs.api_image }}
+          subject-digest: ${{ steps.build_api.outputs.digest }}
+          push-to-registry: true
+      - name: Attest build provenance (web)
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: ${{ needs.version.outputs.web_image }}
+          subject-digest: ${{ steps.build_web.outputs.digest }}
+          push-to-registry: true
+      - name: Stage SBOM directory
+        run: mkdir -p dist-sbom
+      - name: Generate SPDX SBOM (API image)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ needs.version.outputs.api_image }}@${{ steps.build_api.outputs.digest }}
+          format: spdx-json
+          artifact-name: vulyk-api-${{ needs.version.outputs.version }}.spdx.json
+          output-file: dist-sbom/vulyk-api-${{ needs.version.outputs.version }}.spdx.json
+      - name: Generate SPDX SBOM (web image)
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ needs.version.outputs.web_image }}@${{ steps.build_web.outputs.digest }}
+          format: spdx-json
+          artifact-name: vulyk-web-${{ needs.version.outputs.version }}.spdx.json
+          output-file: dist-sbom/vulyk-web-${{ needs.version.outputs.version }}.spdx.json
+      - name: Attest SBOM (API)
+        uses: actions/attest-sbom@v3
+        with:
+          subject-name: ${{ needs.version.outputs.api_image }}
+          subject-digest: ${{ steps.build_api.outputs.digest }}
+          sbom-path: dist-sbom/vulyk-api-${{ needs.version.outputs.version }}.spdx.json
+          push-to-registry: true
+      - name: Attest SBOM (web)
+        uses: actions/attest-sbom@v3
+        with:
+          subject-name: ${{ needs.version.outputs.web_image }}
+          subject-digest: ${{ steps.build_web.outputs.digest }}
+          sbom-path: dist-sbom/vulyk-web-${{ needs.version.outputs.version }}.spdx.json
+          push-to-registry: true
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-sboms
+          path: dist-sbom/*.spdx.json
 
   artifacts:
     name: Build release artifacts
@@ -197,8 +262,8 @@ jobs:
           cp .env.example "${bundle}/"
           cp VERSION CHANGELOG.md LICENSE README.md "${bundle}/"
           mkdir -p "${bundle}/scripts"
-          cp scripts/install.sh "${bundle}/scripts/"
-          chmod +x "${bundle}/scripts/install.sh"
+          cp scripts/install.sh scripts/verify-release-images.sh "${bundle}/scripts/"
+          chmod +x "${bundle}/scripts/install.sh" "${bundle}/scripts/verify-release-images.sh"
           cat > "${bundle}/RELEASE.txt" <<EOF
           Vulyk ${VERSION}
 
@@ -212,6 +277,9 @@ jobs:
             ./scripts/install.sh compose --yes --version ${VERSION}
             # or production:
             ./scripts/install.sh prod --yes --version ${VERSION} --admin-password='…'
+            # optional signature check (needs cosign):
+            ./scripts/install.sh upgrade --yes --version ${VERSION} --verify-images
+            ./scripts/verify-release-images.sh ${VERSION}
 
           Source build (no --version):
             ./scripts/install.sh compose --yes
@@ -253,12 +321,19 @@ jobs:
         with:
           name: release-artifacts
           path: dist
+      - name: Download SBOM artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: release-sboms
+          path: dist
       - name: Extract changelog section
         env:
           VERSION: ${{ needs.version.outputs.version }}
           TAG: ${{ needs.version.outputs.tag }}
           API_IMAGE: ${{ needs.version.outputs.api_image }}
           WEB_IMAGE: ${{ needs.version.outputs.web_image }}
+          API_DIGEST: ${{ needs.docker.outputs.api_digest }}
+          WEB_DIGEST: ${{ needs.docker.outputs.web_digest }}
         run: |
           set -euo pipefail
           python3 - <<'PY' > /tmp/changelog-section.md
@@ -281,12 +356,26 @@ jobs:
             echo "./scripts/install.sh compose --yes --version ${VERSION}"
             echo "# or upgrade an existing Compose install:"
             echo "./scripts/install.sh upgrade --yes --version ${VERSION}"
+            echo "# optional: verify cosign signatures after pull"
+            echo "./scripts/install.sh upgrade --yes --version ${VERSION} --verify-images"
             echo '```'
             echo
-            echo "Images:"
+            echo "Images (keyless cosign + GitHub attestations; SPDX SBOM attached below):"
             echo
             echo "- \`${API_IMAGE}:${VERSION}\` / \`${API_IMAGE}:latest\`"
+            if [[ -n "${API_DIGEST}" ]]; then
+              echo "  - digest \`${API_DIGEST}\`"
+            fi
             echo "- \`${WEB_IMAGE}:${VERSION}\` / \`${WEB_IMAGE}:latest\`"
+            if [[ -n "${WEB_DIGEST}" ]]; then
+              echo "  - digest \`${WEB_DIGEST}\`"
+            fi
+            echo
+            echo "Verify locally:"
+            echo
+            echo '```bash'
+            echo "./scripts/verify-release-images.sh ${VERSION}"
+            echo '```'
             echo
             echo "### Changelog"
             echo
@@ -306,4 +395,5 @@ jobs:
             dist/vulyk-cli-linux-amd64-*.tar.gz
             dist/vulyk-frontend-*.tar.gz
             dist/vulyk-compose-*.tar.gz
+            dist/vulyk-*-*.spdx.json
             dist/SHA256SUMS
