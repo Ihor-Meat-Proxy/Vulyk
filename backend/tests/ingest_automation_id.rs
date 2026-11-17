@@ -234,7 +234,10 @@ async fn junit_ingest_matches_automation_id_property() {
         .await
         .unwrap();
 
-    assert_eq!(ingest["inserted"], 1, "junit automation_id property must match");
+    assert_eq!(
+        ingest["inserted"], 1,
+        "junit automation_id property must match"
+    );
     assert!(
         ingest["unmatched_case_keys"]
             .as_array()
