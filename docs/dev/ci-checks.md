@@ -182,5 +182,5 @@ DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk ./scripts/ci-migrations
 ## Upgrade path
 
 Security/quality workflows must **not** change operator `.env`, Compose layout, or migrations. If a follow-up does, update `.env.example`, `install.sh`, and `./scripts/ci-env-upgrade-test.sh` in the **same** PR ([upgrade-path rule](../../.cursor/rules/upgrade-path.mdc)).
-The Migration integrity job also runs `VULYK_UPGRADE_BASE_REF=v0.5.1` through
+The Migration integrity job also runs `VULYK_UPGRADE_BASE_REF=v0.6.0` through
 `scripts/ci-upgrade-test.sh` (in addition to the base→PR **Upgrade** job).

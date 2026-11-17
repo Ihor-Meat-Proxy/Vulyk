@@ -28,7 +28,7 @@ flowchart TD
   migrations --> migCheck[check-migrations.sh]
   migrations --> squawk["squawk lint (soft)"]
   migrations --> migVerify[ci-migrations-verify.sh]
-  migrations --> migUpg[upgrade from v0.5.1]
+  migrations --> migUpg[upgrade from v0.6.0]
   migrations --> seedCheck2[check-seed-keys.sh]
   frontend --> lint[oxlint / tsc / vitest / build]
   playwright --> apiBoot[API boot + sample seed]
@@ -125,7 +125,7 @@ sequenceDiagram
 | | |
 | --- | --- |
 | **Symptoms** | `42P07` relation/index already exists during migrate; Backend / Dogfood / Playwright cascade; **Migration integrity** red on immutability / verify / upgrade-from-release |
-| **Why** | Migrations that recreate indexes after `RENAME`, two PRs shipping the same version prefix, or editing a file already on `main` / release tag `v0.5.1` |
+| **Why** | Migrations that recreate indexes after `RENAME`, two PRs shipping the same version prefix, or editing a file already on `main` / release tag `v0.6.0` |
 | **Fix** | Follow-up migration; drop legacy index before recreate; unique timestamps; never edit released files |
 | **Prevent** | `./scripts/check-migrations.sh`; [migrations.md](migrations.md); Squawk warnings for risky DDL |
 | **Seen on** | #24 (`custom_field_values_field_id_idx`) |

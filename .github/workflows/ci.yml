@@ -146,7 +146,7 @@ jobs:
       VULYK_API_URL: http://127.0.0.1:8080
       BIND_ADDR: 127.0.0.1:8080
       SQUAWK_VERSION: "2.73.0"
-      VULYK_RELEASE_TAG: v0.5.1
+      VULYK_RELEASE_TAG: v0.6.0
       # Lighter upgrade-from-release path inside this job (full suite stays in upgrade-test).
       PERF_CASES: "0"
     steps:
@@ -204,7 +204,7 @@ jobs:
         run: |
           chmod +x scripts/ci-migrations-reversibility.sh
           ./scripts/ci-migrations-reversibility.sh
-      - name: Upgrade from release tag (v0.5.1)
+      - name: Upgrade from release tag (v0.6.0)
         run: |
           chmod +x scripts/ci-upgrade-test.sh
           # Reset DB after verify/reversibility so base seed starts clean.

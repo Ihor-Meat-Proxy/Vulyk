@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-17
+
+Minor release: MCP parity, CI/platform expansion (Bitbucket, examples,
+multi-repo), automation identity and ingest policy, scoped tokens, RFC 9457
+errors, outbound webhooks, and AI case generation from PR/branch diffs since
+0.5.1.
+
+### Added
+
+- **Stable `automation_id` on test cases** — ingest / reporter matching key
+  independent of display case keys (#281 / #227).
+- **CI auto-create policy** for unmatched results — project setting to create
+  cases or reject (#282 / #228).
+- **Project- and permission-scoped API tokens** — narrower tokens with
+  project/permission claims (#283 / #229).
+- **RFC 9457 problem+json** error format and OpenAPI Spectral quality gate
+  (#284 / #230).
+- **Outbound signed webhooks** with delivery log for case/run/result events
+  (#285 / #231).
+- **Bitbucket Pipelines + generic CI provider** support (#286 / #232).
+- **Selenide/Maven and pytest guides** plus runnable example repos on every CI
+  (#287 / #233).
+- **Multi-repo per project** — several automation source repos, default repo,
+  provider widen (GitHub/GitLab/Bitbucket/Forgejo/Gitea/generic), Run-in-CI /
+  ingest / Generate pickers (#290 / #255).
+- **AI test generation from a PR or branch diff** — list pulls, token-budget
+  preview, include/exclude, provenance in `case_generation_sources`
+  (#291 / #256).
+- **MCP server API parity** — P0/P1 tools and OpenAPI coverage docs
+  (#278–#280 / #277).
+
+### Changed
+
+- **Native CI provider follow-ups** from the 0.5.1 retest — dispatch status
+  polling, Forgejo run URL resolution, Woodpecker attach, upload script ASCII
+  (#289 / #288).
+- Env-upgrade CI default previous tag prefers `v0.5.1` when present.
+- Version bump 0.5.1 → 0.6.0 across `VERSION`, Cargo workspace, frontend, and
+  Helm `appVersion`.
+
 ## [0.5.1] - 2026-11-17
 
 Patch release: CI provider expansion (Forgejo/Gitea/Woodpecker), admin opt-in

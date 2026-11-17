@@ -54,7 +54,7 @@ Summary:
 
 1. **Forward-only** in production (no `.down.sql` for fixes). Optional downs are
    exercised by CI when present.
-2. **Never edit** a migration on `main` or a **release tag** (`v0.5.1` / latest
+2. **Never edit** a migration on `main` or a **release tag** (`v0.6.0` / latest
    `v*`) — CI hard-fails. Add a new timestamped file instead.
 3. **Unique** `YYYYMMDDHHMMSS_description.sql` version prefixes.
 4. **Expand / contract** for breaking shape changes; keep data migrations idempotent.
