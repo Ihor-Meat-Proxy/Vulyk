@@ -242,6 +242,40 @@ use `--print-run-id`, `--run-id-file`, or `--dotenv-file` when the next command 
 in the same step (Jenkins/GitLab/generic shells). A thinner one-shot Action also
 exists at `action/action.yml` for simple uploads.
 
+## Forgejo / Gitea Actions
+
+Forgejo and Gitea are first-class providers (`--provider forgejo` / `gitea`, or
+`VULYK_CI_PROVIDER`). Run slugs use `forgejo` / `gitea`, not `github`.
+
+Example workflow: [`ci/forgejo-actions-vulyk.yml`](../../ci/forgejo-actions-vulyk.yml).
+Copy into `.forgejo/workflows/` or `.gitea/workflows/`.
+
+```bash
+export VULYK_API_URL=https://vulyk.example.com
+export VULYK_API_TOKEN=vulyk_ci_…
+export VULYK_PROJECT_KEY=KOC
+export VULYK_CI_PROVIDER=forgejo
+
+PIPELINE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
+  --suite-name "Forgejo #$GITHUB_RUN_NUMBER" \
+  --provider forgejo --repo "$GITHUB_REPOSITORY" \
+  --branch "${GITHUB_REF_NAME}" --commit "$GITHUB_SHA" \
+  --pipeline-url "$PIPELINE_URL")"
+```
+
+**Outbound dispatch:** under **CI triggers**, choose Forgejo or Gitea and save
+`base_url`, token, owner, repo, `workflow_id` (optional `public_base_url` /
+`ref`). Vulyk calls `/api/v1/.../actions/workflows/.../dispatches`.
+
+When runners see an internal Docker hostname, set
+`VULYK_FORGEJO_PUBLIC_BASE_URL` or `VULYK_GITEA_PUBLIC_BASE_URL` on the Vulyk
+host so stored pipeline links stay clickable. Webhooks:
+`/api/v1/webhooks/forgejo` and `/api/v1/webhooks/gitea` (GitHub-compatible HMAC).
+
+Self-hosted `http://` or LAN Forgejo/Gitea needs **Allow http and private-network
+CI hosts** (optional allowlist) under **Admin → Settings**.
+
 ## GitLab CI
 
 ```yaml

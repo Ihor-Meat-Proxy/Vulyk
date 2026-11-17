@@ -20,6 +20,17 @@ pub fn router() -> Router<AppState> {
             "/api/v1/webhooks/github/{config_id}",
             post(github_webhook_for_config),
         )
+        // Forgejo/Gitea Actions emit GitHub-compatible workflow_run webhooks.
+        .route("/api/v1/webhooks/forgejo", post(forgejo_webhook))
+        .route(
+            "/api/v1/webhooks/forgejo/{config_id}",
+            post(forgejo_webhook_for_config),
+        )
+        .route("/api/v1/webhooks/gitea", post(gitea_webhook))
+        .route(
+            "/api/v1/webhooks/gitea/{config_id}",
+            post(gitea_webhook_for_config),
+        )
         .route("/api/v1/webhooks/gitlab", post(gitlab_webhook))
         .route(
             "/api/v1/webhooks/gitlab/{config_id}",
@@ -46,7 +57,7 @@ pub async fn github_webhook(
     headers: HeaderMap,
     body: Bytes,
 ) -> AppResult<Json<WebhookAck>> {
-    handle_github(&state, None, &headers, &body).await
+    handle_actions_compatible(&state, "github", None, &headers, &body).await
 }
 
 #[utoipa::path(
@@ -66,7 +77,83 @@ pub async fn github_webhook_for_config(
     headers: HeaderMap,
     body: Bytes,
 ) -> AppResult<Json<WebhookAck>> {
-    handle_github(&state, Some(config_id), &headers, &body).await
+    handle_actions_compatible(&state, "github", Some(config_id), &headers, &body).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/forgejo",
+    tag = "webhooks",
+    request_body(content = String, description = "Forgejo Actions webhook JSON (GitHub-compatible)", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
+pub async fn forgejo_webhook(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<WebhookAck>> {
+    handle_actions_compatible(&state, "forgejo", None, &headers, &body).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/forgejo/{config_id}",
+    tag = "webhooks",
+    params(("config_id" = Uuid, Path, description = "CI config id")),
+    request_body(content = String, description = "Forgejo Actions webhook JSON", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
+pub async fn forgejo_webhook_for_config(
+    State(state): State<AppState>,
+    Path(config_id): Path<Uuid>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<WebhookAck>> {
+    handle_actions_compatible(&state, "forgejo", Some(config_id), &headers, &body).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/gitea",
+    tag = "webhooks",
+    request_body(content = String, description = "Gitea Actions webhook JSON (GitHub-compatible)", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
+pub async fn gitea_webhook(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<WebhookAck>> {
+    handle_actions_compatible(&state, "gitea", None, &headers, &body).await
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/webhooks/gitea/{config_id}",
+    tag = "webhooks",
+    params(("config_id" = Uuid, Path, description = "CI config id")),
+    request_body(content = String, description = "Gitea Actions webhook JSON", content_type = "application/json"),
+    responses(
+        (status = 200, description = "Webhook accepted", body = WebhookAck),
+        (status = 401, description = "Invalid signature")
+    )
+)]
+pub async fn gitea_webhook_for_config(
+    State(state): State<AppState>,
+    Path(config_id): Path<Uuid>,
+    headers: HeaderMap,
+    body: Bytes,
+) -> AppResult<Json<WebhookAck>> {
+    handle_actions_compatible(&state, "gitea", Some(config_id), &headers, &body).await
 }
 
 #[utoipa::path(
@@ -107,20 +194,26 @@ pub async fn gitlab_webhook_for_config(
     handle_gitlab(&state, Some(config_id), &headers, &body).await
 }
 
-async fn handle_github(
+async fn handle_actions_compatible(
     state: &AppState,
+    provider: &str,
     config_id: Option<Uuid>,
     headers: &HeaderMap,
     body: &Bytes,
 ) -> AppResult<Json<WebhookAck>> {
-    let event = header_str(headers, "x-github-event").unwrap_or_default();
-    let delivery = header_str(headers, "x-github-delivery");
+    let event = header_str(headers, "x-github-event")
+        .or_else(|| header_str(headers, "x-gitea-event"))
+        .or_else(|| header_str(headers, "x-forgejo-event"))
+        .unwrap_or_default();
+    let delivery = header_str(headers, "x-github-delivery")
+        .or_else(|| header_str(headers, "x-gitea-delivery"))
+        .or_else(|| header_str(headers, "x-forgejo-delivery"));
     let signature = header_str(headers, "x-hub-signature-256").unwrap_or_default();
 
     let payload: Value = serde_json::from_slice(body)
         .map_err(|e| AppError::BadRequest(format!("invalid JSON: {e}")))?;
 
-    let configs = load_configs(state, "github", config_id).await?;
+    let configs = load_configs(state, provider, config_id).await?;
     if configs.is_empty() {
         return Ok(Json(WebhookAck {
             received: true,
@@ -140,7 +233,9 @@ async fn handle_github(
         })
         .collect();
     if matched.is_empty() {
-        return Err(AppError::Unauthorized("invalid GitHub signature".into()));
+        return Err(AppError::Unauthorized(format!(
+            "invalid {provider} signature"
+        )));
     }
 
     let mut dispatch_id = None;
@@ -148,9 +243,18 @@ async fn handle_github(
 
     if event == "workflow_run" {
         if let Some((external_id, mapped, url)) = github::status_from_workflow_run(&payload) {
+            let url = url
+                .map(|u| {
+                    crate::integrations::forgejo::maybe_rewrite_pipeline_url(
+                        Some(provider),
+                        Some(u),
+                    )
+                    .unwrap_or_default()
+                })
+                .filter(|s| !s.is_empty());
             if let Some(d) = update_dispatch_status(
                 state,
-                "github",
+                provider,
                 &external_id,
                 &mapped,
                 url.as_deref(),
@@ -166,7 +270,7 @@ async fn handle_github(
 
     log_webhook(
         state,
-        "github",
+        provider,
         &event,
         delivery.as_deref(),
         &payload,

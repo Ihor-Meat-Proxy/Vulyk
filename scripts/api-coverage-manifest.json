@@ -67,6 +67,18 @@
     "POST /api/v1/webhooks/github/{config_id}": {
       "justification": "GitHub webhook uses HMAC signature authentication rather than a Vulyk bearer token."
     },
+    "POST /api/v1/webhooks/forgejo": {
+      "justification": "Forgejo Actions webhook uses GitHub-compatible HMAC signature authentication rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/forgejo/{config_id}": {
+      "justification": "Forgejo Actions webhook uses GitHub-compatible HMAC signature authentication rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/gitea": {
+      "justification": "Gitea Actions webhook uses GitHub-compatible HMAC signature authentication rather than a Vulyk bearer token."
+    },
+    "POST /api/v1/webhooks/gitea/{config_id}": {
+      "justification": "Gitea Actions webhook uses GitHub-compatible HMAC signature authentication rather than a Vulyk bearer token."
+    },
     "POST /api/v1/webhooks/gitlab": {
       "justification": "GitLab webhook uses its provider token rather than a Vulyk bearer token."
     },

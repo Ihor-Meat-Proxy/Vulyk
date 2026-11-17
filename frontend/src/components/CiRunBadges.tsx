@@ -11,15 +11,28 @@ type PipelineProps = {
   jobUrl?: string | null
 }
 
+type CiKind = 'github' | 'gitlab' | 'jenkins' | 'forgejo' | 'gitea' | 'ci'
+
 function normalizeProvider(
   source?: string | null,
   ciProvider?: string | null,
-): 'github' | 'gitlab' | 'ci' | null {
+): CiKind | null {
   const provider = (ciProvider ?? '').toLowerCase()
-  if (provider === 'github' || provider === 'gitlab') return provider
+  if (
+    provider === 'github' ||
+    provider === 'gitlab' ||
+    provider === 'jenkins' ||
+    provider === 'forgejo' ||
+    provider === 'gitea'
+  ) {
+    return provider
+  }
   const src = (source ?? '').toLowerCase()
   if (src === 'ci:github' || src.includes('github')) return 'github'
   if (src === 'ci:gitlab' || src.includes('gitlab')) return 'gitlab'
+  if (src === 'ci:jenkins' || src.includes('jenkins')) return 'jenkins'
+  if (src === 'ci:forgejo' || src.includes('forgejo')) return 'forgejo'
+  if (src === 'ci:gitea' || src.includes('gitea')) return 'gitea'
   if (src === 'ci' || src.startsWith('ci:') || provider === 'other') return 'ci'
   return null
 }
@@ -33,7 +46,13 @@ export function CiSourceBadge({ source, ciProvider }: SourceProps) {
       ? t('executions.sourceGithub')
       : kind === 'gitlab'
         ? t('executions.sourceGitlab')
-        : t('executions.sourceCi')
+        : kind === 'jenkins'
+          ? t('executions.sourceJenkins')
+          : kind === 'forgejo'
+            ? t('executions.sourceForgejo')
+            : kind === 'gitea'
+              ? t('executions.sourceGitea')
+              : t('executions.sourceCi')
   return <span className="badge">{label}</span>
 }
 

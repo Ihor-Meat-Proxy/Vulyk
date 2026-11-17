@@ -52,6 +52,23 @@ function env(...names: string[]): string {
   return ''
 }
 
+/** Detect CI provider for open-run metadata (Forgejo/Gitea before generic GitHub). */
+function detectCiProvider(): string {
+  const explicit = env('VULYK_CI_PROVIDER')
+  if (explicit) return explicit.toLowerCase()
+  if (process.env.FORGEJO_ACTIONS || process.env.FORGEJO) return 'forgejo'
+  if (process.env.GITEA_ACTIONS) return 'gitea'
+  if (process.env.GITHUB_ACTIONS) {
+    const server = process.env.GITHUB_SERVER_URL || ''
+    if (/forgejo/i.test(server)) return 'forgejo'
+    if (/gitea/i.test(server)) return 'gitea'
+    return 'github'
+  }
+  if (process.env.GITLAB_CI) return 'gitlab'
+  if (process.env.JENKINS_URL || process.env.BUILD_URL) return 'jenkins'
+  return 'other'
+}
+
 function caseKeyFromTest(test: TestCase): string | null {
   const prefix = env('VULYK_CASE_KEY_PREFIX').toUpperCase() // e.g. VUE or VQA
   const keys: string[] = []
@@ -350,7 +367,7 @@ export default class VulykReporter implements Reporter {
       const opened = await this.api<{
         run: { id: string; status: string }
       }>('POST', `/api/v1/projects/${this.projectId}/ci/runs`, {
-        provider: process.env.GITHUB_ACTIONS ? 'github' : 'other',
+        provider: detectCiProvider(),
         // Display name stays the operator-facing run title; suite_name is the
         // technical suite label (may differ when both are set).
         suite_name: env('VULYK_SUITE_NAME') || 'playwright',

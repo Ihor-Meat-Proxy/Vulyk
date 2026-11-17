@@ -11080,6 +11080,166 @@
         }
       }
     },
+    "/api/v1/webhooks/forgejo": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "forgejo_webhook",
+        "requestBody": {
+          "description": "Forgejo Actions webhook JSON (GitHub-compatible)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/forgejo/{config_id}": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "forgejo_webhook_for_config",
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "description": "CI config id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Forgejo Actions webhook JSON",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/gitea": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "gitea_webhook",
+        "requestBody": {
+          "description": "Gitea Actions webhook JSON (GitHub-compatible)",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
+    "/api/v1/webhooks/gitea/{config_id}": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "gitea_webhook_for_config",
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "description": "CI config id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Gitea Actions webhook JSON",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAck"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid signature"
+          }
+        }
+      }
+    },
     "/api/v1/webhooks/github": {
       "post": {
         "tags": [
@@ -17795,7 +17955,7 @@
               "string",
               "null"
             ],
-            "description": "CI provider hint: `github`, `gitlab`, `jenkins`, `bitbucket`, `other`."
+            "description": "CI provider hint: `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `bitbucket`, `other`."
           },
           "repo": {
             "type": [

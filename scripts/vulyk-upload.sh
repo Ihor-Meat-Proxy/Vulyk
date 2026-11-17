@@ -29,7 +29,8 @@ Options:
   --close-run            Close a CI run
   --cancelled            Mark close as cancelled
   --pipeline             Legacy one-shot campaign/iteration ingest
-  --provider NAME        github | gitlab | jenkins | other
+  --provider NAME        github | gitlab | jenkins | forgejo | gitea | other
+                         (or VULYK_CI_PROVIDER; auto-detects Forgejo/Gitea/GitHub/GitLab/Jenkins)
   --repo TEXT            owner/repo or path
   --branch TEXT          Git branch
   --commit SHA           Git commit
@@ -72,7 +73,7 @@ START_RUN=0
 CLOSE_RUN=0
 CANCELLED=0
 PIPELINE=0
-PROVIDER=""
+PROVIDER="${VULYK_CI_PROVIDER:-}"
 REPO=""
 BRANCH=""
 COMMIT=""
@@ -143,6 +144,38 @@ fi
 if [[ -z "${SUITE_NAME}" && -n "${RUN_NAME}" ]]; then
   SUITE_NAME="${RUN_NAME}"
 fi
+
+# Detect CI provider when --provider / VULYK_CI_PROVIDER unset.
+detect_ci_provider() {
+  if [[ -n "${PROVIDER}" ]]; then
+    return
+  fi
+  if [[ -n "${FORGEJO_ACTIONS:-}${FORGEJO:-}" ]]; then
+    PROVIDER="forgejo"
+    return
+  fi
+  if [[ -n "${GITEA_ACTIONS:-}" ]]; then
+    PROVIDER="gitea"
+    return
+  fi
+  if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+    case "${GITHUB_SERVER_URL:-}" in
+      *forgejo*|*Forgejo*) PROVIDER="forgejo" ;;
+      *gitea*|*Gitea*) PROVIDER="gitea" ;;
+      *) PROVIDER="github" ;;
+    esac
+    return
+  fi
+  if [[ -n "${GITLAB_CI:-}" ]]; then
+    PROVIDER="gitlab"
+    return
+  fi
+  if [[ -n "${JENKINS_URL:-}${BUILD_URL:-}" ]]; then
+    PROVIDER="jenkins"
+    return
+  fi
+}
+detect_ci_provider
 
 # Under GitLab CI, default dotenv path so later jobs can pick up the run id.
 if [[ -z "${DOTENV_FILE}" && -n "${GITLAB_CI:-}" ]]; then

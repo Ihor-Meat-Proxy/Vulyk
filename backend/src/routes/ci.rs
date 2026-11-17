@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
-use crate::integrations::{github, gitlab, jenkins};
+use crate::integrations::{forgejo, github, gitlab, jenkins};
 use crate::models::{
     merge_ci_config, AutomationRepoRow, CiConfig, CiConfigPublic, CiConfigTestResult, CiDispatch,
     CreateCiConfig, CreateRun, DispatchCiRequest, RunInCiRequest, RunInCiResponse, TestRun,
@@ -111,13 +111,13 @@ pub async fn create_ci_config(
     ensure_project(&state, project_id).await?;
     let provider = body.provider.trim().to_lowercase();
     // Inbound / stored configs accept common CI systems; dispatch implements
-    // github + gitlab + jenkins (see dispatch match below).
+    // github + gitlab + jenkins + forgejo/gitea (see dispatch match below).
     if !matches!(
         provider.as_str(),
-        "github" | "gitlab" | "jenkins" | "bitbucket" | "other"
+        "github" | "gitlab" | "jenkins" | "bitbucket" | "other" | "forgejo" | "gitea"
     ) {
         return Err(AppError::BadRequest(
-            "provider must be 'github', 'gitlab', 'jenkins', 'bitbucket', or 'other'".into(),
+            "provider must be 'github', 'gitlab', 'jenkins', 'forgejo', 'gitea', 'bitbucket', or 'other'".into(),
         ));
     }
     if body.name.trim().is_empty() {
@@ -294,6 +294,11 @@ pub async fn test_ci_config(
             ok: true,
             message: "GitHub configs are validated on dispatch (workflow_dispatch)".into(),
         },
+        "forgejo" | "gitea" => CiConfigTestResult {
+            ok: true,
+            message: "Forgejo/Gitea configs are validated on dispatch (/api/v1 workflow_dispatch)"
+                .into(),
+        },
         "gitlab" => CiConfigTestResult {
             ok: true,
             message: "GitLab configs are validated on dispatch (trigger API)".into(),
@@ -457,6 +462,7 @@ pub async fn dispatch_ci(
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
     let handle = match cfg.provider.as_str() {
         "github" => github::dispatch(&cfg.config, &inputs).await,
+        "forgejo" | "gitea" => forgejo::dispatch(&cfg.config, &inputs, &ci_policy).await,
         "gitlab" => gitlab::dispatch(&cfg.config, &inputs).await,
         "jenkins" => jenkins::dispatch(&cfg.config, &inputs, &ci_policy).await,
         other => Err(AppError::BadRequest(format!("unknown provider {other}"))),
@@ -1002,6 +1008,34 @@ fn validate_config(
                 .filter(|s| !s.is_empty())
             {
                 crate::services::egress::validate_ci_url(api_base, policy)?;
+            }
+        }
+        "forgejo" | "gitea" => {
+            for key in ["token", "owner", "repo", "workflow_id", "base_url"] {
+                if config
+                    .get(key)
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .is_empty()
+                {
+                    return Err(AppError::BadRequest(format!(
+                        "{provider} config requires '{key}'"
+                    )));
+                }
+            }
+            let base = config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim_end_matches('/');
+            crate::services::egress::validate_ci_url(base, policy)?;
+            if let Some(public) = config
+                .get("public_base_url")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                crate::services::egress::validate_ci_url(public, policy)?;
             }
         }
         "gitlab" => {

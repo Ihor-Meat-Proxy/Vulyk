@@ -20,7 +20,7 @@ type Props = {
   projectId: string | null
 }
 
-type CiProvider = 'github' | 'gitlab' | 'jenkins'
+type CiProvider = 'github' | 'gitlab' | 'jenkins' | 'forgejo' | 'gitea'
 
 const GITHUB_JSON = `{
   "token": "",
@@ -35,6 +35,26 @@ const GITLAB_JSON = `{
   "project_id": "group/project",
   "trigger_token": "",
   "ref": "main"
+}`
+
+const FORGEJO_JSON = `{
+  "token": "",
+  "owner": "org",
+  "repo": "repo",
+  "workflow_id": "vulyk.yml",
+  "ref": "main",
+  "base_url": "https://git.example.com",
+  "public_base_url": "https://git.example.com"
+}`
+
+const GITEA_JSON = `{
+  "token": "",
+  "owner": "org",
+  "repo": "repo",
+  "workflow_id": "vulyk.yml",
+  "ref": "main",
+  "base_url": "https://gitea.example.com",
+  "public_base_url": "https://gitea.example.com"
 }`
 
 export function Runs({ projectId }: Props) {
@@ -125,6 +145,12 @@ export function Runs({ projectId }: Props) {
     } else if (next === 'gitlab') {
       setCiName(t('runs.gitlabPipeline'))
       setCiJson(GITLAB_JSON)
+    } else if (next === 'forgejo') {
+      setCiName(t('runs.forgejoActions'))
+      setCiJson(FORGEJO_JSON)
+    } else if (next === 'gitea') {
+      setCiName(t('runs.giteaActions'))
+      setCiJson(GITEA_JSON)
     } else {
       setCiName(t('runs.jenkinsJob'))
     }
@@ -376,6 +402,8 @@ export function Runs({ projectId }: Props) {
                   <option value="github">GitHub</option>
                   <option value="gitlab">GitLab</option>
                   <option value="jenkins">Jenkins</option>
+                  <option value="forgejo">Forgejo</option>
+                  <option value="gitea">Gitea</option>
                 </select>
                 <input
                   value={ciName}
