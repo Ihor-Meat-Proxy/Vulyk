@@ -21,12 +21,7 @@ type Props = {
 }
 
 type CiProvider =
-  | 'github'
-  | 'gitlab'
-  | 'jenkins'
-  | 'forgejo'
-  | 'gitea'
-  | 'woodpecker'
+  'github' | 'gitlab' | 'jenkins' | 'forgejo' | 'gitea' | 'woodpecker'
 
 const GITHUB_JSON = `{
   "token": "",
@@ -544,22 +539,22 @@ export function Runs({ projectId }: Props) {
                         {canManageCi &&
                           (cfg.provider === 'jenkins' ||
                             cfg.provider === 'woodpecker') && (
-                          <button
-                            type="button"
-                            className="btn secondary"
-                            disabled={busy || !cfg.enabled}
-                            onClick={() => void onTestConnection(cfg.id)}
-                            {...listItemProps(
-                              TestIds.runsCiTestConnectionButton,
-                              {
-                                entityId: cfg.id,
-                                index,
-                              },
-                            )}
-                          >
-                            {t('runs.testConnection')}
-                          </button>
-                        )}
+                            <button
+                              type="button"
+                              className="btn secondary"
+                              disabled={busy || !cfg.enabled}
+                              onClick={() => void onTestConnection(cfg.id)}
+                              {...listItemProps(
+                                TestIds.runsCiTestConnectionButton,
+                                {
+                                  entityId: cfg.id,
+                                  index,
+                                },
+                              )}
+                            >
+                              {t('runs.testConnection')}
+                            </button>
+                          )}
                         {canTrigger && (
                           <button
                             type="button"
