@@ -12,13 +12,7 @@ type PipelineProps = {
 }
 
 type CiKind =
-  | 'github'
-  | 'gitlab'
-  | 'jenkins'
-  | 'forgejo'
-  | 'gitea'
-  | 'woodpecker'
-  | 'ci'
+  'github' | 'gitlab' | 'jenkins' | 'forgejo' | 'gitea' | 'woodpecker' | 'ci'
 
 function normalizeProvider(
   source?: string | null,
