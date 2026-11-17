@@ -1,6 +1,9 @@
 //! JUnit / XUnit XML parser (pytest, Playwright, Surefire, cargo-nextest friendly).
 //! Recognizes Xray/TestRail-style properties: test_key, test_id, case_key, vulyk_key,
 //! and automation_id / vulyk_automation_id / vulyk:automation_id.
+//!
+//! Targets quick-xml 0.42+ (local names and attribute keys/values are `&str` /
+//! `Cow<str>`, not raw bytes).
 
 use chrono::Utc;
 use quick_xml::events::Event;
@@ -63,34 +66,34 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
 
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Empty(e)) if e.local_name().as_ref() == b"testcase" => {
+            Ok(Event::Empty(e)) if e.local_name().as_ref() == "testcase" => {
                 results.push(finish_case(case_from_attrs(&e)?, None));
             }
-            Ok(Event::Start(e)) if e.local_name().as_ref() == b"testcase" => {
+            Ok(Event::Start(e)) if e.local_name().as_ref() == "testcase" => {
                 current = Some(case_from_attrs(&e)?);
                 in_testcase = true;
             }
-            Ok(Event::Empty(e)) if e.local_name().as_ref() == b"property" && in_testcase => {
+            Ok(Event::Empty(e)) if e.local_name().as_ref() == "property" && in_testcase => {
                 apply_property(&mut current, &e);
             }
-            Ok(Event::Start(e)) if e.local_name().as_ref() == b"property" && in_testcase => {
+            Ok(Event::Start(e)) if e.local_name().as_ref() == "property" && in_testcase => {
                 apply_property(&mut current, &e);
             }
             Ok(Event::Empty(e))
-                if matches!(e.local_name().as_ref(), b"failure" | b"error" | b"skipped") =>
+                if matches!(e.local_name().as_ref(), "failure" | "error" | "skipped") =>
             {
                 apply_outcome(&mut current, e.local_name().as_ref(), &e);
             }
             Ok(Event::Start(e))
-                if matches!(e.local_name().as_ref(), b"failure" | b"error" | b"skipped") =>
+                if matches!(e.local_name().as_ref(), "failure" | "error" | "skipped") =>
             {
                 apply_outcome(&mut current, e.local_name().as_ref(), &e);
                 // Capture body text for failures/errors and skipped (key may live in body).
                 capture_text = true;
-                capture_to_body = e.local_name().as_ref() == b"skipped";
+                capture_to_body = e.local_name().as_ref() == "skipped";
             }
             Ok(Event::Start(e))
-                if matches!(e.local_name().as_ref(), b"system-out" | b"system-err")
+                if matches!(e.local_name().as_ref(), "system-out" | "system-err")
                     && in_testcase =>
             {
                 capture_text = true;
@@ -98,26 +101,20 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
             }
             Ok(Event::Text(t)) if capture_text => {
                 if let Some(ref mut c) = current {
-                    let text = t
-                        .decode()
-                        .ok()
-                        .map(|decoded| {
-                            quick_xml::escape::unescape(&decoded)
-                                .map(|u| u.into_owned())
-                                .unwrap_or_else(|_| decoded.into_owned())
-                        })
-                        .unwrap_or_default();
+                    let decoded = t.as_ref();
+                    let text = quick_xml::escape::unescape(decoded)
+                        .map(|u| u.into_owned())
+                        .unwrap_or_else(|_| decoded.to_string());
                     append_capture(c, &text, capture_to_body);
                 }
             }
             Ok(Event::CData(t)) if capture_text => {
                 if let Some(ref mut c) = current {
-                    let text = String::from_utf8_lossy(&t).into_owned();
-                    append_capture(c, &text, capture_to_body);
+                    append_capture(c, t.as_ref(), capture_to_body);
                 }
             }
             Ok(Event::End(e)) => match e.local_name().as_ref() {
-                b"testcase" => {
+                "testcase" => {
                     if let Some(c) = current.take() {
                         results.push(finish_case(c, None));
                     }
@@ -125,7 +122,7 @@ fn parse_document(xml: &str) -> Result<Vec<BulkResultItem>, String> {
                     capture_to_body = false;
                     in_testcase = false;
                 }
-                b"failure" | b"error" | b"skipped" | b"system-out" | b"system-err" => {
+                "failure" | "error" | "skipped" | "system-out" | "system-err" => {
                     capture_text = false;
                     capture_to_body = false;
                 }
@@ -167,10 +164,10 @@ fn case_from_attrs(e: &quick_xml::events::BytesStart<'_>) -> Result<CaseBuilder,
     };
     for attr in e.attributes().flatten() {
         match attr.key.as_ref() {
-            b"name" => builder.name = attr_string(&attr.value),
-            b"classname" => builder.classname = attr_string(&attr.value),
-            b"time" => builder.time_secs = attr_string(&attr.value).parse().ok(),
-            b"status" => {
+            "name" => builder.name = attr_string(&attr.value),
+            "classname" => builder.classname = attr_string(&attr.value),
+            "time" => builder.time_secs = attr_string(&attr.value).parse().ok(),
+            "status" => {
                 let s = attr_string(&attr.value);
                 if !s.is_empty() {
                     builder.status = crate::models::normalize_result_status(&s);
@@ -190,8 +187,8 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
     let mut value = String::new();
     for attr in e.attributes().flatten() {
         match attr.key.as_ref() {
-            b"name" => name = attr_string(&attr.value),
-            b"value" => value = attr_string(&attr.value),
+            "name" => name = attr_string(&attr.value),
+            "value" => value = attr_string(&attr.value),
             _ => {}
         }
     }
@@ -228,7 +225,7 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
 
 fn apply_outcome(
     current: &mut Option<CaseBuilder>,
-    tag: &[u8],
+    tag: &str,
     e: &quick_xml::events::BytesStart<'_>,
 ) {
     let Some(c) = current.as_mut() else {
@@ -236,12 +233,12 @@ fn apply_outcome(
     };
     // JUnit: skipped → Skipped, error → Failed (no separate Error status).
     c.status = match tag {
-        b"error" => crate::models::FAILED.into(),
-        b"skipped" => crate::models::SKIPPED.into(),
+        "error" => crate::models::FAILED.into(),
+        "skipped" => crate::models::SKIPPED.into(),
         _ => crate::models::FAILED.into(),
     };
     for attr in e.attributes().flatten() {
-        if attr.key.as_ref() == b"message" {
+        if attr.key.as_ref() == "message" {
             c.message = attr_string(&attr.value);
         }
     }
@@ -298,8 +295,8 @@ fn finish_case(c: CaseBuilder, project_key: Option<&str>) -> BulkResultItem {
     }
 }
 
-fn attr_string(value: &[u8]) -> String {
-    String::from_utf8_lossy(value).into_owned()
+fn attr_string(value: &str) -> String {
+    value.to_string()
 }
 
 #[cfg(test)]

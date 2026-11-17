@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   column lists / QueryBuilder strings) in `sqlx::AssertSqlSafe`, and pass the
   migrator table name into `ensure_migrations_table` /
   `list_applied_migrations` (Part of #234).
+- **quick-xml 0.42** — JUnit ingest uses string local names / attribute
+  keys-values (0.42 API); all junit unit tests green (Part of #234).
 
 ### Added
 
