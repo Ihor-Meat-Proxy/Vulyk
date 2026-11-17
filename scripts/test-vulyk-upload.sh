@@ -133,9 +133,11 @@ fi
 API="http://127.0.0.1:${PORT}"
 echo "mock API at ${API}"
 
-# Bitbucket auto-detect + default pipeline_url on open-run
+# Bitbucket auto-detect + default pipeline_url on open-run.
+# Clear host CI markers so this simulation wins when the suite runs under Actions.
 : > "${WORKDIR}/open_body.json"
-BITBUCKET_BUILD_NUMBER=42 BITBUCKET_REPO_FULL_NAME='acme/widgets' \
+env -u GITHUB_ACTIONS -u GITLAB_CI -u GITHUB_SERVER_URL \
+  BITBUCKET_BUILD_NUMBER=42 BITBUCKET_REPO_FULL_NAME='acme/widgets' \
   BITBUCKET_BRANCH=main BITBUCKET_COMMIT=deadbeef \
   "${SCRIPT}" --api-url "${API}" --project-key KOC --open-run \
   --suite-name "bb" --print-run-id >/dev/null 2>"${WORKDIR}/bb-err.txt"

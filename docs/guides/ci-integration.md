@@ -152,7 +152,7 @@ label — but reporting works without dispatch:
 
 There is **no** Vulyk → external **Run in CI** dispatch for `other`; use
 `vulyk-upload.sh` or `curl` against `/api/v1/projects/{id}/ci/runs` and ingest
-endpoints only. See [Generic JUnit](../user/cicd.md#generic-junit-xml-via-curl--shell).
+endpoints only. See [Generic JUnit](../user/cicd.md#generic-junit-xml-via-curl--shell-other).
 
 ### Forgejo / Gitea Actions
 
