@@ -154,7 +154,8 @@ async fn forbidden_returns_problem_json_for_non_admin() {
     let client = reqwest::Client::new();
 
     let email = format!("problem-json-{}@example.com", uuid::Uuid::new_v4().simple());
-    let password = "ProblemJsonTestPass1!";
+    // Unique per call so CodeQL does not flag a hard-coded credential.
+    let password = format!("pj-{}", uuid::Uuid::new_v4());
     let hash = vulyk_api::auth::hash_password(password).expect("hash");
     sqlx::query(
         r#"INSERT INTO users (
@@ -188,7 +189,11 @@ async fn forbidden_returns_problem_json_for_non_admin() {
         .send()
         .await
         .unwrap();
-    assert_eq!(resp.status(), 403, "expected forbidden for non-admin users list");
+    assert_eq!(
+        resp.status(),
+        403,
+        "expected forbidden for non-admin users list"
+    );
     let ct = resp
         .headers()
         .get(reqwest::header::CONTENT_TYPE)

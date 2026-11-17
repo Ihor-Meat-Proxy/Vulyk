@@ -88,26 +88,32 @@ impl AppError {
             AppError::Conflict(_) => (StatusCode::CONFLICT, "conflict", "Conflict"),
             AppError::Unauthorized(_) => (StatusCode::UNAUTHORIZED, "unauthorized", "Unauthorized"),
             AppError::Forbidden(_) => (StatusCode::FORBIDDEN, "forbidden", "Forbidden"),
-            AppError::TooManyRequests(_) => {
-                (StatusCode::TOO_MANY_REQUESTS, "too_many_requests", "Too Many Requests")
-            }
+            AppError::TooManyRequests(_) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "too_many_requests",
+                "Too Many Requests",
+            ),
             AppError::GitHostRateLimit { .. } => (
                 StatusCode::TOO_MANY_REQUESTS,
                 "git_host_rate_limit",
                 "Too Many Requests",
             ),
-            AppError::Internal(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "internal", "Internal Server Error")
-            }
+            AppError::Internal(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal",
+                "Internal Server Error",
+            ),
             AppError::Db(sqlx::Error::RowNotFound) => {
                 (StatusCode::NOT_FOUND, "not_found", "Not Found")
             }
             AppError::Db(sqlx::Error::Database(err)) if err.constraint().is_some() => {
                 (StatusCode::CONFLICT, "conflict", "Conflict")
             }
-            AppError::Db(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "internal", "Internal Server Error")
-            }
+            AppError::Db(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "internal",
+                "Internal Server Error",
+            ),
         }
     }
 
@@ -149,10 +155,8 @@ impl IntoResponse for AppError {
 /// Build an `application/problem+json` response from a [`ProblemDetails`] body.
 pub fn problem_response(status: StatusCode, problem: ProblemDetails) -> Response {
     let mut res = (status, Json(problem)).into_response();
-    res.headers_mut().insert(
-        header::CONTENT_TYPE,
-        HeaderValue::from_static(PROBLEM_JSON),
-    );
+    res.headers_mut()
+        .insert(header::CONTENT_TYPE, HeaderValue::from_static(PROBLEM_JSON));
     res
 }
 
