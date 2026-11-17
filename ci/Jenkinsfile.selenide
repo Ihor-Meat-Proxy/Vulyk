@@ -4,6 +4,7 @@
 // 1) Vulyk Dispatch supplies VULYK_RUN_ID → attach results to that run.
 // 2) Empty VULYK_RUN_ID → open → upload Surefire XML → close.
 //
+// Shell snippets are POSIX sh (dash-safe): no bash arrays, no pipefail.
 // Expect Maven Surefire (or failsafe) XML under target/surefire-reports/.
 
 pipeline {
@@ -29,7 +30,7 @@ pipeline {
     stage('Test') {
       steps {
         sh '''
-          set -euo pipefail
+          set -eu
           mvn -B test || true
         '''
       }
@@ -39,7 +40,7 @@ pipeline {
       steps {
         script {
           sh '''
-            set -euo pipefail
+            set -eu
             if [ ! -f ./scripts/vulyk-upload.sh ]; then
               curl -fsSL -o vulyk-upload.sh \
                 https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
@@ -50,28 +51,32 @@ pipeline {
             fi
 
             export VULYK_API_URL VULYK_API_TOKEN
-            PROJECT_ARGS=()
-            if [ -n "${VULYK_PROJECT_ID:-}" ]; then
-              PROJECT_ARGS+=(--project-id "${VULYK_PROJECT_ID}")
-            else
-              PROJECT_ARGS+=(--project-key "${VULYK_PROJECT_KEY}")
-            fi
+
+            BRANCH="${GIT_BRANCH:-}"
+            BRANCH="${BRANCH#origin/}"
+            BRANCH="${BRANCH#refs/heads/}"
+            COMMIT="${GIT_COMMIT:-}"
+
+            project_flag() {
+              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
+                printf '%s\n' --project-id "${VULYK_PROJECT_ID}"
+              else
+                printf '%s\n' --project-key "${VULYK_PROJECT_KEY}"
+              fi
+            }
 
             if [ -z "${VULYK_RUN_ID:-}" ]; then
               VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
                 --suite-name "Jenkins Selenide #${BUILD_NUMBER}" \
-                --provider jenkins --branch "${GIT_BRANCH:-}" --commit "${GIT_COMMIT:-}" \
+                --provider jenkins --branch "${BRANCH}" --commit "${COMMIT}" \
                 --pipeline-url "${BUILD_URL}" \
-                "${PROJECT_ARGS[@]}")"
+                $(project_flag))"
               export VULYK_RUN_ID
             else
-              if [ -n "${VULYK_PROJECT_ID:-}" ]; then
-                curl -fsS -X POST \
-                  -H "Authorization: Bearer ${VULYK_API_TOKEN}" \
-                  -H "Content-Type: application/json" \
-                  -d "{\"pipeline_url\":\"${BUILD_URL}\",\"branch\":\"${GIT_BRANCH:-}\",\"commit\":\"${GIT_COMMIT:-}\"}" \
-                  "${VULYK_API_URL%/}/api/v1/projects/${VULYK_PROJECT_ID}/ci/runs/${VULYK_RUN_ID}/start" || true
-              fi
+              "$UPLOADER" --start-run --run-id "${VULYK_RUN_ID}" \
+                --branch "${BRANCH}" --commit "${COMMIT}" \
+                --pipeline-url "${BUILD_URL}" \
+                $(project_flag) || true
             fi
 
             FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"
@@ -81,8 +86,8 @@ pipeline {
             test -n "${FILE}"
 
             "$UPLOADER" --file "${FILE}" --format junit \
-              --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
-            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" "${PROJECT_ARGS[@]}"
+              --run-id "${VULYK_RUN_ID}" $(project_flag)
+            "$UPLOADER" --close-run --run-id "${VULYK_RUN_ID}" $(project_flag)
           '''
         }
       }

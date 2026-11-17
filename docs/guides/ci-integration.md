@@ -232,18 +232,21 @@ export VULYK_API_URL=https://vulyk.example.com
 export VULYK_API_TOKEN=vulyk_ci_…
 export VULYK_PROJECT_KEY=KOC
 
-./scripts/vulyk-upload.sh --open-run \
+# Prefer --print-run-id in the same step. $GITHUB_ENV is only for *later* Actions steps.
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
   --suite-name "Playwright #$GITHUB_RUN_NUMBER" \
   --provider github --repo "$GITHUB_REPOSITORY" \
   --branch "${GITHUB_REF_NAME}" --commit "$GITHUB_SHA" \
-  --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+  --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")"
 
-# On GitHub Actions, --open-run appends VULYK_RUN_ID to $GITHUB_ENV.
-# Elsewhere use --print-run-id / --run-id-file / --dotenv-file (GitLab defaults to vulyk.env).
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
 
 ./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID" --project-key "$VULYK_PROJECT_KEY"
 ```
+
+`--open-run` still appends to `$GITHUB_ENV` for multi-step workflows. Elsewhere use
+`--print-run-id` / `--run-id-file` / `--dotenv-file` (GitLab defaults to `vulyk.env`).
+
 
 Thin wrapper at [`action/action.yml`](../../action/action.yml) remains available for simple one-shot uploads. Large result files are streamed (`curl --data-binary @file`) so agents do not hit `Argument list too long`.
 

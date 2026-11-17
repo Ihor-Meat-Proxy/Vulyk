@@ -96,11 +96,12 @@ Compatible with common property names such as `test_key` and `test_id`. Unknown 
 | Underscore | `VQA_110`, `test_VQA_110_login` |
 | Compact (needs project key) | project `VQA` also accepts `vqa110` / `VQA110` in the name or body |
 
-Skipped tests still map when the key is in a property, the test name, or `<system-out>` / skip message — they count toward `skip_count` once matched.
+Skipped tests still map when the key is in a **property**, the **test name**, or `<system-out>` / skip **message** — they count toward `skip_count` once matched.
 
 ### pytest
 
-Put the key in the node id / test name, or set metadata for pytest-json-report:
+Put the key in the node id / test name, a mark, or a property. Upload JUnit XML
+(`--junitxml=report.xml`) or pytest JSON with `--format pytest_json`.
 
 ```python
 import pytest
@@ -109,13 +110,30 @@ import pytest
 def test_login_valid_password():
     ...
 
-# pytest-json-report: metadata.case_key is supported when using format=pytest_json
+# Runtime skip: call record_property *before* pytest.skip so JUnit gets <properties>.
+# Prefer junit_family=xunit1 (or legacy) when using record_property.
 def test_health(record_property):
     record_property("case_key", "KOC-12")
-    assert True
+    pytest.skip("not ready")
 ```
 
-Upload either JUnit XML (`--junitxml=report.xml`) or pytest JSON with `--format pytest_json`.
+**Marker skips** (`@pytest.mark.skip`) never run the body, so `record_property`
+inside the function never fires. Use one of:
+
+1. Key in the skip reason: `@pytest.mark.skip(reason="KOC-12 not ready")`
+2. Key on a mark + [`ci/pytest_vulyk.py`](../../ci/pytest_vulyk.py) so JUnit still
+   gets `<property name="case_key" …>`:
+
+```python
+@pytest.mark.vulyk("KOC-12")
+@pytest.mark.skip(reason="not ready")
+def test_health():
+    ...
+```
+
+```bash
+pytest -p ci.pytest_vulyk --junitxml=report.xml -o junit_family=xunit1
+```
 
 ### Generic JUnit XML via curl / shell
 
@@ -125,11 +143,12 @@ export VULYK_API_TOKEN=vulyk_ci_…
 export VULYK_PROJECT_KEY=KOC
 
 # Open → upload → close (scripts/vulyk-upload.sh)
-./scripts/vulyk-upload.sh --open-run \
+# Always capture with --print-run-id in the same shell (do not rely on $GITHUB_ENV here).
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
   --suite-name "Nightly #${BUILD_NUMBER:-local}" \
   --provider other \
   --branch "${GIT_BRANCH:-main}" \
-  --commit "${GIT_COMMIT:-}"
+  --commit "${GIT_COMMIT:-}")"
 
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
 ./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
@@ -206,18 +225,22 @@ export VULYK_API_URL=https://vulyk.example.com
 export VULYK_API_TOKEN=vulyk_ci_…
 export VULYK_PROJECT_KEY=KOC
 
-./scripts/vulyk-upload.sh --open-run \
+# Prefer --print-run-id in the same step. $GITHUB_ENV is only visible in *later*
+# Actions steps, not the next command in this step.
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
   --suite-name "Playwright #$GITHUB_RUN_NUMBER" \
   --provider github --repo "$GITHUB_REPOSITORY" \
   --branch "${GITHUB_REF_NAME}" --commit "$GITHUB_SHA" \
-  --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+  --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")"
 
-# $VULYK_RUN_ID is written to $GITHUB_ENV by --open-run on Actions.
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
 ./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID" --project-key "$VULYK_PROJECT_KEY"
 ```
 
-On Jenkins/GitLab/generic shells, capture the id with `--print-run-id` or `--run-id-file` (see Jenkins below). A thinner one-shot Action also exists at `action/action.yml` for simple uploads.
+`--open-run` still appends `VULYK_RUN_ID` to `$GITHUB_ENV` for multi-step workflows;
+use `--print-run-id`, `--run-id-file`, or `--dotenv-file` when the next command is
+in the same step (Jenkins/GitLab/generic shells). A thinner one-shot Action also
+exists at `action/action.yml` for simple uploads.
 
 ## GitLab CI
 
@@ -267,11 +290,12 @@ admin to enable **Allow http and private-network CI hosts** (optional allowlist)
 under **Admin → Settings**. Details:
 [ci-integration.md](../guides/ci-integration.md#private--http-ci-urls-j10).
 
-**Important:** `--open-run` does not set Jenkins environment variables by itself.
-Capture the run id with `--print-run-id` (or `--run-id-file`) and pass it to
-upload/close — or use the `VULYK_RUN_ID` job parameter when Vulyk started the
-build. Prefer a single concrete XML path (globbing inside one `sh` step can
-expand to many arguments).
+**Important:** sample `sh` steps are **POSIX** (dash-safe): no bash arrays /
+`pipefail`. Capture the run id with `--print-run-id` (or `--run-id-file`) in the
+same shell — do not rely on `$GITHUB_ENV` here. When Vulyk dispatched the build,
+call `--start-run` so `branch` / `commit` / `pipeline_url` are stored. Prefer a
+single concrete XML path (globbing inside one `sh` step can expand to many
+arguments).
 
 ```groovy
 pipeline {
@@ -292,40 +316,35 @@ pipeline {
     }
     stage('Report to Vulyk') {
       steps {
-        script {
-          sh '''
-            curl -fsSL -o vulyk-upload.sh \
-              https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
-            chmod +x vulyk-upload.sh
-          '''
-          // Capture run id on stdout when Jenkins opens the run itself.
-          if (!params.VULYK_RUN_ID?.trim()) {
-            env.VULYK_RUN_ID = sh(
-              returnStdout: true,
-              script: '''
-                ./vulyk-upload.sh --open-run --print-run-id \
-                  --suite-name "Jenkins #${BUILD_NUMBER}" \
-                  --provider jenkins --branch "${GIT_BRANCH}" --commit "${GIT_COMMIT}" \
-                  --pipeline-url "${BUILD_URL}"
-              '''
-            ).trim()
-          } else {
-            env.VULYK_RUN_ID = params.VULYK_RUN_ID.trim()
-          }
-          sh '''
-            set -euo pipefail
-            # Prefer a single file; merge surefire XMLs beforehand if needed.
-            FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"
-            if [ -z "${FILE}" ]; then
-              FILE="$(ls target/surefire-reports/junitreports/TEST-*.xml 2>/dev/null | head -n1 || true)"
-            fi
-            test -n "${FILE}"
-            ./vulyk-upload.sh --file "${FILE}" --format junit \
-              --run-id "${VULYK_RUN_ID}" --project-key "${VULYK_PROJECT_KEY}"
-            ./vulyk-upload.sh --close-run --run-id "${VULYK_RUN_ID}" \
-              --project-key "${VULYK_PROJECT_KEY}"
-          '''
-        }
+        sh '''
+          set -eu
+          curl -fsSL -o vulyk-upload.sh \
+            https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+          chmod +x vulyk-upload.sh
+          BRANCH="${GIT_BRANCH:-}"
+          BRANCH="${BRANCH#origin/}"
+          BRANCH="${BRANCH#refs/heads/}"
+          if [ -z "${VULYK_RUN_ID:-}" ]; then
+            VULYK_RUN_ID="$(./vulyk-upload.sh --open-run --print-run-id \
+              --suite-name "Jenkins #${BUILD_NUMBER}" \
+              --provider jenkins --branch "${BRANCH}" --commit "${GIT_COMMIT:-}" \
+              --pipeline-url "${BUILD_URL}" --project-key "${VULYK_PROJECT_KEY}")"
+            export VULYK_RUN_ID
+          else
+            ./vulyk-upload.sh --start-run --run-id "${VULYK_RUN_ID}" \
+              --branch "${BRANCH}" --commit "${GIT_COMMIT:-}" \
+              --pipeline-url "${BUILD_URL}" --project-key "${VULYK_PROJECT_KEY}" || true
+          fi
+          FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+          if [ -z "${FILE}" ]; then
+            FILE="$(ls target/surefire-reports/junitreports/TEST-*.xml 2>/dev/null | head -n1 || true)"
+          fi
+          test -n "${FILE}"
+          ./vulyk-upload.sh --file "${FILE}" --format junit \
+            --run-id "${VULYK_RUN_ID}" --project-key "${VULYK_PROJECT_KEY}"
+          ./vulyk-upload.sh --close-run --run-id "${VULYK_RUN_ID}" \
+            --project-key "${VULYK_PROJECT_KEY}"
+        '''
       }
     }
   }
