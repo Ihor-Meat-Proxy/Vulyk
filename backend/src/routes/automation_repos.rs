@@ -272,14 +272,14 @@ pub async fn create_repo(
     let legacy_project = body.project_ids.first().copied();
     let poll_interval = normalize_poll_interval(body.poll_interval_minutes);
     let webhook_secret = repo_svc::generate_webhook_secret();
-    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let row = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO automation_repos
             (name, project_id, provider, remote_url, branch, subpath,
              token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
              ci_workflow_file, ci_workflow_ref, poll_interval_minutes, webhook_secret)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
            RETURNING {SELECT_COLS}"#
-    ))
+    )))
     .bind(body.name.trim())
     .bind(legacy_project)
     .bind(&provider)
@@ -446,7 +446,7 @@ pub async fn update_repo(
         existing.webhook_secret.clone()
     };
 
-    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let row = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE automation_repos SET
              name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
              token_ciphertext = $7, token_nonce = $8,
@@ -455,7 +455,7 @@ pub async fn update_repo(
              poll_interval_minutes = $13, webhook_secret = $14, updated_at = NOW()
            WHERE id = $1
            RETURNING {SELECT_COLS}"#
-    ))
+    )))
     .bind(id)
     .bind(&name)
     .bind(&provider)
@@ -1016,7 +1016,7 @@ pub async fn upsert_repo(
         });
 
     let row = if let Some(ex) = existing {
-        sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
             r#"UPDATE automation_repos SET
                  name = $2, provider = $3, remote_url = $4, branch = $5, subpath = $6,
                  token_ciphertext = $7, token_nonce = $8,
@@ -1026,7 +1026,7 @@ pub async fn upsert_repo(
                  project_id = $14, updated_at = NOW()
                WHERE id = $1
                RETURNING {SELECT_COLS}"#
-        ))
+        )))
         .bind(ex.id)
         .bind(&name)
         .bind(&provider)
@@ -1045,14 +1045,14 @@ pub async fn upsert_repo(
         .await?
     } else {
         let webhook_secret = repo_svc::generate_webhook_secret();
-        let created = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+        let created = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
             r#"INSERT INTO automation_repos
                 (name, project_id, provider, remote_url, branch, subpath,
                  token_ciphertext, token_nonce, actions_token_ciphertext, actions_token_nonce,
                  ci_workflow_file, ci_workflow_ref, poll_interval_minutes, webhook_secret)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                RETURNING {SELECT_COLS}"#
-        ))
+        )))
         .bind(&name)
         .bind(project_id)
         .bind(&provider)

@@ -84,20 +84,20 @@ pub async fn list_requirements(
     ensure_project(&state, project_id).await?;
     let rows = if let Some(q) = query.q.filter(|s| !s.trim().is_empty()) {
         let pattern = format!("%{}%", q.trim());
-        sqlx::query_as::<_, Requirement>(&format!(
+        sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
             r#"SELECT {REQ_COLS}
                FROM requirements
                WHERE project_id = $1 AND title ILIKE $2
                ORDER BY title"#
-        ))
+        )))
         .bind(project_id)
         .bind(pattern)
         .fetch_all(&state.pool)
         .await?
     } else {
-        sqlx::query_as::<_, Requirement>(&format!(
+        sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
             r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 ORDER BY title"#
-        ))
+        )))
         .bind(project_id)
         .fetch_all(&state.pool)
         .await?
@@ -137,13 +137,13 @@ pub async fn create_requirement(
     } else {
         body.metadata
     };
-    let row = sqlx::query_as::<_, Requirement>(&format!(
+    let row = sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO requirements
            (project_id, folder_id, external_key, external_id, title, description,
             acceptance_criteria, source, url, metadata)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
            RETURNING {REQ_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(body.folder_id)
     .bind(&body.external_key)
@@ -183,9 +183,9 @@ pub async fn get_requirement(
         Permission::ViewProject,
     )
     .await?;
-    let mut row = sqlx::query_as::<_, Requirement>(&format!(
+    let mut row = sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 AND id = $2"#
-    ))
+    )))
     .bind(project_id)
     .bind(id)
     .fetch_optional(&state.pool)
@@ -236,9 +236,9 @@ pub async fn set_requirement_custom_fields(
         body.iter().map(|i| (i.field_id, i.value.clone())).collect();
     crate::services::custom_fields::set_requirement_values(&state.pool, project_id, id, &pairs)
         .await?;
-    let mut row = sqlx::query_as::<_, Requirement>(&format!(
+    let mut row = sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 AND id = $2"#
-    ))
+    )))
     .bind(project_id)
     .bind(id)
     .fetch_one(&state.pool)
@@ -274,9 +274,9 @@ pub async fn update_requirement(
         Permission::ManageRequirements,
     )
     .await?;
-    let existing = sqlx::query_as::<_, Requirement>(&format!(
+    let existing = sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REQ_COLS} FROM requirements WHERE project_id = $1 AND id = $2"#
-    ))
+    )))
     .bind(project_id)
     .bind(id)
     .fetch_optional(&state.pool)
@@ -289,7 +289,7 @@ pub async fn update_requirement(
         body.folder_id.or(existing.folder_id)
     };
 
-    let row = sqlx::query_as::<_, Requirement>(&format!(
+    let row = sqlx::query_as::<_, Requirement>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE requirements SET
              title = $3,
              description = $4,
@@ -302,7 +302,7 @@ pub async fn update_requirement(
              updated_at = NOW()
            WHERE project_id = $1 AND id = $2
            RETURNING {REQ_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(id)
     .bind(body.title.unwrap_or(existing.title))

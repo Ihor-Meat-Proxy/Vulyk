@@ -67,6 +67,16 @@ Job **Migration integrity** (always on PR + `main`, no path filter):
 The separate **Upgrade (base → PR)** job (`scripts/ci-upgrade-test.sh` with the
 PR base SHA) remains unchanged and is also required.
 
+### sqlx 0.9 `SqlSafeStr`
+
+SQLx 0.9 only accepts `&'static str` (or `AssertSqlSafe`) for `query` /
+`query_as` / `query_scalar`. Dynamic SQL built with `format!` over **fixed**
+column-list constants must be wrapped in `sqlx::AssertSqlSafe(...)` after
+auditing that no user input is interpolated into the SQL text (values stay on
+`.bind()` / `QueryBuilder::push_bind`). Prefer `QueryBuilder` for optional
+clauses. Migrator helpers now take the migrations table name
+(`&migrator.table_name`, default `_sqlx_migrations`).
+
 ### sqlx offline / prepare --check
 
 The API mostly uses runtime `sqlx::query` (no committed `backend/.sqlx`).

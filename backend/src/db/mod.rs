@@ -84,8 +84,8 @@ async fn migration_status_on_conn(
     conn: &mut PgConnection,
     migrator: &Migrator,
 ) -> Result<MigrationStatus, MigrateError> {
-    conn.ensure_migrations_table().await?;
-    let applied_raw = conn.list_applied_migrations().await?;
+    conn.ensure_migrations_table(&migrator.table_name).await?;
+    let applied_raw = conn.list_applied_migrations(&migrator.table_name).await?;
 
     let known: std::collections::HashSet<i64> = migrator.iter().map(|m| m.version).collect();
     let applied_versions: std::collections::HashSet<i64> =

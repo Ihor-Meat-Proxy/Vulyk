@@ -110,11 +110,11 @@ pub async fn bootstrap(
     }
 
     let password_hash = hash_password_async(password.to_string()).await?;
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
            VALUES ($1, $2, $3, TRUE)
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(&email)
     .bind(display_name)
     .bind(&password_hash)
@@ -199,13 +199,13 @@ pub async fn register(
     }
 
     let password_hash = hash_password_async(password.to_string()).await?;
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO users (
                email, display_name, password_hash, is_system_admin,
                locale, timezone
            ) VALUES ($1, $2, $3, FALSE, $4, $5)
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(&email)
     .bind(display_name)
     .bind(&password_hash)
@@ -243,9 +243,9 @@ pub async fn login(
     let client_ip = client_ip_from_headers(&headers_in);
     state.login_throttle.check(&email, client_ip.as_deref())?;
 
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         "SELECT {USER_COLUMNS} FROM users WHERE email = $1"
-    ))
+    )))
     .bind(&email)
     .fetch_optional(&state.pool)
     .await?;
@@ -409,12 +409,12 @@ pub async fn update_me(
     }
     let preferences_value = preferences.to_value();
 
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE users
            SET display_name = $2, locale = $3, timezone = $4, preferences = $5, updated_at = NOW()
            WHERE id = $1
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(auth.id())
     .bind(display_name)
     .bind(locale)

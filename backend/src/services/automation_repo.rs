@@ -633,7 +633,7 @@ pub async fn merge_seen_branches(pool: &PgPool, repo_id: Uuid, names: &[String])
 
 /// Repos due for a branch-head poll (interval > 0, github/gitlab, not currently indexing).
 pub async fn list_repos_due_for_poll(pool: &PgPool) -> AppResult<Vec<AutomationRepoRow>> {
-    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT} FROM automation_repos
            WHERE poll_interval_minutes > 0
              AND provider IN ('github', 'gitlab')
@@ -644,7 +644,7 @@ pub async fn list_repos_due_for_poll(pool: &PgPool) -> AppResult<Vec<AutomationR
              )
            ORDER BY last_polled_at NULLS FIRST, updated_at ASC
            LIMIT 20"#
-    ))
+    )))
     .fetch_all(pool)
     .await?;
     Ok(rows)
@@ -834,14 +834,14 @@ pub async fn load_repo_for_project(
     pool: &PgPool,
     project_id: Uuid,
 ) -> AppResult<Option<AutomationRepoRow>> {
-    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let row = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT_R}
            FROM automation_repos r
            JOIN project_automation_repos par ON par.repo_id = r.id
            WHERE par.project_id = $1
            ORDER BY par.is_default DESC, par.sort_order ASC, r.created_at ASC
            LIMIT 1"#
-    ))
+    )))
     .bind(project_id)
     .fetch_optional(pool)
     .await?;
@@ -849,9 +849,9 @@ pub async fn load_repo_for_project(
         return Ok(row);
     }
     // Fallback: legacy rows still keyed by automation_repos.project_id without junction.
-    let legacy = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let legacy = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT} FROM automation_repos WHERE project_id = $1 LIMIT 1"#
-    ))
+    )))
     .bind(project_id)
     .fetch_optional(pool)
     .await?;
@@ -862,13 +862,13 @@ pub async fn load_repos_for_project(
     pool: &PgPool,
     project_id: Uuid,
 ) -> AppResult<Vec<AutomationRepoRow>> {
-    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT_R}
            FROM automation_repos r
            JOIN project_automation_repos par ON par.repo_id = r.id
            WHERE par.project_id = $1
            ORDER BY par.is_default DESC, par.sort_order ASC, r.name ASC"#
-    ))
+    )))
     .bind(project_id)
     .fetch_all(pool)
     .await?;
@@ -876,9 +876,9 @@ pub async fn load_repos_for_project(
 }
 
 pub async fn load_repo_by_id(pool: &PgPool, repo_id: Uuid) -> AppResult<Option<AutomationRepoRow>> {
-    let row = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let row = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT} FROM automation_repos WHERE id = $1"#
-    ))
+    )))
     .bind(repo_id)
     .fetch_optional(pool)
     .await?;
@@ -886,9 +886,9 @@ pub async fn load_repo_by_id(pool: &PgPool, repo_id: Uuid) -> AppResult<Option<A
 }
 
 pub async fn list_repos(pool: &PgPool) -> AppResult<Vec<AutomationRepoRow>> {
-    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {REPO_SELECT} FROM automation_repos ORDER BY name ASC, created_at ASC"#
-    ))
+    )))
     .fetch_all(pool)
     .await?;
     Ok(rows)
@@ -905,14 +905,14 @@ pub async fn list_repos_for_user(
         return list_repos(pool).await;
     }
     let user_id = user_id.unwrap();
-    let rows = sqlx::query_as::<_, AutomationRepoRow>(&format!(
+    let rows = sqlx::query_as::<_, AutomationRepoRow>(sqlx::AssertSqlSafe(format!(
         r#"SELECT DISTINCT ON (r.id) {REPO_SELECT_R}
            FROM automation_repos r
            JOIN project_automation_repos par ON par.repo_id = r.id
            JOIN memberships m ON m.project_id = par.project_id
            WHERE m.user_id = $1
            ORDER BY r.id, r.name ASC"#
-    ))
+    )))
     .bind(user_id)
     .fetch_all(pool)
     .await?;

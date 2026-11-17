@@ -13,9 +13,9 @@ use crate::models::{
 const DEF_COLS: &str = "id, key, name, field_type, entity, option_list_id, default_value, required, help_text, sort_order, show_in_list, show_in_filters, active, scope, created_at, updated_at";
 
 pub async fn list_definitions(pool: &PgPool) -> AppResult<Vec<CustomFieldDefinitionDetail>> {
-    let rows = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let rows = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEF_COLS} FROM custom_field_definitions ORDER BY sort_order, name"
-    ))
+    )))
     .fetch_all(pool)
     .await?;
     let mut out = Vec::with_capacity(rows.len());
@@ -26,9 +26,9 @@ pub async fn list_definitions(pool: &PgPool) -> AppResult<Vec<CustomFieldDefinit
 }
 
 pub async fn get_definition(pool: &PgPool, id: Uuid) -> AppResult<CustomFieldDefinitionDetail> {
-    let field = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let field = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEF_COLS} FROM custom_field_definitions WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -95,13 +95,13 @@ pub async fn create_definition(
     }
 
     let mut tx = pool.begin().await?;
-    let field = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let field = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO custom_field_definitions
              (key, name, field_type, entity, option_list_id, default_value, required,
               help_text, sort_order, show_in_list, show_in_filters, active, scope)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
            RETURNING {DEF_COLS}"#
-    ))
+    )))
     .bind(key)
     .bind(name)
     .bind(&field_type)
@@ -141,9 +141,9 @@ pub async fn update_definition(
     id: Uuid,
     body: UpdateCustomFieldDefinition,
 ) -> AppResult<(CustomFieldDefinitionDetail, Option<ScopeChangeWarning>)> {
-    let existing = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let existing = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEF_COLS} FROM custom_field_definitions WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -189,7 +189,7 @@ pub async fn update_definition(
     let mut warning = None;
     let mut tx = pool.begin().await?;
 
-    sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE custom_field_definitions SET
              key = $2, name = $3, field_type = $4, entity = $5, option_list_id = $6,
              default_value = $7, required = $8, help_text = $9, sort_order = $10,
@@ -197,7 +197,7 @@ pub async fn update_definition(
              updated_at = NOW()
            WHERE id = $1
            RETURNING {DEF_COLS}"#
-    ))
+    )))
     .bind(id)
     .bind(&key)
     .bind(&name)
@@ -393,7 +393,7 @@ pub async fn available_to_add(
     pool: &PgPool,
     project_id: Uuid,
 ) -> AppResult<Vec<CustomFieldDefinition>> {
-    let rows = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let rows = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {DEF_COLS}
            FROM custom_field_definitions cfd
            WHERE cfd.active
@@ -403,7 +403,7 @@ pub async fn available_to_add(
                WHERE cfp.field_id = cfd.id AND cfp.project_id = $1 AND cfp.enabled
              )
            ORDER BY cfd.sort_order, cfd.name"#
-    ))
+    )))
     .bind(project_id)
     .fetch_all(pool)
     .await?;
@@ -416,9 +416,9 @@ pub async fn add_to_project(
     field_id: Uuid,
     body: AddFieldToProject,
 ) -> AppResult<CustomField> {
-    let field = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let field = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEF_COLS} FROM custom_field_definitions WHERE id = $1"
-    ))
+    )))
     .bind(field_id)
     .fetch_optional(pool)
     .await?
@@ -692,9 +692,9 @@ pub async fn set_requirement_values(
 }
 
 pub async fn validate_value(pool: &PgPool, field_id: Uuid, value: &Value) -> AppResult<()> {
-    let field = sqlx::query_as::<_, CustomFieldDefinition>(&format!(
+    let field = sqlx::query_as::<_, CustomFieldDefinition>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEF_COLS} FROM custom_field_definitions WHERE id = $1"
-    ))
+    )))
     .bind(field_id)
     .fetch_optional(pool)
     .await?
