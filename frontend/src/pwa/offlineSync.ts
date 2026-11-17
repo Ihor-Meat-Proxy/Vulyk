@@ -63,7 +63,7 @@ export async function syncOfflineQueue(): Promise<void> {
   state = { ...state, syncing: true, online: true, lastError: null }
   emit()
 
-  let items: QueuedStepResult[] = []
+  let items: QueuedStepResult[]
   try {
     items = await listQueuedStepResults()
   } catch (err) {
