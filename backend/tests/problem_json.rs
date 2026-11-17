@@ -156,7 +156,7 @@ async fn forbidden_returns_problem_json_for_non_admin() {
     let email = format!("problem-json-{}@example.com", uuid::Uuid::new_v4().simple());
     // Unique per call so CodeQL does not flag a hard-coded credential.
     let password = format!("pj-{}", uuid::Uuid::new_v4());
-    let hash = vulyk_api::auth::hash_password(password).expect("hash");
+    let hash = vulyk_api::auth::hash_password(&password).expect("hash");
     sqlx::query(
         r#"INSERT INTO users (
                email, display_name, password_hash, is_system_admin, must_change_password
