@@ -5,7 +5,7 @@ use base64::Engine;
 use chrono::{DateTime, Utc};
 use jsonwebtoken::jwk::JwkSet;
 use jsonwebtoken::{decode, decode_header, Algorithm, DecodingKey, Validation};
-use rand::RngCore;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -570,7 +570,7 @@ async fn discover_oidc(issuer: &str) -> AppResult<ResolvedEndpoints> {
 
 fn random_urlsafe(len: usize) -> String {
     let mut buf = vec![0u8; len];
-    rand::thread_rng().fill_bytes(&mut buf);
+    rand::rng().fill_bytes(&mut buf);
     URL_SAFE_NO_PAD.encode(buf)
 }
 

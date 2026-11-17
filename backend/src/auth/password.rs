@@ -11,6 +11,7 @@ use argon2::{
     password_hash::{phc::PasswordHash, PasswordHasher, PasswordVerifier},
     Argon2,
 };
+use rand::Rng;
 use serde::Serialize;
 use utoipa::ToSchema;
 
@@ -212,7 +213,7 @@ pub fn generate_password(policy: &PasswordPolicy) -> String {
     // URL-safe-ish alphabet with letters + digits.
     const ALPHABET: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     let mut bytes = vec![0u8; target];
-    rand::RngCore::fill_bytes(&mut rand::thread_rng(), &mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     let mut out: String = bytes
         .iter()
         .map(|b| ALPHABET[(*b as usize) % ALPHABET.len()] as char)
