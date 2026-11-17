@@ -7,8 +7,8 @@
 //! - Run URL slug: `{PREFIX}-R-{source}-{n}-{YYYYMMDDTHHMMSSZ}`
 //!   e.g. `VQA-R-jenkins-42-20261116T163512Z`
 //!
-//! `source` ∈ `jenkins|gitlab|github|bitbucket|manual|other`, normalized from
-//! `ci_provider` / `source` / `lifecycle`.
+//! `source` ∈ `jenkins|gitlab|github|forgejo|gitea|bitbucket|manual|other`,
+//! normalized from `ci_provider` / `source` / `lifecycle`.
 //!
 //! Counters live on `projects` (`next_*_number`) via `UPDATE … RETURNING` — same
 //! pattern as case keys. Counters never decrement, so deleted entities do not
@@ -31,6 +31,8 @@ pub fn normalize_run_source(
         "jenkins" => return "jenkins",
         "gitlab" => return "gitlab",
         "github" => return "github",
+        "forgejo" => return "forgejo",
+        "gitea" => return "gitea",
         "bitbucket" => return "bitbucket",
         "other" => return "other",
         "manual" => return "manual",
@@ -43,6 +45,12 @@ pub fn normalize_run_source(
     }
     if src.contains("gitlab") {
         return "gitlab";
+    }
+    if src.contains("forgejo") {
+        return "forgejo";
+    }
+    if src.contains("gitea") {
+        return "gitea";
     }
     if src.contains("github") {
         return "github";
@@ -122,9 +130,8 @@ pub async fn allocate_run_ids(
 
     let (prefix, number) = row.ok_or_else(|| AppError::NotFound("project".into()))?;
     let src = match source_token.trim().to_ascii_lowercase().as_str() {
-        "jenkins" | "gitlab" | "github" | "bitbucket" | "manual" | "other" => {
-            source_token.trim().to_ascii_lowercase()
-        }
+        "jenkins" | "gitlab" | "github" | "forgejo" | "gitea" | "bitbucket" | "manual"
+        | "other" => source_token.trim().to_ascii_lowercase(),
         _ => "other".to_string(),
     };
     let ts = created_at.format("%Y%m%dT%H%M%SZ");
@@ -290,6 +297,8 @@ mod tests {
     fn normalize_known_providers() {
         assert_eq!(normalize_run_source(Some("Jenkins"), None, None), "jenkins");
         assert_eq!(normalize_run_source(Some("GITHUB"), None, None), "github");
+        assert_eq!(normalize_run_source(Some("Forgejo"), None, None), "forgejo");
+        assert_eq!(normalize_run_source(Some("gitea"), None, None), "gitea");
         assert_eq!(
             normalize_run_source(Some("bitbucket"), None, None),
             "bitbucket"
@@ -301,6 +310,10 @@ mod tests {
         assert_eq!(
             normalize_run_source(None, Some("ci:gitlab"), None),
             "gitlab"
+        );
+        assert_eq!(
+            normalize_run_source(None, Some("ci:forgejo"), None),
+            "forgejo"
         );
         assert_eq!(
             normalize_run_source(None, Some("Bitbucket Pipelines"), None),

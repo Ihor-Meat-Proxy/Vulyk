@@ -283,6 +283,18 @@ Forward migration `20261116195000_ci_configs_jenkins_provider.sql` widens
 `github` / `gitlab` (CHECK constraint). Existing rows stay valid. Configure under
 **CI triggers**; see [ci-integration.md](./ci-integration.md#jenkins-dispatch).
 
+### Forgejo / Gitea CI providers (`ci_configs`)
+
+Forward migration `20261117000355_ci_configs_forgejo_gitea.sql` widens
+`ci_configs.provider` to allow `forgejo` and `gitea`. Existing rows stay valid.
+Dispatch uses `/api/v1/repos/.../actions/workflows/.../dispatches`. Upgrade sync
+adds optional `.env` keys when missing (never overwrites):
+
+- `VULYK_FORGEJO_PUBLIC_BASE_URL=` — rewrite inbound Forgejo pipeline links
+- `VULYK_GITEA_PUBLIC_BASE_URL=` — same for Gitea
+
+See [ci-integration.md](./ci-integration.md#forgejo--gitea-actions).
+
 ### Private / HTTP CI URLs (J10)
 
 Upgrade sync adds optional `.env` keys from `.env.example` when missing (never

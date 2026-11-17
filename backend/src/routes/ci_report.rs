@@ -278,10 +278,16 @@ pub async fn open_ci_run(
         Some("github") => "ci:github".to_string(),
         Some("gitlab") => "ci:gitlab".to_string(),
         Some("jenkins") => "ci:jenkins".to_string(),
+        Some("forgejo") => "ci:forgejo".to_string(),
+        Some("gitea") => "ci:gitea".to_string(),
         Some("bitbucket") => "ci:bitbucket".to_string(),
         Some(other) => format!("ci:{other}"),
         None => "ci".to_string(),
     };
+    let pipeline_url = crate::integrations::forgejo::maybe_rewrite_pipeline_url(
+        provider.as_deref(),
+        body.pipeline_url.clone(),
+    );
     let status = if body.start { "in_progress" } else { "open" };
     let suite_name = body
         .suite_name
@@ -396,7 +402,7 @@ pub async fn open_ci_run(
     .bind(&body.repo)
     .bind(&body.branch)
     .bind(&body.commit)
-    .bind(&body.pipeline_url)
+    .bind(&pipeline_url)
     .bind(&body.job_url)
     .bind(&display_id)
     .bind(&slug)
@@ -493,6 +499,10 @@ pub async fn start_ci_run(
     assert_ci_writable(&run)?;
     // Accept empty body from older reporters that POST with no JSON.
     let body = body.map(|Json(b)| b).unwrap_or_default();
+    let pipeline_url = crate::integrations::forgejo::maybe_rewrite_pipeline_url(
+        run.ci_provider.as_deref(),
+        body.pipeline_url.clone(),
+    );
     let updated = sqlx::query_as::<_, TestRun>(&format!(
         r#"UPDATE test_runs SET
              status = 'in_progress',
@@ -506,7 +516,7 @@ pub async fn start_ci_run(
            RETURNING {TEST_RUN_COLS}"#
     ))
     .bind(run_id)
-    .bind(body.pipeline_url.as_deref())
+    .bind(pipeline_url.as_deref())
     .bind(body.job_url.as_deref())
     .bind(body.branch.as_deref())
     .bind(body.commit.as_deref())

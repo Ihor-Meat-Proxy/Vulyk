@@ -1,10 +1,10 @@
 # CI integration guide
 
-Publish automated test results from **GitHub Actions**, **GitLab CI**, **Jenkins**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
+Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Actions**, **GitLab CI**, **Jenkins**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
 
 Formats, dispatch, and **webhooks** (secrets required, fail-closed): [ingest-and-ci.md](./ingest-and-ci.md).
 Automation Git repos: [automation-repo.md](../automation-repo.md).
-In-app examples (GitHub / GitLab / Jenkins / JUnit): [../user/cicd.md](../user/cicd.md).
+In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / JUnit): [../user/cicd.md](../user/cicd.md).
 
 ## How it fits together
 
@@ -78,10 +78,44 @@ When configuring GitHub/GitLab **webhooks** for dispatch status sync, set a **we
 
 ## Two-way trigger (Run in CI)
 
-Vulyk can **start** a GitHub Actions workflow, GitLab pipeline, or **Jenkins
-job** and stream results back into an existing run. GitHub also supports the
-Executions **Run in CI** button via an automation repo; Jenkins/GitLab use
-**CI → Dispatch** on a saved CI config (or the same dispatch API).
+Vulyk can **start** a GitHub / Forgejo / Gitea Actions workflow, GitLab pipeline,
+or **Jenkins job** and stream results back into an existing run. GitHub also
+supports the Executions **Run in CI** button via an automation repo;
+Jenkins/GitLab/Forgejo/Gitea use **CI → Dispatch** on a saved CI config (or the
+same dispatch API).
+
+### Forgejo / Gitea Actions
+
+Forgejo and Gitea are first-class CI providers (not labelled `github`). Under
+**CI triggers**, choose **Forgejo** or **Gitea** and save JSON with:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `base_url` | yes | API-reachable origin (may be `http://vulyk-forgejo:3000` in Docker) |
+| `public_base_url` | no | Browser-facing origin for the Actions link after dispatch |
+| `token` | yes | PAT with Actions write |
+| `owner` / `repo` | yes | Repository path |
+| `workflow_id` | yes | Workflow file name or id |
+| `ref` | no | Default `main` |
+
+Dispatch POSTs to
+`{base_url}/api/v1/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches`
+(`Authorization: token …`). Status sync uses GitHub-compatible `workflow_run`
+webhooks at `/api/v1/webhooks/forgejo` or `/api/v1/webhooks/gitea`.
+
+When runners report an internal hostname in `pipeline_url`, set on the Vulyk
+host:
+
+```bash
+VULYK_FORGEJO_PUBLIC_BASE_URL=https://git.example.com
+# or
+VULYK_GITEA_PUBLIC_BASE_URL=https://gitea.example.com
+```
+
+Inbound open/start and webhook URLs rewrite the origin so suite links are
+clickable. Example workflow: [`ci/forgejo-actions-vulyk.yml`](../../ci/forgejo-actions-vulyk.yml).
+Pass `--provider forgejo` / `gitea` (or `VULYK_CI_PROVIDER`); auto-detect also
+checks `FORGEJO_ACTIONS` / `GITEA_ACTIONS` and `GITHUB_SERVER_URL`.
 
 ### Jenkins (Dispatch)
 
@@ -343,7 +377,7 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 | Closed | Job finished successfully or with failures |
 | Cancelled | Job interrupted / cancelled close (`status=cancelled`, not a passed-looking Closed badge) |
 
-On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
+On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** / **Forgejo** / **Gitea** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 
 ```mermaid
 stateDiagram-v2

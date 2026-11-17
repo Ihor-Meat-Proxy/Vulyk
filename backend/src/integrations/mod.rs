@@ -6,6 +6,7 @@
 //! CI adapters dispatch GitHub Actions / GitLab pipelines / Jenkins jobs and verify webhooks.
 
 pub mod ci;
+pub mod forgejo;
 pub mod github;
 pub mod gitlab;
 pub mod jenkins;
