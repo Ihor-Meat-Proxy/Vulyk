@@ -37,6 +37,8 @@ pub struct OpenCiRunRequest {
     pub provider: Option<String>,
     /// `owner/repo` or path.
     pub repo: Option<String>,
+    /// Optional linked automation repository (must belong to the project).
+    pub automation_repo_id: Option<Uuid>,
     pub branch: Option<String>,
     pub commit: Option<String>,
     pub pipeline_url: Option<String>,

@@ -9,16 +9,16 @@ Named Git connections used when generating automation code so the model can reus
 | Field | Notes |
 |-------|--------|
 | Name | Display label |
-| Provider | `github`, `gitlab`, or `generic` |
+| Provider | `github`, `gitlab`, `bitbucket`, `forgejo`, `gitea`, or `generic` |
 | Remote URL | **Public HTTPS** clone URL (SSRF guard). Private/link-local/`file://` remotes are rejected unless `VULYK_EGRESS_ALLOW_PRIVATE=1` (lab/tests only) |
-| Branch | Selected branch to index (dropdown lists remote branches for GitHub/GitLab; newly seen names are marked) |
+| Branch | Selected branch to index (dropdown lists remote branches for hosted providers; newly seen names are marked) |
 | Subpath | Optional subdirectory to index |
-| Token | Encrypted at rest (`VULYK_SECRETS_KEY`); omit on update to keep existing; shown masked. Used as a Bearer token for GitHub/GitLab REST; **recommended** for public repos too (raises rate limits above the unauthenticated 60 req/h) |
+| Token | Encrypted at rest (`VULYK_SECRETS_KEY`); omit on update to keep existing; shown masked. Used as a Bearer token for REST hosts; **recommended** for public repos too (raises rate limits above the unauthenticated 60 req/h) |
 | Actions write token | Separate encrypted GitHub token with `actions:write` for **Run in CI** (`workflow_dispatch`) |
 | CI workflow file / ref | Workflow path or id and git ref for dispatch (GitHub only) |
 | Poll interval | Minutes between cheap branch-head checks (default **15**; **0** disables). Uses `ETag` / `If-None-Match` so unchanged tips do not burn rate limit |
 | Webhook URL / secret | Per-repo generated secret + URL for push-driven re-index (shown after save) |
-| Projects | Multi-select; a repo may belong to several projects |
+| Projects | Multi-select; a repo may belong to several projects. Use **Make default for project** so Generate / Run in CI / CI ingest prefer that remote when no `repo_id` is passed |
 
 Buttons:
 
@@ -26,15 +26,18 @@ Buttons:
 - **Test connection** — works on **unsaved form values** via `POST /api/v1/automation-repos/test` (never a raw 404). Saved repos without a new token use the stored encrypted token
 - **Re-index** — requires a saved repo; refreshes the file/chunk index from a single archive download
 - **Refresh branches** — lists remote branches for the dropdown
+- **Make default for project** — `PUT /api/v1/projects/{id}/automation-repos/default` with `{ "repo_id": "…" }`
 - **Rotate secret** — regenerates the webhook shared secret
 
-Legacy **Admin → Integrations → Automation repo** (singular per project) remains as a shim during migration. Re-index stays disabled until the connection is saved; Test connection uses form values or the preview endpoint.
+**Generate**, **Run in CI**, and **CI open-run** (`automation_repo_id` on `POST …/ci/runs`) can each pick which linked repo to use; otherwise the project's default is used.
+
+Legacy **Admin → Integrations → Automation repo** (singular per project) remains as a shim — prefer Settings for multi-repo. Re-index stays disabled until the connection is saved; Test connection uses form values or the preview endpoint.
 
 Status line shows `index_status`, file/chunk counts, **last indexed** time (local), short commit SHA, **trigger** (`manual` / `webhook` / `poll`), and whether a token is set.
 
 ## Indexing
 
-### GitHub / GitLab (no local `git`)
+### Hosted providers (no local `git`)
 
 Indexing downloads **one archive** for the branch tip and extracts only the configured subpath:
 
@@ -42,6 +45,8 @@ Indexing downloads **one archive** for the branch tip and extracts only the conf
 |----------|----------|
 | GitHub | `GET /repos/{owner}/{repo}/zipball/{ref}` |
 | GitLab | `GET /projects/{id}/repository/archive.zip?sha={ref}` |
+| Forgejo / Gitea | `GET /api/v1/repos/{owner}/{repo}/archive/{ref}.zip` |
+| Bitbucket Cloud | `GET https://bitbucket.org/{workspace}/{repo}/get/{ref}.zip` |
 
 - Works **without a token** on public remotes (still subject to host rate limits)
 - Respects **branch** and optional **subpath**
@@ -101,5 +106,6 @@ Background poller (tick every `VULYK_AUTOMATION_REPO_POLL_TICK_SECS`, default 60
 ## Upgrade notes
 
 - Migration `20261028102013_automation_repo_archive_sync.sql` adds `webhook_secret` (backfilled), `poll_interval_minutes` (default **15**), `last_index_trigger`, `poll_etag`, `last_polled_at`, `seen_branches` — upgrade-safe defaults; existing `.env` unchanged
+- Migration `20261117110500_multi_repo_providers.sql` adds `bitbucket` / `forgejo` / `gitea` providers and backfills missing project↔repo junction / default rows for older single-repo installs
 - Optional env: `VULYK_AUTOMATION_REPO_POLL_TICK_SECS` (default 60, min 15) — poller wake interval only; per-repo interval stays in the DB
-- **API image** still installs `git` for the generic provider. GitHub/GitLab archive indexing does not require it. Rebuild/redeploy the API image on upgrade (`install.sh upgrade` / Helm image bump) — see [guides/upgrade.md](./guides/upgrade.md)
+- **API image** still installs `git` for the generic provider. Hosted providers index via archive and do not require it. Rebuild/redeploy the API image on upgrade (`install.sh upgrade` / Helm image bump) — see [guides/upgrade.md](./guides/upgrade.md)

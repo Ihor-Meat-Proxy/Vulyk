@@ -316,6 +316,60 @@ pub async fn open_ci_run(
             meta = json!({ "planned_total": planned });
         }
     }
+    let mut resolved_repo = body.repo.clone();
+    if let Some(repo_id) = body.automation_repo_id {
+        let linked = crate::services::automation_repo::repo_linked_to_project(
+            &state.pool,
+            project_id,
+            repo_id,
+        )
+        .await?;
+        if !linked {
+            return Err(AppError::BadRequest(
+                "automation_repo_id is not linked to this project".into(),
+            ));
+        }
+        let ar = crate::services::automation_repo::load_repo_by_id(&state.pool, repo_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("automation repo not found".into()))?;
+        if let Some(obj) = meta.as_object_mut() {
+            obj.insert("automation_repo_id".into(), json!(repo_id));
+            obj.insert("automation_repo_name".into(), json!(ar.name));
+        } else {
+            meta = json!({
+                "automation_repo_id": repo_id,
+                "automation_repo_name": ar.name,
+            });
+        }
+        if resolved_repo
+            .as_deref()
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .is_none()
+        {
+            resolved_repo = Some(ar.remote_url);
+        }
+    } else if let Some(repo_hint) = body
+        .repo
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    {
+        // Best-effort: match linked automation remotes by URL substring or name.
+        let linked =
+            crate::services::automation_repo::load_repos_for_project(&state.pool, project_id)
+                .await?;
+        if let Some(match_row) = linked.iter().find(|r| {
+            r.remote_url.contains(repo_hint)
+                || r.name.eq_ignore_ascii_case(repo_hint)
+                || repo_hint.contains(&r.name)
+        }) {
+            if let Some(obj) = meta.as_object_mut() {
+                obj.insert("automation_repo_id".into(), json!(match_row.id));
+                obj.insert("automation_repo_name".into(), json!(match_row.name));
+            }
+        }
+    }
     let started_at: Option<chrono::DateTime<chrono::Utc>> = if body.start {
         Some(chrono::Utc::now())
     } else {
@@ -400,7 +454,7 @@ pub async fn open_ci_run(
     .bind(created_at)
     .bind(&suite_name)
     .bind(&provider)
-    .bind(&body.repo)
+    .bind(&resolved_repo)
     .bind(&body.branch)
     .bind(&body.commit)
     .bind(&pipeline_url)

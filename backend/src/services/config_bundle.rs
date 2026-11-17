@@ -663,11 +663,13 @@ async fn export_automation_repos(
     project_ids: &[Uuid],
 ) -> AppResult<Vec<ConfigAutomationRepo>> {
     let rows = sqlx::query(
-        r#"SELECT p.key AS project_key, ar.provider, ar.remote_url, ar.branch, ar.subpath
+        r#"SELECT p.key AS project_key, ar.name, ar.provider, ar.remote_url, ar.branch, ar.subpath,
+                  par.is_default
            FROM automation_repos ar
-           JOIN projects p ON p.id = ar.project_id
-           WHERE ar.project_id = ANY($1)
-           ORDER BY p.key"#,
+           JOIN project_automation_repos par ON par.repo_id = ar.id
+           JOIN projects p ON p.id = par.project_id
+           WHERE par.project_id = ANY($1)
+           ORDER BY p.key, par.is_default DESC, ar.name"#,
     )
     .bind(project_ids)
     .fetch_all(pool)
@@ -677,10 +679,12 @@ async fn export_automation_repos(
         use sqlx::Row;
         out.push(ConfigAutomationRepo {
             project_key: row.try_get("project_key")?,
+            name: row.try_get::<String, _>("name").ok(),
             provider: row.try_get("provider").unwrap_or_else(|_| "generic".into()),
             remote_url: row.try_get("remote_url")?,
             branch: row.try_get::<String, _>("branch").ok(),
             subpath: row.try_get::<String, _>("subpath").ok(),
+            is_default: row.try_get::<bool, _>("is_default").ok(),
         });
     }
     Ok(out)

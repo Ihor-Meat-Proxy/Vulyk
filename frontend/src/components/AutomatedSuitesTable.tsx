@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type AutomatedSuite, type AutomatedSuitesParams } from '../api'
+import {
+  api,
+  type AutomatedSuite,
+  type AutomatedSuitesParams,
+  type AutomationRepo,
+} from '../api'
 import { useAuth } from '../auth'
 import { useConfirmDialog } from '../hooks/useConfirmDialog'
 import { useI18n } from '../i18n'
@@ -54,6 +59,8 @@ export function AutomatedSuitesTable({
   const [offset, setOffset] = useState(0)
   const limit = 25
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [linkedRepos, setLinkedRepos] = useState<AutomationRepo[]>([])
+  const [runInCiRepoId, setRunInCiRepoId] = useState('')
 
   const fmt = (value: string | null | undefined) =>
     formatTimestamp(value, {
@@ -89,6 +96,28 @@ export function AutomatedSuitesTable({
     void load(0)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reload on filters / iteration
   }, [projectId, iterationId, sort, refreshKey])
+
+  useEffect(() => {
+    let cancelled = false
+    void api
+      .listAutomationReposForProject(projectId)
+      .then((repos) => {
+        if (cancelled) return
+        setLinkedRepos(repos)
+        const preferred =
+          repos.find((r) => r.is_default)?.id ?? repos[0]?.id ?? ''
+        setRunInCiRepoId(preferred)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLinkedRepos([])
+          setRunInCiRepoId('')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [projectId])
 
   const onDelete = async (suite: AutomatedSuite) => {
     if (!canDelete) return
@@ -130,6 +159,7 @@ export function AutomatedSuitesTable({
       await api.runInCi(projectId, {
         source_run_id: suite.id,
         run_name: `${suite.name || suite.suite_name || 'Suite'} (CI)`,
+        ...(runInCiRepoId ? { repo_id: runInCiRepoId } : {}),
       })
       await load(0)
     } catch (err) {
@@ -192,6 +222,26 @@ export function AutomatedSuitesTable({
           aria-label={t('executions.search')}
           {...testIdProps(TestIds.automatedSuitesSearchInput)}
         />
+        {linkedRepos.length > 1 ? (
+          <label className="field" style={{ margin: 0 }}>
+            <span className="sr-only">{t('executions.runInCiRepo')}</span>
+            <select
+              value={runInCiRepoId}
+              onChange={(e) => setRunInCiRepoId(e.target.value)}
+              aria-label={t('executions.runInCiRepo')}
+              {...testIdProps(TestIds.automatedSuiteRunInCiRepoSelect)}
+            >
+              {linkedRepos.map((repo) => (
+                <option key={repo.id} value={repo.id}>
+                  {repo.name}
+                  {repo.is_default
+                    ? ` (${t('executions.runInCiRepoDefault')})`
+                    : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <select
           className="filter-input"
           value={status}

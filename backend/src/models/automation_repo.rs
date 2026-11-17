@@ -10,6 +10,9 @@ pub struct AutomationRepoPublic {
     /// Legacy singular project link (first/default); prefer `project_ids`.
     pub project_id: Option<Uuid>,
     pub project_ids: Vec<Uuid>,
+    /// When listing for a project: whether this repo is that project's default.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_default: Option<bool>,
     pub provider: String,
     pub remote_url: String,
     pub branch: String,
@@ -71,12 +74,21 @@ pub struct AutomationRepoRow {
 
 impl AutomationRepoRow {
     pub fn to_public(&self, project_ids: Vec<Uuid>) -> AutomationRepoPublic {
+        self.to_public_with_default(project_ids, None)
+    }
+
+    pub fn to_public_with_default(
+        &self,
+        project_ids: Vec<Uuid>,
+        is_default: Option<bool>,
+    ) -> AutomationRepoPublic {
         let project_id = project_ids.first().copied().or(self.project_id);
         AutomationRepoPublic {
             id: self.id,
             name: self.name.clone(),
             project_id,
             project_ids,
+            is_default,
             provider: self.provider.clone(),
             remote_url: self.remote_url.clone(),
             branch: self.branch.clone(),
@@ -169,6 +181,12 @@ fn default_branch() -> String {
 pub struct SetRepoProjects {
     pub project_ids: Vec<Uuid>,
     pub default_project_id: Option<Uuid>,
+}
+
+/// Mark one linked automation repo as the default for a project.
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct SetProjectDefaultRepo {
+    pub repo_id: Uuid,
 }
 
 /// Probe connectivity from unsaved form values (no repo id required).

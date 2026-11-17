@@ -1328,6 +1328,8 @@ export type AutomationRepo = {
   /** Legacy singular project link (first/default); prefer `project_ids`. */
   project_id: string | null
   project_ids: string[]
+  /** Present when listing for a project: whether this is that project's default. */
+  is_default?: boolean | null
   provider: string
   remote_url: string
   branch: string
@@ -2933,6 +2935,14 @@ export const api = {
     }),
   listAutomationReposForProject: (projectId: string) =>
     request<AutomationRepo[]>(`/api/v1/projects/${projectId}/automation-repos`),
+  setProjectDefaultAutomationRepo: (projectId: string, repoId: string) =>
+    request<AutomationRepo>(
+      `/api/v1/projects/${projectId}/automation-repos/default`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ repo_id: repoId }),
+      },
+    ),
   testAutomationRepoPreview: (body: {
     provider: string
     remote_url: string

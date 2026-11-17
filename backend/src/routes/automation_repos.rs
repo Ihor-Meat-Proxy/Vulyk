@@ -13,8 +13,8 @@ use crate::error::{AppError, AppResult};
 use crate::models::{
     AutomationRepoBranch, AutomationRepoBranchesResponse, AutomationRepoIndexResult,
     AutomationRepoPublic, AutomationRepoRow, AutomationRepoTestResult, CreateAutomationRepo,
-    ListBranchesBody, SetRepoProjects, TestAutomationRepoBody, UpdateAutomationRepo,
-    UpsertAutomationRepo,
+    ListBranchesBody, SetProjectDefaultRepo, SetRepoProjects, TestAutomationRepoBody,
+    UpdateAutomationRepo, UpsertAutomationRepo,
 };
 use crate::routes::cases::ensure_project;
 use crate::routes::AppState;
@@ -59,10 +59,14 @@ pub fn router() -> Router<AppState> {
             "/api/v1/automation-repos/branches",
             axum::routing::post(list_branches_preview),
         )
-        // Project-scoped list (Generate picker)
+        // Project-scoped list (Generate picker) + default selection
         .route(
             "/api/v1/projects/{project_id}/automation-repos",
             get(list_project_repos),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/automation-repos/default",
+            axum::routing::put(set_project_default_repo),
         )
         // Legacy singular shim (default linked repo)
         .route(
@@ -103,9 +107,12 @@ async fn to_public(
 
 fn validate_provider(provider: &str) -> AppResult<String> {
     let provider = provider.trim().to_lowercase();
-    if !matches!(provider.as_str(), "github" | "gitlab" | "generic") {
+    if !matches!(
+        provider.as_str(),
+        "github" | "gitlab" | "bitbucket" | "forgejo" | "gitea" | "generic"
+    ) {
         return Err(AppError::BadRequest(
-            "provider must be github, gitlab, or generic".into(),
+            "provider must be github, gitlab, bitbucket, forgejo, gitea, or generic".into(),
         ));
     }
     Ok(provider)
@@ -756,11 +763,47 @@ pub async fn list_project_repos(
     .await?;
     ensure_project(&state.pool, project_id).await?;
     let rows = repo_svc::load_repos_for_project(&state.pool, project_id).await?;
+    let flags = repo_svc::default_flags_for_project(&state.pool, project_id).await?;
+    let flag_map: std::collections::HashMap<Uuid, bool> = flags.into_iter().collect();
     let mut out = Vec::with_capacity(rows.len());
     for row in &rows {
-        out.push(to_public(&state.pool, row).await?);
+        let project_ids = repo_svc::project_ids_for_repo(&state.pool, row.id).await?;
+        let is_default = flag_map.get(&row.id).copied().or(Some(false));
+        out.push(row.to_public_with_default(project_ids, is_default));
     }
     Ok(Json(out))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/projects/{project_id}/automation-repos/default",
+    tag = "automation-repo",
+    params(("project_id" = Uuid, Path)),
+    request_body = SetProjectDefaultRepo,
+    responses((status = 200, body = AutomationRepoPublic)),
+    security(("bearer_auth" = []))
+)]
+pub async fn set_project_default_repo(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<SetProjectDefaultRepo>,
+) -> AppResult<Json<AutomationRepoPublic>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::ManageAutomationRepo,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    repo_svc::set_default_for_project(&state.pool, project_id, body.repo_id).await?;
+    let row = repo_svc::load_repo_by_id(&state.pool, body.repo_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo not found".into()))?;
+    let project_ids = repo_svc::project_ids_for_repo(&state.pool, row.id).await?;
+    Ok(Json(row.to_public_with_default(project_ids, Some(true))))
 }
 
 // ── Legacy singular shim ─────────────────────────────────────────────────────

@@ -82,7 +82,10 @@ pub async fn sync_and_index(
     trigger: &str,
 ) -> AppResult<(String, i32, i32)> {
     let provider = row.provider.to_lowercase();
-    if matches!(provider.as_str(), "github" | "gitlab") {
+    if matches!(
+        provider.as_str(),
+        "github" | "gitlab" | "forgejo" | "gitea" | "bitbucket"
+    ) {
         let known = repo_svc::load_content_hashes(pool, row.id).await?;
         let ci_policy = crate::settings::load_ci_url_policy(pool).await?;
         let (commit_sha, changed, tree_paths) = remote_svc::index_from_archive(
@@ -110,7 +113,8 @@ pub async fn sync_and_index(
     if !repo_svc::git_available() {
         return Err(AppError::BadRequest(
             "git is not installed in this environment. The generic provider needs the git binary \
-             in the API image; use the github or gitlab provider for REST indexing without git."
+             in the API image; use github, gitlab, forgejo, gitea, or bitbucket for REST indexing \
+             without git."
                 .into(),
         ));
     }

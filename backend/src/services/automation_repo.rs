@@ -931,6 +931,101 @@ pub async fn project_ids_for_repo(pool: &PgPool, repo_id: Uuid) -> AppResult<Vec
     Ok(ids)
 }
 
+/// Whether `repo_id` is linked to `project_id` (junction or legacy column).
+pub async fn repo_linked_to_project(
+    pool: &PgPool,
+    project_id: Uuid,
+    repo_id: Uuid,
+) -> AppResult<bool> {
+    let linked: Option<bool> = sqlx::query_scalar(
+        r#"SELECT TRUE FROM project_automation_repos
+           WHERE project_id = $1 AND repo_id = $2
+           LIMIT 1"#,
+    )
+    .bind(project_id)
+    .bind(repo_id)
+    .fetch_optional(pool)
+    .await?;
+    if linked.is_some() {
+        return Ok(true);
+    }
+    let legacy: Option<bool> = sqlx::query_scalar(
+        r#"SELECT TRUE FROM automation_repos
+           WHERE id = $1 AND project_id = $2
+           LIMIT 1"#,
+    )
+    .bind(repo_id)
+    .bind(project_id)
+    .fetch_optional(pool)
+    .await?;
+    Ok(legacy.is_some())
+}
+
+/// Mark `repo_id` as the sole default automation repo for `project_id`.
+pub async fn set_default_for_project(
+    pool: &PgPool,
+    project_id: Uuid,
+    repo_id: Uuid,
+) -> AppResult<()> {
+    if !repo_linked_to_project(pool, project_id, repo_id).await? {
+        return Err(crate::error::AppError::BadRequest(
+            "automation repo is not linked to this project".into(),
+        ));
+    }
+    let mut tx = pool.begin().await?;
+    sqlx::query(
+        r#"UPDATE project_automation_repos SET is_default = FALSE
+           WHERE project_id = $1 AND is_default"#,
+    )
+    .bind(project_id)
+    .execute(&mut *tx)
+    .await?;
+    let updated = sqlx::query(
+        r#"UPDATE project_automation_repos SET is_default = TRUE
+           WHERE project_id = $1 AND repo_id = $2"#,
+    )
+    .bind(project_id)
+    .bind(repo_id)
+    .execute(&mut *tx)
+    .await?
+    .rows_affected();
+    if updated == 0 {
+        // Legacy-only link: ensure a junction row exists and is default.
+        sqlx::query(
+            r#"INSERT INTO project_automation_repos (project_id, repo_id, is_default, sort_order)
+               VALUES ($1, $2, TRUE, 0)
+               ON CONFLICT (project_id, repo_id) DO UPDATE SET is_default = TRUE"#,
+        )
+        .bind(project_id)
+        .bind(repo_id)
+        .execute(&mut *tx)
+        .await?;
+    }
+    sqlx::query(r#"UPDATE automation_repos SET project_id = $2, updated_at = NOW() WHERE id = $1"#)
+        .bind(repo_id)
+        .bind(project_id)
+        .execute(&mut *tx)
+        .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// is_default flag for each linked repo of a project (same order as load_repos_for_project).
+pub async fn default_flags_for_project(
+    pool: &PgPool,
+    project_id: Uuid,
+) -> AppResult<Vec<(Uuid, bool)>> {
+    let rows = sqlx::query_as::<_, (Uuid, bool)>(
+        r#"SELECT repo_id, is_default FROM project_automation_repos
+           WHERE project_id = $1
+           ORDER BY is_default DESC, sort_order ASC, repo_id"#,
+    )
+    .bind(project_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(rows)
+}
+
 /// Replace the project link set for a repo. `default_project_id` marks is_default.
 pub async fn set_project_links(
     pool: &PgPool,
