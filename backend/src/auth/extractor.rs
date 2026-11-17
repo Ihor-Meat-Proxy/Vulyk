@@ -4,17 +4,15 @@ use axum::{
     http::{header::AUTHORIZATION, request::Parts, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
-    Json,
 };
 use axum_extra::extract::CookieJar;
-use serde_json::json;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::jwt::decode_jwt;
 use super::rbac::Permission;
 use super::tokens::hash_secret;
-use crate::error::{AppError, AppResult};
+use crate::error::{problem_with_code, AppError, AppResult};
 use crate::models::User;
 use crate::routes::AppState;
 
@@ -279,16 +277,12 @@ pub fn password_change_allowed_path(method: &str, path: &str) -> bool {
 }
 
 fn forbid_must_change_password() -> Response {
-    (
+    problem_with_code(
         StatusCode::FORBIDDEN,
-        Json(json!({
-            "error": {
-                "code": "password_change_required",
-                "message": "password change required before accessing this resource"
-            }
-        })),
+        "password_change_required",
+        "Forbidden",
+        "password change required before accessing this resource",
     )
-        .into_response()
 }
 
 fn block_if_must_change(user: &AuthUser, method: &str, path: &str) -> Option<Response> {
@@ -430,20 +424,12 @@ pub async fn bearer_middleware(
                 unauthorized(&msg)
             }
         }
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(json!({ "error": { "code": "internal", "message": e.to_string() } })),
-        )
-            .into_response(),
+        Err(e) => AppError::Internal(e.to_string()).into_response(),
     }
 }
 
 fn unauthorized(message: &str) -> Response {
-    (
-        StatusCode::UNAUTHORIZED,
-        Json(json!({ "error": { "code": "unauthorized", "message": message } })),
-    )
-        .into_response()
+    AppError::Unauthorized(message.into()).into_response()
 }
 
 async fn resolve_auth(parts: &mut Parts, state: &AppState) -> AppResult<AuthUser> {
@@ -841,16 +827,12 @@ pub fn csrf_double_submit_ok(headers: &axum::http::HeaderMap) -> bool {
 }
 
 fn csrf_forbidden() -> Response {
-    (
+    problem_with_code(
         StatusCode::FORBIDDEN,
-        Json(json!({
-            "error": {
-                "code": "csrf_rejected",
-                "message": "CSRF validation failed for cookie session; send X-Vulyk-Csrf matching vulyk_csrf cookie, or use a Bearer token"
-            }
-        })),
+        "csrf_rejected",
+        "Forbidden",
+        "CSRF validation failed for cookie session; send X-Vulyk-Csrf matching vulyk_csrf cookie, or use a Bearer token",
     )
-        .into_response()
 }
 
 #[cfg(test)]

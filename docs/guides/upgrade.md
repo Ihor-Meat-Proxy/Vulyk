@@ -312,6 +312,27 @@ CI/ingest matches case **key** first, then `automation_id`, then `external_key`.
 JUnit properties `automation_id` / `vulyk_automation_id` / `vulyk:automation_id`
 can link results without putting the case key in the test title.
 
+### API errors: RFC 9457 problem+json (#230)
+
+API error responses now use `Content-Type: application/problem+json` with fields
+`type`, `title`, `status`, `detail`, and extension `code`. For compatibility, the
+previous nested shape is **dual-written** on every error:
+
+```json
+{
+  "type": "urn:vulyk:api:problem:not_found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "not found: …",
+  "code": "not_found",
+  "error": { "code": "not_found", "message": "not found: …" }
+}
+```
+
+Clients that already read `error.code` / `error.message` keep working. New
+integrations should prefer `code` / `detail`. No `.env` or migration changes.
+See [API tokens and OpenAPI](../user/api.md#errors-rfc-9457-problem-details).
+
 ### CI unmatched auto-create policy (#228)
 
 Forward migration `20261117070000_project_ci_unmatched_policy.sql` adds

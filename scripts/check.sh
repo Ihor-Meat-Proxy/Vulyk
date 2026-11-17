@@ -6,7 +6,8 @@
 #   ./scripts/check.sh --full    # also cargo test + frontend vitest (pre-push / CI parity)
 # Quality extras (coverage / knip / prettier / machete): see ./scripts/check-quality.sh
 # Fast CI gates: ./scripts/check-shell-docker.sh, check-pr-hygiene.sh,
-# check-openapi-drift.sh, check-bundle-size.sh; frontend npm run check:i18n
+# check-openapi-drift.sh, check-openapi-spectral.sh, check-bundle-size.sh;
+# frontend npm run check:i18n
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -80,8 +81,12 @@ fi
 if [[ "${MODE}" != "quick" ]]; then
   echo "==> MCP OpenAPI coverage"
   cargo test -p vulyk-mcp --test openapi_coverage
+  echo "==> OpenAPI Spectral lint"
+  chmod +x scripts/check-openapi-spectral.sh
+  ./scripts/check-openapi-spectral.sh
 else
   echo "==> MCP OpenAPI coverage (skipped in --quick)"
+  echo "==> OpenAPI Spectral lint (skipped in --quick)"
 fi
 
 echo "==> frontend lint / typecheck / test-ids"

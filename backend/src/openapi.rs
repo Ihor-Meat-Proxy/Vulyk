@@ -1,12 +1,17 @@
+use serde_json::json;
 use utoipa::{
     openapi::{
+        content::ContentBuilder,
+        response::ResponseBuilder,
         security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
         server::ServerBuilder,
+        Ref, RefOr,
     },
     Modify, OpenApi,
 };
 
 use crate::auth::{ProjectRole, RoleMatrixRow};
+use crate::error::{LegacyErrorDetail, ProblemDetails};
 use crate::integrations::{DefectDraft, RemoteIssue, RemoteRequirement, RequirementLink};
 use crate::models::{
     AbandonRunRequest, AddFieldToProject, ApiTokenPublic, AskTestsRequest, AskTestsResponse,
@@ -355,6 +360,8 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         crate::routes::webhooks::automation_repo_webhook,
     ),
     components(schemas(
+        ProblemDetails,
+        LegacyErrorDetail,
         HealthResponse,
         ReadyResponse,
         Project,
@@ -636,7 +643,7 @@ use crate::sso::{SsoProviderAdmin, UpdateSsoProviderRequest};
         ContentArchive,
         ContentArchiveManifest,
     )),
-    modifiers(&SecurityAddon),
+    modifiers(&SecurityAddon, &OpenApiQualityAddon),
     tags(
         (name = "system", description = "Health and readiness"),
         (name = "auth", description = "Local login, sessions, JWT"),
@@ -691,6 +698,12 @@ impl Modify for SecurityAddon {
             "`vulyk_session` cookie with Test Request automatically (no paste). Cookie auth is not editable in Scalar; ",
             "use Bearer when calling from another tool.\n",
             "3. Search uses the sidebar search box (Ctrl/⌘+K). Test Request runs against the same-origin server (`/`).",
+            "\n\n## Errors (RFC 9457)\n\n",
+            "Error responses use `Content-Type: application/problem+json` with fields ",
+            "`type`, `title`, `status`, `detail`, and extension `code` (stable machine code). ",
+            "A nested `error: { code, message }` object is dual-written for older clients. ",
+            "See shared response components `ProblemBadRequest`, `ProblemUnauthorized`, ",
+            "`ProblemForbidden`, and `ProblemNotFound`.",
         );
         match openapi.info.description.as_mut() {
             Some(desc) => desc.push_str(auth_help),
@@ -713,6 +726,264 @@ impl Modify for SecurityAddon {
                         .build(),
                 ),
             );
+        }
+    }
+}
+
+/// Fill operation summaries and shared RFC 9457 problem response components/examples.
+struct OpenApiQualityAddon;
+
+fn humanize_operation_id(id: &str) -> String {
+    let mut parts = id.split('_').filter(|p| !p.is_empty());
+    let Some(first) = parts.next() else {
+        return id.to_string();
+    };
+    let mut out = String::new();
+    let mut chars = first.chars();
+    if let Some(c) = chars.next() {
+        out.extend(c.to_uppercase());
+        out.push_str(chars.as_str());
+    }
+    for part in parts {
+        out.push(' ');
+        out.push_str(part);
+    }
+    out
+}
+
+fn problem_example(status: u16, code: &str, title: &str, detail: &str) -> serde_json::Value {
+    json!({
+        "type": format!("urn:vulyk:api:problem:{code}"),
+        "title": title,
+        "status": status,
+        "detail": detail,
+        "code": code,
+        "error": { "code": code, "message": detail }
+    })
+}
+
+fn problem_response_component(
+    description: &str,
+    status: u16,
+    code: &str,
+    title: &str,
+    detail: &str,
+) -> utoipa::openapi::Response {
+    ResponseBuilder::new()
+        .description(description)
+        .content(
+            "application/problem+json",
+            ContentBuilder::new()
+                .schema(Some(RefOr::Ref(Ref::from_schema_name("ProblemDetails"))))
+                .example(Some(problem_example(status, code, title, detail)))
+                .build(),
+        )
+        .build()
+}
+
+fn ensure_operation_summary(op: &mut utoipa::openapi::path::Operation) {
+    let needs_summary = op
+        .summary
+        .as_ref()
+        .map(|s| s.trim().is_empty())
+        .unwrap_or(true);
+    if !needs_summary {
+        return;
+    }
+    if let Some(id) = op.operation_id.as_deref() {
+        op.summary = Some(humanize_operation_id(id));
+        return;
+    }
+    // Fall back to the first success response description when present.
+    for code in ["200", "201", "204"] {
+        if let Some(RefOr::T(resp)) = op.responses.responses.get(code) {
+            if !resp.description.trim().is_empty() {
+                op.summary = Some(resp.description.trim().to_string());
+                return;
+            }
+        }
+    }
+}
+
+fn shared_problem_ref(status: &str) -> Option<&'static str> {
+    match status {
+        "400" => Some("ProblemBadRequest"),
+        "401" => Some("ProblemUnauthorized"),
+        "403" => Some("ProblemForbidden"),
+        "404" => Some("ProblemNotFound"),
+        "409" => Some("ProblemConflict"),
+        "410" => Some("ProblemGone"),
+        "429" => Some("ProblemTooManyRequests"),
+        "500" | "503" => Some("ProblemInternal"),
+        _ => None,
+    }
+}
+
+fn default_response_description(status: &str) -> &'static str {
+    match status {
+        "200" => "OK",
+        "201" => "Created",
+        "204" => "No Content",
+        "400" => "Bad Request",
+        "401" => "Unauthorized",
+        "403" => "Forbidden",
+        "404" => "Not Found",
+        "409" => "Conflict",
+        "410" => "Gone",
+        "429" => "Too Many Requests",
+        "500" => "Internal Server Error",
+        "503" => "Service Unavailable",
+        _ => "Response",
+    }
+}
+
+fn enrich_error_responses(op: &mut utoipa::openapi::path::Operation) {
+    let statuses: Vec<String> = op.responses.responses.keys().cloned().collect();
+    for status in statuses {
+        let Some(entry) = op.responses.responses.get_mut(&status) else {
+            continue;
+        };
+        // OAS requires Response.description; utoipa omits empty strings from JSON.
+        if let RefOr::T(resp) = entry {
+            if resp.description.trim().is_empty() {
+                resp.description = default_response_description(&status).to_string();
+            }
+        }
+        let Some(component) = shared_problem_ref(&status) else {
+            continue;
+        };
+        match entry {
+            RefOr::Ref(_) => {}
+            RefOr::T(resp) if resp.content.is_empty() => {
+                *entry = RefOr::Ref(Ref::from_response_name(component));
+            }
+            RefOr::T(resp) => {
+                // Documented body without problem media type — ensure problem+json is present.
+                if !resp.content.contains_key("application/problem+json") {
+                    resp.content.insert(
+                        "application/problem+json".into(),
+                        ContentBuilder::new()
+                            .schema(Some(RefOr::Ref(Ref::from_schema_name("ProblemDetails"))))
+                            .build()
+                            .into(),
+                    );
+                }
+            }
+        }
+    }
+}
+
+impl Modify for OpenApiQualityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            let shared = [
+                (
+                    "ProblemBadRequest",
+                    problem_response_component(
+                        "Bad request (RFC 9457 problem+json)",
+                        400,
+                        "bad_request",
+                        "Bad Request",
+                        "bad request: invalid input",
+                    ),
+                ),
+                (
+                    "ProblemUnauthorized",
+                    problem_response_component(
+                        "Unauthorized (RFC 9457 problem+json)",
+                        401,
+                        "unauthorized",
+                        "Unauthorized",
+                        "unauthorized: authentication required",
+                    ),
+                ),
+                (
+                    "ProblemForbidden",
+                    problem_response_component(
+                        "Forbidden (RFC 9457 problem+json)",
+                        403,
+                        "forbidden",
+                        "Forbidden",
+                        "forbidden: insufficient permissions",
+                    ),
+                ),
+                (
+                    "ProblemNotFound",
+                    problem_response_component(
+                        "Not found (RFC 9457 problem+json)",
+                        404,
+                        "not_found",
+                        "Not Found",
+                        "not found: resource",
+                    ),
+                ),
+                (
+                    "ProblemConflict",
+                    problem_response_component(
+                        "Conflict (RFC 9457 problem+json)",
+                        409,
+                        "conflict",
+                        "Conflict",
+                        "conflict: resource already exists",
+                    ),
+                ),
+                (
+                    "ProblemGone",
+                    problem_response_component(
+                        "Gone (RFC 9457 problem+json)",
+                        410,
+                        "case_deleted",
+                        "Gone",
+                        "gone: case key retired",
+                    ),
+                ),
+                (
+                    "ProblemTooManyRequests",
+                    problem_response_component(
+                        "Too many requests (RFC 9457 problem+json)",
+                        429,
+                        "too_many_requests",
+                        "Too Many Requests",
+                        "too many requests: rate limited",
+                    ),
+                ),
+                (
+                    "ProblemInternal",
+                    problem_response_component(
+                        "Internal server error (RFC 9457 problem+json)",
+                        500,
+                        "internal",
+                        "Internal Server Error",
+                        "internal: unexpected error",
+                    ),
+                ),
+            ];
+            for (name, response) in shared {
+                components
+                    .responses
+                    .insert(name.to_string(), RefOr::T(response));
+            }
+        }
+
+        for path_item in openapi.paths.paths.values_mut() {
+            for op in [
+                path_item.get.as_mut(),
+                path_item.put.as_mut(),
+                path_item.post.as_mut(),
+                path_item.delete.as_mut(),
+                path_item.options.as_mut(),
+                path_item.head.as_mut(),
+                path_item.patch.as_mut(),
+                path_item.trace.as_mut(),
+                path_item.query.as_mut(),
+            ]
+            .into_iter()
+            .flatten()
+            .chain(path_item.additional_operations.values_mut())
+            {
+                ensure_operation_summary(op);
+                enrich_error_responses(op);
+            }
         }
     }
 }
@@ -805,5 +1076,60 @@ mod tests {
             names.contains(&"limit") && names.contains(&"offset"),
             "expected limit/offset query params, got {names:?}"
         );
+    }
+
+    #[test]
+    fn openapi_every_operation_has_summary_and_problem_schema() {
+        let doc = ApiDoc::openapi();
+        let schemas = &doc.components.as_ref().expect("components").schemas;
+        assert!(
+            schemas.contains_key("ProblemDetails"),
+            "ProblemDetails schema must be registered"
+        );
+        let responses = &doc.components.as_ref().unwrap().responses;
+        for name in [
+            "ProblemBadRequest",
+            "ProblemUnauthorized",
+            "ProblemForbidden",
+            "ProblemNotFound",
+        ] {
+            assert!(
+                responses.contains_key(name),
+                "shared response component {name} missing"
+            );
+        }
+
+        let mut missing = Vec::new();
+        for (path, item) in &doc.paths.paths {
+            for (method, op) in [
+                ("GET", item.get.as_ref()),
+                ("PUT", item.put.as_ref()),
+                ("POST", item.post.as_ref()),
+                ("DELETE", item.delete.as_ref()),
+                ("PATCH", item.patch.as_ref()),
+                ("HEAD", item.head.as_ref()),
+                ("OPTIONS", item.options.as_ref()),
+                ("TRACE", item.trace.as_ref()),
+            ]
+            .into_iter()
+            .filter_map(|(m, o)| o.map(|op| (m, op)))
+            {
+                let summary = op.summary.as_deref().unwrap_or("").trim();
+                if summary.is_empty() {
+                    missing.push(format!("{method} {path}"));
+                }
+            }
+        }
+        assert!(
+            missing.is_empty(),
+            "operations missing summary: {}",
+            missing.join(", ")
+        );
+    }
+
+    #[test]
+    fn humanize_operation_id_capitalizes_words() {
+        assert_eq!(humanize_operation_id("list_projects"), "List projects");
+        assert_eq!(humanize_operation_id("get_case"), "Get case");
     }
 }

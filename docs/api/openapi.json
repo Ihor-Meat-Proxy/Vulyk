@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Vulyk API",
-    "description": "Open-source test management system (beehive). Projects (optional key, case_key_prefix + never-reused PREFIX-N case numbers), nested folder trees with recursive counts, plans/runs, automation executions (campaigns/iterations/pipeline ingest), ALM/importers/reports, LLM generate/chat (propose/create), MCP, locales en/uk/fr/es/de, deploy.\n\n## Auth in /api/docs (Scalar)\n\n1. **Bearer** — open **Auth**, select `bearer_auth`, paste a JWT from `POST /api/v1/auth/login` (`token` field) or a personal API token from Settings → Tokens. Scalar sends `Authorization: Bearer …`.\n2. **Session cookie** — if you are already signed in on this origin, the browser sends the HttpOnly `vulyk_session` cookie with Test Request automatically (no paste). Cookie auth is not editable in Scalar; use Bearer when calling from another tool.\n3. Search uses the sidebar search box (Ctrl/⌘+K). Test Request runs against the same-origin server (`/`).",
+    "description": "Open-source test management system (beehive). Projects (optional key, case_key_prefix + never-reused PREFIX-N case numbers), nested folder trees with recursive counts, plans/runs, automation executions (campaigns/iterations/pipeline ingest), ALM/importers/reports, LLM generate/chat (propose/create), MCP, locales en/uk/fr/es/de, deploy.\n\n## Auth in /api/docs (Scalar)\n\n1. **Bearer** — open **Auth**, select `bearer_auth`, paste a JWT from `POST /api/v1/auth/login` (`token` field) or a personal API token from Settings → Tokens. Scalar sends `Authorization: Bearer …`.\n2. **Session cookie** — if you are already signed in on this origin, the browser sends the HttpOnly `vulyk_session` cookie with Test Request automatically (no paste). Cookie auth is not editable in Scalar; use Bearer when calling from another tool.\n3. Search uses the sidebar search box (Ctrl/⌘+K). Test Request runs against the same-origin server (`/`).\n\n## Errors (RFC 9457)\n\nError responses use `Content-Type: application/problem+json` with fields `type`, `title`, `status`, `detail`, and extension `code` (stable machine code). A nested `error: { code, message }` object is dual-written for older clients. See shared response components `ProblemBadRequest`, `ProblemUnauthorized`, `ProblemForbidden`, and `ProblemNotFound`.",
     "license": {
       "name": "AGPL-3.0"
     },
@@ -20,13 +20,14 @@
         "tags": [
           "system"
         ],
+        "summary": "Docs html",
         "operationId": "docs_html",
         "responses": {
           "200": {
             "description": "Self-hosted Scalar OpenAPI UI (HTML)"
           },
           "500": {
-            "description": "Failed to render OpenAPI document"
+            "$ref": "#/components/responses/ProblemInternal"
           }
         }
       }
@@ -36,6 +37,7 @@
         "tags": [
           "system"
         ],
+        "summary": "Scalar js",
         "operationId": "scalar_js",
         "responses": {
           "200": {
@@ -49,6 +51,7 @@
         "tags": [
           "system"
         ],
+        "summary": "Openapi json",
         "operationId": "openapi_json",
         "responses": {
           "200": {
@@ -62,9 +65,11 @@
         "tags": [
           "backups"
         ],
+        "summary": "List destinations",
         "operationId": "list_destinations",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -87,6 +92,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Create destination",
         "operationId": "create_destination",
         "requestBody": {
           "content": {
@@ -100,6 +106,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -121,6 +128,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Get destination",
         "operationId": "get_destination",
         "parameters": [
           {
@@ -135,6 +143,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -154,6 +163,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Delete destination",
         "operationId": "delete_destination",
         "parameters": [
           {
@@ -181,6 +191,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Update destination",
         "operationId": "update_destination",
         "parameters": [
           {
@@ -205,6 +216,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -226,6 +238,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Test destination",
         "operationId": "test_destination",
         "parameters": [
           {
@@ -240,6 +253,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -261,9 +275,11 @@
         "tags": [
           "backups"
         ],
+        "summary": "List policies",
         "operationId": "list_policies",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -286,6 +302,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Create policy",
         "operationId": "create_policy",
         "requestBody": {
           "content": {
@@ -299,6 +316,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -320,6 +338,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Delete policy",
         "operationId": "delete_policy",
         "parameters": [
           {
@@ -347,6 +366,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Update policy",
         "operationId": "update_policy",
         "parameters": [
           {
@@ -371,6 +391,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -392,6 +413,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Restore",
         "operationId": "restore",
         "requestBody": {
           "content": {
@@ -405,6 +427,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -426,6 +449,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Restore upload",
         "operationId": "restore_upload",
         "parameters": [
           {
@@ -493,6 +517,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -514,6 +539,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Run manual",
         "operationId": "run_manual",
         "requestBody": {
           "content": {
@@ -527,6 +553,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -548,6 +575,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "List runs",
         "operationId": "list_runs",
         "parameters": [
           {
@@ -571,6 +599,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -595,6 +624,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Get run",
         "operationId": "get_run",
         "parameters": [
           {
@@ -609,6 +639,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -630,6 +661,7 @@
         "tags": [
           "backups"
         ],
+        "summary": "Download run",
         "operationId": "download_run",
         "parameters": [
           {
@@ -659,6 +691,7 @@
         "tags": [
           "config"
         ],
+        "summary": "Export config",
         "operationId": "export_config",
         "requestBody": {
           "content": {
@@ -694,6 +727,7 @@
         "tags": [
           "config"
         ],
+        "summary": "Import config",
         "operationId": "import_config",
         "requestBody": {
           "content": {
@@ -707,6 +741,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -728,6 +763,7 @@
         "tags": [
           "config"
         ],
+        "summary": "Import preview",
         "operationId": "import_preview",
         "requestBody": {
           "content": {
@@ -741,6 +777,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -762,9 +799,11 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Admin list fields",
         "operationId": "admin_list_fields",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -787,6 +826,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Admin create field",
         "operationId": "admin_create_field",
         "requestBody": {
           "content": {
@@ -800,6 +840,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -821,6 +862,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Admin get field",
         "operationId": "admin_get_field",
         "parameters": [
           {
@@ -835,6 +877,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -854,6 +897,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Admin update field",
         "operationId": "admin_update_field",
         "parameters": [
           {
@@ -878,6 +922,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -897,6 +942,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Admin delete field",
         "operationId": "admin_delete_field",
         "parameters": [
           {
@@ -926,6 +972,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "List integrations",
         "operationId": "list_integrations",
         "responses": {
           "200": {
@@ -952,6 +999,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Create integration",
         "operationId": "create_integration",
         "requestBody": {
           "content": {
@@ -987,6 +1035,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Delete integration",
         "operationId": "delete_integration",
         "parameters": [
           {
@@ -1017,9 +1066,11 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "List lists",
         "operationId": "list_lists",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1042,6 +1093,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Create list",
         "operationId": "create_list",
         "requestBody": {
           "content": {
@@ -1055,6 +1107,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1076,6 +1129,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Get list",
         "operationId": "get_list",
         "parameters": [
           {
@@ -1090,6 +1144,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1109,6 +1164,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Update list",
         "operationId": "update_list",
         "parameters": [
           {
@@ -1133,6 +1189,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1152,6 +1209,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Delete list",
         "operationId": "delete_list",
         "parameters": [
           {
@@ -1181,6 +1239,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Create item",
         "operationId": "create_item",
         "parameters": [
           {
@@ -1205,6 +1264,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1226,6 +1286,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Reorder items",
         "operationId": "reorder_items",
         "parameters": [
           {
@@ -1250,6 +1311,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1274,6 +1336,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Update item",
         "operationId": "update_item",
         "parameters": [
           {
@@ -1307,6 +1370,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1326,6 +1390,7 @@
         "tags": [
           "option_lists"
         ],
+        "summary": "Delete item",
         "operationId": "delete_item",
         "parameters": [
           {
@@ -1364,6 +1429,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Get sample data",
         "operationId": "get_sample_data",
         "responses": {
           "200": {
@@ -1377,10 +1443,10 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         },
         "security": [
@@ -1393,6 +1459,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Delete sample data",
         "operationId": "delete_sample_data",
         "responses": {
           "200": {
@@ -1406,10 +1473,10 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         },
         "security": [
@@ -1424,6 +1491,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Reseed sample data",
         "operationId": "reseed_sample_data",
         "requestBody": {
           "content": {
@@ -1447,10 +1515,10 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           },
           "403": {
-            "description": "Forbidden"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         },
         "security": [
@@ -1465,6 +1533,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Get settings",
         "operationId": "get_settings",
         "responses": {
           "200": {
@@ -1488,6 +1557,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Put settings",
         "operationId": "put_settings",
         "requestBody": {
           "content": {
@@ -1523,6 +1593,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "List providers",
         "operationId": "list_providers",
         "responses": {
           "200": {
@@ -1551,6 +1622,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Update provider",
         "operationId": "update_provider",
         "parameters": [
           {
@@ -1644,9 +1716,11 @@
         "tags": [
           "admin"
         ],
+        "summary": "Get updates",
         "operationId": "get_updates",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1668,6 +1742,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Apply update",
         "operationId": "apply_update",
         "requestBody": {
           "content": {
@@ -1681,6 +1756,7 @@
         },
         "responses": {
           "202": {
+            "description": "Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -1702,6 +1778,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Check updates",
         "operationId": "check_updates",
         "parameters": [
           {
@@ -1716,6 +1793,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1737,9 +1815,11 @@
         "tags": [
           "admin"
         ],
+        "summary": "List jobs",
         "operationId": "list_jobs",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1761,6 +1841,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Get job",
         "operationId": "get_job",
         "parameters": [
           {
@@ -1775,6 +1856,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1796,9 +1878,11 @@
         "tags": [
           "admin"
         ],
+        "summary": "Get prefs",
         "operationId": "get_prefs",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1818,6 +1902,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Put prefs",
         "operationId": "put_prefs",
         "requestBody": {
           "content": {
@@ -1831,6 +1916,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1852,6 +1938,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Apply rollback",
         "operationId": "apply_rollback",
         "requestBody": {
           "content": {
@@ -1865,6 +1952,7 @@
         },
         "responses": {
           "202": {
+            "description": "Response",
             "content": {
               "application/json": {
                 "schema": {
@@ -1886,9 +1974,11 @@
         "tags": [
           "admin"
         ],
+        "summary": "List version backups",
         "operationId": "list_version_backups",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -1910,6 +2000,7 @@
         "tags": [
           "admin"
         ],
+        "summary": "Download version backup",
         "operationId": "download_version_backup",
         "parameters": [
           {
@@ -1938,6 +2029,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Bootstrap",
         "operationId": "bootstrap",
         "requestBody": {
           "content": {
@@ -1961,7 +2053,7 @@
             }
           },
           "409": {
-            "description": "Users already exist / setup completed"
+            "$ref": "#/components/responses/ProblemConflict"
           }
         }
       }
@@ -1971,6 +2063,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Change password",
         "operationId": "change_password",
         "requestBody": {
           "content": {
@@ -1999,6 +2092,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Login",
         "operationId": "login",
         "requestBody": {
           "content": {
@@ -2022,7 +2116,7 @@
             }
           },
           "401": {
-            "description": "Invalid credentials"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -2032,6 +2126,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Logout",
         "operationId": "logout",
         "responses": {
           "204": {
@@ -2045,6 +2140,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Me",
         "operationId": "me",
         "responses": {
           "200": {
@@ -2058,7 +2154,7 @@
             }
           },
           "401": {
-            "description": "Unauthorized"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         },
         "security": [
@@ -2071,6 +2167,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Update me",
         "operationId": "update_me",
         "requestBody": {
           "content": {
@@ -2106,6 +2203,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Register",
         "operationId": "register",
         "requestBody": {
           "content": {
@@ -2129,7 +2227,7 @@
             }
           },
           "403": {
-            "description": "Registration disabled"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         }
       }
@@ -2139,6 +2237,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Sso callback",
         "operationId": "sso_callback",
         "responses": {
           "302": {
@@ -2152,6 +2251,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Sso providers",
         "operationId": "sso_providers",
         "responses": {
           "200": {
@@ -2175,6 +2275,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Sso start",
         "operationId": "sso_start",
         "parameters": [
           {
@@ -2199,6 +2300,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Auth status",
         "operationId": "auth_status",
         "responses": {
           "200": {
@@ -2219,9 +2321,11 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "List repos",
         "operationId": "list_repos",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2244,6 +2348,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Create repo",
         "operationId": "create_repo",
         "requestBody": {
           "content": {
@@ -2257,6 +2362,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2278,6 +2384,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "List branches preview",
         "operationId": "list_branches_preview",
         "requestBody": {
           "content": {
@@ -2291,6 +2398,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2312,6 +2420,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Test repo preview",
         "operationId": "test_repo_preview",
         "requestBody": {
           "content": {
@@ -2325,6 +2434,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2346,6 +2456,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Get repo by id",
         "operationId": "get_repo_by_id",
         "parameters": [
           {
@@ -2360,6 +2471,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2379,6 +2491,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Delete repo by id",
         "operationId": "delete_repo_by_id",
         "parameters": [
           {
@@ -2406,6 +2519,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Update repo",
         "operationId": "update_repo",
         "parameters": [
           {
@@ -2430,6 +2544,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2451,6 +2566,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "List repo branches",
         "operationId": "list_repo_branches",
         "parameters": [
           {
@@ -2465,6 +2581,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2486,6 +2603,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Set repo projects",
         "operationId": "set_repo_projects",
         "parameters": [
           {
@@ -2510,6 +2628,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2531,6 +2650,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Reindex repo by id",
         "operationId": "reindex_repo_by_id",
         "parameters": [
           {
@@ -2545,6 +2665,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2566,6 +2687,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Test repo by id",
         "operationId": "test_repo_by_id",
         "parameters": [
           {
@@ -2580,6 +2702,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -2601,6 +2724,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Get case by key",
         "operationId": "get_case_by_key",
         "parameters": [
           {
@@ -2625,10 +2749,10 @@
             }
           },
           "404": {
-            "description": "Unknown key"
+            "$ref": "#/components/responses/ProblemNotFound"
           },
           "410": {
-            "description": "Case key deleted / retired"
+            "$ref": "#/components/responses/ProblemGone"
           }
         },
         "security": [
@@ -2643,6 +2767,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "List case results by id",
         "operationId": "list_case_results_by_id",
         "parameters": [
           {
@@ -2747,6 +2872,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Export case pdf by id or key",
         "operationId": "export_case_pdf_by_id_or_key",
         "parameters": [
           {
@@ -2783,7 +2909,7 @@
             "description": "Case PDF export"
           },
           "404": {
-            "description": "Case not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         },
         "security": [
@@ -2798,6 +2924,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Get ci config",
         "operationId": "get_ci_config",
         "parameters": [
           {
@@ -2833,6 +2960,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Update ci config",
         "operationId": "update_ci_config",
         "parameters": [
           {
@@ -2878,6 +3006,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Delete ci config",
         "operationId": "delete_ci_config",
         "parameters": [
           {
@@ -2908,6 +3037,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Dispatch ci",
         "operationId": "dispatch_ci",
         "parameters": [
           {
@@ -2955,6 +3085,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Test ci config",
         "operationId": "test_ci_config",
         "parameters": [
           {
@@ -2992,6 +3123,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Get dispatch",
         "operationId": "get_dispatch",
         "parameters": [
           {
@@ -3029,9 +3161,11 @@
         "tags": [
           "imports"
         ],
+        "summary": "List importers",
         "operationId": "list_importers",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3051,6 +3185,7 @@
         "tags": [
           "jobs"
         ],
+        "summary": "Get job",
         "operationId": "get_job",
         "parameters": [
           {
@@ -3088,6 +3223,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "List chat tools",
         "operationId": "list_chat_tools",
         "responses": {
           "200": {
@@ -3106,9 +3242,11 @@
         "tags": [
           "llm"
         ],
+        "summary": "List provider kinds",
         "operationId": "list_provider_kinds",
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3133,6 +3271,7 @@
         "tags": [
           "projects"
         ],
+        "summary": "List projects",
         "operationId": "list_projects",
         "responses": {
           "200": {
@@ -3154,6 +3293,7 @@
         "tags": [
           "projects"
         ],
+        "summary": "Create project",
         "operationId": "create_project",
         "requestBody": {
           "content": {
@@ -3177,10 +3317,10 @@
             }
           },
           "400": {
-            "description": "Invalid request"
+            "$ref": "#/components/responses/ProblemBadRequest"
           },
           "409": {
-            "description": "Key conflict"
+            "$ref": "#/components/responses/ProblemConflict"
           }
         }
       }
@@ -3190,6 +3330,7 @@
         "tags": [
           "projects"
         ],
+        "summary": "Get project",
         "operationId": "get_project",
         "parameters": [
           {
@@ -3215,7 +3356,7 @@
             }
           },
           "404": {
-            "description": "Not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         }
       },
@@ -3223,6 +3364,7 @@
         "tags": [
           "projects"
         ],
+        "summary": "Update project",
         "operationId": "update_project",
         "parameters": [
           {
@@ -3258,7 +3400,7 @@
             }
           },
           "404": {
-            "description": "Not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         }
       },
@@ -3266,6 +3408,7 @@
         "tags": [
           "projects"
         ],
+        "summary": "Delete project",
         "operationId": "delete_project",
         "parameters": [
           {
@@ -3284,7 +3427,7 @@
             "description": "Deleted"
           },
           "404": {
-            "description": "Not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         }
       }
@@ -3294,6 +3437,7 @@
         "tags": [
           "attachments"
         ],
+        "summary": "List attachments",
         "operationId": "list_attachments",
         "parameters": [
           {
@@ -3348,6 +3492,7 @@
         "tags": [
           "attachments"
         ],
+        "summary": "Create attachment",
         "operationId": "create_attachment",
         "parameters": [
           {
@@ -3394,6 +3539,7 @@
         "tags": [
           "attachments"
         ],
+        "summary": "Download attachment",
         "operationId": "download_attachment",
         "parameters": [
           {
@@ -3430,6 +3576,7 @@
         "tags": [
           "attachments"
         ],
+        "summary": "Delete attachment",
         "operationId": "delete_attachment",
         "parameters": [
           {
@@ -3468,6 +3615,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Get repo",
         "operationId": "get_repo",
         "parameters": [
           {
@@ -3510,6 +3658,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Upsert repo",
         "operationId": "upsert_repo",
         "parameters": [
           {
@@ -3535,6 +3684,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3554,6 +3704,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Delete repo",
         "operationId": "delete_repo",
         "parameters": [
           {
@@ -3584,6 +3735,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Reindex repo",
         "operationId": "reindex_repo",
         "parameters": [
           {
@@ -3599,6 +3751,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3620,6 +3773,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "Test repo",
         "operationId": "test_repo",
         "parameters": [
           {
@@ -3635,6 +3789,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3656,6 +3811,7 @@
         "tags": [
           "automation-repo"
         ],
+        "summary": "List project repos",
         "operationId": "list_project_repos",
         "parameters": [
           {
@@ -3670,6 +3826,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3694,6 +3851,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List campaigns",
         "operationId": "list_campaigns",
         "parameters": [
           {
@@ -3708,6 +3866,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3730,6 +3889,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Create campaign",
         "operationId": "create_campaign",
         "parameters": [
           {
@@ -3754,6 +3914,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3775,6 +3936,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Get campaign",
         "operationId": "get_campaign",
         "parameters": [
           {
@@ -3798,6 +3960,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3817,6 +3980,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Update campaign",
         "operationId": "update_campaign",
         "parameters": [
           {
@@ -3850,6 +4014,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3869,6 +4034,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Delete campaign",
         "operationId": "delete_campaign",
         "parameters": [
           {
@@ -3907,6 +4073,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List campaign iterations",
         "operationId": "list_campaign_iterations",
         "parameters": [
           {
@@ -3930,6 +4097,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -3952,6 +4120,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Create iteration",
         "operationId": "create_iteration",
         "parameters": [
           {
@@ -3985,6 +4154,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -4006,6 +4176,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "List cases",
         "operationId": "list_cases",
         "parameters": [
           {
@@ -4170,6 +4341,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Create case",
         "operationId": "create_case",
         "parameters": [
           {
@@ -4217,6 +4389,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Bulk cases",
         "operationId": "bulk_cases",
         "parameters": [
           {
@@ -4263,6 +4436,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Export cases bulk handler",
         "operationId": "export_cases_bulk_handler",
         "parameters": [
           {
@@ -4291,7 +4465,7 @@
             "description": "Single PDF or ZIP of PDFs"
           },
           "400": {
-            "description": "Bad request"
+            "$ref": "#/components/responses/ProblemBadRequest"
           }
         },
         "security": [
@@ -4306,6 +4480,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Search cases",
         "operationId": "search_cases",
         "parameters": [
           {
@@ -4370,6 +4545,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Get case",
         "operationId": "get_case",
         "parameters": [
           {
@@ -4415,6 +4591,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Update case",
         "operationId": "update_case",
         "parameters": [
           {
@@ -4460,7 +4637,7 @@
             }
           },
           "409": {
-            "description": "Version mismatch when expected_version was set"
+            "$ref": "#/components/responses/ProblemConflict"
           }
         },
         "security": [
@@ -4473,6 +4650,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Delete case",
         "operationId": "delete_case",
         "parameters": [
           {
@@ -4513,6 +4691,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Set custom fields",
         "operationId": "set_custom_fields",
         "parameters": [
           {
@@ -4571,6 +4750,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Case executions",
         "operationId": "case_executions",
         "parameters": [
           {
@@ -4614,6 +4794,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -4635,6 +4816,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "List case requirements",
         "operationId": "list_case_requirements",
         "parameters": [
           {
@@ -4660,6 +4842,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -4684,6 +4867,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "List case results project",
         "operationId": "list_case_results_project",
         "parameters": [
           {
@@ -4797,6 +4981,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "List versions",
         "operationId": "list_versions",
         "parameters": [
           {
@@ -4845,6 +5030,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Get version",
         "operationId": "get_version",
         "parameters": [
           {
@@ -4899,6 +5085,7 @@
         "tags": [
           "cases"
         ],
+        "summary": "Export case pdf project",
         "operationId": "export_case_pdf_project",
         "parameters": [
           {
@@ -4945,7 +5132,7 @@
             "description": "Case PDF export"
           },
           "404": {
-            "description": "Case not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         },
         "security": [
@@ -4960,6 +5147,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "List ci configs",
         "operationId": "list_ci_configs",
         "parameters": [
           {
@@ -4998,6 +5186,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Create ci config",
         "operationId": "create_ci_config",
         "parameters": [
           {
@@ -5045,6 +5234,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "List dispatches",
         "operationId": "list_dispatches",
         "parameters": [
           {
@@ -5085,6 +5275,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "List ci tokens",
         "operationId": "list_ci_tokens",
         "parameters": [
           {
@@ -5099,6 +5290,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5121,6 +5313,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Create ci token",
         "operationId": "create_ci_token",
         "parameters": [
           {
@@ -5145,6 +5338,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5166,6 +5360,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Revoke ci token",
         "operationId": "revoke_ci_token",
         "parameters": [
           {
@@ -5204,6 +5399,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Open ci run",
         "operationId": "open_ci_run",
         "parameters": [
           {
@@ -5228,6 +5424,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5249,6 +5446,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Get ci run",
         "operationId": "get_ci_run",
         "parameters": [
           {
@@ -5272,6 +5470,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5293,6 +5492,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Close ci run",
         "operationId": "close_ci_run",
         "parameters": [
           {
@@ -5326,6 +5526,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5347,6 +5548,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Ingest ci run",
         "operationId": "ingest_ci_run",
         "parameters": [
           {
@@ -5380,6 +5582,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5401,6 +5604,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Post ci results",
         "operationId": "post_ci_results",
         "parameters": [
           {
@@ -5434,6 +5638,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5455,6 +5660,7 @@
         "tags": [
           "ci-report"
         ],
+        "summary": "Start ci run",
         "operationId": "start_ci_run",
         "parameters": [
           {
@@ -5488,6 +5694,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5509,6 +5716,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "List fields",
         "operationId": "list_fields",
         "parameters": [
           {
@@ -5555,6 +5763,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Create field compat",
         "operationId": "create_field_compat",
         "parameters": [
           {
@@ -5601,6 +5810,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "List available",
         "operationId": "list_available",
         "parameters": [
           {
@@ -5615,6 +5825,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5639,6 +5850,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Get field",
         "operationId": "get_field",
         "parameters": [
           {
@@ -5682,6 +5894,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Update field compat",
         "operationId": "update_field_compat",
         "parameters": [
           {
@@ -5735,6 +5948,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Delete field compat",
         "operationId": "delete_field_compat",
         "parameters": [
           {
@@ -5773,6 +5987,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Add field to project",
         "operationId": "add_field_to_project",
         "parameters": [
           {
@@ -5806,6 +6021,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5827,6 +6043,7 @@
         "tags": [
           "custom_fields"
         ],
+        "summary": "Upsert override",
         "operationId": "upsert_override",
         "parameters": [
           {
@@ -5860,6 +6077,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5881,6 +6099,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "List defects",
         "operationId": "list_defects",
         "parameters": [
           {
@@ -5896,6 +6115,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5918,6 +6138,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Create defect",
         "operationId": "create_defect",
         "parameters": [
           {
@@ -5943,6 +6164,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -5964,6 +6186,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Executions tree",
         "operationId": "executions_tree",
         "parameters": [
           {
@@ -6003,6 +6226,7 @@
         "tags": [
           "imports"
         ],
+        "summary": "Run import",
         "operationId": "run_import",
         "parameters": [
           {
@@ -6043,6 +6267,7 @@
         "tags": [
           "imports"
         ],
+        "summary": "Preview import",
         "operationId": "preview_import",
         "parameters": [
           {
@@ -6068,6 +6293,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6089,6 +6315,7 @@
         "tags": [
           "ingest"
         ],
+        "summary": "Pipeline ingest",
         "operationId": "pipeline_ingest",
         "parameters": [
           {
@@ -6135,6 +6362,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "List integrations",
         "operationId": "list_integrations",
         "parameters": [
           {
@@ -6150,6 +6378,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6172,6 +6401,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Create integration",
         "operationId": "create_integration",
         "parameters": [
           {
@@ -6197,6 +6427,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6218,6 +6449,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Get integration",
         "operationId": "get_integration",
         "parameters": [
           {
@@ -6243,6 +6475,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6262,6 +6495,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Update integration",
         "operationId": "update_integration",
         "parameters": [
           {
@@ -6297,6 +6531,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6316,6 +6551,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Delete integration",
         "operationId": "delete_integration",
         "parameters": [
           {
@@ -6356,6 +6592,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Import remote requirements",
         "operationId": "import_remote_requirements",
         "parameters": [
           {
@@ -6381,6 +6618,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6405,6 +6643,7 @@
         "tags": [
           "integrations"
         ],
+        "summary": "Search remote requirements",
         "operationId": "search_remote_requirements",
         "parameters": [
           {
@@ -6454,6 +6693,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List iterations",
         "operationId": "list_iterations",
         "parameters": [
           {
@@ -6468,6 +6708,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6490,6 +6731,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Create iteration top",
         "operationId": "create_iteration_top",
         "parameters": [
           {
@@ -6514,6 +6756,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6535,6 +6778,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Get iteration",
         "operationId": "get_iteration",
         "parameters": [
           {
@@ -6558,6 +6802,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6577,6 +6822,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Update iteration",
         "operationId": "update_iteration",
         "parameters": [
           {
@@ -6610,6 +6856,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6629,6 +6876,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Delete iteration",
         "operationId": "delete_iteration",
         "parameters": [
           {
@@ -6667,6 +6915,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Iteration dashboard",
         "operationId": "iteration_dashboard",
         "parameters": [
           {
@@ -6690,6 +6939,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6711,6 +6961,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List iteration items",
         "operationId": "list_iteration_items",
         "parameters": [
           {
@@ -6734,6 +6985,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6758,6 +7010,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List suites",
         "operationId": "list_suites",
         "parameters": [
           {
@@ -6837,6 +7090,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6858,6 +7112,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Ask tests",
         "operationId": "ask_tests",
         "parameters": [
           {
@@ -6883,6 +7138,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6904,6 +7160,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Chat propose",
         "operationId": "chat_propose",
         "parameters": [
           {
@@ -6929,6 +7186,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6950,6 +7208,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Chat confirm",
         "operationId": "chat_confirm",
         "parameters": [
           {
@@ -6975,6 +7234,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -6996,6 +7256,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "List configs",
         "operationId": "list_configs",
         "parameters": [
           {
@@ -7011,6 +7272,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7033,6 +7295,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Create config",
         "operationId": "create_config",
         "parameters": [
           {
@@ -7058,6 +7321,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7079,6 +7343,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Get config",
         "operationId": "get_config",
         "parameters": [
           {
@@ -7104,6 +7369,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7123,6 +7389,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Update config",
         "operationId": "update_config",
         "parameters": [
           {
@@ -7158,6 +7425,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7177,6 +7445,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Delete config",
         "operationId": "delete_config",
         "parameters": [
           {
@@ -7217,6 +7486,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Generate cases",
         "operationId": "generate_cases",
         "parameters": [
           {
@@ -7242,6 +7512,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7263,6 +7534,7 @@
         "tags": [
           "llm"
         ],
+        "summary": "Generate code",
         "operationId": "generate_code",
         "parameters": [
           {
@@ -7288,6 +7560,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -7309,6 +7582,7 @@
         "tags": [
           "memberships"
         ],
+        "summary": "List memberships",
         "operationId": "list_memberships",
         "parameters": [
           {
@@ -7347,6 +7621,7 @@
         "tags": [
           "memberships"
         ],
+        "summary": "Upsert membership",
         "operationId": "upsert_membership",
         "parameters": [
           {
@@ -7394,6 +7669,7 @@
         "tags": [
           "memberships"
         ],
+        "summary": "Update membership",
         "operationId": "update_membership",
         "parameters": [
           {
@@ -7449,6 +7725,7 @@
         "tags": [
           "memberships"
         ],
+        "summary": "Delete membership",
         "operationId": "delete_membership",
         "parameters": [
           {
@@ -7489,6 +7766,7 @@
         "tags": [
           "plans"
         ],
+        "summary": "List plans",
         "operationId": "list_plans",
         "parameters": [
           {
@@ -7526,6 +7804,7 @@
         "tags": [
           "plans"
         ],
+        "summary": "Create plan",
         "operationId": "create_plan",
         "parameters": [
           {
@@ -7572,6 +7851,7 @@
         "tags": [
           "plans"
         ],
+        "summary": "Get plan",
         "operationId": "get_plan",
         "parameters": [
           {
@@ -7615,6 +7895,7 @@
         "tags": [
           "plans"
         ],
+        "summary": "Update plan",
         "operationId": "update_plan",
         "parameters": [
           {
@@ -7668,6 +7949,7 @@
         "tags": [
           "plans"
         ],
+        "summary": "Delete plan",
         "operationId": "delete_plan",
         "parameters": [
           {
@@ -7706,6 +7988,7 @@
         "tags": [
           "preferences"
         ],
+        "summary": "Get case list columns",
         "operationId": "get_case_list_columns",
         "parameters": [
           {
@@ -7741,6 +8024,7 @@
         "tags": [
           "preferences"
         ],
+        "summary": "Put case list columns",
         "operationId": "put_case_list_columns",
         "parameters": [
           {
@@ -7786,6 +8070,7 @@
         "tags": [
           "preferences"
         ],
+        "summary": "Delete case list columns",
         "operationId": "delete_case_list_columns",
         "parameters": [
           {
@@ -7823,6 +8108,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Coverage",
         "operationId": "coverage",
         "parameters": [
           {
@@ -7860,6 +8146,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Coverage detail",
         "operationId": "coverage_detail",
         "parameters": [
           {
@@ -7897,6 +8184,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Project dashboard",
         "operationId": "project_dashboard",
         "parameters": [
           {
@@ -7934,6 +8222,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Export report",
         "operationId": "export_report",
         "parameters": [
           {
@@ -7980,7 +8269,7 @@
             "description": "Exported report file"
           },
           "400": {
-            "description": "Bad request"
+            "$ref": "#/components/responses/ProblemBadRequest"
           }
         },
         "security": [
@@ -7995,6 +8284,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Flaky",
         "operationId": "flaky",
         "parameters": [
           {
@@ -8052,6 +8342,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Run report detail",
         "operationId": "run_report_detail",
         "parameters": [
           {
@@ -8099,6 +8390,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Run case expand",
         "operationId": "run_case_expand",
         "parameters": [
           {
@@ -8156,6 +8448,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Run groups",
         "operationId": "run_groups",
         "parameters": [
           {
@@ -8282,6 +8575,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Run case results",
         "operationId": "run_case_results",
         "parameters": [
           {
@@ -8433,6 +8727,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Run summary",
         "operationId": "run_summary",
         "parameters": [
           {
@@ -8480,6 +8775,7 @@
         "tags": [
           "reports"
         ],
+        "summary": "Trends",
         "operationId": "trends",
         "parameters": [
           {
@@ -8536,6 +8832,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "List requirement folders",
         "operationId": "list_requirement_folders",
         "parameters": [
           {
@@ -8551,6 +8848,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8573,6 +8871,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Create requirement folder",
         "operationId": "create_requirement_folder",
         "parameters": [
           {
@@ -8598,6 +8897,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8619,6 +8919,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "List requirements",
         "operationId": "list_requirements",
         "parameters": [
           {
@@ -8666,6 +8967,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Create requirement",
         "operationId": "create_requirement",
         "parameters": [
           {
@@ -8713,6 +9015,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Get requirement",
         "operationId": "get_requirement",
         "parameters": [
           {
@@ -8738,6 +9041,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8747,7 +9051,7 @@
             }
           },
           "404": {
-            "description": "Not found"
+            "$ref": "#/components/responses/ProblemNotFound"
           }
         },
         "security": [
@@ -8760,6 +9064,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Update requirement",
         "operationId": "update_requirement",
         "parameters": [
           {
@@ -8795,6 +9100,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8814,6 +9120,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Delete requirement",
         "operationId": "delete_requirement",
         "parameters": [
           {
@@ -8854,6 +9161,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Set requirement custom fields",
         "operationId": "set_requirement_custom_fields",
         "parameters": [
           {
@@ -8890,6 +9198,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8911,6 +9220,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Link case",
         "operationId": "link_case",
         "parameters": [
           {
@@ -8936,6 +9246,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -8957,6 +9268,7 @@
         "tags": [
           "requirements"
         ],
+        "summary": "Unlink case",
         "operationId": "unlink_case",
         "parameters": [
           {
@@ -8997,6 +9309,7 @@
         "tags": [
           "ci"
         ],
+        "summary": "Run in ci",
         "operationId": "run_in_ci",
         "parameters": [
           {
@@ -9022,6 +9335,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -9043,6 +9357,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List runs",
         "operationId": "list_runs",
         "parameters": [
           {
@@ -9103,6 +9418,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Create run",
         "operationId": "create_run",
         "parameters": [
           {
@@ -9149,6 +9465,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Get run",
         "operationId": "get_run",
         "parameters": [
           {
@@ -9192,6 +9509,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Update run",
         "operationId": "update_run",
         "parameters": [
           {
@@ -9245,6 +9563,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Delete run",
         "operationId": "delete_run",
         "parameters": [
           {
@@ -9283,6 +9602,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Abandon run",
         "operationId": "abandon_run",
         "parameters": [
           {
@@ -9326,10 +9646,10 @@
             }
           },
           "400": {
-            "description": "Run is not in_progress"
+            "$ref": "#/components/responses/ProblemBadRequest"
           },
           "403": {
-            "description": "Requires project admin"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         },
         "security": [
@@ -9344,6 +9664,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List run items",
         "operationId": "list_run_items",
         "parameters": [
           {
@@ -9408,6 +9729,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Get run item",
         "operationId": "get_run_item",
         "parameters": [
           {
@@ -9460,6 +9782,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Update run item",
         "operationId": "update_run_item",
         "parameters": [
           {
@@ -9524,6 +9847,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List run item results",
         "operationId": "list_run_item_results",
         "parameters": [
           {
@@ -9581,6 +9905,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List results",
         "operationId": "list_results",
         "parameters": [
           {
@@ -9643,6 +9968,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Ingest results",
         "operationId": "ingest_results",
         "parameters": [
           {
@@ -9701,6 +10027,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Create result",
         "operationId": "create_result",
         "parameters": [
           {
@@ -9756,6 +10083,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List run results history endpoint",
         "operationId": "list_run_results_history_endpoint",
         "parameters": [
           {
@@ -9813,6 +10141,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Trigger run",
         "operationId": "trigger_run",
         "parameters": [
           {
@@ -9858,6 +10187,7 @@
         "tags": [
           "suites"
         ],
+        "summary": "List suites",
         "operationId": "list_suites",
         "parameters": [
           {
@@ -9896,6 +10226,7 @@
         "tags": [
           "suites"
         ],
+        "summary": "Create suite",
         "operationId": "create_suite",
         "parameters": [
           {
@@ -9943,6 +10274,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Rerun suite",
         "operationId": "rerun_suite",
         "parameters": [
           {
@@ -9986,6 +10318,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "Delete suite run",
         "operationId": "delete_suite_run",
         "parameters": [
           {
@@ -10024,6 +10357,7 @@
         "tags": [
           "executions"
         ],
+        "summary": "List suite results",
         "operationId": "list_suite_results",
         "parameters": [
           {
@@ -10067,6 +10401,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -10088,6 +10423,7 @@
         "tags": [
           "suites"
         ],
+        "summary": "Get suite",
         "operationId": "get_suite",
         "parameters": [
           {
@@ -10133,6 +10469,7 @@
         "tags": [
           "suites"
         ],
+        "summary": "Update suite",
         "operationId": "update_suite",
         "parameters": [
           {
@@ -10188,6 +10525,7 @@
         "tags": [
           "suites"
         ],
+        "summary": "Delete suite",
         "operationId": "delete_suite",
         "parameters": [
           {
@@ -10237,6 +10575,7 @@
         "tags": [
           "tags"
         ],
+        "summary": "List tags",
         "operationId": "list_tags",
         "parameters": [
           {
@@ -10274,6 +10613,7 @@
         "tags": [
           "tags"
         ],
+        "summary": "Create tag",
         "operationId": "create_tag",
         "parameters": [
           {
@@ -10320,6 +10660,7 @@
         "tags": [
           "tags"
         ],
+        "summary": "Get tag",
         "operationId": "get_tag",
         "parameters": [
           {
@@ -10363,6 +10704,7 @@
         "tags": [
           "tags"
         ],
+        "summary": "Update tag",
         "operationId": "update_tag",
         "parameters": [
           {
@@ -10416,6 +10758,7 @@
         "tags": [
           "tags"
         ],
+        "summary": "Delete tag",
         "operationId": "delete_tag",
         "parameters": [
           {
@@ -10454,6 +10797,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Get role matrix",
         "operationId": "get_role_matrix",
         "responses": {
           "200": {
@@ -10474,6 +10818,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Get run by id",
         "operationId": "get_run_by_id",
         "parameters": [
           {
@@ -10488,6 +10833,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -10507,6 +10853,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Update run by id",
         "operationId": "update_run_by_id",
         "parameters": [
           {
@@ -10531,6 +10878,7 @@
         },
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -10550,6 +10898,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "Delete run by id",
         "operationId": "delete_run_by_id",
         "parameters": [
           {
@@ -10579,6 +10928,7 @@
         "tags": [
           "ingest"
         ],
+        "summary": "Ingest",
         "operationId": "ingest",
         "parameters": [
           {
@@ -10625,6 +10975,7 @@
         "tags": [
           "runs"
         ],
+        "summary": "List results by id",
         "operationId": "list_results_by_id",
         "parameters": [
           {
@@ -10658,6 +11009,7 @@
         ],
         "responses": {
           "200": {
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
@@ -10679,6 +11031,7 @@
         "tags": [
           "ingest"
         ],
+        "summary": "Bulk results",
         "operationId": "bulk_results",
         "parameters": [
           {
@@ -10725,6 +11078,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Setup complete",
         "operationId": "setup_complete",
         "requestBody": {
           "content": {
@@ -10741,10 +11095,10 @@
             "description": "Setup completed"
           },
           "403": {
-            "description": "Invalid setup token"
+            "$ref": "#/components/responses/ProblemForbidden"
           },
           "409": {
-            "description": "Already completed"
+            "$ref": "#/components/responses/ProblemConflict"
           }
         }
       }
@@ -10754,6 +11108,7 @@
         "tags": [
           "auth"
         ],
+        "summary": "Setup status",
         "operationId": "setup_status",
         "responses": {
           "200": {
@@ -10774,6 +11129,7 @@
         "tags": [
           "tokens"
         ],
+        "summary": "List tokens",
         "operationId": "list_tokens",
         "responses": {
           "200": {
@@ -10800,6 +11156,7 @@
         "tags": [
           "tokens"
         ],
+        "summary": "Create token",
         "operationId": "create_token",
         "requestBody": {
           "content": {
@@ -10835,6 +11192,7 @@
         "tags": [
           "tokens"
         ],
+        "summary": "Revoke token",
         "operationId": "revoke_token",
         "parameters": [
           {
@@ -10865,6 +11223,7 @@
         "tags": [
           "users"
         ],
+        "summary": "List users",
         "operationId": "list_users",
         "responses": {
           "200": {
@@ -10891,6 +11250,7 @@
         "tags": [
           "users"
         ],
+        "summary": "Create user",
         "operationId": "create_user",
         "requestBody": {
           "content": {
@@ -10914,7 +11274,7 @@
             }
           },
           "403": {
-            "description": "Forbidden"
+            "$ref": "#/components/responses/ProblemForbidden"
           }
         },
         "security": [
@@ -10929,6 +11289,7 @@
         "tags": [
           "users"
         ],
+        "summary": "Get user",
         "operationId": "get_user",
         "parameters": [
           {
@@ -10964,6 +11325,7 @@
         "tags": [
           "users"
         ],
+        "summary": "Update user",
         "operationId": "update_user",
         "parameters": [
           {
@@ -11009,6 +11371,7 @@
         "tags": [
           "users"
         ],
+        "summary": "Delete user",
         "operationId": "delete_user",
         "parameters": [
           {
@@ -11039,6 +11402,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Automation repo webhook",
         "operationId": "automation_repo_webhook",
         "parameters": [
           {
@@ -11075,7 +11439,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature or token"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11085,6 +11449,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Forgejo webhook",
         "operationId": "forgejo_webhook",
         "requestBody": {
           "description": "Forgejo Actions webhook JSON (GitHub-compatible)",
@@ -11109,7 +11474,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11119,6 +11484,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Forgejo webhook for config",
         "operationId": "forgejo_webhook_for_config",
         "parameters": [
           {
@@ -11155,7 +11521,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11165,6 +11531,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Gitea webhook",
         "operationId": "gitea_webhook",
         "requestBody": {
           "description": "Gitea Actions webhook JSON (GitHub-compatible)",
@@ -11189,7 +11556,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11199,6 +11566,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Gitea webhook for config",
         "operationId": "gitea_webhook_for_config",
         "parameters": [
           {
@@ -11235,7 +11603,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11245,6 +11613,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Github webhook",
         "operationId": "github_webhook",
         "requestBody": {
           "description": "GitHub webhook JSON payload",
@@ -11269,7 +11638,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11279,6 +11648,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Github webhook for config",
         "operationId": "github_webhook_for_config",
         "parameters": [
           {
@@ -11315,7 +11685,7 @@
             }
           },
           "401": {
-            "description": "Invalid signature"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11325,6 +11695,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Gitlab webhook",
         "operationId": "gitlab_webhook",
         "requestBody": {
           "description": "GitLab webhook JSON payload",
@@ -11349,7 +11720,7 @@
             }
           },
           "401": {
-            "description": "Invalid token"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11359,6 +11730,7 @@
         "tags": [
           "webhooks"
         ],
+        "summary": "Gitlab webhook for config",
         "operationId": "gitlab_webhook_for_config",
         "parameters": [
           {
@@ -11395,7 +11767,7 @@
             }
           },
           "401": {
-            "description": "Invalid token"
+            "$ref": "#/components/responses/ProblemUnauthorized"
           }
         }
       }
@@ -11405,6 +11777,7 @@
         "tags": [
           "system"
         ],
+        "summary": "Health",
         "operationId": "health",
         "responses": {
           "200": {
@@ -11425,6 +11798,7 @@
         "tags": [
           "system"
         ],
+        "summary": "Ready",
         "operationId": "ready",
         "responses": {
           "200": {
@@ -11438,7 +11812,7 @@
             }
           },
           "503": {
-            "description": "Database unavailable"
+            "$ref": "#/components/responses/ProblemInternal"
           }
         }
       }
@@ -17791,6 +18165,29 @@
           }
         }
       },
+      "LegacyErrorDetail": {
+        "type": "object",
+        "description": "Nested error object retained for backward compatibility with clients that\nparse `{ \"error\": { \"code\", \"message\" } }`.",
+        "required": [
+          "code",
+          "message"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "reset_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
       "LinkCaseRequirement": {
         "type": "object",
         "required": [
@@ -19406,6 +19803,59 @@
           "updated": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "ProblemDetails": {
+        "type": "object",
+        "description": "RFC 9457 Problem Details (`application/problem+json`) plus a transitional\nnested `error` object so existing clients that read `{error:{code,message}}`\nkeep working.",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "detail",
+          "code",
+          "error"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Stable machine-readable code (extension; also mirrored under `error.code`).",
+            "example": "not_found"
+          },
+          "detail": {
+            "type": "string",
+            "description": "Human-readable explanation specific to this occurrence.",
+            "example": "not found: project"
+          },
+          "error": {
+            "$ref": "#/components/schemas/LegacyErrorDetail",
+            "description": "Transitional nested shape for older clients (`error.code` / `error.message`)."
+          },
+          "reset_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "Present for `git_host_rate_limit` when the upstream reset time is known."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "description": "HTTP status code generated for this occurrence.",
+            "example": 404,
+            "minimum": 0
+          },
+          "title": {
+            "type": "string",
+            "description": "Short, human-readable summary of the problem type.",
+            "example": "Not Found"
+          },
+          "type": {
+            "type": "string",
+            "description": "URI reference that identifies the problem type (RFC 9457 `type`).",
+            "example": "urn:vulyk:api:problem:not_found"
           }
         }
       },
@@ -24274,6 +24724,176 @@
               "string",
               "null"
             ]
+          }
+        }
+      }
+    },
+    "responses": {
+      "ProblemBadRequest": {
+        "description": "Bad request (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "bad_request",
+              "detail": "bad request: invalid input",
+              "error": {
+                "code": "bad_request",
+                "message": "bad request: invalid input"
+              },
+              "status": 400,
+              "title": "Bad Request",
+              "type": "urn:vulyk:api:problem:bad_request"
+            }
+          }
+        }
+      },
+      "ProblemConflict": {
+        "description": "Conflict (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "conflict",
+              "detail": "conflict: resource already exists",
+              "error": {
+                "code": "conflict",
+                "message": "conflict: resource already exists"
+              },
+              "status": 409,
+              "title": "Conflict",
+              "type": "urn:vulyk:api:problem:conflict"
+            }
+          }
+        }
+      },
+      "ProblemForbidden": {
+        "description": "Forbidden (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "forbidden",
+              "detail": "forbidden: insufficient permissions",
+              "error": {
+                "code": "forbidden",
+                "message": "forbidden: insufficient permissions"
+              },
+              "status": 403,
+              "title": "Forbidden",
+              "type": "urn:vulyk:api:problem:forbidden"
+            }
+          }
+        }
+      },
+      "ProblemGone": {
+        "description": "Gone (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "case_deleted",
+              "detail": "gone: case key retired",
+              "error": {
+                "code": "case_deleted",
+                "message": "gone: case key retired"
+              },
+              "status": 410,
+              "title": "Gone",
+              "type": "urn:vulyk:api:problem:case_deleted"
+            }
+          }
+        }
+      },
+      "ProblemInternal": {
+        "description": "Internal server error (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "internal",
+              "detail": "internal: unexpected error",
+              "error": {
+                "code": "internal",
+                "message": "internal: unexpected error"
+              },
+              "status": 500,
+              "title": "Internal Server Error",
+              "type": "urn:vulyk:api:problem:internal"
+            }
+          }
+        }
+      },
+      "ProblemNotFound": {
+        "description": "Not found (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "not_found",
+              "detail": "not found: resource",
+              "error": {
+                "code": "not_found",
+                "message": "not found: resource"
+              },
+              "status": 404,
+              "title": "Not Found",
+              "type": "urn:vulyk:api:problem:not_found"
+            }
+          }
+        }
+      },
+      "ProblemTooManyRequests": {
+        "description": "Too many requests (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "too_many_requests",
+              "detail": "too many requests: rate limited",
+              "error": {
+                "code": "too_many_requests",
+                "message": "too many requests: rate limited"
+              },
+              "status": 429,
+              "title": "Too Many Requests",
+              "type": "urn:vulyk:api:problem:too_many_requests"
+            }
+          }
+        }
+      },
+      "ProblemUnauthorized": {
+        "description": "Unauthorized (RFC 9457 problem+json)",
+        "content": {
+          "application/problem+json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProblemDetails"
+            },
+            "example": {
+              "code": "unauthorized",
+              "detail": "unauthorized: authentication required",
+              "error": {
+                "code": "unauthorized",
+                "message": "unauthorized: authentication required"
+              },
+              "status": 401,
+              "title": "Unauthorized",
+              "type": "urn:vulyk:api:problem:unauthorized"
+            }
           }
         }
       }

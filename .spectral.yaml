@@ -1,0 +1,45 @@
+# Spectral lint for committed docs/api/openapi.json (RFC 9457 / OpenAPI quality).
+# Run: ./scripts/check-openapi-spectral.sh
+#
+# Starts from spectral:oas recommended, then disables rules that fail on
+# pre-existing quirks (duplicate operationIds across path variants, unused
+# schema inventory). Custom rules enforce #230: summaries + Problem Details.
+extends: [["spectral:oas", "recommended"]]
+rules:
+  operation-description: off
+  operation-tag-defined: warn
+  oas3-unused-component: off
+  info-contact: off
+  info-license: warn
+  # Pre-existing: several handlers share an operationId across path variants.
+  operation-operationId-unique: warn
+
+  operation-summary-required:
+    description: Every operation must have a non-empty summary
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete,options,head,trace]
+    then:
+      field: summary
+      function: truthy
+
+  problem-details-schema:
+    description: RFC 9457 ProblemDetails schema must be registered
+    severity: error
+    given: $.components.schemas
+    then:
+      field: ProblemDetails
+      function: truthy
+
+  problem-shared-responses:
+    description: Shared problem+json response components must exist for common statuses
+    severity: error
+    given: $.components.responses
+    then:
+      - field: ProblemBadRequest
+        function: truthy
+      - field: ProblemUnauthorized
+        function: truthy
+      - field: ProblemForbidden
+        function: truthy
+      - field: ProblemNotFound
+        function: truthy

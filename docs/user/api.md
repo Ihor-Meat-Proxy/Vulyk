@@ -18,8 +18,40 @@ Open the in-app docs at **`/api/docs`** (same origin as your Vulyk UI when proxi
 
 - Base path: `/api/v1`
 - Auth: session cookie (`vulyk_session`) or `Authorization: Bearer <jwt|api_token|ci_token>`
-- Errors: `{ "error": { "code": "...", "message": "..." } }`
+- Errors: [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) `application/problem+json` (see below)
 - Health: `GET /health`, `GET /ready`
+
+## Errors (RFC 9457 Problem Details)
+
+Failed requests return `Content-Type: application/problem+json` with:
+
+| Field | Meaning |
+|-------|---------|
+| `type` | URI identifying the problem type (`urn:vulyk:api:problem:{code}`) |
+| `title` | Short summary for the status class (e.g. `Not Found`) |
+| `status` | HTTP status code |
+| `detail` | Human-readable explanation for this occurrence |
+| `code` | Stable machine-readable code (`not_found`, `unauthorized`, …) |
+| `reset_at` | Optional UTC timestamp (git host rate limits) |
+| `error` | **Transitional** nested `{ code, message }` for older clients |
+
+Example (`404`):
+
+```json
+{
+  "type": "urn:vulyk:api:problem:not_found",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "not found: project",
+  "code": "not_found",
+  "error": { "code": "not_found", "message": "not found: project" }
+}
+```
+
+Prefer `detail` / `code` in new clients. The nested `error` object remains for one
+upgrade cycle so existing parsers keep working. Shared OpenAPI response components
+(`ProblemBadRequest`, `ProblemUnauthorized`, `ProblemForbidden`, `ProblemNotFound`)
+document the schema with examples in `/api/docs`.
 
 ## Token types
 
