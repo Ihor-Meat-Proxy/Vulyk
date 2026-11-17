@@ -52,10 +52,16 @@ pipeline {
 
             export VULYK_API_URL VULYK_API_TOKEN
 
-            BRANCH="${GIT_BRANCH:-}"
+            BRANCH="${GIT_BRANCH:-${BRANCH_NAME:-}}"
             BRANCH="${BRANCH#origin/}"
             BRANCH="${BRANCH#refs/heads/}"
+            if [ -z "${BRANCH}" ] && command -v git >/dev/null 2>&1; then
+              BRANCH="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+            fi
             COMMIT="${GIT_COMMIT:-}"
+            if [ -z "${COMMIT}" ] && command -v git >/dev/null 2>&1; then
+              COMMIT="$(git rev-parse HEAD 2>/dev/null || true)"
+            fi
 
             project_flag() {
               if [ -n "${VULYK_PROJECT_ID:-}" ]; then
@@ -76,7 +82,7 @@ pipeline {
               "$UPLOADER" --start-run --run-id "${VULYK_RUN_ID}" \
                 --branch "${BRANCH}" --commit "${COMMIT}" \
                 --pipeline-url "${BUILD_URL}" \
-                $(project_flag) || true
+                $(project_flag)
             fi
 
             FILE="$(ls target/surefire-reports/TEST-*.xml 2>/dev/null | head -n1 || true)"

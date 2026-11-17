@@ -311,6 +311,19 @@ This release completes **ingest detection**, pipeline links, UI badges, and docs
 for Bitbucket Pipelines and the generic `other` curl-only flow (no dispatch).
 See [ci-integration.md](./ci-integration.md#bitbucket-pipelines-ingest--links).
 
+### Native CI follow-up fixes (#288)
+
+No migration / `.env` changes. Operators should:
+
+- Use a **Woodpecker PAT** (not a browser session) for CI triggers; Test
+  connection now checks push/trigger rights when the API exposes them.
+- Expect Jenkins / Woodpecker dispatch rows to move past `running` to a
+  terminal status once the pipeline finishes.
+- Prefer Forgejo/Gitea run URLs (`…/actions/runs/{id}`) after dispatch (short
+  poll); keep webhooks for terminal sync.
+- Pass `--provider` / `--pipeline-url` with legacy `--pipeline` ingest so suite
+  slugs are not stuck on `other`.
+
 ### Case `automation_id` (#227)
 
 Forward migration `20261117064000_case_automation_id.sql` adds nullable

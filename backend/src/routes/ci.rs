@@ -19,6 +19,7 @@ use crate::routes::automation_repos::decrypt_actions_token;
 use crate::routes::AppState;
 use crate::services::automation_repo as repo_svc;
 use crate::services::automation_repo_remote::{parse_remote, HostKind};
+use crate::services::ci_dispatch_follow;
 use crate::services::display_ids::{allocate_run_ids, normalize_run_source};
 
 pub fn router() -> Router<AppState> {
@@ -499,10 +500,13 @@ pub async fn dispatch_ci(
             .bind(&h.external_url)
             .fetch_one(&state.pool)
             .await?;
+            // Prefer concrete run URLs over a prior workflow-list placeholder.
             if let (Some(rid), Some(url)) = (run_id, &h.external_url) {
                 let _ = sqlx::query(
                     r#"UPDATE test_runs
-                       SET pipeline_url = COALESCE(pipeline_url, $2),
+                       SET pipeline_url = CASE
+                             WHEN pipeline_url IS NULL OR pipeline_url LIKE '%/actions?workflow=%'
+                             THEN $2 ELSE pipeline_url END,
                            job_url = COALESCE(job_url, $2),
                            status = CASE WHEN status = 'queued' THEN 'in_progress' ELSE status END,
                            updated_at = NOW()
@@ -513,6 +517,7 @@ pub async fn dispatch_ci(
                 .execute(&state.pool)
                 .await;
             }
+            let _ = ci_dispatch_follow::enqueue_if_needed(&state.pool, &d, &cfg.provider).await;
             d
         }
         Err(err) => {

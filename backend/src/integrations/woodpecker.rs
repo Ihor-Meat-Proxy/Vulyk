@@ -155,7 +155,11 @@ fn pipeline_number(body: &Value) -> Option<i64> {
     })
 }
 
-/// Probe credentials + repository lookup.
+/// Probe credentials + repository lookup, and warn when the token cannot push/trigger.
+///
+/// Woodpecker rejects pipeline triggers with a browser session cookie/Bearer that
+/// only passes `/api/user`. Operators must use a **personal access token** with
+/// repo push / pipeline rights.
 pub async fn test_connection(cfg: &Value, policy: &CiUrlPolicy) -> AppResult<(bool, String)> {
     let target = parse_target(cfg, policy)?;
     let http = client()?;
@@ -169,7 +173,7 @@ pub async fn test_connection(cfg: &Value, policy: &CiUrlPolicy) -> AppResult<(bo
         let status = user_res.status();
         let text = user_res.text().await.unwrap_or_default();
         return Err(AppError::BadRequest(format!(
-            "Woodpecker /api/user failed ({status}): {text}"
+            "Woodpecker /api/user failed ({status}): {text}. Use a personal access token (PAT), not a browser session."
         )));
     }
     let user_body: Value = user_res.json().await.unwrap_or_else(|_| json!({}));
@@ -180,9 +184,87 @@ pub async fn test_connection(cfg: &Value, policy: &CiUrlPolicy) -> AppResult<(bo
         .unwrap_or("token");
 
     let (repo_id, full_name) = resolve_repo_id(&http, &target).await?;
+
+    // Prefer explicit permissions on the repo object when the API provides them.
+    let repo_url = format!("{}/api/repos/{repo_id}", target.base_url);
+    let repo_res = auth(http.get(&repo_url), &target.token).send().await;
+    if let Ok(repo_res) = repo_res {
+        if repo_res.status().is_success() {
+            if let Ok(repo_body) = repo_res.json::<Value>().await {
+                let push = repo_body
+                    .pointer("/permissions/push")
+                    .and_then(|v| v.as_bool())
+                    .or_else(|| {
+                        repo_body
+                            .get("permissions")
+                            .and_then(|p| p.get("push"))
+                            .and_then(|v| v.as_bool())
+                    });
+                if push == Some(false) {
+                    return Ok((
+                        false,
+                        format!(
+                            "Connected as {login}; repo '{full_name}' is readable but this token cannot push/trigger pipelines. Create a Woodpecker personal access token with repo push rights (session cookies are not enough)."
+                        ),
+                    ));
+                }
+            }
+        } else if matches!(repo_res.status().as_u16(), 401 | 403) {
+            return Ok((
+                false,
+                format!(
+                    "Connected as {login}; repo lookup succeeded but GET /api/repos/{repo_id} returned {}. Use a personal access token with pipeline trigger permission.",
+                    repo_res.status()
+                ),
+            ));
+        }
+    }
+
     Ok((
         true,
-        format!("Connected as {login}; repo '{full_name}' (id={repo_id}) reachable"),
+        format!(
+            "Connected as {login}; repo '{full_name}' (id={repo_id}) reachable. Prefer a Woodpecker PAT for dispatch."
+        ),
+    ))
+}
+
+/// Poll one pipeline status snapshot (for background follow-up until terminal).
+pub async fn poll_pipeline_once(
+    cfg: &Value,
+    pipeline_number: &str,
+    policy: &CiUrlPolicy,
+) -> AppResult<(String, String)> {
+    let target = parse_target(cfg, policy)?;
+    let http = client()?;
+    let (repo_id, full_name) = resolve_repo_id(&http, &target).await?;
+    let number: i64 = pipeline_number.parse().map_err(|_| {
+        AppError::BadRequest(format!(
+            "invalid Woodpecker pipeline number '{pipeline_number}'"
+        ))
+    })?;
+    let poll_url = format!("{}/api/repos/{repo_id}/pipelines/{number}", target.base_url);
+    let poll = auth(http.get(&poll_url), &target.token)
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Woodpecker poll failed: {e}")))?;
+    if !poll.status().is_success() {
+        let status = poll.status();
+        let text = poll.text().await.unwrap_or_default();
+        return Err(AppError::BadRequest(format!(
+            "Woodpecker poll failed ({status}): {text}"
+        )));
+    }
+    let pipeline: Value = poll
+        .json()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Woodpecker poll decode failed: {e}")))?;
+    let raw = pipeline
+        .get("status")
+        .and_then(|v| v.as_str())
+        .unwrap_or("pending");
+    Ok((
+        map_status(raw).to_string(),
+        pipeline_ui_url(&target.public_base, &full_name, number),
     ))
 }
 
@@ -232,8 +314,13 @@ pub async fn dispatch(
     if !res.status().is_success() {
         let status = res.status();
         let text = res.text().await.unwrap_or_default();
+        let hint = if status.as_u16() == 401 || status.as_u16() == 403 {
+            " Use a Woodpecker personal access token (PAT) with repo push / pipeline trigger rights — browser session tokens often pass test-connection but fail here."
+        } else {
+            ""
+        };
         return Err(AppError::BadRequest(format!(
-            "Woodpecker pipeline trigger failed ({status}): {text}"
+            "Woodpecker pipeline trigger failed ({status}): {text}.{hint}"
         )));
     }
     let mut pipeline: Value = res

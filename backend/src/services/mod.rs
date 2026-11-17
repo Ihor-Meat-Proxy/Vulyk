@@ -9,6 +9,7 @@ pub mod case_keys;
 pub mod case_list;
 pub mod cases;
 pub mod chat_propose;
+pub mod ci_dispatch_follow;
 pub mod config_bundle;
 pub mod custom_fields;
 pub mod display_ids;

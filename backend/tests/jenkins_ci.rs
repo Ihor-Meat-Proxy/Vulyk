@@ -1,4 +1,5 @@
-//! Jenkins CI config: create, test connection, dispatch with crumb + queue follow.
+//! Jenkins CI config: create, test connection, dispatch with crumb + queue follow
+//! and background terminal status follow-up.
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
@@ -13,7 +14,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-async fn spawn_api() -> String {
+async fn spawn_api() -> (String, sqlx::PgPool) {
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for integration tests");
     let pool = vulyk_api::db::connect(&database_url)
@@ -22,7 +23,7 @@ async fn spawn_api() -> String {
     vulyk_api::db::migrate(&pool).await.expect("migrate");
 
     let state = vulyk_api::routes::AppState {
-        pool,
+        pool: pool.clone(),
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
         auth: vulyk_api::auth::AuthConfig {
             required: false,
@@ -42,13 +43,14 @@ async fn spawn_api() -> String {
         axum::serve(listener, app).await.expect("serve");
     });
     tokio::time::sleep(Duration::from_millis(50)).await;
-    format!("http://{addr}")
+    (format!("http://{addr}"), pool)
 }
 
 #[derive(Clone)]
 struct JenkinsMock {
     trigger_hits: Arc<AtomicUsize>,
     last_form: Arc<tokio::sync::Mutex<Option<String>>>,
+    build_hits: Arc<AtomicUsize>,
 }
 
 async fn crumb() -> impl IntoResponse {
@@ -90,12 +92,29 @@ async fn trigger(
 }
 
 async fn queue_item() -> impl IntoResponse {
+    // Omit executable.url so follow_queue builds it from target.base_url (the mock).
     Json(json!({
         "executable": {
-            "number": 42,
-            "url": "http://jenkins.local/job/folder/job/e2e/42/"
+            "number": 42
         }
     }))
+}
+
+async fn build_status(AxumState(state): AxumState<JenkinsMock>) -> impl IntoResponse {
+    let n = state.build_hits.fetch_add(1, Ordering::SeqCst);
+    if n == 0 {
+        Json(json!({
+            "building": true,
+            "result": null,
+            "number": 42
+        }))
+    } else {
+        Json(json!({
+            "building": false,
+            "result": "SUCCESS",
+            "number": 42
+        }))
+    }
 }
 
 async fn spawn_jenkins_mock() -> (
@@ -105,9 +124,11 @@ async fn spawn_jenkins_mock() -> (
 ) {
     let trigger_hits = Arc::new(AtomicUsize::new(0));
     let last_form = Arc::new(tokio::sync::Mutex::new(None));
+    let build_hits = Arc::new(AtomicUsize::new(0));
     let state = JenkinsMock {
         trigger_hits: trigger_hits.clone(),
         last_form: last_form.clone(),
+        build_hits,
     };
     let app = Router::new()
         .route("/crumbIssuer/api/json", get(crumb))
@@ -115,6 +136,7 @@ async fn spawn_jenkins_mock() -> (
         .route("/job/folder/job/e2e/api/json", get(job_api))
         .route("/job/folder/job/e2e/buildWithParameters", post(trigger))
         .route("/queue/item/99/api/json", get(queue_item))
+        .route("/job/folder/job/e2e/42/api/json", get(build_status))
         .with_state(state);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -135,7 +157,7 @@ async fn jenkins_test_and_dispatch_follow_queue() {
     }
     std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
 
-    let base = spawn_api().await;
+    let (base, pool) = spawn_api().await;
     let client = reqwest::Client::new();
     let (mock_base, hits, last_form) = spawn_jenkins_mock().await;
 
@@ -232,4 +254,29 @@ async fn jenkins_test_and_dispatch_follow_queue() {
         pipeline.contains("/42"),
         "pipeline_url={pipeline:?} detail={detail}"
     );
+
+    // Drive background follow until the build reports SUCCESS.
+    let secrets = vulyk_api::crypto::SecretsKey::parse("test-secrets-key");
+    let mut terminal = None;
+    for _ in 0..20 {
+        let _ = vulyk_api::jobs::process_one(&pool, &secrets, "test-worker").await;
+        let got: Value = client
+            .get(format!(
+                "{base}/api/v1/ci-dispatches/{}",
+                dispatch["id"].as_str().unwrap()
+            ))
+            .send()
+            .await
+            .expect("get dispatch")
+            .json()
+            .await
+            .expect("dispatch json");
+        if got["status"] == "succeeded" {
+            terminal = Some(got);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let terminal = terminal.expect("dispatch should reach succeeded");
+    assert_eq!(terminal["status"], "succeeded");
 }

@@ -93,11 +93,16 @@ Environment: `VULYK_API_URL`, `VULYK_API_TOKEN`, `VULYK_RUN_ID`, `VULYK_PROJECT_
   --project-key DEMO
 
 # Preferred for CI: auto-create campaign + iteration + suite
+# Pass --provider / --pipeline-url so the suite slug and Executions link are not "other".
 ./scripts/vulyk-upload.sh \
   --api-url http://127.0.0.1:8080 \
   --file playwright.json \
   --format playwright_json \
   --pipeline \
+  --provider github \
+  --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+  --branch "${GITHUB_REF_NAME}" \
+  --commit "${GITHUB_SHA}" \
   --project-key DEMO \
   --campaign Integration_Automation \
   --iteration "Daily - main" \

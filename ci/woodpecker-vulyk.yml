@@ -11,7 +11,9 @@
 # sees ${VAR} (POSIX sh). Repo secrets are injected as environment variables.
 #
 # When Vulyk dispatches this pipeline it passes VULYK_RUN_ID / VULYK_PROJECT_ID
-# as pipeline variables — attach instead of opening a new run.
+# as pipeline variables — attach with --provider woodpecker instead of opening
+# a new run. Configure the CI trigger token as a Woodpecker *personal access
+# token* (PAT) with repo push / pipeline rights (session cookies fail dispatch).
 
 when:
   - event: [push, manual]
@@ -37,28 +39,42 @@ steps:
         export VULYK_API_URL="$${VULYK_API_URL}"
         export VULYK_API_TOKEN="$${VULYK_API_TOKEN}"
         export VULYK_CI_PROVIDER=woodpecker
+        export VULYK_PROJECT_KEY="$${VULYK_PROJECT_KEY:-}"
+        export VULYK_PROJECT_ID="$${VULYK_PROJECT_ID:-}"
+        export VULYK_RUN_ID="$${VULYK_RUN_ID:-}"
 
         PIPELINE_URL="$${CI_PIPELINE_URL}"
         BRANCH="$${CI_COMMIT_BRANCH:-$${CI_COMMIT_SOURCE_BRANCH:-main}}"
         COMMIT="$${CI_COMMIT_SHA}"
 
-        if [ -n "$${VULYK_RUN_ID:-}" ]; then
-          "$${UPLOADER}" --start-run \
+        project_flag() {
+          if [ -n "$${VULYK_PROJECT_ID}" ]; then
+            printf '%s\n' --project-id "$${VULYK_PROJECT_ID}"
+          elif [ -n "$${VULYK_PROJECT_KEY}" ]; then
+            printf '%s\n' --project-key "$${VULYK_PROJECT_KEY}"
+          fi
+        }
+
+        if [ -n "$${VULYK_RUN_ID}" ]; then
+          "$${UPLOADER}" --start-run --run-id "$${VULYK_RUN_ID}" \
+            --provider woodpecker \
             --branch "$${BRANCH}" --commit "$${COMMIT}" \
-            --pipeline-url "$${PIPELINE_URL}"
+            --pipeline-url "$${PIPELINE_URL}" \
+            $(project_flag)
         else
           VULYK_RUN_ID="$("$${UPLOADER}" --open-run --print-run-id \
             --suite-name "Woodpecker #$${CI_PIPELINE_NUMBER}" \
             --provider woodpecker --repo "$${CI_REPO}" \
             --branch "$${BRANCH}" --commit "$${COMMIT}" \
-            --pipeline-url "$${PIPELINE_URL}")"
+            --pipeline-url "$${PIPELINE_URL}" \
+            $(project_flag))"
           export VULYK_RUN_ID
         fi
 
         if [ -f report.xml ]; then
-          "$${UPLOADER}" --file report.xml --format junit
+          "$${UPLOADER}" --file report.xml --format junit --provider woodpecker
         fi
-        "$${UPLOADER}" --close-run
+        "$${UPLOADER}" --close-run --provider woodpecker
     secrets: [VULYK_API_URL, VULYK_API_TOKEN]
     when:
       - status: [success, failure]

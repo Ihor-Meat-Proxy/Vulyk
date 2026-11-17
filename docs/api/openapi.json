@@ -20339,6 +20339,12 @@
           "async_mode": {
             "type": "boolean"
           },
+          "branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "cadence": {
             "type": [
               "string",
@@ -20351,6 +20357,12 @@
               "null"
             ],
             "description": "Campaign name (created if missing). Defaults to \"CI\"."
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "content": {
             "type": "string"
@@ -20387,6 +20399,26 @@
             "description": "Iteration name (created if missing). Defaults to pipeline/ref name."
           },
           "iteration_reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pipeline_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Clickable pipeline URL stored on the suite run."
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "CI provider hint (`github`, `gitlab`, `jenkins`, …) for readable run ids / badges."
+          },
+          "repo": {
             "type": [
               "string",
               "null"

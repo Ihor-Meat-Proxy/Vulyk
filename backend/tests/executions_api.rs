@@ -159,6 +159,10 @@ async fn campaigns_iterations_pipeline_ingest() {
             "created_by_name": "WALL-E-rror",
             "environment": { "runner": "Playwright" },
             "artifacts": [{ "kind": "report", "url": "https://example.invalid/report" }],
+            "provider": "gitlab",
+            "pipeline_url": "https://gitlab.example/p/-/pipelines/9",
+            "branch": "main",
+            "commit": "abc123",
         }))
         .send()
         .await
@@ -171,6 +175,27 @@ async fn campaigns_iterations_pipeline_ingest() {
     assert!(ingest["inserted"].as_i64().unwrap() >= 1);
     assert_eq!(ingest["iteration_id"], iteration_id);
     let run_id = ingest["run_id"].as_str().unwrap();
+    let run_detail: Value = client
+        .get(format!("{base}/api/v1/runs/{run_id}"))
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
+    let run = run_detail.get("run").unwrap_or(&run_detail);
+    assert_eq!(run["ci_provider"], "gitlab");
+    assert_eq!(
+        run["pipeline_url"],
+        "https://gitlab.example/p/-/pipelines/9"
+    );
+    let slug = run["slug"].as_str().unwrap_or("");
+    assert!(
+        slug.contains("gitlab"),
+        "expected gitlab in slug, got {slug}"
+    );
 
     let dash: Value = client
         .get(format!(

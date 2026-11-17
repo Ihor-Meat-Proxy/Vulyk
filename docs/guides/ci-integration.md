@@ -92,21 +92,26 @@ Under **CI triggers**, choose **Woodpecker** and save:
 | Field | Required | Notes |
 |-------|----------|-------|
 | `base_url` | yes | Woodpecker server origin |
-| `token` | yes | Personal access token (Bearer; redacted in API responses) |
+| `token` | yes | **Personal access token (PAT)** with repo push / pipeline trigger rights (Bearer; redacted in API responses). Browser session tokens often pass a shallow probe but fail `POST …/pipelines` with 401. |
 | `repo` | yes | `owner/name` (looked up via `/api/repos/lookup/…`) |
 | `branch` | no | Default `main` |
 | `repo_id` | no | Skip lookup when known |
 | `public_base_url` | no | Browser-facing origin for the pipeline link |
 
-**Test connection** calls `/api/user` and repo lookup. **Dispatch** POSTs
-`/api/repos/{id}/pipelines` with `VULYK_RUN_ID` / `VULYK_PROJECT_ID` (and other
-inputs) as `variables`, then briefly polls pipeline status and stores
-`{public_base}/repos/{owner}/{name}/pipeline/{number}`.
+**Test connection** calls `/api/user`, repo lookup, and checks push/trigger
+permission when the API exposes it (warns/`ok=false` when the token cannot
+dispatch). **Dispatch** POSTs `/api/repos/{id}/pipelines` with `VULYK_RUN_ID` /
+`VULYK_PROJECT_ID` (and other inputs) as `variables`, briefly polls until the
+pipeline leaves `pending`, stores
+`{public_base}/repos/{owner}/{name}/pipeline/{number}`, then **keeps following**
+in the background until a terminal status (`succeeded` / `failed`).
 
 Example pipeline (POSIX sh, `$${VAR}` escaping):
-[`ci/woodpecker-vulyk.yml`](../../ci/woodpecker-vulyk.yml). Pass
-`--provider woodpecker` or set `VULYK_CI_PROVIDER`; auto-detect also checks
-`CI=woodpecker` / `CI_REPO` + `CI_PIPELINE_NUMBER`.
+[`ci/woodpecker-vulyk.yml`](../../ci/woodpecker-vulyk.yml). Attach to a
+dispatched run with `--start-run --run-id "$VULYK_RUN_ID" --provider woodpecker`
+(do not open a second run). Pass `--provider woodpecker` or set
+`VULYK_CI_PROVIDER`; auto-detect also checks `CI=woodpecker` / `CI_REPO` +
+`CI_PIPELINE_NUMBER`.
 
 Self-hosted `http://` or LAN Woodpecker needs **Allow http and private-network
 CI hosts** under **Admin → Settings**.
@@ -171,8 +176,11 @@ Forgejo and Gitea are first-class CI providers (not labelled `github`). Under
 
 Dispatch POSTs to
 `{base_url}/api/v1/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches`
-(`Authorization: token …`). Status sync uses GitHub-compatible `workflow_run`
-webhooks at `/api/v1/webhooks/forgejo` or `/api/v1/webhooks/gitea`.
+(`Authorization: token …`). The 204 response has no run id; Vulyk briefly polls
+`…/actions/runs` for the matching `workflow_dispatch` on the configured ref and
+stores `…/actions/runs/{id}` when found (otherwise a workflow-list URL until a
+webhook arrives). Status sync uses GitHub-compatible `workflow_run` webhooks at
+`/api/v1/webhooks/forgejo` or `/api/v1/webhooks/gitea`.
 
 When runners report an internal hostname in `pipeline_url`, set on the Vulyk
 host:
@@ -361,7 +369,20 @@ Use the same open → upload → close loop from a freestyle or Pipeline job. Sa
 Declarative Pipelines live under [`ci/Jenkinsfile`](../../ci/Jenkinsfile) and
 [`ci/Jenkinsfile.selenide`](../../ci/Jenkinsfile.selenide). Capture the run id
 with `--print-run-id` when Jenkins starts the run itself; when Vulyk dispatched
-the build, use the `VULYK_RUN_ID` parameter instead.
+the build, use the `VULYK_RUN_ID` parameter and always pass `--branch` /
+`--commit` on `--start-run` (samples fall back to `git rev-parse` when
+`GIT_BRANCH` / `GIT_COMMIT` are empty).
+
+#### Migrating same-step Jenkinsfiles
+
+Legacy jobs that open a run and expect `$VULYK_RUN_ID` for the **next command in
+the same shell** without capturing stdout will fail: `--open-run` only appends
+to `$GITHUB_ENV` (later **Actions** steps). On Jenkins/POSIX, capture with
+`--print-run-id` in the same step (see `ci/Jenkinsfile`). The uploader errors
+with a migration hint when `--file` / `--close-run` runs without a run id.
+
+After Dispatch, Vulyk follows the Jenkins build until a terminal result and
+stores it on `GET /api/v1/ci-dispatches/{id}` (not only `running`).
 
 ```bash
 export VULYK_API_URL=https://vulyk.example.com

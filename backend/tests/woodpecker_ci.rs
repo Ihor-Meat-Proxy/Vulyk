@@ -13,7 +13,7 @@ use axum::{
 };
 use serde_json::{json, Value};
 
-async fn spawn_api() -> String {
+async fn spawn_api() -> (String, sqlx::PgPool) {
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL must be set for integration tests");
     let pool = vulyk_api::db::connect(&database_url)
@@ -22,7 +22,7 @@ async fn spawn_api() -> String {
     vulyk_api::db::migrate(&pool).await.expect("migrate");
 
     let state = vulyk_api::routes::AppState {
-        pool,
+        pool: pool.clone(),
         secrets: vulyk_api::crypto::SecretsKey::parse("test-secrets-key"),
         auth: vulyk_api::auth::AuthConfig {
             required: false,
@@ -42,7 +42,7 @@ async fn spawn_api() -> String {
         axum::serve(listener, app).await.expect("serve");
     });
     tokio::time::sleep(Duration::from_millis(50)).await;
-    format!("http://{addr}")
+    (format!("http://{addr}"), pool)
 }
 
 #[derive(Clone)]
@@ -84,12 +84,22 @@ async fn trigger(
     }))
 }
 
+async fn repo_detail() -> impl IntoResponse {
+    Json(json!({
+        "id": 7,
+        "full_name": "acme/demo",
+        "permissions": { "pull": true, "push": true, "admin": false }
+    }))
+}
+
 async fn poll(AxumState(state): AxumState<WoodpeckerMock>) -> impl IntoResponse {
-    state.poll_hits.fetch_add(1, Ordering::SeqCst);
+    let n = state.poll_hits.fetch_add(1, Ordering::SeqCst);
+    // First polls during dispatch leave pending → running; later follow-up → success.
+    let status = if n < 2 { "running" } else { "success" };
     Json(json!({
         "id": 100,
         "number": 42,
-        "status": "running",
+        "status": status,
         "branch": "main"
     }))
 }
@@ -110,6 +120,7 @@ async fn spawn_woodpecker_mock() -> (
     let app = Router::new()
         .route("/api/user", get(user))
         .route("/api/repos/lookup/{repo}", get(lookup))
+        .route("/api/repos/{id}", get(repo_detail))
         .route("/api/repos/{id}/pipelines", post(trigger))
         .route("/api/repos/{id}/pipelines/{number}", get(poll))
         .with_state(state);
@@ -132,7 +143,7 @@ async fn woodpecker_test_and_dispatch_follow_status() {
     }
     std::env::set_var("VULYK_EGRESS_ALLOW_PRIVATE", "1");
 
-    let base = spawn_api().await;
+    let (base, pool) = spawn_api().await;
     let client = reqwest::Client::new();
     let (mock_base, hits, last_body) = spawn_woodpecker_mock().await;
 
@@ -226,4 +237,28 @@ async fn woodpecker_test_and_dispatch_follow_status() {
         .as_str()
         .unwrap_or("")
         .contains("/repos/acme/demo/pipeline/42"));
+
+    let secrets = vulyk_api::crypto::SecretsKey::parse("test-secrets-key");
+    let mut terminal = None;
+    for _ in 0..20 {
+        let _ = vulyk_api::jobs::process_one(&pool, &secrets, "test-worker").await;
+        let got: Value = client
+            .get(format!(
+                "{base}/api/v1/ci-dispatches/{}",
+                dispatch["id"].as_str().unwrap()
+            ))
+            .send()
+            .await
+            .expect("get dispatch")
+            .json()
+            .await
+            .expect("dispatch json");
+        if got["status"] == "succeeded" {
+            terminal = Some(got);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    let terminal = terminal.expect("woodpecker dispatch should reach succeeded");
+    assert_eq!(terminal["status"], "succeeded");
 }

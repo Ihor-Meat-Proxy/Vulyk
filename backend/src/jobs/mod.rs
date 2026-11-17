@@ -9,7 +9,9 @@ use uuid::Uuid;
 
 use crate::crypto::SecretsKey;
 use crate::ingest::parse_payload_with_project;
-use crate::services::{ingest as ingest_svc, jobs as jobs_svc, outbound_webhooks};
+use crate::services::{
+    ci_dispatch_follow, ingest as ingest_svc, jobs as jobs_svc, outbound_webhooks,
+};
 
 #[derive(Debug, Deserialize)]
 struct IngestJobPayload {
@@ -72,6 +74,7 @@ async fn tick(pool: &PgPool, secrets: &SecretsKey, worker_id: &str) -> Result<bo
     tracing::info!(job_id = %job.id, kind = %job.kind, "claimed job");
     let result = match job.kind.as_str() {
         "ingest_junit" | "ingest_json" | "ingest" => handle_ingest(pool, &job.payload).await,
+        "ci_dispatch_follow" => ci_dispatch_follow::handle(pool, &job.payload).await,
         "outbound_webhook_deliver" => {
             let delivery_id = job
                 .payload

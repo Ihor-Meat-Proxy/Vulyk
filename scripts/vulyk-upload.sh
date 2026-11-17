@@ -424,6 +424,8 @@ write_ingest_payload() {
     RUN_NAME="${RUN_NAME}" CAMPAIGN="${CAMPAIGN}" ITERATION="${ITERATION}" \
     CADENCE="${CADENCE}" CREATED_BY="${CREATED_BY}" \
     ENVIRONMENT="${ENVIRONMENT}" ARTIFACTS="${ARTIFACTS}" \
+    PROVIDER="${PROVIDER}" PIPELINE_URL="${PIPELINE_URL}" \
+    REPO="${REPO}" BRANCH="${BRANCH}" COMMIT="${COMMIT}" \
     MODE="${mode}" OUT="${out}" python3 - <<'PY'
 import json, os
 from pathlib import Path
@@ -451,6 +453,16 @@ if mode == "pipeline":
         payload["iteration"] = os.environ["ITERATION"]
     if os.environ.get("CADENCE"):
         payload["cadence"] = os.environ["CADENCE"]
+    for key, env_key in (
+        ("provider", "PROVIDER"),
+        ("pipeline_url", "PIPELINE_URL"),
+        ("repo", "REPO"),
+        ("branch", "BRANCH"),
+        ("commit", "COMMIT"),
+    ):
+        val = (os.environ.get(env_key) or "").strip()
+        if val:
+            payload[key] = val
 else:
     payload["source"] = os.environ["FORMAT"]
     if os.environ.get("CREATED_BY"):
@@ -489,7 +501,9 @@ else
   if [[ -z "${RUN_ID}" ]]; then
     if [[ "${CREATE_RUN}" -ne 1 ]]; then
       echo "error: --run-id / VULYK_RUN_ID required unless --create-run, --pipeline, or --open-run" >&2
-      echo "hint: capture open-run with --print-run-id or --run-id-file, or export VULYK_RUN_ID" >&2
+      echo "hint: capture open-run with --print-run-id in the *same shell* (Jenkins/POSIX)." >&2
+      echo "hint: do not rely on \$GITHUB_ENV for the next command in this step — that only works in later GitHub Actions steps." >&2
+      echo "hint: see docs/user/cicd.md (migrating same-step Jenkinsfiles) and ci/Jenkinsfile." >&2
       exit 2
     fi
     resolve_project_id
