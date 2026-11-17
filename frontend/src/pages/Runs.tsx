@@ -20,7 +20,13 @@ type Props = {
   projectId: string | null
 }
 
-type CiProvider = 'github' | 'gitlab' | 'jenkins' | 'forgejo' | 'gitea'
+type CiProvider =
+  | 'github'
+  | 'gitlab'
+  | 'jenkins'
+  | 'forgejo'
+  | 'gitea'
+  | 'woodpecker'
 
 const GITHUB_JSON = `{
   "token": "",
@@ -55,6 +61,13 @@ const GITEA_JSON = `{
   "ref": "main",
   "base_url": "https://gitea.example.com",
   "public_base_url": "https://gitea.example.com"
+}`
+
+const WOODPECKER_JSON = `{
+  "base_url": "https://ci.example.com",
+  "token": "",
+  "repo": "org/repo",
+  "branch": "main"
 }`
 
 export function Runs({ projectId }: Props) {
@@ -151,6 +164,9 @@ export function Runs({ projectId }: Props) {
     } else if (next === 'gitea') {
       setCiName(t('runs.giteaActions'))
       setCiJson(GITEA_JSON)
+    } else if (next === 'woodpecker') {
+      setCiName(t('runs.woodpeckerPipeline'))
+      setCiJson(WOODPECKER_JSON)
     } else {
       setCiName(t('runs.jenkinsJob'))
     }
@@ -404,6 +420,7 @@ export function Runs({ projectId }: Props) {
                   <option value="jenkins">Jenkins</option>
                   <option value="forgejo">Forgejo</option>
                   <option value="gitea">Gitea</option>
+                  <option value="woodpecker">Woodpecker</option>
                 </select>
                 <input
                   value={ciName}
@@ -524,7 +541,9 @@ export function Runs({ projectId }: Props) {
                         className="toolbar"
                         style={{ justifyContent: 'flex-end' }}
                       >
-                        {canManageCi && cfg.provider === 'jenkins' && (
+                        {canManageCi &&
+                          (cfg.provider === 'jenkins' ||
+                            cfg.provider === 'woodpecker') && (
                           <button
                             type="button"
                             className="btn secondary"

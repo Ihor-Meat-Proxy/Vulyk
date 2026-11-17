@@ -3,7 +3,8 @@
 //! ALM clients talk to OpenProject / Jira over HTTP. This repository never
 //! opens PRs, issues, or commits against those upstreams.
 //!
-//! CI adapters dispatch GitHub Actions / GitLab pipelines / Jenkins jobs and verify webhooks.
+//! CI adapters dispatch GitHub/Forgejo/Gitea Actions, GitLab, Jenkins, Woodpecker
+//! and verify webhooks where applicable.
 
 pub mod ci;
 pub mod forgejo;
@@ -14,6 +15,7 @@ pub mod jira_cloud;
 pub mod jira_dc;
 pub mod openproject;
 pub mod types;
+pub mod woodpecker;
 
 use async_trait::async_trait;
 

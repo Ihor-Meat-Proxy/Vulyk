@@ -33,7 +33,7 @@ pub struct CreateProjectCiTokenResponse {
 pub struct OpenCiRunRequest {
     /// Display name (fallback for suite_name).
     pub name: Option<String>,
-    /// CI provider hint: `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `bitbucket`, `other`.
+    /// CI provider hint: `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `woodpecker`, `bitbucket`, `other`.
     pub provider: Option<String>,
     /// `owner/repo` or path.
     pub repo: Option<String>,

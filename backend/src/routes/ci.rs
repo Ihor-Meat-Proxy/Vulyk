@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
-use crate::integrations::{forgejo, github, gitlab, jenkins};
+use crate::integrations::{forgejo, github, gitlab, jenkins, woodpecker};
 use crate::models::{
     merge_ci_config, AutomationRepoRow, CiConfig, CiConfigPublic, CiConfigTestResult, CiDispatch,
     CreateCiConfig, CreateRun, DispatchCiRequest, RunInCiRequest, RunInCiResponse, TestRun,
@@ -111,13 +111,20 @@ pub async fn create_ci_config(
     ensure_project(&state, project_id).await?;
     let provider = body.provider.trim().to_lowercase();
     // Inbound / stored configs accept common CI systems; dispatch implements
-    // github + gitlab + jenkins + forgejo/gitea (see dispatch match below).
+    // github + gitlab + jenkins + forgejo/gitea + woodpecker (see dispatch match).
     if !matches!(
         provider.as_str(),
-        "github" | "gitlab" | "jenkins" | "bitbucket" | "other" | "forgejo" | "gitea"
+        "github"
+            | "gitlab"
+            | "jenkins"
+            | "bitbucket"
+            | "other"
+            | "forgejo"
+            | "gitea"
+            | "woodpecker"
     ) {
         return Err(AppError::BadRequest(
-            "provider must be 'github', 'gitlab', 'jenkins', 'forgejo', 'gitea', 'bitbucket', or 'other'".into(),
+            "provider must be 'github', 'gitlab', 'jenkins', 'forgejo', 'gitea', 'woodpecker', 'bitbucket', or 'other'".into(),
         ));
     }
     if body.name.trim().is_empty() {
@@ -290,6 +297,13 @@ pub async fn test_ci_config(
                 message: err.to_string(),
             },
         },
+        "woodpecker" => match woodpecker::test_connection(&cfg.config, &ci_policy).await {
+            Ok((ok, message)) => CiConfigTestResult { ok, message },
+            Err(err) => CiConfigTestResult {
+                ok: false,
+                message: err.to_string(),
+            },
+        },
         "github" => CiConfigTestResult {
             ok: true,
             message: "GitHub configs are validated on dispatch (workflow_dispatch)".into(),
@@ -432,8 +446,8 @@ pub async fn dispatch_ci(
         if let Some(obj) = inputs.as_object_mut() {
             obj.entry("vulyk_run_id")
                 .or_insert_with(|| json!(attach_id.clone()));
-            // Jenkins (and many freestyle jobs) declare uppercase parameters.
-            if cfg.provider == "jenkins" {
+            // Jenkins / Woodpecker (and many freestyle jobs) declare uppercase parameters.
+            if matches!(cfg.provider.as_str(), "jenkins" | "woodpecker") {
                 obj.entry("VULYK_RUN_ID")
                     .or_insert_with(|| json!(attach_id));
                 obj.entry("VULYK_PROJECT_ID")
@@ -465,6 +479,7 @@ pub async fn dispatch_ci(
         "forgejo" | "gitea" => forgejo::dispatch(&cfg.config, &inputs, &ci_policy).await,
         "gitlab" => gitlab::dispatch(&cfg.config, &inputs).await,
         "jenkins" => jenkins::dispatch(&cfg.config, &inputs, &ci_policy).await,
+        "woodpecker" => woodpecker::dispatch(&cfg.config, &inputs, &ci_policy).await,
         other => Err(AppError::BadRequest(format!("unknown provider {other}"))),
     };
 
@@ -1095,6 +1110,44 @@ fn validate_config(
                 .unwrap_or("")
                 .trim_end_matches('/');
             crate::services::egress::validate_ci_url(base, policy)?;
+        }
+        "woodpecker" => {
+            for key in ["base_url", "token", "repo"] {
+                if config
+                    .get(key)
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .is_empty()
+                {
+                    return Err(AppError::BadRequest(format!(
+                        "woodpecker config requires '{key}'"
+                    )));
+                }
+            }
+            let repo = config
+                .get("repo")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim_matches('/');
+            if !repo.contains('/') {
+                return Err(AppError::BadRequest(
+                    "woodpecker config 'repo' must be 'owner/name'".into(),
+                ));
+            }
+            let base = config
+                .get("base_url")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim_end_matches('/');
+            crate::services::egress::validate_ci_url(base, policy)?;
+            if let Some(public) = config
+                .get("public_base_url")
+                .and_then(|v| v.as_str())
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+            {
+                crate::services::egress::validate_ci_url(public, policy)?;
+            }
         }
         _ => {}
     }

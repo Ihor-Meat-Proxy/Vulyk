@@ -29,8 +29,8 @@ Options:
   --close-run            Close a CI run
   --cancelled            Mark close as cancelled
   --pipeline             Legacy one-shot campaign/iteration ingest
-  --provider NAME        github | gitlab | jenkins | forgejo | gitea | other
-                         (or VULYK_CI_PROVIDER; auto-detects Forgejo/Gitea/GitHub/GitLab/Jenkins)
+  --provider NAME        github | gitlab | jenkins | forgejo | gitea | woodpecker | other
+                         (or VULYK_CI_PROVIDER; auto-detects common CI hosts)
   --repo TEXT            owner/repo or path
   --branch TEXT          Git branch
   --commit SHA           Git commit
@@ -157,6 +157,16 @@ detect_ci_provider() {
   if [[ -n "${GITEA_ACTIONS:-}" ]]; then
     PROVIDER="gitea"
     return
+  fi
+  if [[ -n "${CI:-}" && -n "${CI_REPO:-}${CI_PIPELINE_NUMBER:-}${WOODPECKER_BACKEND:-}" ]]; then
+    # Woodpecker sets CI=woodpecker on modern agents; older agents still export CI_REPO.
+    case "${CI}" in
+      woodpecker|woodpecker-ci) PROVIDER="woodpecker"; return ;;
+    esac
+    if [[ -n "${CI_REPO:-}" && -n "${CI_PIPELINE_NUMBER:-}" && -z "${GITHUB_ACTIONS:-}${GITLAB_CI:-}" ]]; then
+      PROVIDER="woodpecker"
+      return
+    fi
   fi
   if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
     case "${GITHUB_SERVER_URL:-}" in

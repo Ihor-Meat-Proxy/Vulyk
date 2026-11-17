@@ -19,6 +19,8 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'Gitea',
     'Forgejo/Gitea',
     'GitHub/Forgejo/Gitea',
+    'Woodpecker',
+    'Jenkins/Woodpecker',
     'CSRF',
     'crumb',
     'localhost',
