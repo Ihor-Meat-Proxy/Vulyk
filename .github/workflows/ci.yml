@@ -6,6 +6,13 @@ on:
   pull_request:
   workflow_call:
 
+# Least privilege for PR / Dependabot runs (no contents write / no secrets).
+# Release/publish stays in release.yml (tag-only on main).
+permissions:
+  contents: read
+  pull-requests: read
+  actions: write # upload-artifact only
+
 env:
   CARGO_TERM_COLOR: always
   DATABASE_URL: postgres://vulyk:vulyk@localhost:5432/vulyk
