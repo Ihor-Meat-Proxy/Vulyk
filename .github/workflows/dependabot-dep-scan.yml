@@ -1,0 +1,81 @@
+# Extra scan lane for Dependabot PRs (Part of #294).
+# Runs with read-only permissions / no secrets. Complements Security + Fast CI
+# gates (cargo-deny, cargo-audit, OSV) with a hard OSV gate on dep PRs and npm
+# lockfile malware heuristics. New packages / install scripts / maintainers
+# remain blocked by dependabot-review-gate.yml.
+
+name: Dependabot dep scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: dependabot-dep-scan-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  rust-deny-audit:
+    name: Dependabot cargo deny + audit
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@df2a88e9fe4098bad09cb42c3dec7187f15861fc # master
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          cache-targets: false
+      - name: Install cargo-audit + cargo-deny
+        run: cargo install cargo-audit cargo-deny --locked
+      - name: cargo deny check
+        run: cargo deny check
+      - name: cargo audit
+        run: cargo audit
+
+  osv-changed:
+    name: Dependabot OSV (changed packages)
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Install the same scanner binary the action wraps (hard-fail only for
+      # packages whose version changed on this PR — see check-osv-changed-deps.sh).
+      - name: Install osv-scanner
+        env:
+          OSV_VERSION: "2.7.1"
+        run: |
+          curl -sSfL \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_VERSION}/osv-scanner_linux_amd64" \
+            -o /tmp/osv-scanner
+          sudo install -m 0755 /tmp/osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
+      - name: OSV on changed deps
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          HEAD_REF: HEAD
+        run: |
+          chmod +x scripts/check-osv-changed-deps.sh
+          ./scripts/check-osv-changed-deps.sh
+
+  npm-heuristics:
+    name: Dependabot npm lock heuristics
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Heuristics on npm lock diff
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          HEAD_REF: HEAD
+          SUPPLY_CHAIN_REVIEWED: ${{ contains(github.event.pull_request.labels.*.name, 'supply-chain-reviewed') }}
+        run: |
+          chmod +x scripts/check-npm-lock-heuristics.py
+          python3 scripts/check-npm-lock-heuristics.py

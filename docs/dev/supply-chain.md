@@ -76,7 +76,27 @@ security event detection returns `1`, and that `npm-ci-secure.sh` only passes
 `--min-release-age=0` when the fast path is on. Also runs in
 `./scripts/check.sh` and the **npm security fast path** Fast CI gate.
 
+## Dependency PR scanning
+
+Every PR already runs cargo-deny (Fast CI), cargo-audit + OSV + npm audit
+(Security). Dependabot PRs get an extra lane
+[`.github/workflows/dependabot-dep-scan.yml`](../../.github/workflows/dependabot-dep-scan.yml):
+
+| Check | Role |
+| --- | --- |
+| cargo deny + cargo audit | Hard fail on advisory / license / source policy (honors `deny.toml` / `.cargo/audit.toml`) |
+| OSV on changed packages | `scripts/check-osv-changed-deps.sh` fails only if a package whose version changed in the PR has an OSV hit (baseline noise stays in Security SARIF) |
+| npm lock heuristics | `scripts/check-npm-lock-heuristics.py` - new install scripts, registry host flips, typosquat-ish new names |
+
+The Dependabot review gate also runs the npm heuristics alongside the new-package /
+maintainer / install-script gate. Override with label `supply-chain-reviewed`.
+
+```bash
+BASE_REF=origin/main HEAD_REF=HEAD ./scripts/check-npm-lock-heuristics.py
+./scripts/test-npm-lock-heuristics.sh
+```
+
 ## Related
 
-- [ci-checks.md](ci-checks.md) — workflow index
-- [releasing.md](releasing.md) — tags / GHCR (signing / SBOM land with later #294 slices)
+- [ci-checks.md](ci-checks.md) - workflow index
+- [releasing.md](releasing.md) - tags / GHCR (signing / SBOM land with later #294 slices)

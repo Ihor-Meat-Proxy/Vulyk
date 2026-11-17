@@ -96,7 +96,9 @@ cargo install lychee --locked   # once
 
 **Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**, plus **security-advisory** updates (including majors) once CI is green. **0.x “minor”** non-security bumps are treated as breaking. New packages, new maintainers, or new npm install scripts **block auto-merge** until owner review (`supply-chain-reviewed` label, or the Dependabot review gate). The auto-merge job does **not** check out PR code and only needs `contents: write` + `pull-requests: write`.
 
-**Dependabot review gate:** `.github/workflows/dependabot-review-gate.yml` + `scripts/check-dep-pr-review-gate.py` (read-only `pull_request`, no secrets). Fails when lockfiles add packages or install scripts unless `supply-chain-reviewed` is present.
+**Dependabot review gate:** `.github/workflows/dependabot-review-gate.yml` + `scripts/check-dep-pr-review-gate.py` (read-only `pull_request`, no secrets). Fails when lockfiles add packages or install scripts unless `supply-chain-reviewed` is present. Also runs npm lock heuristics.
+
+**Dependabot dep scan:** `.github/workflows/dependabot-dep-scan.yml` — cargo deny + audit, OSV filtered to packages changed on the PR (`scripts/check-osv-changed-deps.sh`), and `scripts/check-npm-lock-heuristics.py` (typosquat / new install scripts / registry host flips). See [supply-chain.md](supply-chain.md).
 
 **Locked installs:** CI / Docker / local helpers use `cargo … --locked` and `./scripts/npm-ci-secure.sh` (`npm ci --ignore-scripts` + optional rebuild allowlist in `scripts/npm-install-scripts-allowlist.txt`). Frontend and e2e ship `.npmrc` with `ignore-scripts=true` and `min-release-age=7`. Dependabot **security** installs bypass the age gate via `--min-release-age=0` (see [supply-chain.md](supply-chain.md); proof: `./scripts/check-npm-security-fast-path.sh` / Fast CI job **npm security fast path**).
 

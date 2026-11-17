@@ -43,5 +43,6 @@ jobs:
           DEPENDABOT_MAINTAINER_CHANGES: ${{ steps.metadata.outputs.maintainer-changes }}
           SUPPLY_CHAIN_REVIEWED: ${{ contains(github.event.pull_request.labels.*.name, 'supply-chain-reviewed') }}
         run: |
-          chmod +x scripts/check-dep-pr-review-gate.py
+          chmod +x scripts/check-dep-pr-review-gate.py scripts/check-npm-lock-heuristics.py
           python3 scripts/check-dep-pr-review-gate.py
+          python3 scripts/check-npm-lock-heuristics.py

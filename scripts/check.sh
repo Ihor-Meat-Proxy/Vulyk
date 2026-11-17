@@ -33,6 +33,10 @@ echo "==> npm security fast path (min-release-age override)"
 chmod +x scripts/check-npm-security-fast-path.sh scripts/npm-security-fast-path.sh scripts/npm-ci-secure.sh
 ./scripts/check-npm-security-fast-path.sh
 
+echo "==> npm lock heuristics self-test"
+chmod +x scripts/check-npm-lock-heuristics.py scripts/test-npm-lock-heuristics.sh
+./scripts/test-npm-lock-heuristics.sh
+
 echo "==> seed keys"
 chmod +x scripts/check-seed-keys.sh
 ./scripts/check-seed-keys.sh
