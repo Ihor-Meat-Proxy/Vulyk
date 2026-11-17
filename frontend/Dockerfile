@@ -1,9 +1,14 @@
 FROM node:22-bookworm AS builder
 # Build from the repository root so docs/user Markdown can be bundled.
 WORKDIR /src
+# Security fast path: Dependabot advisory PRs pass --build-arg VULYK_NPM_SECURITY_FAST_PATH=1
+# so npm ci can install a fix published < min-release-age days ago (see docs/dev/supply-chain.md).
+ARG VULYK_NPM_SECURITY_FAST_PATH=0
+ENV VULYK_NPM_SECURITY_FAST_PATH=$VULYK_NPM_SECURITY_FAST_PATH
 COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./frontend/
-COPY scripts/npm-ci-secure.sh scripts/npm-install-scripts-allowlist.txt ./scripts/
-RUN chmod +x scripts/npm-ci-secure.sh && ./scripts/npm-ci-secure.sh frontend
+COPY scripts/npm-ci-secure.sh scripts/npm-security-fast-path.sh scripts/npm-install-scripts-allowlist.txt ./scripts/
+RUN chmod +x scripts/npm-ci-secure.sh scripts/npm-security-fast-path.sh \
+  && ./scripts/npm-ci-secure.sh frontend
 COPY frontend ./frontend
 COPY docs/user ./docs/user
 WORKDIR /src/frontend

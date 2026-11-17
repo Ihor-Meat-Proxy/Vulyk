@@ -299,10 +299,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Resolve npm security fast path
+        id: npm_sec
+        run: |
+          chmod +x scripts/npm-security-fast-path.sh
+          echo "fast=$(./scripts/npm-security-fast-path.sh)" >> "$GITHUB_OUTPUT"
       - name: Build API image
         run: docker build -f backend/Dockerfile -t vulyk-api:ci .
       - name: Build web image
-        run: docker build -f frontend/Dockerfile -t vulyk-web:ci .
+        run: |
+          docker build -f frontend/Dockerfile \
+            --build-arg "VULYK_NPM_SECURITY_FAST_PATH=${{ steps.npm_sec.outputs.fast }}" \
+            -t vulyk-web:ci .
 
   dogfood-ingest:
     name: Dogfood e2e ingest (API + CLI upload)

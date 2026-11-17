@@ -155,8 +155,18 @@ jobs:
             tag: vulyk-updater:security
     steps:
       - uses: actions/checkout@v7
+      - name: Resolve npm security fast path
+        id: npm_sec
+        run: |
+          chmod +x scripts/npm-security-fast-path.sh
+          echo "fast=$(./scripts/npm-security-fast-path.sh)" >> "$GITHUB_OUTPUT"
       - name: Build ${{ matrix.name }} image
-        run: docker build -f "${{ matrix.file }}" -t "${{ matrix.tag }}" "${{ matrix.context }}"
+        run: |
+          extra=()
+          if [[ "${{ matrix.name }}" == "web" ]]; then
+            extra+=(--build-arg "VULYK_NPM_SECURITY_FAST_PATH=${{ steps.npm_sec.outputs.fast }}")
+          fi
+          docker build -f "${{ matrix.file }}" "${extra[@]}" -t "${{ matrix.tag }}" "${{ matrix.context }}"
       - name: Trivy image scan (SARIF)
         uses: aquasecurity/trivy-action@v0.36.0
         with:

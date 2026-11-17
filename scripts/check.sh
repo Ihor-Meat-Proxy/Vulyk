@@ -29,6 +29,10 @@ for arg in "$@"; do
   esac
 done
 
+echo "==> npm security fast path (min-release-age override)"
+chmod +x scripts/check-npm-security-fast-path.sh scripts/npm-security-fast-path.sh scripts/npm-ci-secure.sh
+./scripts/check-npm-security-fast-path.sh
+
 echo "==> seed keys"
 chmod +x scripts/check-seed-keys.sh
 ./scripts/check-seed-keys.sh

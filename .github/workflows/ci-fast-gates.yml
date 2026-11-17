@@ -41,6 +41,20 @@ jobs:
         if: github.event_name != 'pull_request'
         run: echo "OK: PR hygiene not applicable on ${{ github.event_name }}"
 
+  npm-security-fast-path:
+    name: npm security fast path
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - name: check-npm-security-fast-path.sh
+        run: |
+          chmod +x scripts/check-npm-security-fast-path.sh \
+            scripts/npm-security-fast-path.sh scripts/npm-ci-secure.sh
+          ./scripts/check-npm-security-fast-path.sh
+
   shell-docker:
     name: Shellcheck + hadolint
     runs-on: ubuntu-latest
