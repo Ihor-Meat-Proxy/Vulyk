@@ -198,7 +198,7 @@ async fn preview_and_generate_from_pull_diff() {
         .json()
         .await
         .unwrap();
-    assert!(generated["drafts"].as_array().unwrap().len() >= 1);
+    assert!(!generated["drafts"].as_array().unwrap().is_empty());
     assert!(!generated["persisted"].as_array().unwrap().is_empty());
     let case = &generated["persisted"][0];
     let gen = &case["generation"];
