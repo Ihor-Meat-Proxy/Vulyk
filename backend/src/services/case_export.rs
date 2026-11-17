@@ -1078,7 +1078,7 @@ pub async fn load_case_export(
 
     let case = sqlx::query_as::<_, crate::models::TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases WHERE id = $1 AND project_id = $2"#,
     )
     .bind(case_id)
@@ -1215,6 +1215,7 @@ mod tests {
             status: "ready".into(),
             version: 3,
             external_key: Some("e2e:export.spec.ts".into()),
+            automation_id: None,
             sort_order: 0,
             created_at: Utc::now(),
             updated_at: Utc::now(),

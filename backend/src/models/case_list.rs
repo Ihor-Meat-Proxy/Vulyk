@@ -59,6 +59,8 @@ pub struct TestCaseListItem {
     #[serde(default)]
     pub external_key: Option<String>,
     #[serde(default)]
+    pub automation_id: Option<String>,
+    #[serde(default)]
     pub sort_order: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

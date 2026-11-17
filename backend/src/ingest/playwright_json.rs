@@ -105,6 +105,7 @@ fn walk_suites(suites: &[PwSuite], prefix: &str, out: &mut Vec<BulkResultItem>) 
                 message,
                 case_id: None,
                 case_key: key,
+                automation_id: None,
                 external_id: Some(title.clone()),
                 title: Some(title),
                 duration_ms,

@@ -883,6 +883,8 @@ const es: Dict = {
   'cases.tabDetails': "Detalles",
   'cases.tabHistory': "Historial / Resultados",
   'cases.preconditions': "Precondiciones",
+  'cases.automationId': "ID de automatización",
+  'cases.automationIdHelp': "Identificador estable para emparejar CI/resultados (único por proyecto). Prefiéralo a la clave del caso en el título de la prueba.",
   'cases.description': "Descripción",
   'cases.version': "Versión",
   'cases.linkedRequirements': "Requisitos vinculados",

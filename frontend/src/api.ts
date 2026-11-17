@@ -154,6 +154,8 @@ export type TestCase = {
   status: string
   version: number
   external_key?: string | null
+  /** Stable automation / CI identifier (unique per project when set). */
+  automation_id?: string | null
   sort_order?: number
   created_at: string
   updated_at: string

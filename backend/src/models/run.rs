@@ -290,6 +290,8 @@ pub struct RunItemExecution {
 pub struct IngestResultItem {
     pub case_id: Option<Uuid>,
     pub case_key: Option<String>,
+    #[serde(default)]
+    pub automation_id: Option<String>,
     pub status: String,
     #[serde(default)]
     pub message: String,
@@ -312,6 +314,9 @@ pub struct BulkResultItem {
     pub message: String,
     pub case_id: Option<Uuid>,
     pub case_key: Option<String>,
+    /// Explicit automation_id from JUnit/ingest properties (matched after case key).
+    #[serde(default)]
+    pub automation_id: Option<String>,
     pub external_id: Option<String>,
     pub title: Option<String>,
     pub duration_ms: Option<i32>,

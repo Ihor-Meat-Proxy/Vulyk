@@ -883,6 +883,8 @@ const en: Dict = {
   'cases.tabDetails': "Details",
   'cases.tabHistory': "History / Results",
   'cases.preconditions': "Preconditions",
+  'cases.automationId': "Automation ID",
+  'cases.automationIdHelp': "Stable id for CI/results matching (unique per project). Prefer this over putting the case key in the test title.",
   'cases.description': "Description",
   'cases.version': "Version",
   'cases.linkedRequirements': "Linked requirements",

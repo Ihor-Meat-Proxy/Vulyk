@@ -903,11 +903,32 @@ pub async fn ingest_results(
             crate::services::cases::ensure_case_in_project(&state.pool, project_id, id).await?;
             Some(id)
         } else if let Some(key) = item.case_key.as_ref() {
-            sqlx::query_scalar::<_, Uuid>(
-                "SELECT id FROM test_cases WHERE project_id = $1 AND key = $2",
+            let by_key: Option<Uuid> = sqlx::query_scalar(
+                "SELECT id FROM test_cases WHERE project_id = $1 AND upper(key) = upper($2)",
             )
             .bind(project_id)
             .bind(key)
+            .fetch_optional(&mut *tx)
+            .await?;
+            if by_key.is_some() {
+                by_key
+            } else if let Some(aid) = item.automation_id.as_ref() {
+                sqlx::query_scalar(
+                    "SELECT id FROM test_cases WHERE project_id = $1 AND upper(automation_id) = upper($2)",
+                )
+                .bind(project_id)
+                .bind(aid)
+                .fetch_optional(&mut *tx)
+                .await?
+            } else {
+                None
+            }
+        } else if let Some(aid) = item.automation_id.as_ref() {
+            sqlx::query_scalar(
+                "SELECT id FROM test_cases WHERE project_id = $1 AND upper(automation_id) = upper($2)",
+            )
+            .bind(project_id)
+            .bind(aid)
             .fetch_optional(&mut *tx)
             .await?
         } else {

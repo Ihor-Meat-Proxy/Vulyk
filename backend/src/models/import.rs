@@ -24,6 +24,8 @@ pub struct FieldMapping {
     pub suite: String,
     #[serde(default = "map_steps")]
     pub steps: String,
+    #[serde(default = "map_automation_id")]
+    pub automation_id: String,
     /// Map of Vulyk custom field key → source column/key.
     #[serde(default)]
     pub custom_fields: HashMap<String, String>,
@@ -40,6 +42,7 @@ impl Default for FieldMapping {
             status: map_status(),
             suite: map_suite(),
             steps: map_steps(),
+            automation_id: map_automation_id(),
             custom_fields: HashMap::new(),
         }
     }
@@ -69,6 +72,9 @@ fn map_suite() -> String {
 fn map_steps() -> String {
     "steps".into()
 }
+fn map_automation_id() -> String {
+    "automation_id".into()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ImportCaseDraft {
@@ -87,6 +93,8 @@ pub struct ImportCaseDraft {
     pub steps: Vec<ImportStepDraft>,
     #[serde(default)]
     pub external_id: Option<String>,
+    #[serde(default)]
+    pub automation_id: Option<String>,
     #[serde(default)]
     pub source_fields: Value,
     /// Custom field values keyed by field definition key.

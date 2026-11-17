@@ -228,6 +228,7 @@ export const TestIds = {
   caseDetailPrioritySelect: 'case-detail-priority-select',
   caseDetailDescriptionInput: 'case-detail-description-input',
   caseDetailPreconditionInput: 'case-detail-precondition-input',
+  caseDetailAutomationIdInput: 'case-detail-automation-id-input',
   caseDetailTagsInput: 'case-detail-tags-input',
   caseDetailFolderSelect: 'case-detail-folder-select',
   caseDetailSteps: 'case-detail-steps',

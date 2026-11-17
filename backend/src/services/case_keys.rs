@@ -176,7 +176,7 @@ pub async fn find_case_by_key(
     }
     let case = sqlx::query_as::<_, crate::models::TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases WHERE upper(key) = $1"#,
     )
     .bind(&normalized)

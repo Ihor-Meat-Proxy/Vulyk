@@ -133,6 +133,7 @@ fn parse_xml_as_cases(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             suite_name: None,
             steps: Vec::new(),
             external_id: reference.map(str::to_string),
+            automation_id: None,
             source_fields: json!({ "name": name }),
             custom_fields: Default::default(),
         });

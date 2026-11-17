@@ -441,6 +441,7 @@ pub async fn list_cases(
            )
            SELECT tc.id, tc.project_id, tc.suite_id, tc.key, tc.title, tc.description,
                   tc.precondition, tc.priority, tc.status, tc.version, tc.external_key,
+                  tc.automation_id,
                   tc.sort_order, tc.created_at, tc.updated_at,
                   {AUTOMATED_SQL_EXPR} AS automated,
                   su.name AS folder_name,
@@ -634,13 +635,20 @@ pub async fn create_case(
     let (key, _number) = allocate_case_key(&mut tx, project_id).await?;
     let sort_order = body.sort_order.unwrap_or(0);
 
+    let automation_id = body
+        .automation_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(str::to_string);
+
     let case = sqlx::query_as::<_, TestCase>(
         r#"INSERT INTO test_cases
              (project_id, suite_id, key, title, description, precondition, priority, status,
-              external_key, sort_order)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+              external_key, automation_id, sort_order)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
+                     priority, status, version, external_key, automation_id, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(body.suite_id)
@@ -651,6 +659,7 @@ pub async fn create_case(
     .bind(&body.priority)
     .bind(&body.status)
     .bind(body.external_key.as_deref())
+    .bind(automation_id.as_deref())
     .bind(sort_order)
     .fetch_one(&mut *tx)
     .await?;
@@ -690,7 +699,7 @@ pub async fn get_case(
     .await?;
     let case = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases WHERE project_id = $1 AND id = $2"#,
     )
     .bind(project_id)
@@ -776,7 +785,7 @@ pub async fn update_case(
     // turns last-write-wins into a clean 409 (review #7).
     let existing = sqlx::query_as::<_, TestCase>(
         r#"SELECT id, project_id, suite_id, key, title, description, precondition,
-                  priority, status, version, external_key, sort_order, created_at, updated_at
+                  priority, status, version, external_key, automation_id, sort_order, created_at, updated_at
            FROM test_cases WHERE project_id = $1 AND id = $2
            FOR UPDATE"#,
     )
@@ -813,16 +822,23 @@ pub async fn update_case(
     let status = body.status.unwrap_or(existing.status.clone());
     let sort_order = body.sort_order.unwrap_or(existing.sort_order);
     let external_key = body.external_key.or(existing.external_key.clone());
+    // Some("") clears; omit (None) keeps the existing value.
+    let automation_id = match body.automation_id {
+        Some(ref s) if s.trim().is_empty() => None,
+        Some(ref s) => Some(s.trim().to_string()),
+        None => existing.automation_id.clone(),
+    };
     let from_version = existing.version;
 
     let case = sqlx::query_as::<_, TestCase>(
         r#"UPDATE test_cases
            SET title = $3, suite_id = $4, description = $5, precondition = $6,
                priority = $7, status = $8, sort_order = $9, external_key = $10,
+               automation_id = $11,
                version = version + 1, updated_at = NOW()
-           WHERE project_id = $1 AND id = $2 AND version = $11
+           WHERE project_id = $1 AND id = $2 AND version = $12
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
+                     priority, status, version, external_key, automation_id, sort_order, created_at, updated_at"#,
     )
     .bind(project_id)
     .bind(case_id)
@@ -834,6 +850,7 @@ pub async fn update_case(
     .bind(status)
     .bind(sort_order)
     .bind(external_key)
+    .bind(automation_id)
     .bind(from_version)
     .fetch_optional(&mut *tx)
     .await?
@@ -1235,7 +1252,7 @@ pub async fn set_custom_fields(
         r#"UPDATE test_cases SET version = version + 1, updated_at = NOW()
            WHERE id = $1
            RETURNING id, project_id, suite_id, key, title, description, precondition,
-                     priority, status, version, external_key, sort_order, created_at, updated_at"#,
+                     priority, status, version, external_key, automation_id, sort_order, created_at, updated_at"#,
     )
     .bind(case_id)
     .fetch_one(&mut *tx)

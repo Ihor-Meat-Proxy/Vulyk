@@ -255,6 +255,8 @@ pub struct ContentCase {
     #[serde(default)]
     pub external_key: Option<String>,
     #[serde(default)]
+    pub automation_id: Option<String>,
+    #[serde(default)]
     pub folder_path: Vec<String>,
     #[serde(default)]
     pub sort_order: i32,

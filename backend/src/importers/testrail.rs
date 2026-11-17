@@ -142,6 +142,7 @@ fn parse_xml(content: &str) -> AppResult<Vec<ImportCaseDraft>> {
             suite_name: tag_text(chunk, "section"),
             steps: Vec::new(),
             external_id: id,
+            automation_id: None,
             source_fields: json!({}),
             custom_fields: Default::default(),
         });
