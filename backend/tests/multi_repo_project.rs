@@ -112,7 +112,9 @@ async fn project_can_link_several_repos_and_pick_default() {
     let _ = id_a;
 
     let listed: Value = client
-        .get(format!("{base}/api/v1/projects/{project_id}/automation-repos"))
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/automation-repos"
+        ))
         .send()
         .await
         .unwrap()
@@ -142,7 +144,9 @@ async fn project_can_link_several_repos_and_pick_default() {
     assert_eq!(set_default["is_default"], true);
 
     let listed2: Value = client
-        .get(format!("{base}/api/v1/projects/{project_id}/automation-repos"))
+        .get(format!(
+            "{base}/api/v1/projects/{project_id}/automation-repos"
+        ))
         .send()
         .await
         .unwrap()

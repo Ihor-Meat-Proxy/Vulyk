@@ -242,7 +242,10 @@ export function Admin({ projects, project, onProjectsChanged }: Props) {
           />
           {canAutomationRepo && (
             <>
-              <p className="muted" {...testIdProps(TestIds.adminAutomationLegacyNotice)}>
+              <p
+                className="muted"
+                {...testIdProps(TestIds.adminAutomationLegacyNotice)}
+              >
                 {t('admin.automationRepoLegacyNotice')}
               </p>
               <AutomationRepoPanel projectId={projectId} onError={setError} />

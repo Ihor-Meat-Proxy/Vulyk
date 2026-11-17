@@ -175,29 +175,24 @@ pub(crate) fn parse_remote_shape(provider: &str, remote_url: &str) -> AppResult<
         "bitbucket" => {
             let mut parts = path.splitn(2, '/');
             let workspace = parts.next().unwrap_or("").to_string();
-            let repo_slug = parts
-                .next()
-                .unwrap_or("")
-                .trim_end_matches('/')
-                .to_string();
+            let repo_slug = parts.next().unwrap_or("").trim_end_matches('/').to_string();
             if workspace.is_empty() || repo_slug.is_empty() {
                 return Err(AppError::BadRequest(
                     "Bitbucket remote must look like https://bitbucket.org/workspace/repo".into(),
                 ));
             }
-            let (api_base, html_base) =
-                if host == "bitbucket.org" || host == "www.bitbucket.org" {
-                    (
-                        "https://api.bitbucket.org/2.0".into(),
-                        format!("{scheme}://bitbucket.org"),
-                    )
-                } else {
-                    // Bitbucket Server / Data Center style API root.
-                    (
-                        format!("{scheme}://{authority}/rest/api/1.0"),
-                        format!("{scheme}://{authority}"),
-                    )
-                };
+            let (api_base, html_base) = if host == "bitbucket.org" || host == "www.bitbucket.org" {
+                (
+                    "https://api.bitbucket.org/2.0".into(),
+                    format!("{scheme}://bitbucket.org"),
+                )
+            } else {
+                // Bitbucket Server / Data Center style API root.
+                (
+                    format!("{scheme}://{authority}/rest/api/1.0"),
+                    format!("{scheme}://{authority}"),
+                )
+            };
             Ok(HostKind::Bitbucket {
                 api_base,
                 html_base,
@@ -583,8 +578,7 @@ pub async fn list_branches(
         } => {
             let mut page = 1u32;
             loop {
-                let url =
-                    format!("{api_base}/repos/{owner}/{repo}/branches?limit=50&page={page}");
+                let url = format!("{api_base}/repos/{owner}/{repo}/branches?limit=50&page={page}");
                 let (_, _, bytes) = api_get(
                     &client,
                     &url,

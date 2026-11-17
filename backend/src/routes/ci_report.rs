@@ -356,11 +356,9 @@ pub async fn open_ci_run(
         .filter(|s| !s.is_empty())
     {
         // Best-effort: match linked automation remotes by URL substring or name.
-        let linked = crate::services::automation_repo::load_repos_for_project(
-            &state.pool,
-            project_id,
-        )
-        .await?;
+        let linked =
+            crate::services::automation_repo::load_repos_for_project(&state.pool, project_id)
+                .await?;
         if let Some(match_row) = linked.iter().find(|r| {
             r.remote_url.contains(repo_hint)
                 || r.name.eq_ignore_ascii_case(repo_hint)
