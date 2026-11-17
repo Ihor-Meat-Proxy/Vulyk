@@ -96,6 +96,23 @@ cargo install lychee --locked   # once
 
 **Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps only: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**. **0.x “minor” bumps are treated as breaking** (Dependabot still labels them `semver-minor`) and are never auto-merged; neither are semver-majors. Grouped updates use fetch-metadata’s highest `update-type` / version pair. The job does not check out PR code and only needs `contents: write` + `pull-requests: write`.
 
+### Pinned Dependabot majors (#234)
+
+Decision for Milestone 0.6.0: **close and pin** each open major / 0.x-breaking
+bump rather than migrate in-tree. Ignores live in `.github/dependabot.yml`;
+remove an ignore in the same PR that lands the migration. Review by **2027-05-01**.
+
+| Package | Stay on | Dependabot PRs | Why pin (not migrate yet) |
+| --- | --- | --- | --- |
+| `typescript` | ~5.8 | #122 | `typescript-eslint@8` peer is `typescript >=4.8.4 <6.1.0`; TS 7 fails `npm` with `ERESOLVE` |
+| `sqlx` | 0.8 | #123 | 0.9 adds `SqlSafeStr` / `AssertSqlSafe` for dynamic SQL and changes migrate APIs — broad backend rewrite |
+| `quick-xml` | 0.41 | #126 | 0.42 string ergonomics break `local_name()` / `BytesText` byte matches in JUnit ingest |
+| `eslint` / `@eslint/js` / `eslint-plugin-react-hooks` | 9.x / 5.x | #147–#149 | Majors need a coordinated flat-config + peer bump; isolated PRs fail frontend install/lint |
+| `rand` | 0.8 | #151 | 0.10 drops `thread_rng` / re-exports `RngCore`; **`jsonwebtoken` 11 still requires `rand ^0.8`**, so the tree cannot unify on 0.10 yet |
+
+Closed Dependabot PR numbers above are historical references; new PRs for these
+lines should not reopen while the ignores remain.
+
 ### Justified advisory ignores
 
 Documented in `deny.toml` / `.cargo/audit.toml` with **review-by dates**:

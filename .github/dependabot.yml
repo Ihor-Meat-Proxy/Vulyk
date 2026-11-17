@@ -13,6 +13,19 @@ updates:
       rust-patch:
         update-types:
           - patch
+    # Pinned majors / 0.x breaking lines — see docs/dev/ci-checks.md
+    # "Pinned Dependabot majors (#234)". Remove an ignore when that bump is
+    # migrated in a dedicated PR.
+    ignore:
+      # 0.8 → 0.9 is labeled semver-minor but breaks SqlSafeStr / migrate APIs.
+      - dependency-name: sqlx
+        versions: [">=0.9.0"]
+      # 0.41 → 0.42 switches local_name / text APIs to str (junit ingest rewrite).
+      - dependency-name: quick-xml
+        versions: [">=0.42.0"]
+      # thread_rng / RngCore relocated; jsonwebtoken still requires rand ^0.8.
+      - dependency-name: rand
+        versions: [">=0.9.0"]
 
   - package-ecosystem: npm
     directory: /frontend
@@ -26,6 +39,18 @@ updates:
         update-types:
           - patch
           - minor
+    # Pinned majors — see docs/dev/ci-checks.md "Pinned Dependabot majors (#234)".
+    ignore:
+      # typescript-eslint@8 peer is typescript >=4.8.4 <6.1.0 (TS 7 ERESOLVE).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # ESLint 10 + plugins need a coordinated flat-config / peer bump.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: eslint-plugin-react-hooks
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /e2e
