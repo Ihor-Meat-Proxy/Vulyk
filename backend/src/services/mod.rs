@@ -16,6 +16,7 @@ pub mod egress;
 pub mod ingest;
 pub mod jobs;
 pub mod option_lists;
+pub mod outbound_webhooks;
 pub mod reports;
 pub mod results;
 pub mod run_reports;

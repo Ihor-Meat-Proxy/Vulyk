@@ -51,6 +51,7 @@ Help rendered in the product at `/docs`:
 | [api.md](api.md) | HTTP API overview (OpenAPI at `/api/docs`) |
 | [auth-and-rbac.md](auth-and-rbac.md) | Auth modes, JWT/sessions/tokens, RBAC |
 | [guides/ci-integration.md](guides/ci-integration.md) | CI reporting + **Run in CI** |
+| [guides/outbound-webhooks.md](guides/outbound-webhooks.md) | Signed outbound webhooks (case/run/result events) |
 | [guides/ingest-and-ci.md](guides/ingest-and-ci.md) | Formats, dispatch, webhooks |
 | [guides/executions.md](guides/executions.md) | Campaigns, iterations, pipeline upload |
 | [automation-repo.md](automation-repo.md) | Automation Git repos for Generate |

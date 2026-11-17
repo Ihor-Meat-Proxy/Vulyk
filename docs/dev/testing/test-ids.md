@@ -405,6 +405,7 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `case-detail-actions` | `caseDetailActions` |
 | `case-detail-add-step-button` | `caseDetailAddStepButton` |
 | `case-detail-automated` | `caseDetailAutomated` |
+| `case-detail-automation-id-input` | `caseDetailAutomationIdInput` |
 | `case-detail-back` | `caseDetailBackLink` |
 | `case-detail-breadcrumb-current` | `caseDetailBreadcrumbCurrent` |
 | `case-detail-breadcrumb-folder` | `caseDetailBreadcrumbFolder` |
@@ -928,8 +929,8 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `settings-ci-token-row` | `settingsCiTokenRow` |
 | `settings-ci-token-secret` | `settingsCiTokenSecret` |
 | `settings-ci-tokens-nav-link` | `settingsCiTokensNavLink` |
-| `settings-ci-unmatched-policy-select` | `settingsCiUnmatchedPolicySelect` |
 | `settings-ci-unmatched-policy-save-button` | `settingsCiUnmatchedPolicySaveButton` |
+| `settings-ci-unmatched-policy-select` | `settingsCiUnmatchedPolicySelect` |
 | `settings-confirm-password-input` | `settingsConfirmPasswordInput` |
 | `settings-create-token-button` | `settingsCreateTokenButton` |
 | `settings-current-password-input` | `settingsCurrentPasswordInput` |
@@ -942,6 +943,19 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `settings-notify-email-checkbox` | `settingsNotifyEmailCheckbox` |
 | `settings-notify-in-app-checkbox` | `settingsNotifyInAppCheckbox` |
 | `settings-notify-run-updates-checkbox` | `settingsNotifyRunUpdatesCheckbox` |
+| `settings-outbound-webhooks-panel` | `settingsOutboundWebhooksPanel` |
+| `settings-outbound-wh-create-button` | `settingsOutboundWhCreateButton` |
+| `settings-outbound-wh-deliveries` | `settingsOutboundWhDeliveries` |
+| `settings-outbound-wh-event-checkbox` | `settingsOutboundWhEventCheckbox` |
+| `settings-outbound-wh-events` | `settingsOutboundWhEvents` |
+| `settings-outbound-wh-list` | `settingsOutboundWhList` |
+| `settings-outbound-wh-name-input` | `settingsOutboundWhNameInput` |
+| `settings-outbound-wh-project-select` | `settingsOutboundWhProjectSelect` |
+| `settings-outbound-wh-redeliver-button` | `settingsOutboundWhRedeliverButton` |
+| `settings-outbound-wh-row` | `settingsOutboundWhRow` |
+| `settings-outbound-wh-secret` | `settingsOutboundWhSecret` |
+| `settings-outbound-wh-test-button` | `settingsOutboundWhTestButton` |
+| `settings-outbound-wh-url-input` | `settingsOutboundWhUrlInput` |
 | `settings-page` | `settingsPage` |
 | `settings-save-profile-button` | `settingsSaveProfileButton` |
 | `settings-sign-in-link` | `settingsSignInLink` |

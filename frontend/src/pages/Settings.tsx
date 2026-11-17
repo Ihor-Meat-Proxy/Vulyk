@@ -5,7 +5,10 @@ import {
   type ApiTokenPublic,
   type AutomationRepo,
   type AutomationRepoBranch,
+  OUTBOUND_WEBHOOK_EVENTS,
   type CiUnmatchedPolicy,
+  type OutboundWebhookDelivery,
+  type OutboundWebhookEndpoint,
   type Project,
   type ProjectCiToken,
   type ProjectRole,
@@ -204,6 +207,21 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
   const [ciSecretOnce, setCiSecretOnce] = useState<string | null>(null)
   const [ciCopyNotice, setCiCopyNotice] = useState<string | null>(null)
   const [canCiTokens, setCanCiTokens] = useState(false)
+  const [canOutboundWebhooks, setCanOutboundWebhooks] = useState(false)
+  const [whProjectId, setWhProjectId] = useState('')
+  const [whEndpoints, setWhEndpoints] = useState<OutboundWebhookEndpoint[]>([])
+  const [whName, setWhName] = useState('integrations')
+  const [whUrl, setWhUrl] = useState('')
+  const [whEvents, setWhEvents] = useState<string[]>([
+    'run.created',
+    'result.created',
+  ])
+  const [whSecretOnce, setWhSecretOnce] = useState<string | null>(null)
+  const [whBusy, setWhBusy] = useState(false)
+  const [whSelectedId, setWhSelectedId] = useState('')
+  const [whDeliveries, setWhDeliveries] = useState<OutboundWebhookDelivery[]>(
+    [],
+  )
 
   useEffect(() => {
     setDisplayName(user?.display_name ?? '')
@@ -271,8 +289,12 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
         const anyCi = Object.values(roles).some((role) =>
           can({ role, isSystemAdmin: isAdmin }, 'manage_api_tokens'),
         )
+        const anyWh = Object.values(roles).some((role) =>
+          can({ role, isSystemAdmin: isAdmin }, 'manage_ci_config'),
+        )
         setCanAutomation(isAdmin || anyAutomation)
         setCanCiTokens(isAdmin || anyCi)
+        setCanOutboundWebhooks(isAdmin || anyWh)
         if (isAdmin || anyAutomation) {
           await refreshRepos()
         }
@@ -298,6 +320,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
           setProjects([])
           setCanAutomation(Boolean(user.is_system_admin))
           setCanCiTokens(Boolean(user.is_system_admin))
+          setCanOutboundWebhooks(Boolean(user.is_system_admin))
         }
       }
     })()
@@ -310,6 +333,74 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     if (!ciProjectId || !canCiTokens) return
     void refreshCiTokens(ciProjectId)
   }, [ciProjectId, canCiTokens])
+
+  const refreshOutboundWebhooks = async (projectId: string) => {
+    if (!projectId) {
+      setWhEndpoints([])
+      setWhDeliveries([])
+      return
+    }
+    try {
+      setWhEndpoints(await api.listOutboundWebhooks(projectId))
+    } catch {
+      setWhEndpoints([])
+    }
+  }
+
+  const refreshWhDeliveries = async (projectId: string, endpointId: string) => {
+    if (!projectId || !endpointId) {
+      setWhDeliveries([])
+      return
+    }
+    try {
+      const page = await api.listOutboundWebhookDeliveries(
+        projectId,
+        endpointId,
+        {
+          limit: 20,
+        },
+      )
+      setWhDeliveries(page.items)
+    } catch {
+      setWhDeliveries([])
+    }
+  }
+
+  useEffect(() => {
+    if (!whProjectId || !canOutboundWebhooks) return
+    void refreshOutboundWebhooks(whProjectId)
+  }, [whProjectId, canOutboundWebhooks])
+
+  useEffect(() => {
+    if (!whProjectId || !whSelectedId || !canOutboundWebhooks) return
+    void refreshWhDeliveries(whProjectId, whSelectedId)
+  }, [whProjectId, whSelectedId, canOutboundWebhooks])
+
+  useEffect(() => {
+    if (!canOutboundWebhooks || projects.length === 0) return
+    const isAdmin = Boolean(user?.is_system_admin)
+    const eligible = projects.filter((p) =>
+      can(
+        { role: projectRoles[p.id] ?? null, isSystemAdmin: isAdmin },
+        'manage_ci_config',
+      ),
+    )
+    const preferred =
+      (ciProjectId && eligible.some((p) => p.id === ciProjectId)
+        ? ciProjectId
+        : eligible[0]?.id) || ''
+    if (preferred) {
+      setWhProjectId((cur) =>
+        cur && eligible.some((p) => p.id === cur) ? cur : preferred,
+      )
+    }
+  }, [
+    canOutboundWebhooks,
+    projects,
+    projectRoles,
+    ciProjectId,
+    user?.is_system_admin,
+  ])
 
   useEffect(() => {
     if (!ciProjectId) {
@@ -744,6 +835,51 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
       )
       setCiSecretOnce(res.secret)
       await refreshCiTokens(ciProjectId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    }
+  }
+
+  const onCreateOutboundWebhook = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!whProjectId || whEvents.length === 0) return
+    setWhBusy(true)
+    setError(null)
+    try {
+      const res = await api.createOutboundWebhook(whProjectId, {
+        name: whName.trim() || 'webhook',
+        url: whUrl.trim(),
+        events: whEvents,
+      })
+      setWhSecretOnce(res.secret)
+      setWhSelectedId(res.endpoint.id)
+      await refreshOutboundWebhooks(whProjectId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setWhBusy(false)
+    }
+  }
+
+  const toggleWhEvent = (ev: string) => {
+    setWhEvents((prev) =>
+      prev.includes(ev) ? prev.filter((x) => x !== ev) : [...prev, ev],
+    )
+  }
+
+  const onDeleteOutboundWh = async (id: string) => {
+    if (!whProjectId) return
+    const ok = await confirmAsync({
+      title: t('settings.outboundWhDeleteConfirm'),
+      message: t('settings.outboundWhDeleteConfirm'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    try {
+      await api.deleteOutboundWebhook(whProjectId, id)
+      if (whSelectedId === id) setWhSelectedId('')
+      await refreshOutboundWebhooks(whProjectId)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     }
@@ -1706,6 +1842,202 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               {t('settings.ciTokenCreate')}
             </button>
           </form>
+        </section>
+      ) : null}
+
+      {canOutboundWebhooks ? (
+        <section
+          id="outbound-webhooks"
+          className="panel"
+          {...testIdProps(TestIds.settingsOutboundWebhooksPanel)}
+        >
+          <h3>{t('settings.outboundWebhooks')}</h3>
+          <p className="muted">{t('settings.outboundWebhooksHelp')}</p>
+          <label className="field">
+            <span>{t('settings.ciTokensProject')}</span>
+            <select
+              value={whProjectId}
+              onChange={(e) => {
+                setWhProjectId(e.target.value)
+                setWhSecretOnce(null)
+                setWhSelectedId('')
+              }}
+              {...testIdProps(TestIds.settingsOutboundWhProjectSelect)}
+            >
+              {projects
+                .filter((p) =>
+                  can(
+                    {
+                      role: projectRoles[p.id] ?? null,
+                      isSystemAdmin: Boolean(user?.is_system_admin),
+                    },
+                    'manage_ci_config',
+                  ),
+                )
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.key} — {p.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          {whSecretOnce ? (
+            <div
+              className="token-secret"
+              {...testIdProps(TestIds.settingsOutboundWhSecret)}
+            >
+              <p className="muted">{t('settings.outboundWhSecretOnce')}</p>
+              <code>{whSecretOnce}</code>
+            </div>
+          ) : null}
+          <form
+            className="stack-form"
+            style={{ marginTop: '1rem' }}
+            onSubmit={(e) => void onCreateOutboundWebhook(e)}
+          >
+            <label className="field">
+              <span>{t('settings.tokenName')}</span>
+              <input
+                value={whName}
+                onChange={(e) => setWhName(e.target.value)}
+                required
+                disabled={!whProjectId || whBusy}
+                {...testIdProps(TestIds.settingsOutboundWhNameInput)}
+              />
+            </label>
+            <label className="field">
+              <span>{t('settings.outboundWhUrl')}</span>
+              <input
+                value={whUrl}
+                onChange={(e) => setWhUrl(e.target.value)}
+                required
+                type="url"
+                disabled={!whProjectId || whBusy}
+                {...testIdProps(TestIds.settingsOutboundWhUrlInput)}
+              />
+            </label>
+            <fieldset
+              className="field"
+              {...testIdProps(TestIds.settingsOutboundWhEvents)}
+            >
+              <legend>{t('settings.outboundWhEvents')}</legend>
+              {OUTBOUND_WEBHOOK_EVENTS.filter((e) => e !== 'webhook.test').map(
+                (ev) => (
+                  <label key={ev} className="checkbox-inline">
+                    <input
+                      type="checkbox"
+                      checked={whEvents.includes(ev)}
+                      onChange={() => toggleWhEvent(ev)}
+                      disabled={!whProjectId || whBusy}
+                      {...listChildProps(
+                        TestIds.settingsOutboundWhEventCheckbox,
+                        ev.replaceAll('.', '-'),
+                      )}
+                    />
+                    {ev}
+                  </label>
+                ),
+              )}
+            </fieldset>
+            <button
+              className="btn"
+              type="submit"
+              disabled={!whProjectId || whBusy || whEvents.length === 0}
+              {...testIdProps(TestIds.settingsOutboundWhCreateButton)}
+            >
+              {t('settings.outboundWhCreate')}
+            </button>
+          </form>
+          {whEndpoints.length > 0 ? (
+            <ul
+              className="plain-list"
+              style={{ marginTop: '1rem' }}
+              {...testIdProps(TestIds.settingsOutboundWhList)}
+            >
+              {whEndpoints.map((ep, index) => (
+                <li
+                  key={ep.id}
+                  {...listItemProps(TestIds.settingsOutboundWhRow, {
+                    entityId: ep.id,
+                    index,
+                  })}
+                >
+                  <button
+                    type="button"
+                    className="linkish"
+                    onClick={() => setWhSelectedId(ep.id)}
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'select')}
+                  >
+                    <strong>{ep.name}</strong> · {ep.url}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn secondary tiny"
+                    disabled={whBusy}
+                    onClick={() =>
+                      void api
+                        .testOutboundWebhook(whProjectId, ep.id)
+                        .then(() => {
+                          setWhSelectedId(ep.id)
+                          return refreshWhDeliveries(whProjectId, ep.id)
+                        })
+                    }
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'test')}
+                  >
+                    {t('settings.outboundWhTest')}
+                  </button>
+                  <button
+                    type="button"
+                    className="linkish danger"
+                    onClick={() => void onDeleteOutboundWh(ep.id)}
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'delete')}
+                  >
+                    {t('common.delete')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">{t('settings.outboundWhEmpty')}</p>
+          )}
+          {whSelectedId ? (
+            <div
+              style={{ marginTop: '1rem' }}
+              {...testIdProps(TestIds.settingsOutboundWhDeliveries)}
+            >
+              <h4>{t('settings.outboundWhDeliveries')}</h4>
+              {whDeliveries.length === 0 ? (
+                <p className="muted">
+                  {t('settings.outboundWhDeliveriesEmpty')}
+                </p>
+              ) : (
+                <ul className="plain-list">
+                  {whDeliveries.map((d) => (
+                    <li key={d.id}>
+                      {d.event_type} · {d.status}
+                      {d.http_status != null ? ` · HTTP ${d.http_status}` : ''}
+                      <button
+                        type="button"
+                        className="btn secondary tiny"
+                        onClick={() =>
+                          void api
+                            .redeliverOutboundWebhook(whProjectId, d.id)
+                            .then(() =>
+                              refreshWhDeliveries(whProjectId, whSelectedId),
+                            )
+                        }
+                        {...testIdProps(
+                          TestIds.settingsOutboundWhRedeliverButton,
+                        )}
+                      >
+                        {t('settings.outboundWhRedeliver')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : null}
         </section>
       ) : null}
       {confirmDialog}

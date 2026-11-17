@@ -113,7 +113,8 @@ async fn run_serve(database_url: &str) -> Result<(), Box<dyn std::error::Error>>
     seed::run(&pool).await?;
     sso::sync_from_env(&pool, &secrets).await?;
 
-    jobs::spawn_worker(pool.clone());
+    let secrets_for_jobs = secrets.clone();
+    jobs::spawn_worker(pool.clone(), secrets_for_jobs);
     vulyk_api::services::backup::spawn_scheduler(pool.clone(), secrets.clone());
     vulyk_api::services::automation_repo_poll::spawn_poller(pool.clone(), secrets.clone());
 

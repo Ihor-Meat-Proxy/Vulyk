@@ -670,7 +670,20 @@ pub async fn create_case(
     snapshot_case(&mut tx, &case, "created").await?;
     tx.commit().await?;
 
-    Ok(Json(load_case_detail(&state.pool, case).await?))
+    let detail = load_case_detail(&state.pool, case).await?;
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        project_id,
+        crate::services::outbound_webhooks::EVENT_CASE_CREATED,
+        serde_json::json!({
+            "id": detail.case.id,
+            "key": detail.case.key,
+            "title": detail.case.title,
+            "status": detail.case.status,
+        }),
+    )
+    .await;
+    Ok(Json(detail))
 }
 
 #[utoipa::path(
@@ -887,7 +900,21 @@ pub async fn update_case(
     .await?;
 
     tx.commit().await?;
-    Ok(Json(load_case_detail(&state.pool, case).await?))
+    let detail = load_case_detail(&state.pool, case).await?;
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        project_id,
+        crate::services::outbound_webhooks::EVENT_CASE_UPDATED,
+        serde_json::json!({
+            "id": detail.case.id,
+            "key": detail.case.key,
+            "title": detail.case.title,
+            "status": detail.case.status,
+            "version": detail.case.version,
+        }),
+    )
+    .await;
+    Ok(Json(detail))
 }
 
 #[utoipa::path(
@@ -931,6 +958,13 @@ pub async fn delete_case(
         .execute(&mut *tx)
         .await?;
     tx.commit().await?;
+    crate::services::outbound_webhooks::enqueue_event(
+        &state.pool,
+        project_id,
+        crate::services::outbound_webhooks::EVENT_CASE_DELETED,
+        serde_json::json!({ "id": case_id, "key": key }),
+    )
+    .await;
     Ok(axum::http::StatusCode::NO_CONTENT)
 }
 

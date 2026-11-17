@@ -1414,6 +1414,45 @@ export type ProjectCiToken = {
   revoked_at: string | null
 }
 
+export const OUTBOUND_WEBHOOK_EVENTS = [
+  'case.created',
+  'case.updated',
+  'case.deleted',
+  'run.created',
+  'run.updated',
+  'result.created',
+  'webhook.test',
+] as const
+
+export type OutboundWebhookEndpoint = {
+  id: string
+  project_id: string
+  name: string
+  url: string
+  has_secret: boolean
+  events: string[]
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type OutboundWebhookDelivery = {
+  id: string
+  endpoint_id: string
+  project_id: string
+  event_type: string
+  payload: Record<string, unknown>
+  status: string
+  attempt_count: number
+  http_status: number | null
+  response_body: string | null
+  last_error: string | null
+  job_id: string | null
+  created_at: string
+  updated_at: string
+  delivered_at: string | null
+}
+
 export type CiConfig = {
   id: string
   project_id: string
@@ -2992,6 +3031,68 @@ export const api = {
     request<void>(`/api/v1/projects/${projectId}/ci-tokens/${tokenId}`, {
       method: 'DELETE',
     }),
+
+  listOutboundWebhooks: (projectId: string) =>
+    request<OutboundWebhookEndpoint[]>(
+      `/api/v1/projects/${projectId}/outbound-webhooks`,
+    ),
+  createOutboundWebhook: (
+    projectId: string,
+    body: { name: string; url: string; events: string[]; enabled?: boolean },
+  ) =>
+    request<{ endpoint: OutboundWebhookEndpoint; secret: string }>(
+      `/api/v1/projects/${projectId}/outbound-webhooks`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  updateOutboundWebhook: (
+    projectId: string,
+    id: string,
+    body: {
+      name?: string
+      url?: string
+      events?: string[]
+      enabled?: boolean
+      rotate_secret?: boolean
+    },
+  ) =>
+    request<{ endpoint: OutboundWebhookEndpoint; secret: string }>(
+      `/api/v1/projects/${projectId}/outbound-webhooks/${id}`,
+      { method: 'PUT', body: JSON.stringify(body) },
+    ),
+  deleteOutboundWebhook: (projectId: string, id: string) =>
+    request<void>(`/api/v1/projects/${projectId}/outbound-webhooks/${id}`, {
+      method: 'DELETE',
+    }),
+  listOutboundWebhookDeliveries: (
+    projectId: string,
+    endpointId: string,
+    params?: { limit?: number; offset?: number },
+  ) => {
+    const q = new URLSearchParams()
+    if (params?.limit != null) q.set('limit', String(params.limit))
+    if (params?.offset != null) q.set('offset', String(params.offset))
+    const qs = q.toString()
+    return request<{
+      items: OutboundWebhookDelivery[]
+      total: number
+      limit: number
+      offset: number
+    }>(
+      `/api/v1/projects/${projectId}/outbound-webhooks/${endpointId}/deliveries${
+        qs ? `?${qs}` : ''
+      }`,
+    )
+  },
+  redeliverOutboundWebhook: (projectId: string, deliveryId: string) =>
+    request<OutboundWebhookDelivery>(
+      `/api/v1/projects/${projectId}/outbound-webhooks/deliveries/${deliveryId}/redeliver`,
+      { method: 'POST' },
+    ),
+  testOutboundWebhook: (projectId: string, endpointId: string) =>
+    request<OutboundWebhookDelivery>(
+      `/api/v1/projects/${projectId}/outbound-webhooks/${endpointId}/test`,
+      { method: 'POST' },
+    ),
 
   listTokens: () => request<ApiTokenPublic[]>('/api/v1/tokens'),
   createToken: (
