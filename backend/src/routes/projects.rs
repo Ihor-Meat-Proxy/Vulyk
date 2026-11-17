@@ -43,17 +43,17 @@ pub async fn list_projects(
             // Scoped API tokens only ever see their bound project.
             Some(user) if user.api_token_scope().is_some() => {
                 let (token_project, _) = user.api_token_scope().expect("checked");
-                sqlx::query_as::<_, Project>(&format!(
+                sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
                     "SELECT {PROJECT_COLS} FROM projects WHERE id = $1 ORDER BY key"
-                ))
+                )))
                 .bind(token_project)
                 .fetch_all(&state.pool)
                 .await?
             }
             Some(user) if user.bypasses_as_system_admin() => {
-                sqlx::query_as::<_, Project>(&format!(
+                sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
                     "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
-                ))
+                )))
                 .fetch_all(&state.pool)
                 .await?
             }
@@ -76,9 +76,11 @@ pub async fn list_projects(
             }
         }
     } else {
-        sqlx::query_as::<_, Project>(&format!("SELECT {PROJECT_COLS} FROM projects ORDER BY key"))
-            .fetch_all(&state.pool)
-            .await?
+        sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
+            "SELECT {PROJECT_COLS} FROM projects ORDER BY key"
+        )))
+        .fetch_all(&state.pool)
+        .await?
     };
     Ok(Json(projects))
 }
@@ -159,12 +161,12 @@ pub async fn create_project(
             unique_prefix_for_name(&state.pool, body.name.trim()).await?
         };
 
-        let inserted = sqlx::query_as::<_, Project>(&format!(
+        let inserted = sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
             r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number,
                                      ci_unmatched_policy)
                VALUES ($1, $2, $3, $4, 0, $5)
                RETURNING {PROJECT_COLS}"#
-        ))
+        )))
         .bind(&key)
         .bind(body.name.trim())
         .bind(&body.description)
@@ -249,9 +251,9 @@ pub async fn get_project(
     )
     .await?;
 
-    let project = sqlx::query_as::<_, Project>(&format!(
+    let project = sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
         "SELECT {PROJECT_COLS} FROM projects WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -285,9 +287,9 @@ pub async fn update_project(
     )
     .await?;
 
-    let existing = sqlx::query_as::<_, Project>(&format!(
+    let existing = sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
         "SELECT {PROJECT_COLS} FROM projects WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -333,13 +335,13 @@ pub async fn update_project(
         existing.ci_unmatched_policy
     };
 
-    let project = sqlx::query_as::<_, Project>(&format!(
+    let project = sqlx::query_as::<_, Project>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE projects
            SET name = $2, description = $3, case_key_prefix = $4,
                ci_unmatched_policy = $5, updated_at = NOW()
            WHERE id = $1
            RETURNING {PROJECT_COLS}"#
-    ))
+    )))
     .bind(id)
     .bind(name)
     .bind(description)

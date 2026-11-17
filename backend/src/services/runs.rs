@@ -5,10 +5,10 @@ use crate::error::AppResult;
 use crate::models::{RunItem, RunItemView, RunProgress, StatusCounts, TestRun};
 
 pub async fn load_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> AppResult<TestRun> {
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {} FROM test_runs WHERE project_id = $1 AND id = $2"#,
         crate::models::TEST_RUN_COLS
-    ))
+    )))
     .bind(project_id)
     .bind(run_id)
     .fetch_optional(pool)
@@ -329,7 +329,7 @@ pub async fn load_run_items_page(
         .await?;
 
     let sql = format!("{RUN_ITEM_SELECT} LIMIT $2 OFFSET $3");
-    let items = sqlx::query(&sql)
+    let items = sqlx::query(sqlx::AssertSqlSafe(sql))
         .bind(run_id)
         .bind(limit)
         .bind(offset)

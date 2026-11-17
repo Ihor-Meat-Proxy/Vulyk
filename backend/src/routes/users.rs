@@ -34,10 +34,11 @@ pub async fn list_users(
     State(state): State<AppState>,
     RequireSystemAdmin(_admin): RequireSystemAdmin,
 ) -> AppResult<Json<Vec<UserPublic>>> {
-    let users =
-        sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users ORDER BY email"))
-            .fetch_all(&state.pool)
-            .await?;
+    let users = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM users ORDER BY email"
+    )))
+    .fetch_all(&state.pool)
+    .await?;
     Ok(Json(users.into_iter().map(UserPublic::from).collect()))
 }
 
@@ -68,11 +69,11 @@ pub async fn create_user(
     }
 
     let password_hash = hash_password_async(body.password.clone()).await?;
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO users (email, display_name, password_hash, is_system_admin)
            VALUES ($1, $2, $3, $4)
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(&email)
     .bind(display_name)
     .bind(&password_hash)
@@ -146,7 +147,7 @@ pub async fn update_user(
     };
     let becoming_disabled = matches!(body.disabled, Some(true));
 
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE users
            SET display_name = $2,
                password_hash = $3,
@@ -158,7 +159,7 @@ pub async fn update_user(
                updated_at = NOW()
            WHERE id = $1
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(id)
     .bind(display_name)
     .bind(password_hash)
@@ -209,9 +210,11 @@ pub async fn delete_user(
 }
 
 async fn load_user(state: &AppState, id: Uuid) -> AppResult<User> {
-    sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = $1"))
-        .bind(id)
-        .fetch_optional(&state.pool)
-        .await?
-        .ok_or_else(|| AppError::NotFound("user".into()))
+    sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
+    )))
+    .bind(id)
+    .fetch_optional(&state.pool)
+    .await?
+    .ok_or_else(|| AppError::NotFound("user".into()))
 }

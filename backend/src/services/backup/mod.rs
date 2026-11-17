@@ -36,18 +36,18 @@ const RUN_SELECT: &str = r#"id, policy_id, destination_id, project_id, status, t
 // ── Destinations ────────────────────────────────────────────────────────────
 
 pub async fn list_destinations(pool: &PgPool) -> AppResult<Vec<BackupDestination>> {
-    let rows = sqlx::query_as::<_, BackupDestination>(&format!(
+    let rows = sqlx::query_as::<_, BackupDestination>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEST_SELECT} FROM backup_destinations ORDER BY name"
-    ))
+    )))
     .fetch_all(pool)
     .await?;
     Ok(rows)
 }
 
 pub async fn get_destination(pool: &PgPool, id: Uuid) -> AppResult<BackupDestination> {
-    sqlx::query_as::<_, BackupDestination>(&format!(
+    sqlx::query_as::<_, BackupDestination>(sqlx::AssertSqlSafe(format!(
         "SELECT {DEST_SELECT} FROM backup_destinations WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -70,11 +70,11 @@ pub async fn create_destination(
         let _ = destinations::LocalDestination::from_config(&config)?;
     }
     let (ct, nonce) = encrypt_secrets(secrets, body.secrets.as_ref())?;
-    let row = sqlx::query_as::<_, BackupDestination>(&format!(
+    let row = sqlx::query_as::<_, BackupDestination>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO backup_destinations (name, kind, config, secrets_ciphertext, secrets_nonce, enabled)
            VALUES ($1,$2,$3,$4,$5,$6)
            RETURNING {DEST_SELECT}"#
-    ))
+    )))
     .bind(body.name.trim())
     .bind(body.kind.trim())
     .bind(config)
@@ -193,35 +193,39 @@ fn encrypt_secrets(
 // ── Policies ────────────────────────────────────────────────────────────────
 
 pub async fn list_policies(pool: &PgPool) -> AppResult<Vec<BackupPolicy>> {
-    Ok(sqlx::query_as::<_, BackupPolicy>(&format!(
-        "SELECT {POLICY_SELECT} FROM backup_policies ORDER BY created_at"
-    ))
-    .fetch_all(pool)
-    .await?)
+    Ok(
+        sqlx::query_as::<_, BackupPolicy>(sqlx::AssertSqlSafe(format!(
+            "SELECT {POLICY_SELECT} FROM backup_policies ORDER BY created_at"
+        )))
+        .fetch_all(pool)
+        .await?,
+    )
 }
 
 pub async fn create_policy(pool: &PgPool, body: CreateBackupPolicy) -> AppResult<BackupPolicy> {
     validate_schedule(&body.schedule)?;
     validate_pack(&body.pack_mode)?;
     let _ = get_destination(pool, body.destination_id).await?;
-    Ok(sqlx::query_as::<_, BackupPolicy>(&format!(
-        r#"INSERT INTO backup_policies
+    Ok(
+        sqlx::query_as::<_, BackupPolicy>(sqlx::AssertSqlSafe(format!(
+            r#"INSERT INTO backup_policies
            (project_id, destination_id, schedule, debounce_minutes, retain_count, retain_days,
             pack_mode, include_attachments, enabled)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
            RETURNING {POLICY_SELECT}"#
-    ))
-    .bind(body.project_id)
-    .bind(body.destination_id)
-    .bind(body.schedule)
-    .bind(body.debounce_minutes)
-    .bind(body.retain_count)
-    .bind(body.retain_days)
-    .bind(body.pack_mode)
-    .bind(body.include_attachments)
-    .bind(body.enabled)
-    .fetch_one(pool)
-    .await?)
+        )))
+        .bind(body.project_id)
+        .bind(body.destination_id)
+        .bind(body.schedule)
+        .bind(body.debounce_minutes)
+        .bind(body.retain_count)
+        .bind(body.retain_days)
+        .bind(body.pack_mode)
+        .bind(body.include_attachments)
+        .bind(body.enabled)
+        .fetch_one(pool)
+        .await?,
+    )
 }
 
 pub async fn update_policy(
@@ -229,9 +233,9 @@ pub async fn update_policy(
     id: Uuid,
     body: UpdateBackupPolicy,
 ) -> AppResult<BackupPolicy> {
-    let current: BackupPolicy = sqlx::query_as(&format!(
+    let current: BackupPolicy = sqlx::query_as(sqlx::AssertSqlSafe(format!(
         "SELECT {POLICY_SELECT} FROM backup_policies WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -250,8 +254,9 @@ pub async fn update_policy(
         body.project_id.or(current.project_id)
     };
 
-    Ok(sqlx::query_as::<_, BackupPolicy>(&format!(
-        r#"UPDATE backup_policies SET
+    Ok(
+        sqlx::query_as::<_, BackupPolicy>(sqlx::AssertSqlSafe(format!(
+            r#"UPDATE backup_policies SET
              project_id = $2,
              destination_id = COALESCE($3, destination_id),
              schedule = COALESCE($4, schedule),
@@ -264,19 +269,20 @@ pub async fn update_policy(
              updated_at = NOW()
            WHERE id = $1
            RETURNING {POLICY_SELECT}"#
-    ))
-    .bind(id)
-    .bind(project_id)
-    .bind(body.destination_id)
-    .bind(body.schedule)
-    .bind(body.debounce_minutes)
-    .bind(body.retain_count)
-    .bind(body.retain_days)
-    .bind(body.pack_mode)
-    .bind(body.include_attachments)
-    .bind(body.enabled)
-    .fetch_one(pool)
-    .await?)
+        )))
+        .bind(id)
+        .bind(project_id)
+        .bind(body.destination_id)
+        .bind(body.schedule)
+        .bind(body.debounce_minutes)
+        .bind(body.retain_count)
+        .bind(body.retain_days)
+        .bind(body.pack_mode)
+        .bind(body.include_attachments)
+        .bind(body.enabled)
+        .fetch_one(pool)
+        .await?,
+    )
 }
 
 pub async fn delete_policy(pool: &PgPool, id: Uuid) -> AppResult<()> {
@@ -313,18 +319,18 @@ pub async fn list_runs(
 ) -> AppResult<Vec<BackupRun>> {
     let limit = limit.clamp(1, 200);
     if let Some(pid) = project_id {
-        Ok(sqlx::query_as::<_, BackupRun>(&format!(
+        Ok(sqlx::query_as::<_, BackupRun>(sqlx::AssertSqlSafe(format!(
             "SELECT {RUN_SELECT} FROM backup_runs WHERE project_id = $1 OR project_id IS NULL
              ORDER BY started_at DESC LIMIT $2"
-        ))
+        )))
         .bind(pid)
         .bind(limit)
         .fetch_all(pool)
         .await?)
     } else {
-        Ok(sqlx::query_as::<_, BackupRun>(&format!(
+        Ok(sqlx::query_as::<_, BackupRun>(sqlx::AssertSqlSafe(format!(
             "SELECT {RUN_SELECT} FROM backup_runs ORDER BY started_at DESC LIMIT $1"
-        ))
+        )))
         .bind(limit)
         .fetch_all(pool)
         .await?)
@@ -332,9 +338,9 @@ pub async fn list_runs(
 }
 
 pub async fn get_run(pool: &PgPool, id: Uuid) -> AppResult<BackupRun> {
-    sqlx::query_as::<_, BackupRun>(&format!(
+    sqlx::query_as::<_, BackupRun>(sqlx::AssertSqlSafe(format!(
         "SELECT {RUN_SELECT} FROM backup_runs WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -734,9 +740,9 @@ pub async fn scheduler_tick(pool: &PgPool, secrets: &SecretsKey) -> AppResult<us
 }
 
 async fn scheduler_tick_inner(pool: &PgPool, secrets: &SecretsKey) -> AppResult<usize> {
-    let policies: Vec<BackupPolicy> = sqlx::query_as(&format!(
+    let policies: Vec<BackupPolicy> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
         "SELECT {POLICY_SELECT} FROM backup_policies WHERE enabled = TRUE AND schedule <> 'manual_only'"
-    ))
+    )))
     .fetch_all(pool)
     .await?;
 

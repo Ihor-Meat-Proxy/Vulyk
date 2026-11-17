@@ -404,7 +404,7 @@ pub async fn list_cases(
         search_q = crate::services::case_list::search_q_predicate(),
     );
 
-    let total: i64 = sqlx::query_scalar(&total_sql)
+    let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(total_sql))
         .bind(project_id)
         .bind(query.suite_id)
         .bind(query.status.as_deref())
@@ -472,7 +472,7 @@ pub async fn list_cases(
     );
 
     let rows = if let Some(field_id) = cf_sort_id {
-        sqlx::query(&list_sql)
+        sqlx::query(sqlx::AssertSqlSafe(list_sql))
             .bind(project_id)
             .bind(query.suite_id)
             .bind(query.status.as_deref())
@@ -486,7 +486,7 @@ pub async fn list_cases(
             .fetch_all(&state.pool)
             .await?
     } else {
-        sqlx::query(&list_sql)
+        sqlx::query(sqlx::AssertSqlSafe(list_sql))
             .bind(project_id)
             .bind(query.suite_id)
             .bind(query.status.as_deref())

@@ -134,13 +134,13 @@ pub async fn list_runs(
     .fetch_one(&state.pool)
     .await?;
 
-    let runs = sqlx::query_as::<_, TestRun>(&format!(
+    let runs = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {RUN_COLS}
            FROM test_runs
            WHERE project_id = $1 AND ($2::text IS NULL OR status = $2)
            ORDER BY created_at DESC
            LIMIT $3 OFFSET $4"#
-    ))
+    )))
     .bind(project_id)
     .bind(query.status.as_deref())
     .bind(limit)
@@ -240,13 +240,13 @@ pub async fn create_run(
     let mut tx = state.pool.begin().await?;
     let (display_id, slug, seq_number) =
         allocate_run_ids(&mut tx, project_id, src, created_at).await?;
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO test_runs
              (project_id, plan_id, name, description, status, source, external_ref, meta,
               started_at, created_at, display_id, slug, seq_number)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(body.plan_id)
     .bind(body.name.trim())
@@ -377,14 +377,14 @@ pub async fn update_run(
     let external_ref = body.external_ref.or(existing.external_ref);
     let meta = body.meta.unwrap_or(existing.meta);
 
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs
            SET name = $3, description = $4, status = $5,
                external_ref = $6, meta = $7,
                started_at = $8, finished_at = $9, updated_at = NOW()
            WHERE project_id = $1 AND id = $2
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(run_id)
     .bind(body.name.unwrap_or(existing.name))
@@ -442,14 +442,14 @@ pub async fn trigger_run(
     )
     .await?;
     let _ = load_run(&state.pool, project_id, run_id).await?;
-    let row = sqlx::query_as::<_, TestRun>(&format!(
+    let row = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs
            SET status = 'running',
                started_at = COALESCE(started_at, NOW()),
                updated_at = NOW()
            WHERE id = $1 AND project_id = $2
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(run_id)
     .bind(project_id)
     .fetch_one(&state.pool)
@@ -517,7 +517,7 @@ pub async fn abandon_run(
         });
     }
 
-    let row = sqlx::query_as::<_, TestRun>(&format!(
+    let row = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs
            SET status = 'cancelled',
                finished_at = COALESCE(finished_at, NOW()),
@@ -526,7 +526,7 @@ pub async fn abandon_run(
            WHERE id = $1 AND project_id = $2
              AND status IN ('in_progress', 'running')
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(run_id)
     .bind(project_id)
     .bind(&meta)
@@ -881,12 +881,12 @@ pub async fn list_results(
             .bind(run_id)
             .fetch_one(&state.pool)
             .await?;
-    let results = sqlx::query_as::<_, TestResult>(&format!(
+    let results = sqlx::query_as::<_, TestResult>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {RESULT_COLS}
            FROM test_results WHERE run_id = $1
            ORDER BY executed_at DESC
            LIMIT $2 OFFSET $3"#
-    ))
+    )))
     .bind(run_id)
     .bind(limit)
     .bind(offset)
@@ -979,12 +979,12 @@ pub async fn ingest_results(
             None
         };
 
-        let row = sqlx::query_as::<_, TestResult>(&format!(
+        let row = sqlx::query_as::<_, TestResult>(sqlx::AssertSqlSafe(format!(
             r#"INSERT INTO test_results
                  (run_id, case_id, status, message, source, external_id, duration_ms, raw, case_version)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                RETURNING {RESULT_COLS}"#
-        ))
+        )))
         .bind(run_id)
         .bind(case_id)
         .bind(&status)
@@ -1076,13 +1076,13 @@ pub async fn create_result(
     let executed_by = auth.as_ref().map(|u| u.id());
 
     let mut tx = state.pool.begin().await?;
-    let result = sqlx::query_as::<_, TestResult>(&format!(
+    let result = sqlx::query_as::<_, TestResult>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO test_results
              (run_id, case_id, run_item_id, status, message, source, raw, assignee, elapsed_ms,
               executed_by, case_version)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
            RETURNING {RESULT_COLS}"#
-    ))
+    )))
     .bind(run_id)
     .bind(case_id)
     .bind(body.run_item_id)
@@ -1224,9 +1224,9 @@ pub async fn get_run_by_id(
     Path(id_param): Path<String>,
 ) -> AppResult<Json<TestRun>> {
     let id = resolve_run_id(&state.pool, None, &id_param).await?;
-    let row = sqlx::query_as::<_, TestRun>(&format!(
+    let row = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {RUN_COLS} FROM test_runs WHERE id = $1"#
-    ))
+    )))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -1258,9 +1258,9 @@ pub async fn update_run_by_id(
     Json(body): Json<UpdateRun>,
 ) -> AppResult<Json<TestRun>> {
     let id = resolve_run_id(&state.pool, None, &id_param).await?;
-    let existing = sqlx::query_as::<_, TestRun>(&format!(
+    let existing = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {RUN_COLS} FROM test_runs WHERE id = $1"#
-    ))
+    )))
     .bind(id)
     .fetch_optional(&state.pool)
     .await?
@@ -1282,13 +1282,13 @@ pub async fn update_run_by_id(
     let started_at = body.started_at.or(existing.started_at);
     let finished_at = body.finished_at.or(existing.finished_at);
 
-    let row = sqlx::query_as::<_, TestRun>(&format!(
+    let row = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs
            SET name = $2, description = $3, status = $4, external_ref = $5, meta = $6,
                started_at = $7, finished_at = $8, updated_at = NOW()
            WHERE id = $1
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(id)
     .bind(name)
     .bind(description)
@@ -1392,12 +1392,12 @@ pub async fn list_results_by_id(
             .bind(id)
             .fetch_one(&state.pool)
             .await?;
-    let rows = sqlx::query_as::<_, TestResult>(&format!(
+    let rows = sqlx::query_as::<_, TestResult>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {RESULT_COLS}
            FROM test_results WHERE run_id = $1
            ORDER BY executed_at, created_at
            LIMIT $2 OFFSET $3"#
-    ))
+    )))
     .bind(id)
     .bind(limit)
     .bind(offset)

@@ -1214,13 +1214,13 @@ async fn link_or_provision(
     let _assigned_role = role_from_groups(provider, &identity.groups);
     tracing::debug!(role = %_assigned_role, "SSO JIT default role resolved");
 
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO users (
                email, display_name, password_hash, is_system_admin, must_change_password,
                locale, timezone
            ) VALUES ($1, $2, $3, FALSE, FALSE, $4, $5)
            RETURNING {USER_COLUMNS}"#
-    ))
+    )))
     .bind(&email)
     .bind(&display_name)
     .bind(&password_hash)
@@ -1259,9 +1259,9 @@ async fn attach_identity(
 }
 
 async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<User>> {
-    let user = sqlx::query_as::<_, User>(&format!(
+    let user = sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
         "SELECT {USER_COLUMNS} FROM users WHERE email = $1"
-    ))
+    )))
     .bind(email)
     .fetch_optional(pool)
     .await?;
@@ -1269,11 +1269,13 @@ async fn find_user_by_email(pool: &PgPool, email: &str) -> AppResult<Option<User
 }
 
 async fn load_user(pool: &PgPool, id: Uuid) -> AppResult<User> {
-    sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = $1"))
-        .bind(id)
-        .fetch_optional(pool)
-        .await?
-        .ok_or_else(|| AppError::Unauthorized("user not found".into()))
+    sqlx::query_as::<_, User>(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM users WHERE id = $1"
+    )))
+    .bind(id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| AppError::Unauthorized("user not found".into()))
 }
 
 /// Build the OAuth redirect_uri for this API instance.

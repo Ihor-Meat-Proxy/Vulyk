@@ -715,7 +715,10 @@ async fn perf_shape_10x10x200_recursive_counts_and_lazy_pages() {
                 "('{project_uuid}','{leaf}','{prefix}-{n}','Case {n}','ready','medium',0)"
             ));
         }
-        sqlx::query(&rows).execute(&pool).await.unwrap();
+        sqlx::query(sqlx::AssertSqlSafe(rows))
+            .execute(&pool)
+            .await
+            .unwrap();
     }
     sqlx::query("UPDATE projects SET next_case_number = $2 WHERE id = $1")
         .bind(project_uuid)

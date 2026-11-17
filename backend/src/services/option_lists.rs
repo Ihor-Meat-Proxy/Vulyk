@@ -11,18 +11,18 @@ const LIST_COLS: &str = "id, key, name, description, active, created_at, updated
 const ITEM_COLS: &str = "id, list_id, key, label, value, colour, description, sort_order, active, deprecated, created_at, updated_at";
 
 pub async fn list_all(pool: &PgPool) -> AppResult<Vec<OptionList>> {
-    let rows = sqlx::query_as::<_, OptionList>(&format!(
+    let rows = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         "SELECT {LIST_COLS} FROM option_lists ORDER BY name"
-    ))
+    )))
     .fetch_all(pool)
     .await?;
     Ok(rows)
 }
 
 pub async fn get_detail(pool: &PgPool, id: Uuid) -> AppResult<OptionListDetail> {
-    let list = sqlx::query_as::<_, OptionList>(&format!(
+    let list = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         "SELECT {LIST_COLS} FROM option_lists WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -32,9 +32,9 @@ pub async fn get_detail(pool: &PgPool, id: Uuid) -> AppResult<OptionListDetail> 
 }
 
 pub async fn get_by_key(pool: &PgPool, key: &str) -> AppResult<Option<OptionList>> {
-    let row = sqlx::query_as::<_, OptionList>(&format!(
+    let row = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         "SELECT {LIST_COLS} FROM option_lists WHERE key = $1"
-    ))
+    )))
     .bind(key)
     .fetch_optional(pool)
     .await?;
@@ -42,9 +42,9 @@ pub async fn get_by_key(pool: &PgPool, key: &str) -> AppResult<Option<OptionList
 }
 
 pub async fn list_items(pool: &PgPool, list_id: Uuid) -> AppResult<Vec<OptionListItem>> {
-    let rows = sqlx::query_as::<_, OptionListItem>(&format!(
+    let rows = sqlx::query_as::<_, OptionListItem>(sqlx::AssertSqlSafe(format!(
         "SELECT {ITEM_COLS} FROM option_list_items WHERE list_id = $1 ORDER BY sort_order, label"
-    ))
+    )))
     .bind(list_id)
     .fetch_all(pool)
     .await?;
@@ -77,11 +77,11 @@ pub async fn create(pool: &PgPool, body: CreateOptionList) -> AppResult<OptionLi
         return Err(AppError::BadRequest("key and name are required".into()));
     }
     let mut tx = pool.begin().await?;
-    let list = sqlx::query_as::<_, OptionList>(&format!(
+    let list = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO option_lists (key, name, description, active)
            VALUES ($1, $2, $3, $4)
            RETURNING {LIST_COLS}"#
-    ))
+    )))
     .bind(key)
     .bind(name)
     .bind(body.description.trim())
@@ -98,9 +98,9 @@ pub async fn create(pool: &PgPool, body: CreateOptionList) -> AppResult<OptionLi
 }
 
 pub async fn update(pool: &PgPool, id: Uuid, body: UpdateOptionList) -> AppResult<OptionList> {
-    let existing = sqlx::query_as::<_, OptionList>(&format!(
+    let existing = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         "SELECT {LIST_COLS} FROM option_lists WHERE id = $1"
-    ))
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
@@ -120,12 +120,12 @@ pub async fn update(pool: &PgPool, id: Uuid, body: UpdateOptionList) -> AppResul
     let description = body.description.unwrap_or(existing.description);
     let active = body.active.unwrap_or(existing.active);
 
-    let row = sqlx::query_as::<_, OptionList>(&format!(
+    let row = sqlx::query_as::<_, OptionList>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE option_lists
            SET key = $2, name = $3, description = $4, active = $5, updated_at = NOW()
            WHERE id = $1
            RETURNING {LIST_COLS}"#
-    ))
+    )))
     .bind(id)
     .bind(key)
     .bind(name)
@@ -199,12 +199,12 @@ async fn insert_item_tx(
         .filter(|v| !v.is_empty());
     let sort_order = sort_override.unwrap_or(body.sort_order);
 
-    let item = sqlx::query_as::<_, OptionListItem>(&format!(
+    let item = sqlx::query_as::<_, OptionListItem>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO option_list_items
              (list_id, key, label, value, colour, description, sort_order, active, deprecated)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
            RETURNING {ITEM_COLS}"#
-    ))
+    )))
     .bind(list_id)
     .bind(key)
     .bind(label)
@@ -226,9 +226,9 @@ pub async fn update_item(
     item_id: Uuid,
     body: UpdateOptionListItem,
 ) -> AppResult<OptionListItem> {
-    let existing = sqlx::query_as::<_, OptionListItem>(&format!(
+    let existing = sqlx::query_as::<_, OptionListItem>(sqlx::AssertSqlSafe(format!(
         "SELECT {ITEM_COLS} FROM option_list_items WHERE id = $1 AND list_id = $2"
-    ))
+    )))
     .bind(item_id)
     .bind(list_id)
     .fetch_optional(pool)
@@ -250,13 +250,13 @@ pub async fn update_item(
     let active = body.active.unwrap_or(existing.active);
     let deprecated = body.deprecated.unwrap_or(existing.deprecated);
 
-    let item = sqlx::query_as::<_, OptionListItem>(&format!(
+    let item = sqlx::query_as::<_, OptionListItem>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE option_list_items
            SET key = $3, label = $4, value = $5, colour = $6, description = $7,
                sort_order = $8, active = $9, deprecated = $10, updated_at = NOW()
            WHERE id = $1 AND list_id = $2
            RETURNING {ITEM_COLS}"#
-    ))
+    )))
     .bind(item_id)
     .bind(list_id)
     .bind(key)
@@ -278,9 +278,9 @@ pub async fn delete_or_deprecate_item(
     list_id: Uuid,
     item_id: Uuid,
 ) -> AppResult<&'static str> {
-    let existing = sqlx::query_as::<_, OptionListItem>(&format!(
+    let existing = sqlx::query_as::<_, OptionListItem>(sqlx::AssertSqlSafe(format!(
         "SELECT {ITEM_COLS} FROM option_list_items WHERE id = $1 AND list_id = $2"
-    ))
+    )))
     .bind(item_id)
     .bind(list_id)
     .fetch_optional(pool)

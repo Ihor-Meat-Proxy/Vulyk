@@ -828,7 +828,7 @@ pub async fn list_automated_suites(
            ORDER BY {order}
            LIMIT $6 OFFSET $7"#
     );
-    let runs = sqlx::query_as::<_, TestRun>(&sql)
+    let runs = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(sql))
         .bind(project_id)
         .bind(iteration_id)
         .bind(status)
@@ -932,7 +932,7 @@ pub async fn create_automated_suite_run_with_meta(
         .map(str::trim)
         .filter(|s| !s.is_empty())
         .map(str::to_ascii_lowercase);
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
               created_by_name, environment, artifacts, started_at, created_at,
@@ -941,7 +941,7 @@ pub async fn create_automated_suite_run_with_meta(
            VALUES ($1, $2, $3, '', 'running', $4, $5, $6, $7, $8, $9, $9, $10, $11, $12,
                    $13, $14, $15, $16, $17, $17)
            RETURNING {RUN_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(iteration_id)
     .bind(name)

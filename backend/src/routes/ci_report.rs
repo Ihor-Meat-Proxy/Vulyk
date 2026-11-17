@@ -192,9 +192,9 @@ fn normalize_ci_status(status: &str) -> &str {
 }
 
 async fn load_ci_run(pool: &sqlx::PgPool, project_id: Uuid, run_id: Uuid) -> AppResult<TestRun> {
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {TEST_RUN_COLS} FROM test_runs WHERE id = $1 AND project_id = $2"#
-    ))
+    )))
     .bind(run_id)
     .bind(project_id)
     .fetch_optional(pool)
@@ -251,11 +251,11 @@ pub async fn open_ci_run(
         .map(str::to_string);
 
     if let Some(ref ext) = external_ref {
-        let existing = sqlx::query_as::<_, TestRun>(&format!(
+        let existing = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
             r#"SELECT {TEST_RUN_COLS} FROM test_runs
                WHERE project_id = $1 AND external_ref = $2
                LIMIT 1"#
-        ))
+        )))
         .bind(project_id)
         .bind(ext)
         .fetch_optional(&state.pool)
@@ -430,7 +430,7 @@ pub async fn open_ci_run(
     let mut tx = state.pool.begin().await?;
     let (display_id, slug, seq_number) =
         allocate_run_ids(&mut tx, project_id, src, created_at).await?;
-    let run = match sqlx::query_as::<_, TestRun>(&format!(
+    let run = match sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO test_runs
              (project_id, iteration_id, name, description, status, source, external_ref,
               meta, created_by_name, environment, artifacts, started_at, created_at,
@@ -439,7 +439,7 @@ pub async fn open_ci_run(
            VALUES ($1, $2, $3, '', $4, $5, $6, $7, $8, $9, $10, $11, $12,
                    $13, $14, $15, $16, $17, $18, $19, 'ci', $20, $21, $22)
            RETURNING {TEST_RUN_COLS}"#
-    ))
+    )))
     .bind(project_id)
     .bind(iteration_id)
     .bind(&name)
@@ -475,11 +475,11 @@ pub async fn open_ci_run(
             // Race: another open won the unique index — return existing.
             drop(tx);
             if let Some(ref ext) = external_ref {
-                let existing = sqlx::query_as::<_, TestRun>(&format!(
+                let existing = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
                     r#"SELECT {TEST_RUN_COLS} FROM test_runs
                        WHERE project_id = $1 AND external_ref = $2
                        LIMIT 1"#
-                ))
+                )))
                 .bind(project_id)
                 .bind(ext)
                 .fetch_optional(&state.pool)
@@ -558,7 +558,7 @@ pub async fn start_ci_run(
         run.ci_provider.as_deref(),
         body.pipeline_url.clone(),
     );
-    let updated = sqlx::query_as::<_, TestRun>(&format!(
+    let updated = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs SET
              status = 'in_progress',
              started_at = COALESCE(started_at, NOW()),
@@ -569,7 +569,7 @@ pub async fn start_ci_run(
              updated_at = NOW()
            WHERE id = $1
            RETURNING {TEST_RUN_COLS}"#
-    ))
+    )))
     .bind(run_id)
     .bind(pipeline_url.as_deref())
     .bind(body.job_url.as_deref())
@@ -775,7 +775,7 @@ pub async fn close_ci_run(
         "closed"
     };
 
-    let updated = sqlx::query_as::<_, TestRun>(&format!(
+    let updated = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"UPDATE test_runs SET
              status = $3,
              finished_at = COALESCE(finished_at, NOW()),
@@ -783,7 +783,7 @@ pub async fn close_ci_run(
              updated_at = NOW()
            WHERE id = $1
            RETURNING {TEST_RUN_COLS}"#
-    ))
+    )))
     .bind(run_id)
     .bind(&meta)
     .bind(next_status)

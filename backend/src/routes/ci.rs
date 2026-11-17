@@ -356,10 +356,10 @@ pub async fn dispatch_ci(
     }
 
     let run_id = if let Some(run_id) = body.run_id {
-        let run = sqlx::query_as::<_, TestRun>(&format!(
+        let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
             r#"SELECT {cols} FROM test_runs WHERE id = $1"#,
             cols = crate::models::TEST_RUN_COLS
-        ))
+        )))
         .bind(run_id)
         .fetch_optional(&state.pool)
         .await?
@@ -402,14 +402,14 @@ pub async fn dispatch_ci(
         let mut tx = state.pool.begin().await?;
         let (display_id, slug, seq_number) =
             allocate_run_ids(&mut tx, cfg.project_id, src, created_at).await?;
-        let run = sqlx::query_as::<_, TestRun>(&format!(
+        let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
             r#"INSERT INTO test_runs
                  (project_id, name, status, source, meta, lifecycle, created_at,
                   display_id, slug, seq_number)
                VALUES ($1, $2, $3, $4, $5, 'ci', $6, $7, $8, $9)
                RETURNING {cols}"#,
             cols = crate::models::TEST_RUN_COLS
-        ))
+        )))
         .bind(cfg.project_id)
         .bind(create.name)
         .bind(create.status.as_deref().unwrap_or("queued"))
@@ -692,14 +692,14 @@ pub async fn run_in_ci(
     let mut tx = state.pool.begin().await?;
     let (display_id, slug, seq_number) =
         allocate_run_ids(&mut tx, project_id, src, created_at).await?;
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO test_runs
             (project_id, name, status, source, meta, lifecycle, ci_provider, ci_repo, suite_name,
              created_at, display_id, slug, seq_number)
            VALUES ($1, $2, 'queued', 'ci:github', $3, 'ci', 'github', $4, $2, $5, $6, $7, $8)
            RETURNING {cols}"#,
         cols = crate::models::TEST_RUN_COLS
-    ))
+    )))
     .bind(project_id)
     .bind(&run_name)
     .bind(json!({
@@ -830,10 +830,10 @@ pub async fn run_in_ci(
         }
     };
 
-    let run = sqlx::query_as::<_, TestRun>(&format!(
+    let run = sqlx::query_as::<_, TestRun>(sqlx::AssertSqlSafe(format!(
         r#"SELECT {cols} FROM test_runs WHERE id = $1"#,
         cols = crate::models::TEST_RUN_COLS
-    ))
+    )))
     .bind(run.id)
     .fetch_one(&state.pool)
     .await?;

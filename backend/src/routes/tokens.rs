@@ -101,32 +101,32 @@ pub async fn list_tokens(
     let rows = if let Some(user) = auth.filter(|u| u.id() != Uuid::nil()) {
         if user.bypasses_as_system_admin() {
             // Admins may list unbound legacy tokens so they can revoke them.
-            sqlx::query_as::<_, ApiTokenPublic>(&format!(
+            sqlx::query_as::<_, ApiTokenPublic>(sqlx::AssertSqlSafe(format!(
                 r#"SELECT {TOKEN_COLS}
                    FROM api_tokens
                    WHERE user_id = $1 OR user_id IS NULL
                    ORDER BY created_at DESC"#
-            ))
+            )))
             .bind(user.id())
             .fetch_all(&state.pool)
             .await?
         } else {
-            sqlx::query_as::<_, ApiTokenPublic>(&format!(
+            sqlx::query_as::<_, ApiTokenPublic>(sqlx::AssertSqlSafe(format!(
                 r#"SELECT {TOKEN_COLS}
                    FROM api_tokens
                    WHERE user_id = $1
                    ORDER BY created_at DESC"#
-            ))
+            )))
             .bind(user.id())
             .fetch_all(&state.pool)
             .await?
         }
     } else {
         // Open mode (auth not required): list all tokens.
-        sqlx::query_as::<_, ApiTokenPublic>(&format!(
+        sqlx::query_as::<_, ApiTokenPublic>(sqlx::AssertSqlSafe(format!(
             r#"SELECT {TOKEN_COLS}
                FROM api_tokens ORDER BY created_at DESC"#
-        ))
+        )))
         .fetch_all(&state.pool)
         .await?
     };
@@ -186,11 +186,11 @@ pub async fn create_token(
     let (secret, prefix) = generate_api_token();
     let hash = hash_secret(&secret);
 
-    let row = sqlx::query_as::<_, ApiTokenPublic>(&format!(
+    let row = sqlx::query_as::<_, ApiTokenPublic>(sqlx::AssertSqlSafe(format!(
         r#"INSERT INTO api_tokens (name, token_prefix, token_hash, user_id, project_id, permissions)
            VALUES ($1, $2, $3, $4, $5, $6)
            RETURNING {TOKEN_COLS}"#
-    ))
+    )))
     .bind(body.name.trim())
     .bind(&prefix)
     .bind(&hash)

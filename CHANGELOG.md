@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **sqlx 0.9** — bump from 0.8; wrap audited dynamic SQL (`format!` with fixed
+  column lists / QueryBuilder strings) in `sqlx::AssertSqlSafe`, and pass the
+  migrator table name into `ensure_migrations_table` /
+  `list_applied_migrations` (Part of #234).
+
 ### Added
 
 - **Supply-chain hardening (#294)** — Dependabot cooldown + security fast path,
