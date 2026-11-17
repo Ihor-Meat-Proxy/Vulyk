@@ -353,9 +353,13 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
       return
     }
     try {
-      const page = await api.listOutboundWebhookDeliveries(projectId, endpointId, {
-        limit: 20,
-      })
+      const page = await api.listOutboundWebhookDeliveries(
+        projectId,
+        endpointId,
+        {
+          limit: 20,
+        },
+      )
       setWhDeliveries(page.items)
     } catch {
       setWhDeliveries([])
@@ -390,7 +394,13 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
         cur && eligible.some((p) => p.id === cur) ? cur : preferred,
       )
     }
-  }, [canOutboundWebhooks, projects, projectRoles, ciProjectId, user?.is_system_admin])
+  }, [
+    canOutboundWebhooks,
+    projects,
+    projectRoles,
+    ciProjectId,
+    user?.is_system_admin,
+  ])
 
   useEffect(() => {
     if (!ciProjectId) {
@@ -1906,7 +1916,10 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                 {...testIdProps(TestIds.settingsOutboundWhUrlInput)}
               />
             </label>
-            <fieldset className="field">
+            <fieldset
+              className="field"
+              {...testIdProps(TestIds.settingsOutboundWhEvents)}
+            >
               <legend>{t('settings.outboundWhEvents')}</legend>
               {OUTBOUND_WEBHOOK_EVENTS.filter((e) => e !== 'webhook.test').map(
                 (ev) => (
@@ -1916,6 +1929,10 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                       checked={whEvents.includes(ev)}
                       onChange={() => toggleWhEvent(ev)}
                       disabled={!whProjectId || whBusy}
+                      {...listChildProps(
+                        TestIds.settingsOutboundWhEventCheckbox,
+                        ev.replaceAll('.', '-'),
+                      )}
                     />
                     {ev}
                   </label>
@@ -1949,6 +1966,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                     type="button"
                     className="linkish"
                     onClick={() => setWhSelectedId(ep.id)}
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'select')}
                   >
                     <strong>{ep.name}</strong> · {ep.url}
                   </button>
@@ -1964,7 +1982,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                           return refreshWhDeliveries(whProjectId, ep.id)
                         })
                     }
-                    {...testIdProps(TestIds.settingsOutboundWhTestButton)}
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'test')}
                   >
                     {t('settings.outboundWhTest')}
                   </button>
@@ -1972,6 +1990,7 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                     type="button"
                     className="linkish danger"
                     onClick={() => void onDeleteOutboundWh(ep.id)}
+                    {...listChildProps(TestIds.settingsOutboundWhRow, 'delete')}
                   >
                     {t('common.delete')}
                   </button>
@@ -1988,7 +2007,9 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
             >
               <h4>{t('settings.outboundWhDeliveries')}</h4>
               {whDeliveries.length === 0 ? (
-                <p className="muted">{t('settings.outboundWhDeliveriesEmpty')}</p>
+                <p className="muted">
+                  {t('settings.outboundWhDeliveriesEmpty')}
+                </p>
               ) : (
                 <ul className="plain-list">
                   {whDeliveries.map((d) => (
@@ -2005,7 +2026,9 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                               refreshWhDeliveries(whProjectId, whSelectedId),
                             )
                         }
-                        {...testIdProps(TestIds.settingsOutboundWhRedeliverButton)}
+                        {...testIdProps(
+                          TestIds.settingsOutboundWhRedeliverButton,
+                        )}
                       >
                         {t('settings.outboundWhRedeliver')}
                       </button>

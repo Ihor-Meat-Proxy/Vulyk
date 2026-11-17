@@ -596,6 +596,8 @@ export const TestIds = {
   settingsOutboundWhProjectSelect: 'settings-outbound-wh-project-select',
   settingsOutboundWhNameInput: 'settings-outbound-wh-name-input',
   settingsOutboundWhUrlInput: 'settings-outbound-wh-url-input',
+  settingsOutboundWhEvents: 'settings-outbound-wh-events',
+  settingsOutboundWhEventCheckbox: 'settings-outbound-wh-event-checkbox',
   settingsOutboundWhCreateButton: 'settings-outbound-wh-create-button',
   settingsOutboundWhSecret: 'settings-outbound-wh-secret',
   settingsOutboundWhList: 'settings-outbound-wh-list',
