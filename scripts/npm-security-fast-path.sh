@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Decide whether this install should bypass project .npmrc min-release-age
-# (security fast path for Dependabot advisory updates — Part of #294).
+# (security fast path for Dependabot advisory updates - Part of #294).
 #
 # Prints "1" or "0" to stdout.
 # Override: VULYK_NPM_SECURITY_FAST_PATH=1|0|true|false

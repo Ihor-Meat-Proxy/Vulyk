@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prove .npmrc min-release-age=7 does not block the security fast-path override.
-# Part of #294 — run from repo root (also wired into ./scripts/check.sh --quick).
+# Part of #294 - run from repo root (also wired into ./scripts/check.sh --quick).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
