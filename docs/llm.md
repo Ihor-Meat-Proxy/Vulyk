@@ -2,7 +2,7 @@
 
 Vulyk can call local and cloud LLMs to:
 
-1. **Generate test cases** from requirements text or linked requirements  
+1. **Generate test cases** from requirements text, linked requirements, or a **PR/branch diff**  
 2. **Generate automation** (Playwright or pytest) from existing cases  
 3. **Chat with your tests** — project-scoped Q&A, plus propose/create cases and requirements after confirmation  
 
@@ -24,6 +24,9 @@ Configure per project under gear → **Admin settings** → **LLM providers**, o
 - `GET /api/v1/llm/providers`
 - `CRUD /api/v1/projects/{id}/llm/configs`
 - `POST /api/v1/projects/{id}/llm/generate-cases`
+- `POST /api/v1/projects/{id}/llm/diff-preview` — list changed files + token budget for a PR/branch
+- `POST /api/v1/projects/{id}/llm/generate-cases-from-diff` — generate drafts from a selected diff
+- `GET /api/v1/automation-repos/{id}/pulls` — open PRs/MRs (GitHub, GitLab, Forgejo/Gitea)
 - `POST /api/v1/projects/{id}/llm/generate-code`
 - `POST /api/v1/projects/{id}/llm/ask` — plain Q&A
 - `POST /api/v1/projects/{id}/llm/chat` — Q&A **or** propose cases/requirements (JSON-schema / tool fallback)
@@ -44,9 +47,10 @@ Mark a config **Global (all projects)** in Admin → LLM providers to share one 
 
 ## Generate page
 
-- **Model** dropdown on both “Cases from requirements” and “Automation code” (default preselected).
+- **Model** dropdown on “Cases from requirements”, “Cases from a PR or branch diff”, and “Automation code” (default preselected).
+- **Diff generation**: pick a linked GitHub / GitLab / Forgejo / Gitea repo, an open PR/MR or `base…head` branch compare, preview changed files with an approximate token budget, include/exclude paths, then generate. Saved cases store provenance in `case_generation_sources` (repo, PR number/URL, base/head refs, commit SHA, included paths) and expose it on `TestCaseDetail.generation`.
 - **Case picker** (search by key/title, folder tree, multi-select, folder select, chips). Cases page bulk action **Generate automation** opens Generate with the selection.
-- **Automation repo** (Admin → Integrations / Settings → Test automation repositories): connect a GitHub / GitLab / generic HTTPS repo (token encrypted). GitHub/GitLab re-index via the provider REST API (no local clone); generic remotes still shallow-clone. Generate-code retrieves BM25 context (framework configs, page objects, helpers, similar tests) and returns `context_files` for preview. Download generated code from the UI — no automatic commits. See [automation-repo.md](./automation-repo.md) and [Run in CI](./guides/ci-integration.md#two-way-trigger-run-in-ci).
+- **Automation repo** (Settings → Test automation repositories): connect GitHub / GitLab / Bitbucket / Forgejo / Gitea / generic HTTPS (token encrypted). Hosted providers re-index via REST archive download; generic remotes still shallow-clone. Generate-code retrieves BM25 context and returns `context_files` for preview. See [automation-repo.md](./automation-repo.md) and [Run in CI](./guides/ci-integration.md#two-way-trigger-run-in-ci).
 
 ## Chat propose / create
 

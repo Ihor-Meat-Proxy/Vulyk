@@ -1242,6 +1242,7 @@ mod tests {
                     created_at: Utc::now(),
                 }],
                 custom_fields: vec![],
+                generation: None,
             },
             folder_path: "01. Setup / Export".into(),
             automated: true,

@@ -745,6 +745,7 @@ async fn load_case_detail_tx(
         steps,
         tags,
         custom_fields: vec![],
+        generation: None,
     })
 }
 

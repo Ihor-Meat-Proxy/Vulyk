@@ -44,6 +44,13 @@ Open **Generate** (`/generate`).
 3. Review drafts (title, description, preconditions, priority, tags, steps).
 4. Accept/create according to your role permissions.
 
+### Cases from a PR or branch diff
+
+1. Link a **GitHub, GitLab, Forgejo, or Gitea** automation repository (Settings → Test automation repositories).
+2. On Generate, open **Cases from a PR or branch diff**, pick the repo, then either an open pull/merge request or a head branch compared to a base.
+3. **Preview changed files** to see paths, approximate token use, and the budget. Uncheck files to exclude them.
+4. **Generate & save from diff** — drafts persist with provenance (PR/branch/commit) on the case detail.
+
 ### Automation code from cases
 
 1. Pick the **model**.

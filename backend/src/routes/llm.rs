@@ -12,9 +12,11 @@ use crate::auth::{require_permission, OptionalAuthUser, Permission};
 use crate::error::{AppError, AppResult};
 use crate::llm::{build_provider, LlmRequest, ProviderConfig, ProviderKind};
 use crate::models::{
-    AskTestsRequest, AskTestsResponse, CreateCase, CreateLlmConfig, CreateStep,
-    GenerateCasesRequest, GenerateCasesResponse, GenerateCodeRequest, GenerateCodeResponse,
-    GeneratedCaseDraft, LlmConfigPublic, LlmConfigRow, TestCase, TestCaseDetail, UpdateLlmConfig,
+    AskTestsRequest, AskTestsResponse, CaseGenerationSource, CreateCase, CreateLlmConfig,
+    CreateStep, DiffPreviewRequest, DiffPreviewResponse, GenerateCasesFromDiffRequest,
+    GenerateCasesFromDiffResponse, GenerateCasesRequest, GenerateCasesResponse,
+    GenerateCodeRequest, GenerateCodeResponse, GeneratedCaseDraft, LlmConfigPublic, LlmConfigRow,
+    TestCase, TestCaseDetail, UpdateLlmConfig,
 };
 use crate::routes::cases::{ensure_project, load_steps, replace_steps};
 use crate::routes::AppState;
@@ -32,6 +34,14 @@ pub fn router() -> Router<AppState> {
         .route(
             "/api/v1/projects/{project_id}/llm/generate-cases",
             axum::routing::post(generate_cases),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/llm/diff-preview",
+            axum::routing::post(diff_preview),
+        )
+        .route(
+            "/api/v1/projects/{project_id}/llm/generate-cases-from-diff",
+            axum::routing::post(generate_cases_from_diff),
         )
         .route(
             "/api/v1/projects/{project_id}/llm/generate-code",
@@ -415,6 +425,395 @@ pub async fn generate_cases(
         model: resp.model,
         drafts,
         persisted,
+    }))
+}
+
+const DEFAULT_DIFF_TOKEN_BUDGET: i64 = 8_000;
+
+struct DiffSelection {
+    base_ref: String,
+    head_ref: String,
+    head_sha: Option<String>,
+    base_sha: Option<String>,
+    pull_number: Option<i64>,
+    pull_url: Option<String>,
+    all_files: Vec<crate::services::automation_repo_diff::DiffFileEntry>,
+    selected_files: Vec<crate::services::automation_repo_diff::DiffFileEntry>,
+    total_approx_tokens: i64,
+    selected_approx_tokens: i64,
+    token_budget: i64,
+    provider: String,
+    repo_id: Uuid,
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn resolve_diff_selection(
+    state: &AppState,
+    project_id: Uuid,
+    repo_id: Uuid,
+    base_ref: Option<&str>,
+    head_ref: Option<&str>,
+    pull_number: Option<i64>,
+    include_paths: &[String],
+    exclude_paths: &[String],
+    token_budget: Option<i64>,
+) -> AppResult<DiffSelection> {
+    let repo = crate::services::automation_repo::load_repo_by_id(&state.pool, repo_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    if !crate::services::automation_repo::repo_linked_to_project(&state.pool, project_id, repo_id)
+        .await?
+    {
+        return Err(AppError::BadRequest(
+            "automation repo is not linked to this project".into(),
+        ));
+    }
+    let token = match (&repo.token_ciphertext, &repo.token_nonce) {
+        (Some(ct), Some(nonce)) => Some(state.secrets.decrypt(ct, nonce)?),
+        _ => None,
+    };
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    let mut pull_url = None;
+    let (base, head) = if let Some(num) = pull_number {
+        let pulls = crate::services::automation_repo_diff::list_pull_requests(
+            &repo.provider,
+            &repo.remote_url,
+            token.as_deref(),
+            &ci_policy,
+        )
+        .await?;
+        let pr = pulls.into_iter().find(|p| p.number == num).ok_or_else(|| {
+            AppError::NotFound(format!("open pull/merge request #{num} not found"))
+        })?;
+        pull_url = pr.html_url.clone();
+        let base = if pr.target_branch.is_empty() {
+            repo.branch.clone()
+        } else {
+            pr.target_branch
+        };
+        let head = if pr.source_branch.is_empty() {
+            pr.head_sha.clone().unwrap_or_default()
+        } else {
+            pr.source_branch
+        };
+        if head.is_empty() {
+            return Err(AppError::BadRequest(
+                "pull request is missing a source branch / head SHA".into(),
+            ));
+        }
+        (base, head)
+    } else {
+        let base = base_ref
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .unwrap_or(repo.branch.as_str())
+            .to_string();
+        let head = head_ref
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| AppError::BadRequest("head_ref or pull_number required".into()))?
+            .to_string();
+        (base, head)
+    };
+
+    let compare = crate::services::automation_repo_diff::compare_refs(
+        &repo.provider,
+        &repo.remote_url,
+        &base,
+        &head,
+        token.as_deref(),
+        true,
+        &ci_policy,
+    )
+    .await?;
+    let budget = token_budget.unwrap_or(DEFAULT_DIFF_TOKEN_BUDGET).max(500);
+    let include = if include_paths.is_empty() {
+        None
+    } else {
+        Some(include_paths)
+    };
+    let exclude = if exclude_paths.is_empty() {
+        None
+    } else {
+        Some(exclude_paths)
+    };
+    let (selected, used) = crate::services::automation_repo_diff::select_files_for_budget(
+        &compare.files,
+        include,
+        exclude,
+        budget,
+    );
+    Ok(DiffSelection {
+        base_ref: compare.base_ref,
+        head_ref: compare.head_ref,
+        head_sha: compare.head_sha,
+        base_sha: compare.base_sha,
+        pull_number,
+        pull_url,
+        total_approx_tokens: compare.total_approx_tokens,
+        all_files: compare
+            .files
+            .into_iter()
+            .map(|mut f| {
+                f.patch = None;
+                f
+            })
+            .collect(),
+        selected_files: selected,
+        selected_approx_tokens: used,
+        token_budget: budget,
+        provider: repo.provider,
+        repo_id: repo.id,
+    })
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/llm/diff-preview",
+    tag = "llm",
+    request_body = DiffPreviewRequest,
+    params(("project_id" = Uuid, Path)),
+    responses((status = 200, body = DiffPreviewResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn diff_preview(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<DiffPreviewRequest>,
+) -> AppResult<Json<DiffPreviewResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::LlmAssist,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    let sel = resolve_diff_selection(
+        &state,
+        project_id,
+        body.repo_id,
+        body.base_ref.as_deref(),
+        body.head_ref.as_deref(),
+        body.pull_number,
+        &body.include_paths,
+        &body.exclude_paths,
+        body.token_budget,
+    )
+    .await?;
+    let selected_meta: Vec<_> = sel
+        .selected_files
+        .into_iter()
+        .map(|mut f| {
+            f.patch = None;
+            f
+        })
+        .collect();
+    Ok(Json(DiffPreviewResponse {
+        base_ref: sel.base_ref,
+        head_ref: sel.head_ref,
+        base_sha: sel.base_sha,
+        head_sha: sel.head_sha,
+        pull_number: sel.pull_number,
+        pull_url: sel.pull_url,
+        files: sel.all_files,
+        selected_files: selected_meta,
+        total_approx_tokens: sel.total_approx_tokens,
+        selected_approx_tokens: sel.selected_approx_tokens,
+        token_budget: sel.token_budget,
+    }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/projects/{project_id}/llm/generate-cases-from-diff",
+    tag = "llm",
+    request_body = GenerateCasesFromDiffRequest,
+    params(("project_id" = Uuid, Path)),
+    responses((status = 200, body = GenerateCasesFromDiffResponse)),
+    security(("bearer_auth" = []))
+)]
+pub async fn generate_cases_from_diff(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(project_id): Path<Uuid>,
+    Json(body): Json<GenerateCasesFromDiffRequest>,
+) -> AppResult<Json<GenerateCasesFromDiffResponse>> {
+    require_permission(
+        &state.pool,
+        &auth,
+        state.auth.required,
+        project_id,
+        Permission::LlmAssist,
+    )
+    .await?;
+    ensure_project(&state.pool, project_id).await?;
+    let provider = resolve_provider(&state, project_id, body.config_id).await?;
+    let sel = resolve_diff_selection(
+        &state,
+        project_id,
+        body.repo_id,
+        body.base_ref.as_deref(),
+        body.head_ref.as_deref(),
+        body.pull_number,
+        &body.include_paths,
+        &body.exclude_paths,
+        body.token_budget,
+    )
+    .await?;
+    if sel.selected_files.is_empty() {
+        return Err(AppError::BadRequest(
+            "no changed files selected for generation (adjust include/exclude or refs)".into(),
+        ));
+    }
+
+    let mut diff_blob = String::new();
+    for f in &sel.selected_files {
+        diff_blob.push_str(&format!(
+            "### {} ({}) +{} -{}\n",
+            f.path, f.status, f.additions, f.deletions
+        ));
+        if let Some(patch) = &f.patch {
+            diff_blob.push_str(patch);
+            diff_blob.push('\n');
+        }
+    }
+    let system = format!(
+        "You are a senior QA engineer. From the git diff below, generate up to {} focused \
+         regression / verification test cases as a JSON array. Each object: key_suffix, title, \
+         description, precondition, priority, steps:[{{action, expected_result}}]. \
+         Prefer cases that validate the changed behavior. Return ONLY JSON.",
+        body.count.clamp(1, 20)
+    );
+    let mut user = format!(
+        "Repository provider: {}\nBase: {} ({})\nHead: {} ({})\n",
+        sel.provider,
+        sel.base_ref,
+        sel.base_sha.as_deref().unwrap_or("?"),
+        sel.head_ref,
+        sel.head_sha.as_deref().unwrap_or("?"),
+    );
+    if let Some(n) = sel.pull_number {
+        user.push_str(&format!("Pull/MR: #{n}\n"));
+    }
+    user.push_str("\n## Diff\n");
+    user.push_str(&diff_blob);
+    if !body.extra_instructions.trim().is_empty() {
+        user.push_str("\n## Extra instructions\n");
+        user.push_str(body.extra_instructions.trim());
+    }
+
+    let resp = provider
+        .complete(LlmRequest {
+            system,
+            user,
+            max_tokens: 4096,
+        })
+        .await?;
+    let drafts = parse_case_drafts(&resp.text, project_id, &state.pool).await?;
+    let included_paths: Vec<String> = sel.selected_files.iter().map(|f| f.path.clone()).collect();
+    let mut persisted = Vec::new();
+    let mut generation_template = CaseGenerationSource {
+        case_id: Uuid::nil(),
+        source: "diff".into(),
+        repo_id: Some(sel.repo_id),
+        provider: sel.provider.clone(),
+        pull_number: sel.pull_number.map(|n| n as i32),
+        pull_url: sel.pull_url.clone(),
+        base_ref: sel.base_ref.clone(),
+        head_ref: sel.head_ref.clone(),
+        commit_sha: sel.head_sha.clone(),
+        included_paths: included_paths.clone(),
+        meta: serde_json::json!({
+            "token_budget": sel.token_budget,
+            "selected_approx_tokens": sel.selected_approx_tokens,
+        }),
+    };
+    if body.persist {
+        for draft in &drafts {
+            let create = CreateCase {
+                key: None,
+                title: draft.title.clone(),
+                suite_id: body.suite_id,
+                description: draft.description.clone(),
+                precondition: draft.precondition.clone(),
+                priority: draft.priority.clone(),
+                status: "draft".into(),
+                steps: draft.steps.clone(),
+                tag_ids: vec![],
+                tag_names: vec![],
+                external_key: Some(draft.key.clone()),
+                automation_id: None,
+                sort_order: None,
+            };
+            let mut detail = insert_case(&state.pool, project_id, create).await?;
+            sqlx::query(
+                r#"INSERT INTO case_generation_sources
+                    (case_id, source, repo_id, provider, pull_number, pull_url,
+                     base_ref, head_ref, commit_sha, included_paths, meta)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                   ON CONFLICT (case_id) DO UPDATE SET
+                     source = EXCLUDED.source,
+                     repo_id = EXCLUDED.repo_id,
+                     provider = EXCLUDED.provider,
+                     pull_number = EXCLUDED.pull_number,
+                     pull_url = EXCLUDED.pull_url,
+                     base_ref = EXCLUDED.base_ref,
+                     head_ref = EXCLUDED.head_ref,
+                     commit_sha = EXCLUDED.commit_sha,
+                     included_paths = EXCLUDED.included_paths,
+                     meta = EXCLUDED.meta"#,
+            )
+            .bind(detail.case.id)
+            .bind(&generation_template.source)
+            .bind(generation_template.repo_id)
+            .bind(&generation_template.provider)
+            .bind(generation_template.pull_number)
+            .bind(&generation_template.pull_url)
+            .bind(&generation_template.base_ref)
+            .bind(&generation_template.head_ref)
+            .bind(&generation_template.commit_sha)
+            .bind(&generation_template.included_paths)
+            .bind(&generation_template.meta)
+            .execute(&state.pool)
+            .await?;
+            generation_template.case_id = detail.case.id;
+            detail.generation = Some(generation_template.clone());
+            persisted.push(detail);
+        }
+    }
+
+    let selected_meta: Vec<_> = sel
+        .selected_files
+        .into_iter()
+        .map(|mut f| {
+            f.patch = None;
+            f
+        })
+        .collect();
+
+    Ok(Json(GenerateCasesFromDiffResponse {
+        provider: resp.provider,
+        model: resp.model,
+        drafts,
+        persisted,
+        generation: if generation_template.case_id != Uuid::nil() {
+            Some(generation_template)
+        } else {
+            Some(CaseGenerationSource {
+                case_id: Uuid::nil(),
+                ..generation_template
+            })
+        },
+        selected_files: selected_meta,
+        selected_approx_tokens: sel.selected_approx_tokens,
+        head_sha: sel.head_sha,
+        base_ref: sel.base_ref,
+        head_ref: sel.head_ref,
+        pull_number: sel.pull_number,
+        pull_url: sel.pull_url,
     }))
 }
 
@@ -855,5 +1254,6 @@ async fn insert_case(
         steps,
         tags: vec![],
         custom_fields: vec![],
+        generation: None,
     })
 }

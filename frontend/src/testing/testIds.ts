@@ -392,6 +392,17 @@ export const TestIds = {
   generateCodeModelSelect: 'generate-code-model-select',
   generateFrameworkSelect: 'generate-framework-select',
   generateRepoSelect: 'generate-repo-select',
+  generateDiffSection: 'generate-diff-section',
+  generateDiffRepoSelect: 'generate-diff-repo-select',
+  generateDiffModeSelect: 'generate-diff-mode-select',
+  generateDiffPullSelect: 'generate-diff-pull-select',
+  generateDiffBaseInput: 'generate-diff-base-input',
+  generateDiffHeadInput: 'generate-diff-head-input',
+  generateDiffPreviewButton: 'generate-diff-preview-button',
+  generateDiffFileList: 'generate-diff-file-list',
+  generateDiffFileCheckbox: 'generate-diff-file-checkbox',
+  generateDiffBudget: 'generate-diff-budget',
+  generateDiffSubmitButton: 'generate-diff-submit-button',
   generateCodeSubmitButton: 'generate-code-submit-button',
 
   // —— Chat ——

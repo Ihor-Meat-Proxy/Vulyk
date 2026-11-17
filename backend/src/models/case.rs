@@ -50,6 +50,9 @@ pub struct TestCaseDetail {
     pub tags: Vec<Tag>,
     #[serde(default)]
     pub custom_fields: Vec<CustomFieldValue>,
+    /// Present when the case was AI-generated from a PR/branch diff (#256).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub generation: Option<crate::models::CaseGenerationSource>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]

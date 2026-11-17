@@ -1236,6 +1236,39 @@ export type GeneratedCaseDraft = {
   priority: string
 }
 
+export type RemotePullRequest = {
+  number: number
+  title: string
+  state: string
+  source_branch: string
+  target_branch: string
+  head_sha: string | null
+  html_url: string | null
+  updated_at: string | null
+}
+
+export type DiffFileEntry = {
+  path: string
+  status: string
+  additions: number
+  deletions: number
+  approx_tokens: number
+}
+
+export type DiffPreviewResponse = {
+  base_ref: string
+  head_ref: string
+  base_sha: string | null
+  head_sha: string | null
+  pull_number: number | null
+  pull_url: string | null
+  files: DiffFileEntry[]
+  selected_files: DiffFileEntry[]
+  total_approx_tokens: number
+  selected_approx_tokens: number
+  token_budget: number
+}
+
 export type ChatResponseKind =
   'answer' | 'clarify' | 'propose_cases' | 'propose_requirements'
 
@@ -2843,6 +2876,54 @@ export const api = {
       drafts: GeneratedCaseDraft[]
       persisted: TestCaseDetail[]
     }>(`/api/v1/projects/${projectId}/llm/generate-cases`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  listAutomationRepoPulls: (repoId: string) =>
+    request<RemotePullRequest[]>(`/api/v1/automation-repos/${repoId}/pulls`),
+  previewDiff: (
+    projectId: string,
+    body: {
+      repo_id: string
+      base_ref?: string
+      head_ref?: string
+      pull_number?: number
+      include_paths?: string[]
+      exclude_paths?: string[]
+      token_budget?: number
+    },
+  ) =>
+    request<DiffPreviewResponse>(
+      `/api/v1/projects/${projectId}/llm/diff-preview`,
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  generateCasesFromDiff: (
+    projectId: string,
+    body: {
+      repo_id: string
+      base_ref?: string
+      head_ref?: string
+      pull_number?: number
+      include_paths?: string[]
+      exclude_paths?: string[]
+      token_budget?: number
+      count?: number
+      persist?: boolean
+      config_id?: string
+      extra_instructions?: string
+    },
+  ) =>
+    request<{
+      provider: string
+      model: string
+      drafts: GeneratedCaseDraft[]
+      persisted: TestCaseDetail[]
+      base_ref: string
+      head_ref: string
+      head_sha: string | null
+      pull_number: number | null
+      selected_approx_tokens: number
+    }>(`/api/v1/projects/${projectId}/llm/generate-cases-from-diff`, {
       method: 'POST',
       body: JSON.stringify(body),
     }),

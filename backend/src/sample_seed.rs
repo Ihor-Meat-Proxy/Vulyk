@@ -147,6 +147,10 @@ const VULYK_QA_FRAGMENTS: &[(&str, &str)] = &[
         include_str!("../seed/vulyk-qa.d/multi-repo-ci-ingest.json"),
     ),
     (
+        "generate-from-diff",
+        include_str!("../seed/vulyk-qa.d/generate-from-diff.json"),
+    ),
+    (
         "ci-run-detail-progress",
         include_str!("../seed/vulyk-qa.d/ci-run-detail-progress.json"),
     ),

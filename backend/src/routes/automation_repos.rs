@@ -55,6 +55,7 @@ pub fn router() -> Router<AppState> {
             "/api/v1/automation-repos/{id}/branches",
             get(list_repo_branches),
         )
+        .route("/api/v1/automation-repos/{id}/pulls", get(list_repo_pulls))
         .route(
             "/api/v1/automation-repos/branches",
             axum::routing::post(list_branches_preview),
@@ -669,9 +670,12 @@ pub async fn list_repo_branches(
         .await?
         .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
     let provider = row.provider.to_lowercase();
-    if !matches!(provider.as_str(), "github" | "gitlab") {
+    if !matches!(
+        provider.as_str(),
+        "github" | "gitlab" | "forgejo" | "gitea" | "bitbucket"
+    ) {
         return Err(AppError::BadRequest(
-            "branch listing is only available for github and gitlab providers".into(),
+            "branch listing requires github, gitlab, forgejo, gitea, or bitbucket".into(),
         ));
     }
     let token = decrypt_token(&state, &row)?;
@@ -699,6 +703,71 @@ pub async fn list_repo_branches(
 }
 
 #[utoipa::path(
+    get,
+    path = "/api/v1/automation-repos/{id}/pulls",
+    tag = "automation-repo",
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = [crate::services::automation_repo_diff::RemotePullRequest])),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_repo_pulls(
+    State(state): State<AppState>,
+    OptionalAuthUser(auth): OptionalAuthUser,
+    Path(id): Path<Uuid>,
+) -> AppResult<Json<Vec<crate::services::automation_repo_diff::RemotePullRequest>>> {
+    // LlmAssist users need to list PRs for Generate; manage permission still covers settings.
+    let row = repo_svc::load_repo_by_id(&state.pool, id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("automation repo".into()))?;
+    let project_ids = repo_svc::project_ids_for_repo(&state.pool, id).await?;
+    if project_ids.is_empty() {
+        require_manage_linked_or_admin(&state, &auth, id).await?;
+    } else {
+        let mut allowed = false;
+        for pid in &project_ids {
+            if require_permission(
+                &state.pool,
+                &auth,
+                state.auth.required,
+                *pid,
+                Permission::LlmAssist,
+            )
+            .await
+            .is_ok()
+                || require_permission(
+                    &state.pool,
+                    &auth,
+                    state.auth.required,
+                    *pid,
+                    Permission::ManageAutomationRepo,
+                )
+                .await
+                .is_ok()
+            {
+                allowed = true;
+                break;
+            }
+        }
+        if !allowed {
+            return Err(AppError::Forbidden(
+                "llm_assist or manage_automation_repo required".into(),
+            ));
+        }
+    }
+    let provider = row.provider.to_lowercase();
+    let token = decrypt_token(&state, &row)?;
+    let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
+    let pulls = crate::services::automation_repo_diff::list_pull_requests(
+        &provider,
+        &row.remote_url,
+        token.as_deref(),
+        &ci_policy,
+    )
+    .await?;
+    Ok(Json(pulls))
+}
+
+#[utoipa::path(
     post,
     path = "/api/v1/automation-repos/branches",
     tag = "automation-repo",
@@ -713,9 +782,12 @@ pub async fn list_branches_preview(
 ) -> AppResult<Json<AutomationRepoBranchesResponse>> {
     require_manage_on_projects(&state, &auth, &body.project_ids).await?;
     let provider = validate_provider(&body.provider)?;
-    if !matches!(provider.as_str(), "github" | "gitlab") {
+    if !matches!(
+        provider.as_str(),
+        "github" | "gitlab" | "forgejo" | "gitea" | "bitbucket"
+    ) {
         return Err(AppError::BadRequest(
-            "branch listing is only available for github and gitlab providers".into(),
+            "branch listing requires github, gitlab, forgejo, gitea, or bitbucket".into(),
         ));
     }
     let ci_policy = crate::settings::load_ci_url_policy(&state.pool).await?;
