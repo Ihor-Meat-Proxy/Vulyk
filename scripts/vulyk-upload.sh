@@ -29,7 +29,7 @@ Options:
   --close-run            Close a CI run
   --cancelled            Mark close as cancelled
   --pipeline             Legacy one-shot campaign/iteration ingest
-  --provider NAME        github | gitlab | jenkins | forgejo | gitea | woodpecker | other
+  --provider NAME        github | gitlab | jenkins | forgejo | gitea | woodpecker | bitbucket | other
                          (or VULYK_CI_PROVIDER; auto-detects common CI hosts)
   --repo TEXT            owner/repo or path
   --branch TEXT          Git branch
@@ -180,12 +180,21 @@ detect_ci_provider() {
     PROVIDER="gitlab"
     return
   fi
+  if [[ -n "${BITBUCKET_BUILD_NUMBER:-}${BITBUCKET_REPO_FULL_NAME:-}${BITBUCKET_BRANCH:-}${BITBUCKET_COMMIT:-}" ]]; then
+    PROVIDER="bitbucket"
+    return
+  fi
   if [[ -n "${JENKINS_URL:-}${BUILD_URL:-}" ]]; then
     PROVIDER="jenkins"
     return
   fi
 }
 detect_ci_provider
+
+# Default Bitbucket pipeline URL when runner exports standard variables.
+if [[ -z "${PIPELINE_URL}" && -n "${BITBUCKET_REPO_FULL_NAME:-}" && -n "${BITBUCKET_BUILD_NUMBER:-}" ]]; then
+  PIPELINE_URL="https://bitbucket.org/${BITBUCKET_REPO_FULL_NAME}/pipelines/results/${BITBUCKET_BUILD_NUMBER}"
+fi
 
 # Under GitLab CI, default dotenv path so later jobs can pick up the run id.
 if [[ -z "${DOTENV_FILE}" && -n "${GITLAB_CI:-}" ]]; then

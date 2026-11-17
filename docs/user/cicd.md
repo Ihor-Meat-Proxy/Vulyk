@@ -135,7 +135,13 @@ def test_health():
 pytest -p ci.pytest_vulyk --junitxml=report.xml -o junit_family=xunit1
 ```
 
-### Generic JUnit XML via curl / shell
+### Generic JUnit XML via curl / shell (`other`)
+
+Use `--provider other` (or `VULYK_CI_PROVIDER=other`) for bespoke runners and any
+CI without a dedicated adapter. Vulyk does **not** dispatch these pipelines from
+**CI triggers** — only **ingest** (open → upload → close) via `vulyk-upload.sh`
+or raw `curl`. Pass `--pipeline-url` when you want a clickable link on
+**Executions**.
 
 ```bash
 export VULYK_API_URL=https://vulyk.example.com
@@ -148,7 +154,8 @@ VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
   --suite-name "Nightly #${BUILD_NUMBER:-local}" \
   --provider other \
   --branch "${GIT_BRANCH:-main}" \
-  --commit "${GIT_COMMIT:-}")"
+  --commit "${GIT_COMMIT:-}" \
+  --pipeline-url "${PIPELINE_URL:-}")"
 
 ./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
 ./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
@@ -302,6 +309,32 @@ VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
 `base_url`, token, and `repo` (`owner/name`). Test connection probes the API;
 Dispatch triggers a manual pipeline with `VULYK_RUN_ID` variables and follows
 status to a pipeline URL.
+
+## Bitbucket Pipelines
+
+Bitbucket is **ingest-only** in Vulyk: report from the pipeline with
+`vulyk-upload.sh`; there is no **Run in CI** dispatch from the UI yet.
+
+Auto-detect sets `provider=bitbucket` when Bitbucket exports `BITBUCKET_*`
+variables and builds a default pipeline URL on `bitbucket.org`.
+
+Example: [`ci/bitbucket-pipelines.yml`](../../ci/bitbucket-pipelines.yml).
+
+```bash
+export VULYK_API_URL=https://vulyk.example.com
+export VULYK_API_TOKEN=vulyk_ci_…
+export VULYK_PROJECT_KEY=KOC
+
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
+  --suite-name "Bitbucket #${BITBUCKET_BUILD_NUMBER}" \
+  --provider bitbucket \
+  --repo "${BITBUCKET_REPO_FULL_NAME}" \
+  --branch "${BITBUCKET_BRANCH}" \
+  --commit "${BITBUCKET_COMMIT}")"
+
+./scripts/vulyk-upload.sh --file results.xml --format junit --run-id "$VULYK_RUN_ID"
+./scripts/vulyk-upload.sh --close-run --run-id "$VULYK_RUN_ID"
+```
 
 ## GitLab CI
 

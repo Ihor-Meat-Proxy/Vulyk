@@ -759,6 +759,7 @@ const uk: Dict = {
   'executions.sourceForgejo': "Forgejo",
   'executions.sourceGitea': "Gitea",
   'executions.sourceWoodpecker': "Woodpecker",
+  'executions.sourceBitbucket': "Bitbucket",
   'executions.pipelineLink': "Пайплайн",
   'executions.statusOpen': "Відкрито",
   'executions.statusInProgress': "Виконується",

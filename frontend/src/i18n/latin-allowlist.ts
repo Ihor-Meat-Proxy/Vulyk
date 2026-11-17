@@ -123,6 +123,7 @@ export const LATIN_IN_CYRILLIC_ALLOWLIST = new Set<string>(
     'forgejo',
     'gitea',
     'gitlab',
+    'bitbucket',
     // Project roles (canonical English names)
     'Admin',
     'Test',
