@@ -94,6 +94,12 @@ cargo install lychee --locked   # once
 
 **Dependabot:** `.github/dependabot.yml` — weekly `cargo`, `npm` (frontend + e2e), `docker` (API/web/updater), `github-actions`. Version updates use a **cooldown** (3 days patches, 7 days minors/majors). **Security updates skip cooldown**.
 
+**Major migrations (#234, 0.7.0):** landed as real code migrations, not Dependabot
+auto-merges — sqlx 0.9 (#300), quick-xml 0.42 (#301), rand 0.10 (#302), ESLint 10
+stack (#303). **TypeScript stays on ~5.8** until `typescript-eslint` peers allow
+TS 7 (`typescript <6.1.0` today); Dependabot ignores `typescript` majors under
+`/frontend`.
+
 **Dependabot auto-merge:** `.github/workflows/dependabot-auto-merge.yml` runs on `pull_request_target` for PRs authored by `dependabot[bot]`. It uses `dependabot/fetch-metadata` (SHA-pinned) and `gh pr merge --auto --squash` for safe bumps: all `semver-patch`, plus `semver-minor` when the previous major is **≥ 1**, plus **security-advisory** updates (including majors) once CI is green. **0.x “minor”** non-security bumps are treated as breaking. New packages, new maintainers, or new npm install scripts **block auto-merge** until owner review (`supply-chain-reviewed` label, or the Dependabot review gate). The auto-merge job does **not** check out PR code and only needs `contents: write` + `pull-requests: write`.
 
 **Dependabot review gate:** `.github/workflows/dependabot-review-gate.yml` + `scripts/check-dep-pr-review-gate.py` (read-only `pull_request`, no secrets). Fails when lockfiles add packages or install scripts unless `supply-chain-reviewed` is present. Also runs npm lock heuristics.

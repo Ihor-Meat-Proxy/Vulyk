@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   7.37 “detect” breaks on ESLint 10); keep classic hooks rules only until React
   Compiler rules are ratcheted (Part of #234).
 
+### Fixed / decided
+
+- **#234 majors** — sqlx / quick-xml / rand / ESLint migrated; **TypeScript 7
+  skipped** (typescript-eslint peer `<6.1.0`); Dependabot ignores `typescript`
+  majors under `/frontend` until peers allow.
+
 ### Added
 
 - **Supply-chain hardening (#294)** — Dependabot cooldown + security fast path,

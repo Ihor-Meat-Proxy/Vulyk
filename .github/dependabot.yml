@@ -33,6 +33,10 @@ updates:
       semver-major-days: 7
       semver-minor-days: 7
       semver-patch-days: 3
+    ignore:
+      # typescript-eslint@8 peer is typescript <6.1.0; TS 7 needs eslint plugin support (#234).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
     groups:
       frontend-dev:
         dependency-type: development
