@@ -1,0 +1,367 @@
+{
+  "schema_version": 1,
+  "description": "MCP tool \u2194 OpenAPI contract. Every operation in docs/api/openapi.json must be listed under tools or excluded_operations. Tags admin/backups/webhooks stay off the default tool surface.",
+  "excluded_tags": [
+    "admin",
+    "backups",
+    "webhooks"
+  ],
+  "tools": {
+    "list_projects": [
+      "GET /api/v1/projects"
+    ],
+    "get_project": [
+      "GET /api/v1/projects/{id}"
+    ],
+    "search_cases": [
+      "GET /api/v1/projects/{project_id}/cases"
+    ],
+    "get_case": [
+      "GET /api/v1/projects/{project_id}/cases/{case_id}"
+    ],
+    "create_case": [
+      "POST /api/v1/projects/{project_id}/cases"
+    ],
+    "update_case": [
+      "PUT /api/v1/projects/{project_id}/cases/{case_id}"
+    ],
+    "list_suites": [
+      "GET /api/v1/projects/{project_id}/suites"
+    ],
+    "list_runs": [
+      "GET /api/v1/projects/{project_id}/runs"
+    ],
+    "get_run": [
+      "GET /api/v1/projects/{project_id}/runs/{run_id}"
+    ],
+    "create_run": [
+      "POST /api/v1/projects/{project_id}/runs"
+    ],
+    "update_run": [
+      "PUT /api/v1/projects/{project_id}/runs/{run_id}"
+    ],
+    "trigger_run": [
+      "POST /api/v1/projects/{project_id}/runs/{run_id}/trigger"
+    ],
+    "list_ci_configs": [
+      "GET /api/v1/projects/{project_id}/ci-configs"
+    ],
+    "dispatch_ci": [
+      "POST /api/v1/ci-configs/{id}/dispatch"
+    ],
+    "get_dispatch": [
+      "GET /api/v1/ci-dispatches/{id}"
+    ],
+    "generate_cases": [
+      "POST /api/v1/projects/{project_id}/llm/generate-cases"
+    ],
+    "ingest_results": [
+      "POST /api/v1/projects/{project_id}/runs/{run_id}/results"
+    ],
+    "list_results": [
+      "GET /api/v1/projects/{project_id}/runs/{run_id}/results"
+    ],
+    "list_case_results": [
+      "GET /api/v1/projects/{project_id}/cases/{case_id}/results",
+      "GET /api/v1/cases/{case_id}/results"
+    ],
+    "ask_tests": [
+      "POST /api/v1/projects/{project_id}/llm/ask"
+    ],
+    "generate_code": [
+      "POST /api/v1/projects/{project_id}/llm/generate-code"
+    ],
+    "chat": [
+      "POST /api/v1/projects/{project_id}/llm/chat"
+    ],
+    "chat_confirm": [
+      "POST /api/v1/projects/{project_id}/llm/chat/confirm"
+    ],
+    "list_requirements": [
+      "GET /api/v1/projects/{project_id}/requirements"
+    ],
+    "get_requirement": [
+      "GET /api/v1/projects/{project_id}/requirements/{id}"
+    ],
+    "create_requirement": [
+      "POST /api/v1/projects/{project_id}/requirements"
+    ],
+    "link_requirement": [
+      "POST /api/v1/projects/{project_id}/requirements:link"
+    ],
+    "list_campaigns": [
+      "GET /api/v1/projects/{project_id}/campaigns"
+    ],
+    "get_campaign": [
+      "GET /api/v1/projects/{project_id}/campaigns/{campaign_id}"
+    ],
+    "create_campaign": [
+      "POST /api/v1/projects/{project_id}/campaigns"
+    ],
+    "list_iterations": [
+      "GET /api/v1/projects/{project_id}/iterations"
+    ],
+    "get_iteration": [
+      "GET /api/v1/projects/{project_id}/iterations/{iteration_id}"
+    ],
+    "create_iteration": [
+      "POST /api/v1/projects/{project_id}/iterations"
+    ],
+    "list_repos": [
+      "GET /api/v1/projects/{project_id}/automation-repos"
+    ],
+    "get_repo": [
+      "GET /api/v1/automation-repos/{id}"
+    ],
+    "create_repo": [
+      "POST /api/v1/automation-repos"
+    ],
+    "report_dashboard": [
+      "GET /api/v1/projects/{project_id}/reports/dashboard"
+    ],
+    "report_run_summary": [
+      "GET /api/v1/projects/{project_id}/reports/runs/{run_id}/summary"
+    ],
+    "report_run_detail": [
+      "GET /api/v1/projects/{project_id}/reports/runs/{run_id}"
+    ],
+    "report_trends": [
+      "GET /api/v1/projects/{project_id}/reports/trends"
+    ],
+    "report_coverage": [
+      "GET /api/v1/projects/{project_id}/reports/coverage"
+    ],
+    "report_flaky": [
+      "GET /api/v1/projects/{project_id}/reports/flaky"
+    ]
+  },
+  "excluded_operations": {
+    "DELETE /api/v1/admin/backups/destinations/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "DELETE /api/v1/admin/backups/policies/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "DELETE /api/v1/admin/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "DELETE /api/v1/admin/integrations/{id}": "Excluded tag surface (admin); keep off MCP tools.",
+    "DELETE /api/v1/admin/lists/{id}": "Option list admin; agents use case payloads.",
+    "DELETE /api/v1/admin/lists/{id}/items/{item_id}": "Option list admin; agents use case payloads.",
+    "DELETE /api/v1/admin/sample-data": "Excluded tag surface (admin); keep off MCP tools.",
+    "DELETE /api/v1/automation-repos/{id}": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "DELETE /api/v1/ci-configs/{id}": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "DELETE /api/v1/projects/{id}": "Project create/update/delete are rare ops; agents list/get projects.",
+    "DELETE /api/v1/projects/{project_id}/attachments/{attachment_id}": "Binary attachment upload/download not suited to MCP tool JSON.",
+    "DELETE /api/v1/projects/{project_id}/automation-repo": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "DELETE /api/v1/projects/{project_id}/campaigns/{campaign_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "DELETE /api/v1/projects/{project_id}/cases/{case_id}": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "DELETE /api/v1/projects/{project_id}/ci-tokens/{token_id}": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "DELETE /api/v1/projects/{project_id}/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "DELETE /api/v1/projects/{project_id}/integrations/{id}": "Third-party integration admin is ops-facing.",
+    "DELETE /api/v1/projects/{project_id}/iterations/{iteration_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "DELETE /api/v1/projects/{project_id}/llm/configs/{config_id}": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "DELETE /api/v1/projects/{project_id}/memberships/{membership_id}": "Project membership admin is out of MCP agent surface.",
+    "DELETE /api/v1/projects/{project_id}/plans/{plan_id}": "Legacy plans; campaigns/iterations cover execution planning.",
+    "DELETE /api/v1/projects/{project_id}/preferences/case-list-columns": "User preferences are UI-facing.",
+    "DELETE /api/v1/projects/{project_id}/requirements/{id}": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "DELETE /api/v1/projects/{project_id}/runs/{run_id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "DELETE /api/v1/projects/{project_id}/suites-runs/{run_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "DELETE /api/v1/projects/{project_id}/suites/{suite_id}": "Suite CRUD beyond list; agents list suites and create cases into suite_id.",
+    "DELETE /api/v1/projects/{project_id}/tags/{tag_id}": "Tag CRUD admin; case create accepts tag names.",
+    "DELETE /api/v1/runs/{id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "DELETE /api/v1/tokens/{id}": "Token minting is admin/UI; MCP authenticates with an existing token.",
+    "DELETE /api/v1/users/{id}": "User admin is out of MCP agent surface.",
+    "GET /api/docs": "Instance system settings/probes are ops-facing, not agent tools.",
+    "GET /api/docs/assets/scalar.js": "Instance system settings/probes are ops-facing, not agent tools.",
+    "GET /api/openapi.json": "Instance system settings/probes are ops-facing, not agent tools.",
+    "GET /api/v1/admin/backups/destinations": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/backups/destinations/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/backups/policies": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/backups/runs": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/backups/runs/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/backups/runs/{id}/download": "Excluded tag surface (backups); keep off MCP tools.",
+    "GET /api/v1/admin/custom-fields": "Custom-field schema admin; agents use case payloads.",
+    "GET /api/v1/admin/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "GET /api/v1/admin/integrations": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/lists": "Option list admin; agents use case payloads.",
+    "GET /api/v1/admin/lists/{id}": "Option list admin; agents use case payloads.",
+    "GET /api/v1/admin/sample-data": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/settings": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/sso/providers": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates/jobs": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates/jobs/{job_id}": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates/preferences": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates/version-backups": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/admin/updates/version-backups/{backup_id}/download": "Excluded tag surface (admin); keep off MCP tools.",
+    "GET /api/v1/auth/me": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/auth/sso/callback": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/auth/sso/providers": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/auth/sso/{key}/start": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/auth/status": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/automation-repos": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "GET /api/v1/automation-repos/{id}/branches": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "GET /api/v1/cases/by-key/{key}": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/cases/{id_or_key}/export.pdf": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/ci-configs/{id}": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "GET /api/v1/importers": "Bulk import is UI/ops-facing.",
+    "GET /api/v1/jobs/{id}": "Internal job worker status is ops-facing.",
+    "GET /api/v1/llm/chat-tools": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "GET /api/v1/llm/providers": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "GET /api/v1/projects/{project_id}/attachments": "Binary attachment upload/download not suited to MCP tool JSON.",
+    "GET /api/v1/projects/{project_id}/attachments/{attachment_id}": "Binary attachment upload/download not suited to MCP tool JSON.",
+    "GET /api/v1/projects/{project_id}/automation-repo": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/campaigns/{campaign_id}/iterations": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/cases/search": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/projects/{project_id}/cases/{case_id}/executions": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/cases/{case_id}/requirements": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "GET /api/v1/projects/{project_id}/cases/{case_id}/versions": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/projects/{project_id}/cases/{case_id}/versions/{version}": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/projects/{project_id}/cases/{id_or_key}/export.pdf": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "GET /api/v1/projects/{project_id}/ci-dispatches": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "GET /api/v1/projects/{project_id}/ci-tokens": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "GET /api/v1/projects/{project_id}/ci/runs/{run_id}": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "GET /api/v1/projects/{project_id}/custom-fields": "Custom-field schema admin; agents use case payloads.",
+    "GET /api/v1/projects/{project_id}/custom-fields/available": "Custom-field schema admin; agents use case payloads.",
+    "GET /api/v1/projects/{project_id}/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "GET /api/v1/projects/{project_id}/defects": "Third-party integration admin is ops-facing.",
+    "GET /api/v1/projects/{project_id}/executions/tree": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/integrations": "Third-party integration admin is ops-facing.",
+    "GET /api/v1/projects/{project_id}/integrations/{id}": "Third-party integration admin is ops-facing.",
+    "GET /api/v1/projects/{project_id}/integrations/{id}/requirements:search": "Third-party integration admin is ops-facing.",
+    "GET /api/v1/projects/{project_id}/iterations/{iteration_id}/dashboard": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/iterations/{iteration_id}/items": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/iterations/{iteration_id}/suites": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/llm/configs": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "GET /api/v1/projects/{project_id}/llm/configs/{config_id}": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "GET /api/v1/projects/{project_id}/memberships": "Project membership admin is out of MCP agent surface.",
+    "GET /api/v1/projects/{project_id}/plans": "Legacy plans; campaigns/iterations cover execution planning.",
+    "GET /api/v1/projects/{project_id}/plans/{plan_id}": "Legacy plans; campaigns/iterations cover execution planning.",
+    "GET /api/v1/projects/{project_id}/preferences/case-list-columns": "User preferences are UI-facing.",
+    "GET /api/v1/projects/{project_id}/reports/coverage/detail": "Extra report slices (export/groups/case detail); dashboard/summary/trends/coverage/flaky covered.",
+    "GET /api/v1/projects/{project_id}/reports/export": "Extra report slices (export/groups/case detail); dashboard/summary/trends/coverage/flaky covered.",
+    "GET /api/v1/projects/{project_id}/reports/runs/{run_id}/cases/{case_id}": "Extra report slices (export/groups/case detail); dashboard/summary/trends/coverage/flaky covered.",
+    "GET /api/v1/projects/{project_id}/reports/runs/{run_id}/groups": "Extra report slices (export/groups/case detail); dashboard/summary/trends/coverage/flaky covered.",
+    "GET /api/v1/projects/{project_id}/reports/runs/{run_id}/results": "Extra report slices (export/groups/case detail); dashboard/summary/trends/coverage/flaky covered.",
+    "GET /api/v1/projects/{project_id}/requirement-folders": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "GET /api/v1/projects/{project_id}/runs/{run_id}/items": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}/results": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/projects/{project_id}/runs/{run_id}/results/history": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/projects/{project_id}/suites-runs/{run_id}/results": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "GET /api/v1/projects/{project_id}/suites/{suite_id}": "Suite CRUD beyond list; agents list suites and create cases into suite_id.",
+    "GET /api/v1/projects/{project_id}/tags": "Tag CRUD admin; case create accepts tag names.",
+    "GET /api/v1/projects/{project_id}/tags/{tag_id}": "Tag CRUD admin; case create accepts tag names.",
+    "GET /api/v1/roles/matrix": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/runs/{id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/runs/{id}/results": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "GET /api/v1/setup/status": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "GET /api/v1/tokens": "Token minting is admin/UI; MCP authenticates with an existing token.",
+    "GET /api/v1/users": "User admin is out of MCP agent surface.",
+    "GET /api/v1/users/{id}": "User admin is out of MCP agent surface.",
+    "GET /health": "Instance system settings/probes are ops-facing, not agent tools.",
+    "GET /ready": "Instance system settings/probes are ops-facing, not agent tools.",
+    "PATCH /api/v1/admin/backups/destinations/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "PATCH /api/v1/admin/backups/policies/{id}": "Excluded tag surface (backups); keep off MCP tools.",
+    "PATCH /api/v1/admin/sso/providers/{id}": "Excluded tag surface (admin); keep off MCP tools.",
+    "PATCH /api/v1/auth/me": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "PATCH /api/v1/automation-repos/{id}": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/admin/backups/destinations": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/backups/destinations/{id}/test": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/backups/policies": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/backups/restore": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/backups/restore/upload": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/backups/run": "Excluded tag surface (backups); keep off MCP tools.",
+    "POST /api/v1/admin/config/export": "Instance config is ops-facing.",
+    "POST /api/v1/admin/config/import": "Instance config is ops-facing.",
+    "POST /api/v1/admin/config/import/preview": "Instance config is ops-facing.",
+    "POST /api/v1/admin/custom-fields": "Custom-field schema admin; agents use case payloads.",
+    "POST /api/v1/admin/integrations": "Excluded tag surface (admin); keep off MCP tools.",
+    "POST /api/v1/admin/lists": "Option list admin; agents use case payloads.",
+    "POST /api/v1/admin/lists/{id}/items": "Option list admin; agents use case payloads.",
+    "POST /api/v1/admin/sample-data/reseed": "Excluded tag surface (admin); keep off MCP tools.",
+    "POST /api/v1/admin/updates/apply": "Excluded tag surface (admin); keep off MCP tools.",
+    "POST /api/v1/admin/updates/check": "Excluded tag surface (admin); keep off MCP tools.",
+    "POST /api/v1/admin/updates/rollback": "Excluded tag surface (admin); keep off MCP tools.",
+    "POST /api/v1/auth/bootstrap": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/auth/change-password": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/auth/login": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/auth/logout": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/auth/register": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/automation-repos/branches": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/automation-repos/test": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/automation-repos/{id}/reindex": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/automation-repos/{id}/test": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/ci-configs/{id}/test": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "POST /api/v1/projects": "Project create/update/delete are rare ops; agents list/get projects.",
+    "POST /api/v1/projects/{project_id}/attachments": "Binary attachment upload/download not suited to MCP tool JSON.",
+    "POST /api/v1/projects/{project_id}/automation-repo/reindex": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/projects/{project_id}/automation-repo/test": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "POST /api/v1/projects/{project_id}/campaigns/{campaign_id}/iterations": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "POST /api/v1/projects/{project_id}/cases/bulk": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "POST /api/v1/projects/{project_id}/cases/export": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "POST /api/v1/projects/{project_id}/cases/{case_id}/custom-fields": "Extended case admin (bulk/export/versions/PDF/delete); core CRUD covered by search/get/create/update.",
+    "POST /api/v1/projects/{project_id}/ci-configs": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "POST /api/v1/projects/{project_id}/ci-tokens": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/ci/runs": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/ci/runs/{run_id}/close": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/ci/runs/{run_id}/ingest": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/ci/runs/{run_id}/results": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/ci/runs/{run_id}/start": "Reporter ingest endpoints used by CI upload CLI, not MCP.",
+    "POST /api/v1/projects/{project_id}/custom-fields": "Custom-field schema admin; agents use case payloads.",
+    "POST /api/v1/projects/{project_id}/custom-fields/{field_id}/add": "Custom-field schema admin; agents use case payloads.",
+    "POST /api/v1/projects/{project_id}/defects": "Third-party integration admin is ops-facing.",
+    "POST /api/v1/projects/{project_id}/imports": "Bulk import is UI/ops-facing.",
+    "POST /api/v1/projects/{project_id}/imports:preview": "Bulk import is UI/ops-facing.",
+    "POST /api/v1/projects/{project_id}/ingest": "CI upload ingest used by reporter CLI.",
+    "POST /api/v1/projects/{project_id}/integrations": "Third-party integration admin is ops-facing.",
+    "POST /api/v1/projects/{project_id}/integrations/{id}/requirements:import": "Third-party integration admin is ops-facing.",
+    "POST /api/v1/projects/{project_id}/llm/configs": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "POST /api/v1/projects/{project_id}/memberships": "Project membership admin is out of MCP agent surface.",
+    "POST /api/v1/projects/{project_id}/plans": "Legacy plans; campaigns/iterations cover execution planning.",
+    "POST /api/v1/projects/{project_id}/requirement-folders": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "POST /api/v1/projects/{project_id}/requirements/{id}/custom-fields": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "POST /api/v1/projects/{project_id}/requirements:unlink": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "POST /api/v1/projects/{project_id}/run-in-ci": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "POST /api/v1/projects/{project_id}/runs/{run_id}/abandon": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "POST /api/v1/projects/{project_id}/runs/{run_id}/results/execute": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "POST /api/v1/projects/{project_id}/suites": "Suite CRUD beyond list; agents list suites and create cases into suite_id.",
+    "POST /api/v1/projects/{project_id}/suites-runs/{run_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "POST /api/v1/projects/{project_id}/tags": "Tag CRUD admin; case create accepts tag names.",
+    "POST /api/v1/runs/{id}/ingest": "CI upload ingest used by reporter CLI.",
+    "POST /api/v1/runs/{id}/results:bulk": "CI upload ingest used by reporter CLI.",
+    "POST /api/v1/setup/complete": "Auth/session flows are browser/CLI oriented; MCP uses API tokens.",
+    "POST /api/v1/tokens": "Token minting is admin/UI; MCP authenticates with an existing token.",
+    "POST /api/v1/users": "User admin is out of MCP agent surface.",
+    "POST /api/v1/webhooks/automation-repos/{repo_id}": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/forgejo": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/forgejo/{config_id}": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/gitea": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/gitea/{config_id}": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/github": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/github/{config_id}": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/gitlab": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "POST /api/v1/webhooks/gitlab/{config_id}": "Excluded tag surface (webhooks); keep off MCP tools.",
+    "PUT /api/v1/admin/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "PUT /api/v1/admin/lists/{id}": "Option list admin; agents use case payloads.",
+    "PUT /api/v1/admin/lists/{id}/items/reorder": "Option list admin; agents use case payloads.",
+    "PUT /api/v1/admin/lists/{id}/items/{item_id}": "Option list admin; agents use case payloads.",
+    "PUT /api/v1/admin/settings": "Excluded tag surface (admin); keep off MCP tools.",
+    "PUT /api/v1/admin/sso/providers/{id}": "Excluded tag surface (admin); keep off MCP tools.",
+    "PUT /api/v1/admin/updates/preferences": "Excluded tag surface (admin); keep off MCP tools.",
+    "PUT /api/v1/automation-repos/{id}/projects": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "PUT /api/v1/ci-configs/{id}": "CI config CRUD/test/list-dispatches; agents use list_ci_configs + dispatch_ci + get_dispatch.",
+    "PUT /api/v1/projects/{id}": "Project create/update/delete are rare ops; agents list/get projects.",
+    "PUT /api/v1/projects/{project_id}/automation-repo": "Advanced repo admin (test/reindex/branches/legacy singular); list/get/create cover agent needs.",
+    "PUT /api/v1/projects/{project_id}/campaigns/{campaign_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "PUT /api/v1/projects/{project_id}/custom-fields/{field_id}": "Custom-field schema admin; agents use case payloads.",
+    "PUT /api/v1/projects/{project_id}/custom-fields/{field_id}/override": "Custom-field schema admin; agents use case payloads.",
+    "PUT /api/v1/projects/{project_id}/integrations/{id}": "Third-party integration admin is ops-facing.",
+    "PUT /api/v1/projects/{project_id}/iterations/{iteration_id}": "Deep campaign/iteration admin and suite-runs; list/get/create cover agent needs.",
+    "PUT /api/v1/projects/{project_id}/llm/configs/{config_id}": "LLM provider/config admin and chat-tools catalog; agents use generate/chat/ask tools.",
+    "PUT /api/v1/projects/{project_id}/memberships/{membership_id}": "Project membership admin is out of MCP agent surface.",
+    "PUT /api/v1/projects/{project_id}/plans/{plan_id}": "Legacy plans; campaigns/iterations cover execution planning.",
+    "PUT /api/v1/projects/{project_id}/preferences/case-list-columns": "User preferences are UI-facing.",
+    "PUT /api/v1/projects/{project_id}/requirements/{id}": "Requirement folders/update/delete/unlink/custom-fields; list/get/create/link cover agent needs.",
+    "PUT /api/v1/projects/{project_id}/runs/{run_id}/items/{item_id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "PUT /api/v1/projects/{project_id}/suites/{suite_id}": "Suite CRUD beyond list; agents list suites and create cases into suite_id.",
+    "PUT /api/v1/projects/{project_id}/tags/{tag_id}": "Tag CRUD admin; case create accepts tag names.",
+    "PUT /api/v1/runs/{id}": "Deep run item/history/abandon/global-id routes; list/get/create/update/trigger/results covered.",
+    "PUT /api/v1/users/{id}": "User admin is out of MCP agent surface."
+  }
+}
