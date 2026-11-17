@@ -446,6 +446,7 @@ struct DiffSelection {
     repo_id: Uuid,
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn resolve_diff_selection(
     state: &AppState,
     project_id: Uuid,
