@@ -96,7 +96,43 @@ BASE_REF=origin/main HEAD_REF=HEAD ./scripts/check-npm-lock-heuristics.py
 ./scripts/test-npm-lock-heuristics.sh
 ```
 
+## Signed releases (cosign + SBOM)
+
+From **v0.7.0** onward (Release workflow on this branch), published GHCR images are:
+
+1. Built with Buildx **provenance** + **SBOM**
+2. **Cosign-signed** keyless (GitHub Actions OIDC → Fulcio; identity is
+   `release.yml` on this repo’s `v*` tags)
+3. Attested with GitHub **build provenance** and **SPDX SBOM** (pushed to the
+   registry and attached to the GitHub Release as `*.spdx.json`)
+
+### Operator verify (opt-in)
+
+Default upgrades stay offline-friendly (no cosign required). To enforce
+signatures after a GHCR pull:
+
+```bash
+# Flag
+./scripts/install.sh upgrade --yes --version 0.7.0 --verify-images
+# or env (also synced as missing key from .env.example)
+VULYK_VERIFY_IMAGES=1 ./scripts/install.sh upgrade --yes --version 0.7.0
+
+# Standalone
+./scripts/verify-release-images.sh 0.7.0
+```
+
+Install [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
+first. Override identity / issuer with `VULYK_COSIGN_IDENTITY_REGEXP` /
+`VULYK_COSIGN_OIDC_ISSUER` if you fork the Release workflow.
+
+Proof (no network / no cosign binary):
+
+```bash
+./scripts/test-verify-release-images.sh
+```
+
 ## Related
 
 - [ci-checks.md](ci-checks.md) - workflow index
-- [releasing.md](releasing.md) - tags / GHCR (signing / SBOM land with later #294 slices)
+- [releasing.md](releasing.md) - tags / GHCR / verify
+- [upgrade.md](../guides/upgrade.md) - `--verify-images` on upgrade

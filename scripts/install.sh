@@ -19,6 +19,11 @@ UPGRADE_TO=""
 RELEASE_VERSION=""
 NO_BACKUP=0
 ALLOW_DOWNGRADE=0
+# Opt-in: cosign-verify GHCR images after pull (release upgrades). Env wins if flag unset.
+VERIFY_IMAGES=0
+if [[ "${VULYK_VERIFY_IMAGES:-0}" == "1" || "${VULYK_VERIFY_IMAGES:-}" == "true" ]]; then
+  VERIFY_IMAGES=1
+fi
 RESTORE_FILE=""
 ROLLBACK_CONFIRM="${VULYK_ROLLBACK_CONFIRM:-}"
 # Override via env or --version (GHCR). Default owner derived from git remote when possible.
@@ -29,6 +34,7 @@ VULYK_GHCR_WEB_IMAGE="${VULYK_GHCR_WEB_IMAGE:-}"
 PREV_API_IMAGE=""
 PREV_WEB_IMAGE=""
 VERSION_BACKUPS_PY="${ROOT}/scripts/version_backups.py"
+VERIFY_RELEASE_IMAGES_SH="${ROOT}/scripts/verify-release-images.sh"
 
 # Progress logs always go to stderr so command substitutions like
 # `path="$(run_full_backup ...)"` only capture the function's intentional stdout
@@ -161,6 +167,8 @@ Upgrade / backup / release options:
   --version=X.Y.Z          Use published GHCR images for this semver (compose/prod/upgrade/rollback)
   --to=TAG|BRANCH          Checkout tag or branch and rebuild from source (upgrade)
   --no-backup              Skip automatic backup bundle (upgrade only; NOT recommended)
+  --verify-images          After pulling GHCR images, verify cosign signatures (needs cosign;
+                           or set VULYK_VERIFY_IMAGES=1). Default off so upgrades stay offline-friendly.
   --allow-downgrade        Permit target version < current (still refuses schema-newer DB;
                            prefer restore-from-backup instead)
   --confirm=ROLLBACK       Typed confirmation for rollback (or VULYK_ROLLBACK_CONFIRM)
@@ -170,7 +178,8 @@ Environment equivalents:
   VULYK_DEFAULT_TIMEZONE, VULYK_REGISTRATION_MODE, VULYK_INSTANCE_NAME,
   VULYK_SEED_DEMO, VULYK_BASE_URL, VULYK_BACKUP_RETENTION,
   VULYK_VERSION_BACKUP_DIR, VULYK_ROLLBACK_RETENTION_DAYS, VULYK_VERSION_BACKUP_COUNT,
-  VULYK_GHCR_OWNER, VULYK_GHCR_API_IMAGE, VULYK_GHCR_WEB_IMAGE
+  VULYK_GHCR_OWNER, VULYK_GHCR_API_IMAGE, VULYK_GHCR_WEB_IMAGE,
+  VULYK_VERIFY_IMAGES
 
 Written into .env (compose/dev) or .env.prod (prod). Defaults:
   compose/dev: seed demo=1, registration=open, admin@vulyk.local + random 24-char password,
@@ -278,6 +287,9 @@ parse_args() {
         ;;
       --no-backup)
         NO_BACKUP=1
+        ;;
+      --verify-images)
+        VERIFY_IMAGES=1
         ;;
       --allow-downgrade)
         ALLOW_DOWNGRADE=1
@@ -699,6 +711,30 @@ pull_release_images() {
   if ! docker pull "${VULYK_WEB_IMAGE}"; then
     die "failed to pull ${VULYK_WEB_IMAGE} (check version, network, or ghcr.io auth)"
   fi
+}
+
+# Optional: verify keyless cosign signatures after a GHCR pull (Part of #294).
+# Returns non-zero on failure so upgrade can auto-rollback.
+verify_pulled_release_images() {
+  [[ "${VERIFY_IMAGES}" -eq 1 ]] || return 0
+  [[ -n "${RELEASE_VERSION}" ]] || {
+    warn "--verify-images applies to --version GHCR pulls; skipping (source rebuild)"
+    return 0
+  }
+  if [[ ! -f "${VERIFY_RELEASE_IMAGES_SH}" ]]; then
+    printf 'error: missing %s\n' "${VERIFY_RELEASE_IMAGES_SH}" >&2
+    return 1
+  fi
+  chmod +x "${VERIFY_RELEASE_IMAGES_SH}" 2>/dev/null || true
+  log "Verifying GHCR image signatures (cosign keyless)..."
+  # Prefer the just-pulled image refs when set.
+  if ! VULYK_GHCR_API_IMAGE="${VULYK_API_IMAGE}" \
+    VULYK_GHCR_WEB_IMAGE="${VULYK_WEB_IMAGE}" \
+    "${VERIFY_RELEASE_IMAGES_SH}" "${RELEASE_VERSION}"; then
+    printf 'error: image signature verification failed (install cosign, or omit --verify-images / VULYK_VERIFY_IMAGES)\n' >&2
+    return 1
+  fi
+  return 0
 }
 
 run_setup_cli() {
@@ -1682,6 +1718,10 @@ cmd_upgrade() {
       [[ -n "${saved_api_image}" ]] && export VULYK_API_IMAGE="${saved_api_image}"
       [[ -n "${saved_web_image}" ]] && export VULYK_WEB_IMAGE="${saved_web_image}"
     fi
+    # Honor VULYK_VERIFY_IMAGES from operator .env (CLI --verify-images still wins).
+    if [[ "${VULYK_VERIFY_IMAGES:-0}" == "1" || "${VULYK_VERIFY_IMAGES:-}" == "true" ]]; then
+      VERIFY_IMAGES=1
+    fi
   elif [[ -n "${COMPOSE_ENV_FILE}" ]]; then
     merge_env_defaults_for_upgrade "${COMPOSE_ENV_FILE}"
   fi
@@ -1728,6 +1768,9 @@ cmd_upgrade() {
     log "Pulling release images (no local rebuild)..."
     if ! pull_release_images; then
       auto_rollback_upgrade "${backup_file}" "image pull failed"
+    fi
+    if ! verify_pulled_release_images; then
+      auto_rollback_upgrade "${backup_file}" "image signature verification failed"
     fi
   else
     log "Rebuilding images..."
@@ -2011,6 +2054,8 @@ if [[ "${MODE}" == "prod" ]]; then
   if [[ -n "${RELEASE_VERSION}" ]]; then
     log "Pulling and starting Vulyk production Compose (GHCR ${RELEASE_VERSION})..."
     pull_release_images
+    verify_pulled_release_images \
+      || die "image signature verification failed (install cosign, or omit --verify-images)"
     "${COMPOSE[@]}" -f docker-compose.prod.yml --env-file .env.prod up -d
   else
     log "Building and starting Vulyk production Compose..."
@@ -2059,6 +2104,8 @@ set +a
 if [[ -n "${RELEASE_VERSION}" ]]; then
   log "Pulling and starting Vulyk (docker compose, GHCR ${RELEASE_VERSION})..."
   pull_release_images
+  verify_pulled_release_images \
+    || die "image signature verification failed (install cosign, or omit --verify-images)"
   "${COMPOSE[@]}" --env-file .env up -d
 else
   log "Building and starting Vulyk (docker compose)..."

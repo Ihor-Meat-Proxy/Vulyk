@@ -37,6 +37,10 @@ echo "==> npm lock heuristics self-test"
 chmod +x scripts/check-npm-lock-heuristics.py scripts/test-npm-lock-heuristics.sh
 ./scripts/test-npm-lock-heuristics.sh
 
+echo "==> release image verify script (cosign dry-run)"
+chmod +x scripts/verify-release-images.sh scripts/test-verify-release-images.sh
+./scripts/test-verify-release-images.sh
+
 echo "==> seed keys"
 chmod +x scripts/check-seed-keys.sh
 ./scripts/check-seed-keys.sh

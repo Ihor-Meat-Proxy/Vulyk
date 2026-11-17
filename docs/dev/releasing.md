@@ -36,11 +36,12 @@ flowchart TD
   C --> D[Resolve version vs VERSION file]
   D --> E[Run full CI reusable workflow]
   E --> F[Build and push GHCR images<br/>vulyk-api + vulyk-web<br/>tags: X.Y.Z and latest]
+  F --> F2[Cosign sign + attest<br/>provenance + SPDX SBOM]
   E --> G[Build artifacts<br/>Linux binaries, frontend dist,<br/>compose/install bundle + SHA256SUMS]
-  F --> H[Create GitHub Release]
+  F2 --> H[Create GitHub Release]
   G --> H
-  H --> I[Release notes =<br/>auto-generated + CHANGELOG section]
-  I --> J[Operators install/upgrade<br/>via install.sh --version]
+  H --> I[Release notes =<br/>auto-generated + CHANGELOG + SBOM]
+  I --> J[Operators install/upgrade<br/>via install.sh --version<br/>optional --verify-images]
 ```
 
 ### Tag and push
@@ -69,14 +70,20 @@ requested semver.
 
 | Artifact | Where |
 |----------|--------|
-| `ghcr.io/<owner>/vulyk-api:X.Y.Z` and `:latest` | GHCR |
-| `ghcr.io/<owner>/vulyk-web:X.Y.Z` and `:latest` | GHCR |
+| `ghcr.io/<owner>/vulyk-api:X.Y.Z` and `:latest` | GHCR (cosign-signed + attested) |
+| `ghcr.io/<owner>/vulyk-web:X.Y.Z` and `:latest` | GHCR (cosign-signed + attested) |
+| `vulyk-api-*.spdx.json`, `vulyk-web-*.spdx.json` | GitHub Release (+ registry attestation) |
 | `vulyk-api-linux-amd64-*.tar.gz`, `vulyk-cli-linux-amd64-*.tar.gz` | GitHub Release |
 | `vulyk-frontend-*.tar.gz` | GitHub Release |
-| `vulyk-compose-*.tar.gz` (compose files + `install.sh`) | GitHub Release |
+| `vulyk-compose-*.tar.gz` (compose files + `install.sh` + verify script) | GitHub Release |
 | `SHA256SUMS` | GitHub Release |
 
 `<owner>` is the GitHub owner in lowercase (for this repo: `ihor-meat-proxy`).
+
+Signing uses **keyless Sigstore** (GitHub Actions OIDC). Operators can verify
+with `./scripts/verify-release-images.sh X.Y.Z` or
+`./scripts/install.sh upgrade --version X.Y.Z --verify-images` (see
+[supply-chain.md](supply-chain.md)).
 
 ## Install / upgrade a release
 
@@ -113,6 +120,9 @@ Private packages: `echo $CR_PAT | docker login ghcr.io -u USER --password-stdin`
 # Preferred: pull published images (keeps Postgres volume + verified backup/rollback)
 ./scripts/install.sh upgrade --yes --version 0.6.0
 
+# Optional: verify cosign signatures after pull (needs cosign)
+./scripts/install.sh upgrade --yes --version 0.6.0 --verify-images
+
 # Alternative: checkout a git tag and rebuild from source
 ./scripts/install.sh upgrade --yes --to=v0.6.0
 ```
@@ -139,7 +149,8 @@ helm upgrade --install vulyk deploy/helm/vulyk --namespace vulyk --create-namesp
 
 ## Permissions the repo needs
 
-The Release workflow uses `GITHUB_TOKEN` with `contents: write` and `packages: write`.
+The Release workflow uses `GITHUB_TOKEN` with `contents: write`, `packages: write`,
+`id-token: write` (keyless cosign / attestations), and `attestations: write`.
 
 If the workflow fails on GHCR push or Release creation, a repo admin should verify:
 
@@ -150,9 +161,12 @@ If the workflow fails on GHCR push or Release creation, a repo admin should veri
    Change visibility to **Public** if anonymous pulls should work.
 3. **Actions allowed to create releases** — same Workflow permissions as above;
    do not restrict `softprops/action-gh-release` via an allowlist that blocks it.
+4. **OIDC / attestations** — do not disable `id-token` or package attestations for
+   this workflow; signing and SBOM attestations depend on them.
 
 ## Related
 
-- [upgrade.md](../guides/upgrade.md) — backups, migrate CLI, Helm hooks
+- [upgrade.md](../guides/upgrade.md) — backups, migrate CLI, Helm hooks, `--verify-images`
+- [supply-chain.md](supply-chain.md) — Dependabot, npm age gate, cosign verify
 - [admin-guide.md](../admin-guide.md) — production Compose / Helm
 - [CONTRIBUTING.md](../../CONTRIBUTING.md) — migration and version bump rules

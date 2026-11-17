@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Supply-chain hardening (partial #294)** — Dependabot cooldown + security
+  fast path, locked installs / npm `min-release-age` override, Dependabot dep
+  scan, and **keyless cosign + SBOM attestations** on Release GHCR images with
+  opt-in `install.sh --verify-images` / `VULYK_VERIFY_IMAGES` (#295–#298).
+
 ## [0.6.0] - 2026-11-17
 
 Minor release: MCP parity, CI/platform expansion (Bitbucket, examples,

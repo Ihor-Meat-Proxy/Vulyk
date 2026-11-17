@@ -102,6 +102,8 @@ cargo install lychee --locked   # once
 
 **Locked installs:** CI / Docker / local helpers use `cargo … --locked` and `./scripts/npm-ci-secure.sh` (`npm ci --ignore-scripts` + optional rebuild allowlist in `scripts/npm-install-scripts-allowlist.txt`). Frontend and e2e ship `.npmrc` with `ignore-scripts=true` and `min-release-age=7`. Dependabot **security** installs bypass the age gate via `--min-release-age=0` (see [supply-chain.md](supply-chain.md); proof: `./scripts/check-npm-security-fast-path.sh` / Fast CI job **npm security fast path**).
 
+**Release signing:** `.github/workflows/release.yml` cosign-signs GHCR digests (keyless OIDC), attests provenance + SPDX SBOM, and attaches `*.spdx.json` to the GitHub Release. Operators opt in with `./scripts/install.sh … --verify-images` / `VULYK_VERIFY_IMAGES=1` (proof: `./scripts/test-verify-release-images.sh`).
+
 ### Justified advisory ignores
 
 Documented in `deny.toml` / `.cargo/audit.toml` with **review-by dates**:

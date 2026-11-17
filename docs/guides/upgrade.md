@@ -75,6 +75,10 @@ individual services (`docker compose stop api web`).
 # Preferred: upgrade to a published release (GHCR images, no local build)
 ./scripts/install.sh upgrade --yes --version 0.1.0
 
+# Optional: verify cosign signatures after GHCR pull (needs cosign on PATH)
+./scripts/install.sh upgrade --yes --version 0.1.0 --verify-images
+# or: VULYK_VERIFY_IMAGES=1 ./scripts/install.sh upgrade --yes --version 0.1.0
+
 # Or pin a git tag/branch and rebuild from source
 ./scripts/install.sh upgrade --yes --to=v0.1.0
 
@@ -102,13 +106,17 @@ What it does:
 5. **Target** — `--version` pulls GHCR images; `--to` checks out git; else
    `git pull --ff-only` + local rebuild (do not combine `--version` and `--to`)
 6. **Stop API/web only** (DB volume untouched)
-7. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
-8. **Start** stack and **health-check** `/health` (includes `version`)
-9. **On failure** — automatic DB restore + previous images, then clear restore hints
-10. **On success** — copy the pre-upgrade bundle into `./version-backups/` as a
-    rollback point (`VULYK_ROLLBACK_RETENTION_DAYS`) and a version snapshot
-    (`VULYK_VERSION_BACKUP_COUNT`); prune expired / excess points (never while
-    a rollback is in progress; never the current version’s snapshot)
+7. **Optional signature check** — with `--verify-images` / `VULYK_VERIFY_IMAGES=1`,
+   run `scripts/verify-release-images.sh` (keyless cosign) after pull; failure
+   triggers the same auto-rollback as a bad pull. Default **off** so air-gapped
+   upgrades do not require cosign. See [supply-chain.md](../dev/supply-chain.md).
+8. **One-shot migrate** — `vulyk-api migrate run` **before** starting the new API
+9. **Start** stack and **health-check** `/health` (includes `version`)
+10. **On failure** — automatic DB restore + previous images, then clear restore hints
+11. **On success** — copy the pre-upgrade bundle into `./version-backups/` as a
+   rollback point (`VULYK_ROLLBACK_RETENTION_DAYS`) and a version snapshot
+   (`VULYK_VERSION_BACKUP_COUNT`); prune expired / excess points (never while
+   a rollback is in progress; never the current version’s snapshot)
 
 ### `.env.example` sync markers
 
@@ -159,6 +167,7 @@ they are copied from the bundle. Always keep an off-box copy of `VULYK_SECRETS_K
 | `VULYK_ROLLBACK_RETENTION_DAYS` | `7` | `7` | How long a post-upgrade rollback point stays usable |
 | `VULYK_VERSION_BACKUP_COUNT` | `3` | `3` | Keep one verified snapshot per last N installed versions |
 | `VULYK_MIN_FREE_MB` | `2048` | `2048` | Minimum free disk before upgrade |
+| `VULYK_VERIFY_IMAGES` | `0` | `0` | When `1`, cosign-verify GHCR images after pull (`--verify-images`). Opt-in; needs cosign. |
 
 Prod Compose expects migrations from `install.sh upgrade` (or
 `docker compose run --rm api vulyk-api migrate run`) before the API serves
