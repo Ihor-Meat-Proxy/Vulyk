@@ -9,7 +9,7 @@ use crate::auth::{
     require_permission, require_project_role, AuthVia, OptionalAuthUser, Permission, ProjectRole,
 };
 use crate::error::{AppError, AppResult};
-use crate::models::{CreateProject, Project, UpdateProject};
+use crate::models::{CiUnmatchedPolicy, CreateProject, Project, UpdateProject};
 use crate::routes::AppState;
 use crate::services::case_keys::{
     unique_key_for_name, unique_prefix, unique_prefix_for_name, validate_prefix,
@@ -17,7 +17,7 @@ use crate::services::case_keys::{
 };
 
 const PROJECT_COLS: &str =
-    "id, key, name, description, case_key_prefix, next_case_number, is_sample, created_at, updated_at";
+    "id, key, name, description, case_key_prefix, next_case_number, is_sample, ci_unmatched_policy, created_at, updated_at";
 
 pub fn router() -> Router<AppState> {
     Router::new()
@@ -50,7 +50,8 @@ pub async fn list_projects(
             Some(user) => {
                 sqlx::query_as::<_, Project>(
                     r#"SELECT p.id, p.key, p.name, p.description, p.case_key_prefix,
-                              p.next_case_number, p.is_sample, p.created_at, p.updated_at
+                              p.next_case_number, p.is_sample, p.ci_unmatched_policy,
+                              p.created_at, p.updated_at
                        FROM projects p
                        INNER JOIN memberships m ON m.project_id = p.id
                        WHERE m.user_id = $1
@@ -117,6 +118,16 @@ pub async fn create_project(
         .map(|s| validate_prefix(s))
         .transpose()?;
 
+    let policy = match &body.ci_unmatched_policy {
+        Some(raw) => CiUnmatchedPolicy::parse(raw).ok_or_else(|| {
+            AppError::BadRequest(
+                "ci_unmatched_policy must be one of: off, create_passed, create_all, fail_unmatched"
+                    .into(),
+            )
+        })?,
+        None => CiUnmatchedPolicy::Off,
+    };
+
     // Allocate then INSERT; on unique violation re-allocate and retry so concurrent
     // creates get a clean Conflict/retry instead of an opaque DB race (review #5).
     const MAX_INSERT_RETRIES: u32 = 8;
@@ -134,14 +145,16 @@ pub async fn create_project(
         };
 
         let inserted = sqlx::query_as::<_, Project>(&format!(
-            r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
-               VALUES ($1, $2, $3, $4, 0)
+            r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number,
+                                     ci_unmatched_policy)
+               VALUES ($1, $2, $3, $4, 0, $5)
                RETURNING {PROJECT_COLS}"#
         ))
         .bind(&key)
         .bind(body.name.trim())
         .bind(&body.description)
         .bind(&prefix)
+        .bind(policy.as_str())
         .fetch_one(&state.pool)
         .await;
 
@@ -291,9 +304,24 @@ pub async fn update_project(
         existing.case_key_prefix
     };
 
+    let ci_unmatched_policy = if let Some(raw) = body.ci_unmatched_policy {
+        CiUnmatchedPolicy::parse(&raw)
+            .ok_or_else(|| {
+                AppError::BadRequest(
+                    "ci_unmatched_policy must be one of: off, create_passed, create_all, fail_unmatched"
+                        .into(),
+                )
+            })?
+            .as_str()
+            .to_string()
+    } else {
+        existing.ci_unmatched_policy
+    };
+
     let project = sqlx::query_as::<_, Project>(&format!(
         r#"UPDATE projects
-           SET name = $2, description = $3, case_key_prefix = $4, updated_at = NOW()
+           SET name = $2, description = $3, case_key_prefix = $4,
+               ci_unmatched_policy = $5, updated_at = NOW()
            WHERE id = $1
            RETURNING {PROJECT_COLS}"#
     ))
@@ -301,6 +329,7 @@ pub async fn update_project(
     .bind(name)
     .bind(description)
     .bind(case_key_prefix)
+    .bind(&ci_unmatched_policy)
     .fetch_one(&state.pool)
     .await?;
 

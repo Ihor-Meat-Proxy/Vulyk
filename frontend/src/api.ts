@@ -115,6 +115,13 @@ export type Page<T> = {
   offset: number
 }
 
+/** How ingest handles unmatched CI results (key / automation_id / external_key). */
+export type CiUnmatchedPolicy =
+  | 'off'
+  | 'create_passed'
+  | 'create_all'
+  | 'fail_unmatched'
+
 export type Project = {
   id: string
   key: string
@@ -124,6 +131,8 @@ export type Project = {
   next_case_number: number
   /** Seeded demo project — show Sample badge; removable via admin. */
   is_sample?: boolean
+  /** Unmatched CI result policy (default `off`). */
+  ci_unmatched_policy?: CiUnmatchedPolicy | string
   created_at: string
   updated_at: string
 }
@@ -2001,6 +2010,7 @@ export const api = {
     name: string
     description?: string
     case_key_prefix?: string
+    ci_unmatched_policy?: CiUnmatchedPolicy | string
   }) =>
     request<Project>('/api/v1/projects', {
       method: 'POST',
@@ -2012,6 +2022,7 @@ export const api = {
       name?: string
       description?: string
       case_key_prefix?: string
+      ci_unmatched_policy?: CiUnmatchedPolicy | string
     },
   ) =>
     request<Project>(`/api/v1/projects/${projectId}`, {

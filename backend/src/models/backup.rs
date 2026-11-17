@@ -168,6 +168,9 @@ pub struct ContentArchiveProject {
     pub description: String,
     pub case_key_prefix: String,
     pub next_case_number: i32,
+    /// Unmatched CI policy; defaults to `off` for older archives.
+    #[serde(default = "crate::models::default_ci_unmatched_policy")]
+    pub ci_unmatched_policy: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

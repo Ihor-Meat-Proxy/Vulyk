@@ -104,4 +104,8 @@ pub struct CiRunResultsResponse {
     pub unmatched_case_keys: Vec<String>,
     pub idempotent_replays: i64,
     pub job_id: Option<Uuid>,
+    #[serde(default)]
+    pub auto_created_cases: Vec<crate::models::AutoCreatedCaseSummary>,
+    #[serde(default)]
+    pub dry_run: bool,
 }

@@ -115,6 +115,8 @@ Additional ids used by `e2e/tests/ux-polish-f13-f22.spec.ts`:
 - CI tokens: `settings-ci-token-env-block`, `settings-ci-token-copy-button`,
   `settings-ci-token-copy-env-button`, `settings-ci-token-copy-notice`,
   `settings-ci-token-created`, `settings-ci-token-last-used`,
+  `settings-ci-unmatched-policy-select`,
+  `settings-ci-unmatched-policy-save-button`,
   `runs-ci-tokens-link`, `admin-integrations-ci-tokens-link`
 - Run report: `reports-run-kpi-skipped`, `reports-run-kpi-pass-rate`,
   `reports-run-pass-rate-hint`, `reports-other-legend`
@@ -923,6 +925,8 @@ run `npm run check:test-ids -- --write-catalog` (from `frontend/`).
 | `settings-ci-token-row` | `settingsCiTokenRow` |
 | `settings-ci-token-secret` | `settingsCiTokenSecret` |
 | `settings-ci-tokens-nav-link` | `settingsCiTokensNavLink` |
+| `settings-ci-unmatched-policy-select` | `settingsCiUnmatchedPolicySelect` |
+| `settings-ci-unmatched-policy-save-button` | `settingsCiUnmatchedPolicySaveButton` |
 | `settings-confirm-password-input` | `settingsConfirmPasswordInput` |
 | `settings-create-token-button` | `settingsCreateTokenButton` |
 | `settings-current-password-input` | `settingsCurrentPasswordInput` |

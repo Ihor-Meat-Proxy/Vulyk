@@ -48,7 +48,7 @@ pub struct ReseedSampleDataRequest {
 async fn load_status(pool: &sqlx::PgPool) -> AppResult<SampleDataStatus> {
     let projects = sqlx::query_as::<_, Project>(
         r#"SELECT id, key, name, description, case_key_prefix, next_case_number,
-                  is_sample, created_at, updated_at
+                  is_sample, ci_unmatched_policy, created_at, updated_at
            FROM projects
            WHERE is_sample = TRUE
            ORDER BY key"#,

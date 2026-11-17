@@ -563,6 +563,7 @@ pub async fn post_ci_results(
         &body.results,
         "ci",
         body.upsert,
+        body.dry_run,
     )
     .await?;
     let updated = load_ci_run(&state.pool, project_id, run_id).await?;
@@ -574,6 +575,8 @@ pub async fn post_ci_results(
         unmatched_case_keys: report.unmatched_case_keys,
         idempotent_replays: report.idempotent_replays,
         job_id: report.job_id,
+        auto_created_cases: report.auto_created_cases,
+        dry_run: report.dry_run,
     }))
 }
 
@@ -644,6 +647,7 @@ pub async fn ingest_ci_run(
         &parsed.results,
         &source,
         true,
+        body.dry_run,
     )
     .await?;
     let updated = load_ci_run(&state.pool, project_id, run_id).await?;
@@ -655,6 +659,8 @@ pub async fn ingest_ci_run(
         unmatched_case_keys: report.unmatched_case_keys,
         idempotent_replays: report.idempotent_replays,
         job_id: report.job_id,
+        auto_created_cases: report.auto_created_cases,
+        dry_run: report.dry_run,
     }))
 }
 

@@ -347,6 +347,9 @@ pub struct PipelineIngestRequest {
     #[serde(default)]
     #[schema(value_type = Object)]
     pub artifacts: Value,
+    /// When true, report cases that would be auto-created without persisting creates.
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 fn default_ci_source() -> String {
@@ -363,6 +366,10 @@ pub struct PipelineIngestResponse {
     pub unmatched_case_keys: Vec<String>,
     pub job_id: Option<Uuid>,
     pub parsed: i64,
+    #[serde(default)]
+    pub auto_created_cases: Vec<crate::models::AutoCreatedCaseSummary>,
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 #[cfg(test)]

@@ -62,6 +62,7 @@ pub async fn bulk_results(
                 })).unwrap_or_default(),
                 "source": "bulk",
                 "upsert": body.upsert,
+                "dry_run": body.dry_run,
             }),
             5,
         )
@@ -72,6 +73,8 @@ pub async fn bulk_results(
             unmatched_case_keys: vec![],
             job_id: Some(job.id),
             idempotent_replays: 0,
+            auto_created_cases: vec![],
+            dry_run: body.dry_run,
         }));
     }
 
@@ -82,6 +85,7 @@ pub async fn bulk_results(
         &body.results,
         "bulk",
         body.upsert,
+        body.dry_run,
     )
     .await?;
     Ok(Json(report))
@@ -148,6 +152,7 @@ pub async fn ingest(
                 "content": body.content,
                 "source": source,
                 "upsert": true,
+                "dry_run": body.dry_run,
             }),
             5,
         )
@@ -158,6 +163,8 @@ pub async fn ingest(
             unmatched_case_keys: vec![],
             job_id: Some(job.id),
             parsed: parsed.results.len() as i64,
+            auto_created_cases: vec![],
+            dry_run: body.dry_run,
         }));
     }
 
@@ -178,9 +185,16 @@ pub async fn ingest(
         .await?;
     }
 
-    let report =
-        ingest_svc::persist_results(&state.pool, id, project_id, &parsed.results, &source, true)
-            .await?;
+    let report = ingest_svc::persist_results(
+        &state.pool,
+        id,
+        project_id,
+        &parsed.results,
+        &source,
+        true,
+        body.dry_run,
+    )
+    .await?;
 
     Ok(Json(IngestResponse {
         inserted: report.inserted,
@@ -188,5 +202,7 @@ pub async fn ingest(
         unmatched_case_keys: report.unmatched_case_keys,
         job_id: None,
         parsed: parsed.results.len() as i64,
+        auto_created_cases: report.auto_created_cases,
+        dry_run: report.dry_run,
     }))
 }
