@@ -30,11 +30,17 @@ export default tseslint.config(
       'jsx-a11y': jsxA11y,
     },
     settings: {
-      react: { version: 'detect' },
+      // Pin React major for eslint-plugin-react (ESLint 10 removed
+      // context.getFilename(); "detect" still calls it in 7.37.x).
+      react: { version: '19.0' },
     },
     rules: {
       ...react.configs.recommended.rules,
-      ...reactHooks.configs.recommended.rules,
+      // Hooks 7 `recommended` enables React Compiler rules (set-state-in-effect,
+      // etc.) that are still noisy on this codebase — keep the classic pair for
+      // now and ratchet the rest later (#234).
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
       ...jsxA11y.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
@@ -47,8 +53,6 @@ export default tseslint.config(
       'jsx-a11y/click-events-have-key-events': 'warn',
       'jsx-a11y/no-static-element-interactions': 'warn',
       'jsx-a11y/label-has-associated-control': 'warn',
-      // Day-one: treat hook dependency gaps as warnings (ratchet to error later).
-      'react-hooks/exhaustive-deps': 'warn',
       // Prefer in-app Dialog / ConfirmDialog / PromptDialog (bee theme).
       'no-alert': 'error',
       'no-restricted-globals': [
