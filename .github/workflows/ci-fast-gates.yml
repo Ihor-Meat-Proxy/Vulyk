@@ -216,6 +216,13 @@ jobs:
         run: |
           chmod +x scripts/check-openapi-drift.sh scripts/generate-openapi.sh
           ./scripts/check-openapi-drift.sh
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - name: check-openapi-spectral.sh
+        run: |
+          chmod +x scripts/check-openapi-spectral.sh
+          ./scripts/check-openapi-spectral.sh
 
   bundle-size:
     name: Bundle size budget

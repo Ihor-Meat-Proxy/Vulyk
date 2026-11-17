@@ -154,4 +154,30 @@ describe('api client', () => {
     ).rejects.toMatchObject({ status: 401 })
     expect(assign).not.toHaveBeenCalled()
   })
+
+  it('parses RFC 9457 problem+json detail and code', async () => {
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            type: 'urn:vulyk:api:problem:not_found',
+            title: 'Not Found',
+            status: 404,
+            detail: 'not found: project',
+            code: 'not_found',
+            error: { code: 'not_found', message: 'not found: project' },
+          }),
+          {
+            status: 404,
+            headers: { 'Content-Type': 'application/problem+json' },
+          },
+        ),
+    ) as typeof fetch
+
+    await expect(api.listProjects()).rejects.toMatchObject({
+      status: 404,
+      code: 'not_found',
+      message: 'not found: project',
+    } satisfies Partial<ApiError>)
+  })
 })

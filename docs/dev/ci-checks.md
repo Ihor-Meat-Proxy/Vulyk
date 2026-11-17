@@ -37,6 +37,7 @@ Stable job names for branch protection (workflow **Fast CI gates**):
 | `i18n completeness` | Locale key parity (en/uk/fr/es/de), placeholder parity, uk Latin allowlist, JSX `t()` literals | `(cd frontend && npm run check:i18n)` |
 | `Test ID guard` | Duplicate `data-testid` + every `TestIds` value in `docs/dev/testing/test-ids.md` catalog | `(cd frontend && npm run check:test-ids)`; refresh catalog with `-- --write-catalog` |
 | `OpenAPI drift` | Committed `docs/api/openapi.json` must match `ApiDoc`; `oasdiff breaking` vs base unless `VERSION` bumped | `./scripts/generate-openapi.sh` then `./scripts/check-openapi-drift.sh` |
+| `OpenAPI Spectral` | Stoplight Spectral lint (`.spectral.yaml`): every operation has a summary; `ProblemDetails` + shared problem response components | `./scripts/check-openapi-spectral.sh` |
 | `Bundle size budget` | Main `frontend/dist/assets/index-*.js` must not grow **>10%** vs base ref | `./scripts/check-bundle-size.sh` |
 | `Accessibility smoke` | Playwright project `a11y-smoke`: axe on login/cases/runs/docs/settings; **serious/critical** fail (`color-contrast` disabled like other a11y specs) | `(cd e2e && npx playwright test --project=a11y-smoke)` with API + preview running |
 

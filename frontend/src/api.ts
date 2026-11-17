@@ -81,12 +81,23 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     let code = 'error'
     let message = text || res.statusText
     try {
+      // Prefer RFC 9457 problem+json (`detail` / `code`); fall back to legacy
+      // `{ error: { code, message } }` for older servers / dual-written bodies.
       const parsed = JSON.parse(text) as {
+        detail?: string
+        code?: string
+        title?: string
         error?: { message?: string; code?: string }
       }
-      if (parsed?.error?.message) {
+      if (typeof parsed?.detail === 'string' && parsed.detail) {
+        message = parsed.detail
+        code = parsed.code ?? parsed.error?.code ?? 'error'
+      } else if (parsed?.error?.message) {
         message = parsed.error.message
         code = parsed.error.code ?? 'error'
+      } else if (typeof parsed?.title === 'string' && parsed.title) {
+        message = parsed.title
+        code = parsed.code ?? 'error'
       }
     } catch {
       /* raw body */
