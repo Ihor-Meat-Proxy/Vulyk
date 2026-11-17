@@ -58,6 +58,17 @@ function detectCiProvider(): string {
   if (explicit) return explicit.toLowerCase()
   if (process.env.FORGEJO_ACTIONS || process.env.FORGEJO) return 'forgejo'
   if (process.env.GITEA_ACTIONS) return 'gitea'
+  const ci = (process.env.CI || '').toLowerCase()
+  if (
+    ci === 'woodpecker' ||
+    ci === 'woodpecker-ci' ||
+    (process.env.CI_REPO &&
+      process.env.CI_PIPELINE_NUMBER &&
+      !process.env.GITHUB_ACTIONS &&
+      !process.env.GITLAB_CI)
+  ) {
+    return 'woodpecker'
+  }
   if (process.env.GITHUB_ACTIONS) {
     const server = process.env.GITHUB_SERVER_URL || ''
     if (/forgejo/i.test(server)) return 'forgejo'
@@ -134,9 +145,11 @@ export default class VulykReporter implements Reporter {
         '[vulyk-reporter] dry-run enabled — logging open/start/results/close without POSTing',
       )
     }
-    this.pipelineUrl = process.env.GITHUB_SERVER_URL
-      ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
-      : undefined
+    this.pipelineUrl =
+      process.env.CI_PIPELINE_URL ||
+      (process.env.GITHUB_SERVER_URL
+        ? `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`
+        : undefined)
 
     this.openReady = this.openAndStart().catch((err) => {
       console.error('[vulyk-reporter] failed to open/start run:', err)

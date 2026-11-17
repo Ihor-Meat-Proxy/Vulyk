@@ -295,6 +295,14 @@ adds optional `.env` keys when missing (never overwrites):
 
 See [ci-integration.md](./ci-integration.md#forgejo--gitea-actions).
 
+### Woodpecker CI provider (`ci_configs`)
+
+Forward migration `20261117002230_ci_configs_woodpecker.sql` widens
+`ci_configs.provider` to allow `woodpecker`. Existing rows stay valid. Dispatch
+uses `POST /api/repos/{id}/pipelines` with Bearer PAT; Test connection probes
+`/api/user` + repo lookup. No new required `.env` keys. See
+[ci-integration.md](./ci-integration.md#woodpecker).
+
 ### Private / HTTP CI URLs (J10)
 
 Upgrade sync adds optional `.env` keys from `.env.example` when missing (never

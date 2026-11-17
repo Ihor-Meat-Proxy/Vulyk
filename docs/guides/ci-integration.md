@@ -1,10 +1,10 @@
 # CI integration guide
 
-Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Actions**, **GitLab CI**, **Jenkins**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
+Publish automated test results from **GitHub Actions**, **Forgejo / Gitea Actions**, **GitLab CI**, **Jenkins**, **Woodpecker**, or any pipeline that can upload **JUnit** / Playwright / pytest / Vulyk JSON into Vulyk: open a run when the pipeline starts, upload JUnit / Playwright / pytest results (by case key), and close the run when the job finishes — including on failure.
 
 Formats, dispatch, and **webhooks** (secrets required, fail-closed): [ingest-and-ci.md](./ingest-and-ci.md).
 Automation Git repos: [automation-repo.md](../automation-repo.md).
-In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / JUnit): [../user/cicd.md](../user/cicd.md).
+In-app examples (GitHub / Forgejo / Gitea / GitLab / Jenkins / Woodpecker / JUnit): [../user/cicd.md](../user/cicd.md).
 
 ## How it fits together
 
@@ -78,11 +78,37 @@ When configuring GitHub/GitLab **webhooks** for dispatch status sync, set a **we
 
 ## Two-way trigger (Run in CI)
 
-Vulyk can **start** a GitHub / Forgejo / Gitea Actions workflow, GitLab pipeline,
-or **Jenkins job** and stream results back into an existing run. GitHub also
-supports the Executions **Run in CI** button via an automation repo;
-Jenkins/GitLab/Forgejo/Gitea use **CI → Dispatch** on a saved CI config (or the
-same dispatch API).
+Vulyk can **start** a GitHub / Forgejo / Gitea Actions workflow, GitLab or
+Woodpecker pipeline, or **Jenkins job** and stream results back into an existing
+run. GitHub also supports the Executions **Run in CI** button via an automation
+repo; Jenkins/GitLab/Forgejo/Gitea/Woodpecker use **CI → Dispatch** on a saved
+CI config (or the same dispatch API).
+
+### Woodpecker
+
+Under **CI triggers**, choose **Woodpecker** and save:
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `base_url` | yes | Woodpecker server origin |
+| `token` | yes | Personal access token (Bearer; redacted in API responses) |
+| `repo` | yes | `owner/name` (looked up via `/api/repos/lookup/…`) |
+| `branch` | no | Default `main` |
+| `repo_id` | no | Skip lookup when known |
+| `public_base_url` | no | Browser-facing origin for the pipeline link |
+
+**Test connection** calls `/api/user` and repo lookup. **Dispatch** POSTs
+`/api/repos/{id}/pipelines` with `VULYK_RUN_ID` / `VULYK_PROJECT_ID` (and other
+inputs) as `variables`, then briefly polls pipeline status and stores
+`{public_base}/repos/{owner}/{name}/pipeline/{number}`.
+
+Example pipeline (POSIX sh, `$${VAR}` escaping):
+[`ci/woodpecker-vulyk.yml`](../../ci/woodpecker-vulyk.yml). Pass
+`--provider woodpecker` or set `VULYK_CI_PROVIDER`; auto-detect also checks
+`CI=woodpecker` / `CI_REPO` + `CI_PIPELINE_NUMBER`.
+
+Self-hosted `http://` or LAN Woodpecker needs **Allow http and private-network
+CI hosts** under **Admin → Settings**.
 
 ### Forgejo / Gitea Actions
 
@@ -377,7 +403,7 @@ The `.vulyk_report` job opens a run with GitLab pipeline/job URLs, uploads `$VUL
 | Closed | Job finished successfully or with failures |
 | Cancelled | Job interrupted / cancelled close (`status=cancelled`, not a passed-looking Closed badge) |
 
-On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** / **Forgejo** / **Gitea** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
+On **Executions → Automated suites**, CI runs show a **GitHub** / **GitLab** / **Jenkins** / **Forgejo** / **Gitea** / **Woodpecker** source badge and a link to the pipeline. Per-case history and the case’s latest automation status update as results arrive.
 
 ```mermaid
 stateDiagram-v2

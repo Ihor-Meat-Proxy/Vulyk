@@ -7,7 +7,7 @@
 //! - Run URL slug: `{PREFIX}-R-{source}-{n}-{YYYYMMDDTHHMMSSZ}`
 //!   e.g. `VQA-R-jenkins-42-20261116T163512Z`
 //!
-//! `source` ∈ `jenkins|gitlab|github|forgejo|gitea|bitbucket|manual|other`,
+//! `source` ∈ `jenkins|gitlab|github|forgejo|gitea|woodpecker|bitbucket|manual|other`,
 //! normalized from `ci_provider` / `source` / `lifecycle`.
 //!
 //! Counters live on `projects` (`next_*_number`) via `UPDATE … RETURNING` — same
@@ -33,6 +33,7 @@ pub fn normalize_run_source(
         "github" => return "github",
         "forgejo" => return "forgejo",
         "gitea" => return "gitea",
+        "woodpecker" => return "woodpecker",
         "bitbucket" => return "bitbucket",
         "other" => return "other",
         "manual" => return "manual",
@@ -51,6 +52,9 @@ pub fn normalize_run_source(
     }
     if src.contains("gitea") {
         return "gitea";
+    }
+    if src.contains("woodpecker") {
+        return "woodpecker";
     }
     if src.contains("github") {
         return "github";
@@ -130,8 +134,8 @@ pub async fn allocate_run_ids(
 
     let (prefix, number) = row.ok_or_else(|| AppError::NotFound("project".into()))?;
     let src = match source_token.trim().to_ascii_lowercase().as_str() {
-        "jenkins" | "gitlab" | "github" | "forgejo" | "gitea" | "bitbucket" | "manual"
-        | "other" => source_token.trim().to_ascii_lowercase(),
+        "jenkins" | "gitlab" | "github" | "forgejo" | "gitea" | "woodpecker" | "bitbucket"
+        | "manual" | "other" => source_token.trim().to_ascii_lowercase(),
         _ => "other".to_string(),
     };
     let ts = created_at.format("%Y%m%dT%H%M%SZ");
@@ -299,6 +303,10 @@ mod tests {
         assert_eq!(normalize_run_source(Some("GITHUB"), None, None), "github");
         assert_eq!(normalize_run_source(Some("Forgejo"), None, None), "forgejo");
         assert_eq!(normalize_run_source(Some("gitea"), None, None), "gitea");
+        assert_eq!(
+            normalize_run_source(Some("woodpecker"), None, None),
+            "woodpecker"
+        );
         assert_eq!(
             normalize_run_source(Some("bitbucket"), None, None),
             "bitbucket"

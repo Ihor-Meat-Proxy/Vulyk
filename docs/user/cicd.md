@@ -276,6 +276,33 @@ host so stored pipeline links stay clickable. Webhooks:
 Self-hosted `http://` or LAN Forgejo/Gitea needs **Allow http and private-network
 CI hosts** (optional allowlist) under **Admin → Settings**.
 
+## Woodpecker
+
+Woodpecker is a first-class provider (`--provider woodpecker` or
+`VULYK_CI_PROVIDER=woodpecker`). Run slugs use `woodpecker`.
+
+Example pipeline: [`ci/woodpecker-vulyk.yml`](../../ci/woodpecker-vulyk.yml).
+Woodpecker YAML interpolates `${VAR}` — use `$${VAR}` so the shell sees
+`${VAR}` (POSIX sh).
+
+```bash
+export VULYK_API_URL=https://vulyk.example.com
+export VULYK_API_TOKEN=vulyk_ci_…
+export VULYK_PROJECT_KEY=KOC
+export VULYK_CI_PROVIDER=woodpecker
+
+VULYK_RUN_ID="$(./scripts/vulyk-upload.sh --open-run --print-run-id \
+  --suite-name "Woodpecker #$CI_PIPELINE_NUMBER" \
+  --provider woodpecker --repo "$CI_REPO" \
+  --branch "${CI_COMMIT_BRANCH}" --commit "$CI_COMMIT_SHA" \
+  --pipeline-url "$CI_PIPELINE_URL")"
+```
+
+**Outbound dispatch:** under **CI triggers**, choose Woodpecker and save
+`base_url`, token, and `repo` (`owner/name`). Test connection probes the API;
+Dispatch triggers a manual pipeline with `VULYK_RUN_ID` variables and follows
+status to a pipeline URL.
+
 ## GitLab CI
 
 ```yaml

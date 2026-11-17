@@ -17955,7 +17955,7 @@
               "string",
               "null"
             ],
-            "description": "CI provider hint: `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `bitbucket`, `other`."
+            "description": "CI provider hint: `github`, `gitlab`, `jenkins`, `forgejo`, `gitea`, `woodpecker`, `bitbucket`, `other`."
           },
           "repo": {
             "type": [

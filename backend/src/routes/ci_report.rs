@@ -280,6 +280,7 @@ pub async fn open_ci_run(
         Some("jenkins") => "ci:jenkins".to_string(),
         Some("forgejo") => "ci:forgejo".to_string(),
         Some("gitea") => "ci:gitea".to_string(),
+        Some("woodpecker") => "ci:woodpecker".to_string(),
         Some("bitbucket") => "ci:bitbucket".to_string(),
         Some(other) => format!("ci:{other}"),
         None => "ci".to_string(),
