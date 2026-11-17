@@ -1076,9 +1076,10 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                         type="checkbox"
                         checked={tokenPerms.includes(perm)}
                         onChange={() => toggleTokenPerm(perm)}
+                        // kebab-case suffix — underscores fail assertSafeTestAttrs
                         {...listChildProps(
                           TestIds.settingsTokenPermissionCheckbox,
-                          perm,
+                          perm.replaceAll('_', '-'),
                         )}
                       />
                       <span>{perm}</span>

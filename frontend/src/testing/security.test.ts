@@ -71,6 +71,19 @@ describe('test attr security', () => {
     expect(
       findSuspiciousTestAttrValue('data-testid', 'NotKebab')?.reason,
     ).toMatch(/kebab|PII/i)
+    // Permission strings use underscores; child test ids must kebab-case them.
+    expect(
+      findSuspiciousTestAttrValue(
+        'data-testid',
+        'settings-token-permission-checkbox-view_project',
+      )?.reason,
+    ).toMatch(/kebab|PII/i)
+    expect(
+      findSuspiciousTestAttrValue(
+        'data-testid',
+        'settings-token-permission-checkbox-view-project',
+      ),
+    ).toBeNull()
   })
 
   it('assertSafeTestAttrs throws on suspicious values', () => {

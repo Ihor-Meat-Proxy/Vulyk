@@ -1362,9 +1362,10 @@ function TokensPanel({
                   type="checkbox"
                   checked={tokenPerms.includes(perm)}
                   onChange={() => togglePerm(perm)}
+                  // kebab-case suffix — underscores fail assertSafeTestAttrs
                   {...listChildProps(
                     TestIds.adminTokenPermissionCheckbox,
-                    perm,
+                    perm.replaceAll('_', '-'),
                   )}
                 />
                 <span>{perm}</span>
