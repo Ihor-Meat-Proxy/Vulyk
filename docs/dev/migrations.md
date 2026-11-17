@@ -10,7 +10,7 @@ optional down-migration reversibility, and Squawk safety lint.
    add a new migration instead. Optional sibling `*.down.sql` files are allowed for
    tests / future tooling; when present, CI runs up → down → up.
 2. **Never edit an applied or released migration.** Files on `main` and on the
-   latest release tag (prefer `v0.5.1`) are immutable. CI **hard-fails** on
+   latest release tag (prefer `v0.6.0`) are immutable. CI **hard-fails** on
    modify/delete. Ship a follow-up timestamped migration.
 3. **Unique version prefixes.** Prefer `YYYYMMDDHHMMSS_description.sql` (UTC).
    The numeric prefix before the first `_` is the SQLx version and must be unique.
@@ -41,7 +41,7 @@ DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk ./scripts/ci-migrations
 DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk ./scripts/ci-migrations-reversibility.sh
 
 # Upgrade smoke from a release tag (same script as base-SHA upgrade CI)
-VULYK_UPGRADE_BASE_REF=v0.5.1 DATABASE_URL=... ./scripts/ci-upgrade-test.sh
+VULYK_UPGRADE_BASE_REF=v0.6.0 DATABASE_URL=... ./scripts/ci-upgrade-test.sh
 
 cargo run -p vulyk-api -- migrate status
 cargo run -p vulyk-api -- migrate run
@@ -57,12 +57,12 @@ Job **Migration integrity** (always on PR + `main`, no path filter):
 | Step | Severity | Script |
 | --- | --- | --- |
 | Unique versions + immutable vs PR base/`main` | **Hard fail** | `scripts/check-migrations.sh` |
-| Immutable vs release tag (`v0.5.1` or latest `v*`) | **Hard fail** | same |
+| Immutable vs release tag (`v0.6.0` or latest `v*`) | **Hard fail** | same |
 | Squawk on new/changed migration SQL | **Warning** (annotations, `continue-on-error`) | `scripts/lint-migrations-squawk.sh` |
 | Squawk proof fixture (`DROP COLUMN` / `NOT NULL` / locking index) | **Hard fail** if not flagged | `scripts/test-migration-lint.sh` |
 | Fresh migrate + status + schema smoke | **Hard fail** | `scripts/ci-migrations-verify.sh` |
 | Reversibility when `*.down.sql` exist | **Hard fail** / skip if none | `scripts/ci-migrations-reversibility.sh` |
-| Upgrade from `v0.5.1` seed → HEAD + API smoke | **Hard fail** / skip+warn if tag missing | `VULYK_UPGRADE_BASE_REF=v0.5.1` + `scripts/ci-upgrade-test.sh` |
+| Upgrade from `v0.6.0` seed → HEAD + API smoke | **Hard fail** / skip+warn if tag missing | `VULYK_UPGRADE_BASE_REF=v0.6.0` + `scripts/ci-upgrade-test.sh` |
 
 The separate **Upgrade (base → PR)** job (`scripts/ci-upgrade-test.sh` with the
 PR base SHA) remains unchanged and is also required.
