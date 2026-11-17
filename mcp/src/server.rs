@@ -29,8 +29,16 @@ impl VulykMcp {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct EmptyArgs {}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct ProjectScoped {
     /// Project UUID
+    pub project_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetProjectArgs {
     pub project_id: String,
 }
 
@@ -41,6 +49,24 @@ pub struct SearchCasesArgs {
     pub q: Option<String>,
     #[serde(default)]
     pub suite_id: Option<String>,
+    /// When true with suite_id, only cases directly in that folder.
+    #[serde(default)]
+    pub direct_only: Option<bool>,
+    /// When true, only cases with no suite_id.
+    #[serde(default)]
+    pub unfiled_only: Option<bool>,
+    #[serde(default)]
+    pub tag: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub priority: Option<String>,
+    #[serde(default)]
+    pub sort: Option<String>,
+    #[serde(default)]
+    pub limit: Option<i64>,
+    #[serde(default)]
+    pub offset: Option<i64>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
@@ -87,14 +113,52 @@ pub struct UpdateCaseArgs {
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct ListRunsArgs {
+    pub project_id: String,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub limit: Option<i64>,
+    #[serde(default)]
+    pub offset: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct CreateRunArgs {
     pub project_id: String,
     pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
+    #[serde(default)]
+    pub source: Option<String>,
+    #[serde(default)]
+    pub external_ref: Option<String>,
+    #[serde(default)]
+    pub meta: Option<Value>,
+    #[serde(default)]
+    pub plan_id: Option<String>,
+    #[serde(default)]
+    pub suite_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub case_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub case_statuses: Option<Vec<String>>,
+    #[serde(default)]
+    pub tag_names: Option<Vec<String>>,
+    /// When true, include every project case if no other selectors are set.
+    #[serde(default)]
+    pub include_all_cases: Option<bool>,
+    /// Start the run immediately (status=in_progress) when creating with items.
+    #[serde(default)]
+    pub start: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, schemars::JsonSchema)]
 pub struct RunIdArgs {
     pub project_id: String,
+    /// Run UUID, unique slug, or display ID (e.g. `VQA-R-12`).
     pub run_id: String,
 }
 
@@ -142,9 +206,71 @@ pub struct UpdateRunArgs {
     pub status: Option<String>,
 }
 
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct DispatchCiArgs {
+    /// CI config UUID (from list_ci_configs / project CI settings).
+    pub ci_config_id: String,
+    #[serde(default)]
+    pub inputs: Option<Value>,
+    /// Optional Vulyk run to attach; created automatically when omitted.
+    #[serde(default)]
+    pub run_id: Option<String>,
+    #[serde(default)]
+    pub run_name: Option<String>,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GetDispatchArgs {
+    pub dispatch_id: String,
+}
+
+#[derive(Debug, Deserialize, schemars::JsonSchema)]
+pub struct GenerateCasesArgs {
+    pub project_id: String,
+    /// Free-text requirements (used when requirement_ids is empty).
+    #[serde(default)]
+    pub requirements_text: Option<String>,
+    #[serde(default)]
+    pub requirement_ids: Option<Vec<String>>,
+    #[serde(default)]
+    pub count: Option<u32>,
+    #[serde(default)]
+    pub suite_id: Option<String>,
+    /// When true, persist generated drafts as cases.
+    #[serde(default)]
+    pub persist: Option<bool>,
+    #[serde(default)]
+    pub config_id: Option<String>,
+}
+
 #[tool_router(server_handler)]
 impl VulykMcp {
-    #[tool(description = "Search test cases in a Vulyk project (optional full-text q)")]
+    #[tool(description = "List all Vulyk projects visible to the API token")]
+    async fn list_projects(
+        &self,
+        Parameters(_args): Parameters<EmptyArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let value = self
+            .client
+            .get("/api/v1/projects")
+            .await
+            .map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "Get a Vulyk project by UUID")]
+    async fn get_project(
+        &self,
+        Parameters(args): Parameters<GetProjectArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Search/list test cases in a project. Filters: q, suite_id, direct_only, unfiled_only, tag, status, priority, sort, limit, offset."
+    )]
     async fn search_cases(
         &self,
         Parameters(args): Parameters<SearchCasesArgs>,
@@ -156,6 +282,30 @@ impl VulykMcp {
         }
         if let Some(suite_id) = args.suite_id {
             qs.push(format!("suite_id={suite_id}"));
+        }
+        if let Some(v) = args.direct_only {
+            qs.push(format!("direct_only={v}"));
+        }
+        if let Some(v) = args.unfiled_only {
+            qs.push(format!("unfiled_only={v}"));
+        }
+        if let Some(tag) = args.tag {
+            qs.push(format!("tag={}", urlencoding_lite(&tag)));
+        }
+        if let Some(status) = args.status {
+            qs.push(format!("status={}", urlencoding_lite(&status)));
+        }
+        if let Some(priority) = args.priority {
+            qs.push(format!("priority={}", urlencoding_lite(&priority)));
+        }
+        if let Some(sort) = args.sort {
+            qs.push(format!("sort={}", urlencoding_lite(&sort)));
+        }
+        if let Some(v) = args.limit {
+            qs.push(format!("limit={v}"));
+        }
+        if let Some(v) = args.offset {
+            qs.push(format!("offset={v}"));
         }
         if !qs.is_empty() {
             path.push('?');
@@ -238,27 +388,98 @@ impl VulykMcp {
         Self::ok_json(value)
     }
 
-    #[tool(description = "List test runs for a project")]
-    async fn list_runs(
+    #[tool(description = "List suites/folders for a project (with case counts)")]
+    async fn list_suites(
         &self,
         Parameters(args): Parameters<ProjectScoped>,
     ) -> Result<CallToolResult, McpError> {
-        let path = format!("/api/v1/projects/{}/runs", args.project_id);
+        let path = format!("/api/v1/projects/{}/suites", args.project_id);
         let value = self.client.get(&path).await.map_err(Self::map_err)?;
         Self::ok_json(value)
     }
 
-    #[tool(description = "Create a test run")]
+    #[tool(description = "List test runs for a project. Optional filters: status, limit, offset.")]
+    async fn list_runs(
+        &self,
+        Parameters(args): Parameters<ListRunsArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut path = format!("/api/v1/projects/{}/runs", args.project_id);
+        let mut qs = vec![];
+        if let Some(status) = args.status {
+            qs.push(format!("status={}", urlencoding_lite(&status)));
+        }
+        if let Some(v) = args.limit {
+            qs.push(format!("limit={v}"));
+        }
+        if let Some(v) = args.offset {
+            qs.push(format!("offset={v}"));
+        }
+        if !qs.is_empty() {
+            path.push('?');
+            path.push_str(&qs.join("&"));
+        }
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Get a test run by UUID, unique slug, or display ID (e.g. PREFIX-R-12). Returns run detail with progress and items."
+    )]
+    async fn get_run(
+        &self,
+        Parameters(args): Parameters<RunIdArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/runs/{}", args.project_id, args.run_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Create a test run. Accepts name plus optional description, status, suite_ids, case_ids, tag_names, include_all_cases, start, etc."
+    )]
     async fn create_run(
         &self,
         Parameters(args): Parameters<CreateRunArgs>,
     ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({ "name": args.name });
+        if let Some(v) = args.description {
+            body["description"] = json!(v);
+        }
+        if let Some(v) = args.status {
+            body["status"] = json!(v);
+        }
+        if let Some(v) = args.source {
+            body["source"] = json!(v);
+        }
+        if let Some(v) = args.external_ref {
+            body["external_ref"] = json!(v);
+        }
+        if let Some(v) = args.meta {
+            body["meta"] = v;
+        }
+        if let Some(v) = args.plan_id {
+            body["plan_id"] = json!(v);
+        }
+        if let Some(v) = args.suite_ids {
+            body["suite_ids"] = json!(v);
+        }
+        if let Some(v) = args.case_ids {
+            body["case_ids"] = json!(v);
+        }
+        if let Some(v) = args.case_statuses {
+            body["case_statuses"] = json!(v);
+        }
+        if let Some(v) = args.tag_names {
+            body["tag_names"] = json!(v);
+        }
+        if let Some(v) = args.include_all_cases {
+            body["include_all_cases"] = json!(v);
+        }
+        if let Some(v) = args.start {
+            body["start"] = json!(v);
+        }
         let path = format!("/api/v1/projects/{}/runs", args.project_id);
-        let value = self
-            .client
-            .post(&path, json!({ "name": args.name }))
-            .await
-            .map_err(Self::map_err)?;
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
         Self::ok_json(value)
     }
 
@@ -279,7 +500,9 @@ impl VulykMcp {
         Self::ok_json(value)
     }
 
-    #[tool(description = "Trigger a test run (sets status to running)")]
+    #[tool(
+        description = "Mark a Vulyk test run as running (status only). Does NOT start CI — use dispatch_ci to trigger Jenkins/Forgejo/Gitea/Woodpecker/GitHub/GitLab pipelines."
+    )]
     async fn trigger_run(
         &self,
         Parameters(args): Parameters<RunIdArgs>,
@@ -293,6 +516,80 @@ impl VulykMcp {
             .post(&path, json!({}))
             .await
             .map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(description = "List CI configs for a project (needed before dispatch_ci)")]
+    async fn list_ci_configs(
+        &self,
+        Parameters(args): Parameters<ProjectScoped>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/projects/{}/ci-configs", args.project_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Dispatch a CI pipeline for a config (GitHub, GitLab, Jenkins, Forgejo/Gitea, Woodpecker). Returns a CiDispatch including external_url (build/pipeline link) when the provider supplies one."
+    )]
+    async fn dispatch_ci(
+        &self,
+        Parameters(args): Parameters<DispatchCiArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({
+            "inputs": args.inputs.unwrap_or(json!({})),
+        });
+        if let Some(v) = args.run_id {
+            body["run_id"] = json!(v);
+        }
+        if let Some(v) = args.run_name {
+            body["run_name"] = json!(v);
+        }
+        let path = format!("/api/v1/ci-configs/{}/dispatch", args.ci_config_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Get a CI dispatch by id. Response includes status, external_id, and external_url (build/pipeline link) for native providers."
+    )]
+    async fn get_dispatch(
+        &self,
+        Parameters(args): Parameters<GetDispatchArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let path = format!("/api/v1/ci-dispatches/{}", args.dispatch_id);
+        let value = self.client.get(&path).await.map_err(Self::map_err)?;
+        Self::ok_json(value)
+    }
+
+    #[tool(
+        description = "Generate test case drafts via LLM (POST …/llm/generate-cases). Provide requirements_text and/or requirement_ids; optional count, suite_id, persist, config_id."
+    )]
+    async fn generate_cases(
+        &self,
+        Parameters(args): Parameters<GenerateCasesArgs>,
+    ) -> Result<CallToolResult, McpError> {
+        let mut body = json!({});
+        if let Some(v) = args.requirements_text {
+            body["requirements_text"] = json!(v);
+        }
+        if let Some(v) = args.requirement_ids {
+            body["requirement_ids"] = json!(v);
+        }
+        if let Some(v) = args.count {
+            body["count"] = json!(v);
+        }
+        if let Some(v) = args.suite_id {
+            body["suite_id"] = json!(v);
+        }
+        if let Some(v) = args.persist {
+            body["persist"] = json!(v);
+        }
+        if let Some(v) = args.config_id {
+            body["config_id"] = json!(v);
+        }
+        let path = format!("/api/v1/projects/{}/llm/generate-cases", args.project_id);
+        let value = self.client.post(&path, body).await.map_err(Self::map_err)?;
         Self::ok_json(value)
     }
 
