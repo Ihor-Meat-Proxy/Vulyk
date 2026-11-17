@@ -217,12 +217,11 @@ fn apply_property(current: &mut Option<CaseBuilder>, e: &quick_xml::events::Byte
     } else if matches!(
         key_name.as_str(),
         "automation_id" | "vulyk_automation_id" | "vulyk:automation_id"
-    ) {
-        if c.property_automation_id.is_none() {
-            let first = v.split(',').next().unwrap_or(v).trim();
-            if !first.is_empty() {
-                c.property_automation_id.replace(first.to_string());
-            }
+    ) && c.property_automation_id.is_none()
+    {
+        let first = v.split(',').next().unwrap_or(v).trim();
+        if !first.is_empty() {
+            c.property_automation_id.replace(first.to_string());
         }
     }
 }
