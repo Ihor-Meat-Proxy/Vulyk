@@ -39,8 +39,8 @@ cargo machete
 
 echo "==> frontend eslint / prettier / knip"
 (
+  if [[ ! -d frontend/node_modules ]]; then ./scripts/npm-ci-secure.sh frontend; fi
   cd frontend
-  if [[ ! -d node_modules ]]; then npm ci; fi
   npm run lint
   npm run lint:eslint -- --max-warnings 50
   npm run format:check

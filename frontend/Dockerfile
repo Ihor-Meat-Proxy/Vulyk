@@ -1,8 +1,9 @@
 FROM node:22-bookworm AS builder
 # Build from the repository root so docs/user Markdown can be bundled.
 WORKDIR /src
-COPY frontend/package.json frontend/package-lock.json ./frontend/
-RUN cd frontend && npm ci
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./frontend/
+COPY scripts/npm-ci-secure.sh scripts/npm-install-scripts-allowlist.txt ./scripts/
+RUN chmod +x scripts/npm-ci-secure.sh && ./scripts/npm-ci-secure.sh frontend
 COPY frontend ./frontend
 COPY docs/user ./docs/user
 WORKDIR /src/frontend

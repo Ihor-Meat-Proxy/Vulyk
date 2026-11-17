@@ -55,7 +55,7 @@ Env reference: [`.env.example`](.env.example). First-run details:
 ```
 
 **Local development:** `./scripts/install.sh check` then `./scripts/install.sh dev --yes`,
-run `cargo run -p vulyk-api` and `cd frontend && npm install && npm run dev`.
+run `cargo run -p vulyk-api` and `./scripts/npm-ci-secure.sh frontend && (cd frontend && npm run dev)`.
 
 **Published images** (no local Rust/Node build):
 

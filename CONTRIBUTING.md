@@ -16,7 +16,7 @@ Thanks for helping build the beehive.
 ./scripts/install.sh dev
 export DATABASE_URL=postgres://vulyk:vulyk@localhost:5432/vulyk
 cargo run -p vulyk-api
-cd frontend && npm install && npm run dev
+./scripts/npm-ci-secure.sh frontend && (cd frontend && npm run dev)
 ```
 
 ## Checks (same as CI)
@@ -37,7 +37,7 @@ Manual equivalents:
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
-cd frontend && npm ci && npm run lint && npm run typecheck && npm run check:test-ids && npm run test && npm run build
+./scripts/npm-ci-secure.sh frontend && (cd frontend && npm run lint && npm run typecheck && npm run check:test-ids && npm run test && npm run build)
 docker build -f backend/Dockerfile -t vulyk-api:local .
 docker build -f frontend/Dockerfile -t vulyk-web:local .
 ```

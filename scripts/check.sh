@@ -3,7 +3,7 @@
 # Usage:
 #   ./scripts/check.sh           # fmt, clippy, seed keys, migrations, frontend lint/tsc/test-ids, e2e tsc
 #   ./scripts/check.sh --quick   # skip clippy and frontend vitest (pre-commit)
-#   ./scripts/check.sh --full    # also cargo test + frontend vitest (pre-push / CI parity)
+#   ./scripts/check.sh --full    # also cargo test --locked + frontend vitest (pre-push / CI parity)
 # Quality extras (coverage / knip / prettier / machete): see ./scripts/check-quality.sh
 # Fast CI gates: ./scripts/check-shell-docker.sh, check-pr-hygiene.sh,
 # check-openapi-drift.sh, check-openapi-spectral.sh, check-bundle-size.sh;
@@ -57,15 +57,15 @@ echo "==> cargo fmt"
 cargo fmt --all -- --check
 
 if [[ "${MODE}" != "quick" ]]; then
-  echo "==> cargo clippy"
-  cargo clippy --workspace --all-targets -- -D warnings
+  echo "==> cargo clippy --locked"
+  cargo clippy --locked --workspace --all-targets -- -D warnings
 else
-  echo "==> cargo clippy (skipped in --quick)"
+  echo "==> cargo clippy --locked (skipped in --quick)"
 fi
 
 if [[ "${MODE}" == "full" ]]; then
-  echo "==> cargo test"
-  cargo test --workspace
+  echo "==> cargo test --locked"
+  cargo test --locked --workspace
 fi
 
 if [[ "${MODE}" == "full" ]]; then
@@ -75,12 +75,12 @@ elif [[ "${MODE}" == "quick" ]]; then
   echo "==> API coverage (skipped in --quick)"
 else
   echo "==> OpenAPI/Axum parity"
-  cargo test -p vulyk-api api_coverage::tests --lib
+  cargo test --locked -p vulyk-api api_coverage::tests --lib
 fi
 
 if [[ "${MODE}" != "quick" ]]; then
   echo "==> MCP OpenAPI coverage"
-  cargo test -p vulyk-mcp --test openapi_coverage
+  cargo test --locked -p vulyk-mcp --test openapi_coverage
   echo "==> OpenAPI Spectral lint"
   chmod +x scripts/check-openapi-spectral.sh
   ./scripts/check-openapi-spectral.sh
@@ -91,8 +91,8 @@ fi
 
 echo "==> frontend lint / typecheck / test-ids"
 (
+  if [[ ! -d frontend/node_modules ]]; then ./scripts/npm-ci-secure.sh frontend; fi
   cd frontend
-  if [[ ! -d node_modules ]]; then npm ci; fi
   npm run lint
   npm run typecheck
   npm run check:test-ids
@@ -104,8 +104,8 @@ echo "==> frontend lint / typecheck / test-ids"
 
 echo "==> e2e typecheck + Vulyk case-key annotations"
 (
+  if [[ ! -d e2e/node_modules ]]; then ./scripts/npm-ci-secure.sh e2e; fi
   cd e2e
-  if [[ ! -d node_modules ]]; then npm ci; fi
   npm run typecheck
   npm run check:vulyk-case-links
   npm run check:vue-cases

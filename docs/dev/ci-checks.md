@@ -98,6 +98,8 @@ cargo install lychee --locked   # once
 
 **Dependabot review gate:** `.github/workflows/dependabot-review-gate.yml` + `scripts/check-dep-pr-review-gate.py` (read-only `pull_request`, no secrets). Fails when lockfiles add packages or install scripts unless `supply-chain-reviewed` is present.
 
+**Locked installs:** CI / Docker / local helpers use `cargo … --locked` and `./scripts/npm-ci-secure.sh` (`npm ci --ignore-scripts` + optional rebuild allowlist in `scripts/npm-install-scripts-allowlist.txt`). Frontend and e2e ship `.npmrc` with `ignore-scripts=true`.
+
 ### Justified advisory ignores
 
 Documented in `deny.toml` / `.cargo/audit.toml` with **review-by dates**:

@@ -72,8 +72,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: cargo fmt
         run: cargo fmt --all -- --check
-      - name: cargo clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: cargo clippy --locked
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - name: Sample seed key uniqueness
         run: |
           chmod +x scripts/check-seed-keys.sh
@@ -82,11 +82,11 @@ jobs:
         run: |
           chmod +x scripts/check-e2e-case-keys.sh
           ./scripts/check-e2e-case-keys.sh
-      - name: cargo test
-        run: cargo test --workspace
+      - name: cargo test --locked
+        run: cargo test --locked --workspace
       - name: migrate CLI help
         run: |
-          cargo build -p vulyk-api
+          cargo build --locked -p vulyk-api
           ./target/debug/vulyk-api version
           ./target/debug/vulyk-api migrate status || true
 
@@ -285,7 +285,9 @@ jobs:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
+      - name: npm ci (locked, ignore-scripts)
+        working-directory: ${{ github.workspace }}
+        run: ./scripts/npm-ci-secure.sh frontend
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run test
@@ -328,7 +330,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build API and CLI
-        run: cargo build -p vulyk-api -p vulyk-cli --release
+        run: cargo build --locked -p vulyk-api -p vulyk-cli --release
       - name: Start Vulyk API
         run: |
           ./target/release/vulyk-api > /tmp/vulyk-api.log 2>&1 &
@@ -586,19 +588,17 @@ jobs:
             frontend/package-lock.json
             e2e/package-lock.json
       - name: Build API
-        run: cargo build -p vulyk-api --release
+        run: cargo build --locked -p vulyk-api --release
       - name: Setup CLI help
         run: cargo run -p vulyk-api -- setup --help
       - name: Build frontend
-        working-directory: frontend
         run: |
-          npm ci
-          npm run build
+          ./scripts/npm-ci-secure.sh frontend
+          (cd frontend && npm run build)
       - name: Install Playwright
-        working-directory: e2e
         run: |
-          npm ci
-          npx playwright install --with-deps chromium
+          ./scripts/npm-ci-secure.sh e2e
+          (cd e2e && npx playwright install --with-deps chromium)
       - name: Typecheck e2e
         working-directory: e2e
         run: npm run typecheck
@@ -664,10 +664,9 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Build frontend
-        working-directory: frontend
         run: |
-          npm ci
-          npm run build
+          ./scripts/npm-ci-secure.sh frontend
+          (cd frontend && npm run build)
       - name: Install Chrome for Lighthouse
         id: chrome
         uses: browser-actions/setup-chrome@v2

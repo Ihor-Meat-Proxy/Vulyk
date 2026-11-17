@@ -1983,7 +1983,7 @@ In one terminal:
   # Or: ./scripts/install.sh setup --yes
 
 In another:
-  cd frontend && npm install && npm run dev
+  ./scripts/npm-ci-secure.sh frontend && (cd frontend && npm run dev)
 
 API docs: http://localhost:8080/api/docs
 UI:       http://localhost:5173

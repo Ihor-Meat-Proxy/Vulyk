@@ -1,0 +1,6 @@
+# Packages allowed to run npm lifecycle scripts after `npm ci --ignore-scripts`.
+# One package name per line (as passed to `npm rebuild <name>`).
+# Add new entries only with owner review (Dependabot review gate / #294).
+#
+# fsevents is optional/darwin-only; leave commented unless macOS contributors need it.
+# fsevents

@@ -54,18 +54,16 @@ jobs:
             frontend/package-lock.json
             e2e/package-lock.json
       - name: frontend npm audit
-        working-directory: frontend
         # Production + build toolchains; fail on high/critical. Low/moderate
         # (e.g. deepmerge via vite-plugin-pwa with no upstream fix) are reported
         # but do not block — see docs/ci-checks.md.
         run: |
-          npm ci
-          npm audit --audit-level=high
+          ./scripts/npm-ci-secure.sh frontend
+          (cd frontend && npm audit --audit-level=high)
       - name: e2e npm audit
-        working-directory: e2e
         run: |
-          npm ci
-          npm audit --audit-level=high
+          ./scripts/npm-ci-secure.sh e2e
+          (cd e2e && npm audit --audit-level=high)
 
   osv:
     name: OSV-Scanner (lockfiles)

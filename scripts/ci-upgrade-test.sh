@@ -111,7 +111,7 @@ if [[ -d "${ROOT}/target" ]]; then
 fi
 (
   cd "${WORKDIR}"
-  cargo build -p vulyk-api --release
+  cargo build --locked -p vulyk-api --release
 )
 
 stop_api
@@ -349,7 +349,7 @@ python3 "${ROOT}/scripts/test-version-backups.py" -q
 
 stop_api
 log "Building HEAD API..."
-cargo build -p vulyk-api --release
+cargo build --locked -p vulyk-api --release
 
 log "Running explicit migrate on HEAD binary..."
 export VULYK_AUTO_MIGRATE=false
