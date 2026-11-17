@@ -255,15 +255,21 @@ async fn apply(
                 .or_else(|_| case_keys::validate_prefix(&key))
                 .unwrap_or_else(|_| "PR".into());
             let prefix = unique_prefix(pool, &prefix).await?;
+            let policy =
+                crate::models::CiUnmatchedPolicy::parse(&bundle.project.ci_unmatched_policy)
+                    .unwrap_or_default()
+                    .as_str();
             let id: Uuid = sqlx::query_scalar(
-                r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number)
-                   VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
+                r#"INSERT INTO projects (key, name, description, case_key_prefix, next_case_number,
+                                         ci_unmatched_policy)
+                   VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"#,
             )
             .bind(&key)
             .bind(&bundle.project.name)
             .bind(&bundle.project.description)
             .bind(&prefix)
             .bind(bundle.project.next_case_number.max(0))
+            .bind(policy)
             .fetch_one(pool)
             .await?;
             id

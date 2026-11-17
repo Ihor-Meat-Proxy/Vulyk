@@ -26,7 +26,19 @@ Upload automated results into Vulyk and trigger GitHub Actions / GitLab pipeline
 
 Statuses: `passed`, `failed`, `skipped`, `error`, `blocked` (aliases like `pass` / `fail` are normalized).
 
-`case_key` optionally links a result to an existing case in the run’s project. Unmatched keys are returned in the ingest response.
+`case_key` optionally links a result to an existing case in the run’s project.
+Matching order: case **key**, then `automation_id`, then `external_key`.
+Unmatched keys are returned in the ingest response unless the project’s
+**unmatched CI policy** says otherwise (`off` default, `create_passed`,
+`create_all`, or `fail_unmatched` — configurable under Settings → Project CI
+tokens, or `PUT /api/v1/projects/{id}` with `ci_unmatched_policy`).
+
+- `create_passed` / `create_all` — auto-create a **draft** case (using
+  automation_id / case_key / title), then attach the result. Response includes
+  `auto_created_cases`.
+- `fail_unmatched` — return **400** when any unmatched keys remain.
+- Request flag `dry_run: true` — report what would be auto-created without
+  persisting those creates (`auto_created_cases[].case_id` / `key` are null).
 
 ## JUnit XML
 

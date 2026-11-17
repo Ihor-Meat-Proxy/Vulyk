@@ -877,6 +877,7 @@ pub async fn pipeline_ingest(
                 "content": body.content,
                 "source": body.source,
                 "upsert": false,
+                "dry_run": body.dry_run,
             }),
             5,
         )
@@ -892,6 +893,8 @@ pub async fn pipeline_ingest(
             unmatched_case_keys: vec![],
             job_id: Some(job.id),
             parsed: parsed.results.len() as i64,
+            auto_created_cases: vec![],
+            dry_run: body.dry_run,
         }));
     }
 
@@ -902,6 +905,7 @@ pub async fn pipeline_ingest(
         &parsed.results,
         &body.source,
         false,
+        body.dry_run,
     )
     .await?;
     camp::refresh_run_counters(&state.pool, run.id).await?;
@@ -916,6 +920,8 @@ pub async fn pipeline_ingest(
         unmatched_case_keys: report.unmatched_case_keys,
         job_id: None,
         parsed: parsed.results.len() as i64,
+        auto_created_cases: report.auto_created_cases,
+        dry_run: report.dry_run,
     }))
 }
 

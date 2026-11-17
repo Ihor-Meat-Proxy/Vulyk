@@ -303,8 +303,9 @@ async fn export_one_project(
     include_attachments: bool,
     attachment_blobs: &mut Vec<(String, Vec<u8>)>,
 ) -> AppResult<ContentProjectBundle> {
-    let project: (String, String, String, String, i32) = sqlx::query_as(
-        r#"SELECT key, name, description, case_key_prefix, next_case_number
+    let project: (String, String, String, String, i32, String) = sqlx::query_as(
+        r#"SELECT key, name, description, case_key_prefix, next_case_number,
+                  COALESCE(ci_unmatched_policy, 'off')
            FROM projects WHERE id = $1"#,
     )
     .bind(project_id)
@@ -620,6 +621,7 @@ async fn export_one_project(
             description: project.2,
             case_key_prefix: project.3,
             next_case_number: project.4,
+            ci_unmatched_policy: project.5,
         },
         case_folders,
         requirement_folders,
@@ -919,6 +921,7 @@ mod tests {
                     description: "".into(),
                     case_key_prefix: "DEMO".into(),
                     next_case_number: 1,
+                    ci_unmatched_policy: "off".into(),
                 },
                 case_folders: vec![],
                 requirement_folders: vec![],

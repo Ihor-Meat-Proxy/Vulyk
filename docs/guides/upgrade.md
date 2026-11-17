@@ -312,6 +312,15 @@ CI/ingest matches case **key** first, then `automation_id`, then `external_key`.
 JUnit properties `automation_id` / `vulyk_automation_id` / `vulyk:automation_id`
 can link results without putting the case key in the test title.
 
+### CI unmatched auto-create policy (#228)
+
+Forward migration `20261117070000_project_ci_unmatched_policy.sql` adds
+`projects.ci_unmatched_policy` (`off` default; also `create_passed`,
+`create_all`, `fail_unmatched`). Applied automatically on upgrade — no operator
+`.env` changes. Project admins configure the policy in **Settings → Project CI
+tokens**. Ingest requests may set `dry_run: true` to preview auto-creates without
+persisting them. See [ingest-and-ci.md](./ingest-and-ci.md).
+
 ### Private / HTTP CI URLs (J10)
 
 Upgrade sync adds optional `.env` keys from `.env.example` when missing (never

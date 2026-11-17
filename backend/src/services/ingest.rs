@@ -2,6 +2,10 @@
 //! Results are append-only: every ingest inserts new history rows (never UPDATE).
 //! CI lifecycle runs (`lifecycle = 'ci'`) move open → in_progress on first result
 //! and do **not** auto-close; legacy runs still complete on ingest.
+//!
+//! Unmatched results (no key / automation_id / external_key hit) follow the
+//! project's `ci_unmatched_policy`: `off`, `create_passed`, `create_all`, or
+//! `fail_unmatched`. Request `dry_run` previews auto-creates without persisting them.
 
 use std::collections::{HashMap, HashSet};
 
@@ -11,8 +15,11 @@ use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
 use crate::error::{AppError, AppResult};
-use crate::models::{normalize_result_status, BulkResultItem, BulkResultsResponse};
-use crate::services::case_keys::normalize_case_key;
+use crate::models::{
+    normalize_result_status, AutoCreatedCaseSummary, BulkResultItem, BulkResultsResponse,
+    CiUnmatchedPolicy, PASSED,
+};
+use crate::services::case_keys::{allocate_case_key, normalize_case_key};
 use crate::services::cases::filter_case_ids_in_project;
 
 const SYNC_BATCH: usize = 500;
@@ -29,6 +36,99 @@ pub async fn project_key(pool: &PgPool, project_id: Uuid) -> AppResult<String> {
         .ok_or_else(|| AppError::NotFound(format!("project {project_id}")))
 }
 
+async fn load_ci_unmatched_policy(pool: &PgPool, project_id: Uuid) -> AppResult<CiUnmatchedPolicy> {
+    let raw: Option<String> =
+        sqlx::query_scalar("SELECT ci_unmatched_policy FROM projects WHERE id = $1")
+            .bind(project_id)
+            .fetch_optional(pool)
+            .await?;
+    let raw = raw.ok_or_else(|| AppError::NotFound(format!("project {project_id}")))?;
+    Ok(CiUnmatchedPolicy::parse(&raw).unwrap_or_default())
+}
+
+fn should_auto_create(policy: CiUnmatchedPolicy, status: &str) -> bool {
+    match policy {
+        CiUnmatchedPolicy::CreateAll => true,
+        CiUnmatchedPolicy::CreatePassed => status == PASSED,
+        CiUnmatchedPolicy::Off | CiUnmatchedPolicy::FailUnmatched => false,
+    }
+}
+
+fn draft_title_for(row: &BulkResultItem) -> String {
+    row.title
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .or_else(|| {
+            row.automation_id
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        })
+        .or_else(|| {
+            row.case_key
+                .as_deref()
+                .map(str::trim)
+                .filter(|s| !s.is_empty())
+        })
+        .unwrap_or("CI auto-created case")
+        .to_string()
+}
+
+/// Create a draft case for an unmatched ingest row. Returns `(case_id, allocated_key, summary)`.
+async fn create_draft_case_for_result(
+    pool: &PgPool,
+    project_id: Uuid,
+    row: &BulkResultItem,
+    matched_by: &str,
+) -> AppResult<(Uuid, String, AutoCreatedCaseSummary)> {
+    let title = draft_title_for(row);
+    let automation_id = row
+        .automation_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_ascii_uppercase());
+    // Preserve the attempted case key as external_key when it differs from automation_id.
+    let external_key = row
+        .case_key
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_ascii_uppercase())
+        .filter(|k| Some(k.as_str()) != automation_id.as_deref());
+
+    let mut tx = pool.begin().await?;
+    let (key, _) = allocate_case_key(&mut tx, project_id).await?;
+    let case_id: Uuid = sqlx::query_scalar(
+        r#"INSERT INTO test_cases
+             (project_id, suite_id, key, title, description, precondition, priority, status,
+              external_key, automation_id, sort_order)
+           VALUES ($1, NULL, $2, $3, '', '', 'medium', 'draft', $4, $5, 0)
+           RETURNING id"#,
+    )
+    .bind(project_id)
+    .bind(&key)
+    .bind(&title)
+    .bind(external_key.as_deref())
+    .bind(automation_id.as_deref())
+    .fetch_one(&mut *tx)
+    .await?;
+    tx.commit().await?;
+
+    Ok((
+        case_id,
+        key.clone(),
+        AutoCreatedCaseSummary {
+            case_id: Some(case_id),
+            key: Some(key),
+            title,
+            automation_id,
+            matched_by: matched_by.to_string(),
+        },
+    ))
+}
+
 pub async fn persist_results(
     pool: &PgPool,
     run_id: Uuid,
@@ -36,8 +136,10 @@ pub async fn persist_results(
     items: &[BulkResultItem],
     source: &str,
     _upsert: bool,
+    dry_run: bool,
 ) -> AppResult<BulkResultsResponse> {
     let (status, lifecycle) = ensure_run(pool, run_id, project_id).await?;
+    let policy = load_ci_unmatched_policy(pool, project_id).await?;
 
     // Closed CI runs reject further result posts.
     if lifecycle == "ci" && matches!(status.as_str(), "closed" | "completed" | "finished") {
@@ -47,6 +149,11 @@ pub async fn persist_results(
     }
 
     let mut unmatched_case_keys = Vec::new();
+    let mut auto_created_cases: Vec<AutoCreatedCaseSummary> = Vec::new();
+    // Labels already auto-created in this request → reuse case id.
+    let mut created_by_label: HashMap<String, Uuid> = HashMap::new();
+    // Labels already previewed under dry_run (no DB row).
+    let mut dry_run_labels: HashSet<String> = HashSet::new();
     let mut inserted: i64 = 0;
     let mut idempotent_replays: i64 = 0;
     // Results are immutable; `updated` stays 0 for API compatibility.
@@ -88,7 +195,11 @@ pub async fn persist_results(
             prepared.push(row);
         }
 
-        let by_key = lookup_cases_by_keys(pool, project_id, &keys_needed).await?;
+        let mut by_key = lookup_cases_by_keys(pool, project_id, &keys_needed).await?;
+        // Merge cases created earlier in this request.
+        for (label, id) in &created_by_label {
+            by_key.entry(label.clone()).or_insert(*id);
+        }
         let provided_ids: Vec<Uuid> = prepared.iter().filter_map(|r| r.case_id).collect();
         let allowed_ids: HashSet<Uuid> =
             filter_case_ids_in_project(pool, project_id, &provided_ids)
@@ -118,9 +229,43 @@ pub async fn persist_results(
                             .clone()
                             .or_else(|| row.automation_id.clone())
                             .unwrap_or_else(|| "unknown".into());
-                        unmatched_case_keys.push(label);
-                        // Design: do not persist unmatched keys as orphan results.
-                        continue;
+
+                        if should_auto_create(policy, &row.status) {
+                            if let Some(existing) = created_by_label.get(&label) {
+                                row.case_id = Some(*existing);
+                            } else if dry_run {
+                                if dry_run_labels.insert(label.clone()) {
+                                    auto_created_cases.push(AutoCreatedCaseSummary {
+                                        case_id: None,
+                                        key: None,
+                                        title: draft_title_for(&row),
+                                        automation_id: row.automation_id.clone(),
+                                        matched_by: label.clone(),
+                                    });
+                                }
+                                // Preview only — do not persist create or attach result.
+                                continue;
+                            } else {
+                                let (case_id, _key, summary) =
+                                    create_draft_case_for_result(pool, project_id, &row, &label)
+                                        .await?;
+                                created_by_label.insert(label.clone(), case_id);
+                                // Index under all lookup tokens so later rows in the chunk hit.
+                                by_key.insert(label.clone(), case_id);
+                                if let Some(ref aid) = row.automation_id {
+                                    by_key.entry(aid.clone()).or_insert(case_id);
+                                }
+                                if let Some(ref ck) = row.case_key {
+                                    by_key.entry(ck.clone()).or_insert(case_id);
+                                }
+                                auto_created_cases.push(summary);
+                                row.case_id = Some(case_id);
+                            }
+                        } else {
+                            unmatched_case_keys.push(label);
+                            // Design: do not persist unmatched keys as orphan results.
+                            continue;
+                        }
                     }
                 }
             }
@@ -204,12 +349,21 @@ pub async fn persist_results(
     unmatched_case_keys.sort();
     unmatched_case_keys.dedup();
 
+    if policy == CiUnmatchedPolicy::FailUnmatched && !unmatched_case_keys.is_empty() {
+        return Err(AppError::BadRequest(format!(
+            "unmatched case keys (ci_unmatched_policy=fail_unmatched): {}",
+            unmatched_case_keys.join(", ")
+        )));
+    }
+
     Ok(BulkResultsResponse {
         inserted,
         updated,
         unmatched_case_keys,
         job_id: None,
         idempotent_replays,
+        auto_created_cases,
+        dry_run,
     })
 }
 
@@ -432,5 +586,20 @@ mod tests {
         assert_eq!(by_case.get(&c1).map(String::as_str), Some("failed"));
         assert_eq!(by_case.get(&c2).map(String::as_str), Some("failed"));
         assert_eq!(by_case.len(), 2);
+    }
+
+    #[test]
+    fn should_auto_create_respects_policy() {
+        assert!(!should_auto_create(CiUnmatchedPolicy::Off, PASSED));
+        assert!(should_auto_create(CiUnmatchedPolicy::CreatePassed, PASSED));
+        assert!(!should_auto_create(
+            CiUnmatchedPolicy::CreatePassed,
+            "Failed"
+        ));
+        assert!(should_auto_create(CiUnmatchedPolicy::CreateAll, "Failed"));
+        assert!(!should_auto_create(
+            CiUnmatchedPolicy::FailUnmatched,
+            PASSED
+        ));
     }
 }

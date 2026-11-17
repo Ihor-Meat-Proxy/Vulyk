@@ -19,6 +19,8 @@ struct IngestJobPayload {
     source: String,
     #[serde(default)]
     upsert: bool,
+    #[serde(default)]
+    dry_run: bool,
 }
 
 pub fn spawn_worker(pool: PgPool) {
@@ -190,6 +192,7 @@ async fn handle_ingest(
         &parsed.results,
         &payload.source,
         payload.upsert,
+        payload.dry_run,
     )
     .await
     .map_err(|e| e.to_string())?;
@@ -199,5 +202,7 @@ async fn handle_ingest(
         "updated": report.updated,
         "unmatched_case_keys": report.unmatched_case_keys,
         "parsed": parsed.results.len(),
+        "auto_created_cases": report.auto_created_cases,
+        "dry_run": report.dry_run,
     }))
 }

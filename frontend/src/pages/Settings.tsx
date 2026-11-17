@@ -5,6 +5,7 @@ import {
   type ApiTokenPublic,
   type AutomationRepo,
   type AutomationRepoBranch,
+  type CiUnmatchedPolicy,
   type Project,
   type ProjectCiToken,
   type ProjectRole,
@@ -192,6 +193,9 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
   const [ciProjectId, setCiProjectId] = useState('')
   const [ciTokens, setCiTokens] = useState<ProjectCiToken[]>([])
   const [ciTokenName, setCiTokenName] = useState('github-main')
+  const [ciUnmatchedPolicy, setCiUnmatchedPolicy] =
+    useState<CiUnmatchedPolicy>('off')
+  const [ciPolicyBusy, setCiPolicyBusy] = useState(false)
   const [ciSecretOnce, setCiSecretOnce] = useState<string | null>(null)
   const [ciCopyNotice, setCiCopyNotice] = useState<string | null>(null)
   const [canCiTokens, setCanCiTokens] = useState(false)
@@ -301,6 +305,52 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
     if (!ciProjectId || !canCiTokens) return
     void refreshCiTokens(ciProjectId)
   }, [ciProjectId, canCiTokens])
+
+  useEffect(() => {
+    if (!ciProjectId) {
+      setCiUnmatchedPolicy('off')
+      return
+    }
+    const p = projects.find((x) => x.id === ciProjectId)
+    const raw = (p?.ci_unmatched_policy || 'off') as CiUnmatchedPolicy
+    setCiUnmatchedPolicy(
+      ['off', 'create_passed', 'create_all', 'fail_unmatched'].includes(raw)
+        ? raw
+        : 'off',
+    )
+  }, [ciProjectId, projects])
+
+  const canEditCiPolicy = useMemo(() => {
+    if (!ciProjectId) return false
+    return can(
+      {
+        role: projectRoles[ciProjectId] ?? null,
+        isSystemAdmin: Boolean(user?.is_system_admin),
+      },
+      'update_project',
+    )
+  }, [ciProjectId, projectRoles, user?.is_system_admin])
+
+  const onSaveCiUnmatchedPolicy = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!ciProjectId || !canEditCiPolicy || ciPolicyBusy) return
+    setCiPolicyBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const updated = await api.updateProject(ciProjectId, {
+        ci_unmatched_policy: ciUnmatchedPolicy,
+      })
+      setProjects((prev) =>
+        prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
+      )
+      setMessage(t('settings.saved'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setCiPolicyBusy(false)
+    }
+  }
 
   useEffect(() => {
     if (!canCiTokens) return
@@ -1383,6 +1433,55 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               ))}
             </select>
           </label>
+          {ciProjectId ? (
+            <form
+              className="stack-form"
+              style={{ marginTop: '1rem' }}
+              onSubmit={(e) => void onSaveCiUnmatchedPolicy(e)}
+            >
+              <h4 style={{ margin: '0 0 0.25rem' }}>
+                {t('settings.ciUnmatchedPolicy')}
+              </h4>
+              <p className="muted" style={{ marginTop: 0 }}>
+                {t('settings.ciUnmatchedPolicyHelp')}
+              </p>
+              <label className="field">
+                <span>{t('settings.ciUnmatchedPolicy')}</span>
+                <select
+                  value={ciUnmatchedPolicy}
+                  disabled={!canEditCiPolicy || ciPolicyBusy}
+                  onChange={(e) =>
+                    setCiUnmatchedPolicy(e.target.value as CiUnmatchedPolicy)
+                  }
+                  aria-label={t('settings.ciUnmatchedPolicy')}
+                  {...testIdProps(TestIds.settingsCiUnmatchedPolicySelect)}
+                >
+                  <option value="off">
+                    {t('settings.ciUnmatchedPolicy.off')}
+                  </option>
+                  <option value="create_passed">
+                    {t('settings.ciUnmatchedPolicy.create_passed')}
+                  </option>
+                  <option value="create_all">
+                    {t('settings.ciUnmatchedPolicy.create_all')}
+                  </option>
+                  <option value="fail_unmatched">
+                    {t('settings.ciUnmatchedPolicy.fail_unmatched')}
+                  </option>
+                </select>
+              </label>
+              {canEditCiPolicy ? (
+                <button
+                  className="btn secondary"
+                  type="submit"
+                  disabled={ciPolicyBusy}
+                  {...testIdProps(TestIds.settingsCiUnmatchedPolicySaveButton)}
+                >
+                  {t('settings.ciUnmatchedPolicySave')}
+                </button>
+              ) : null}
+            </form>
+          ) : null}
           {ciSecretOnce && (
             <div
               className="token-secret"

@@ -333,6 +333,23 @@ pub struct BulkResultsRequest {
     /// a new history row is still inserted (never overwritten). Kept for API compat.
     #[serde(default)]
     pub upsert: bool,
+    /// When true, report cases that would be auto-created without persisting creates.
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
+/// Summary of a draft case auto-created (or that would be created under dry-run)
+/// for an unmatched CI result.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AutoCreatedCaseSummary {
+    /// Set when the case was actually persisted; `null` under dry-run.
+    pub case_id: Option<Uuid>,
+    /// Allocated Vulyk key when persisted; `null` under dry-run.
+    pub key: Option<String>,
+    pub title: String,
+    pub automation_id: Option<String>,
+    /// Lookup token that failed to match (case key / automation_id).
+    pub matched_by: String,
 }
 
 #[derive(Debug, Serialize, ToSchema)]
@@ -344,6 +361,12 @@ pub struct BulkResultsResponse {
     /// Duplicate `(external_id, status)` retries within the same run that were skipped.
     #[serde(default)]
     pub idempotent_replays: i64,
+    /// Draft cases created (or previewed) for unmatched results under the project policy.
+    #[serde(default)]
+    pub auto_created_cases: Vec<AutoCreatedCaseSummary>,
+    /// Echo of the request dry-run flag.
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -365,6 +388,9 @@ pub struct IngestRequest {
     #[serde(default)]
     #[schema(value_type = Object)]
     pub artifacts: Option<Value>,
+    /// When true, report cases that would be auto-created without persisting creates.
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 fn default_ingest_source() -> String {
@@ -378,6 +404,10 @@ pub struct IngestResponse {
     pub unmatched_case_keys: Vec<String>,
     pub job_id: Option<Uuid>,
     pub parsed: i64,
+    #[serde(default)]
+    pub auto_created_cases: Vec<AutoCreatedCaseSummary>,
+    #[serde(default)]
+    pub dry_run: bool,
 }
 
 fn default_true() -> bool {
