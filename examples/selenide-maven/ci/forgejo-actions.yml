@@ -1,0 +1,73 @@
+# Copy to .forgejo/workflows/vulyk.yml (Forgejo) or .gitea/workflows/vulyk.yml (Gitea).
+# Set VULYK_CI_PROVIDER to forgejo or gitea to match the trigger.
+# Secrets: VULYK_API_URL, VULYK_API_TOKEN, VULYK_PROJECT_KEY (optional).
+
+name: Vulyk selenide
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      vulyk_run_id:
+        description: Existing Vulyk run id (from Run in CI)
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  test-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - name: Install Chrome
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium-browser || sudo apt-get install -y -qq chromium || true
+      - name: Test
+        run: mvn -B test || true
+      - name: Report to Vulyk
+        if: always()
+        env:
+          VULYK_API_URL: ${{ secrets.VULYK_API_URL }}
+          VULYK_API_TOKEN: ${{ secrets.VULYK_API_TOKEN }}
+          VULYK_PROJECT_KEY: ${{ secrets.VULYK_PROJECT_KEY }}
+          VULYK_RUN_ID: ${{ inputs.vulyk_run_id }}
+          VULYK_CI_PROVIDER: forgejo
+        run: |
+            set -eu
+            if [ -f ./scripts/vulyk-upload.sh ]; then
+              UPLOADER=./scripts/vulyk-upload.sh
+            elif [ -f ../../scripts/vulyk-upload.sh ]; then
+              UPLOADER=../../scripts/vulyk-upload.sh
+            else
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            fi
+            export VULYK_API_URL VULYK_API_TOKEN
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            if [ -n "${VULYK_RUN_ID:-}" ]; then
+              "$UPLOADER" --start-run \
+                --branch "${GITHUB_REF_NAME}" --commit "${GITHUB_SHA}" \
+                --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" || true
+            else
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "selenide #${GITHUB_RUN_NUMBER}" \
+                --provider forgejo \
+                --branch "${GITHUB_REF_NAME}" --commit "${GITHUB_SHA}" \
+                --pipeline-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")"
+              export VULYK_RUN_ID
+            fi
+            if [ -e "target/surefire-reports" ]; then
+              "$UPLOADER" --file "target/surefire-reports" --format junit
+            fi
+            "$UPLOADER" --close-run
+

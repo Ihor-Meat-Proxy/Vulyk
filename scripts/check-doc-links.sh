@@ -23,6 +23,7 @@ ARGS=(
   SECURITY.md
   "docs/**/*.md"
   e2e/README.md
+  "examples/**/*.md"
 )
 
 echo "+ lychee ${ARGS[*]}"

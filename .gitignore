@@ -49,3 +49,12 @@ __pycache__/
 frontend/coverage/
 **/coverage/
 *.lcov
+
+# Framework examples (local runs)
+examples/**/.venv/
+examples/**/target/
+examples/playwright/test-results/
+examples/playwright/playwright-report/
+examples/playwright/results.xml
+examples/pytest/report.xml
+examples/pytest/*.egg-info/

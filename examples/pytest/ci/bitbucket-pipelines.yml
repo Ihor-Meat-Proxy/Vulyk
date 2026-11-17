@@ -1,0 +1,45 @@
+# Bitbucket Pipelines (ingest only — no Vulyk → Bitbucket dispatch).
+# Repository variables: VULYK_API_URL, VULYK_API_TOKEN, VULYK_PROJECT_KEY.
+
+image: python:3.12
+
+pipelines:
+  default:
+    - step:
+        name: test-and-report
+        script:
+          - |
+            set -eu
+            pip install -e . && pytest || true
+          - |
+            set -eu
+            if [ -f ./scripts/vulyk-upload.sh ]; then
+              UPLOADER=./scripts/vulyk-upload.sh
+            elif [ -f ../../scripts/vulyk-upload.sh ]; then
+              UPLOADER=../../scripts/vulyk-upload.sh
+            else
+              curl -fsSL -o vulyk-upload.sh \
+                https://raw.githubusercontent.com/Ihor-Meat-Proxy/Vulyk/main/scripts/vulyk-upload.sh
+              chmod +x vulyk-upload.sh
+              UPLOADER=./vulyk-upload.sh
+            fi
+            export VULYK_API_URL VULYK_API_TOKEN
+            export VULYK_PROJECT_KEY="${VULYK_PROJECT_KEY:-KOC}"
+
+            if [ -n "${VULYK_RUN_ID:-}" ]; then
+              "$UPLOADER" --start-run \
+                --branch "${BITBUCKET_BRANCH}" --commit "${BITBUCKET_COMMIT}" \
+                --pipeline-url "https://bitbucket.org/${BITBUCKET_REPO_FULL_NAME}/pipelines/results/${BITBUCKET_BUILD_NUMBER}" || true
+            else
+              VULYK_RUN_ID="$("$UPLOADER" --open-run --print-run-id \
+                --suite-name "pytest #${BITBUCKET_BUILD_NUMBER}" \
+                --provider bitbucket \
+                --branch "${BITBUCKET_BRANCH}" --commit "${BITBUCKET_COMMIT}" \
+                --pipeline-url "https://bitbucket.org/${BITBUCKET_REPO_FULL_NAME}/pipelines/results/${BITBUCKET_BUILD_NUMBER}")"
+              export VULYK_RUN_ID
+            fi
+            if [ -e "report.xml" ]; then
+              "$UPLOADER" --file "report.xml" --format junit
+            fi
+            "$UPLOADER" --close-run
+
