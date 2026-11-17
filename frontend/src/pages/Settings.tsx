@@ -611,7 +611,13 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
 
   const loadRepoBranches = async (form: RepoFormState = repoForm) => {
     if (!form.remote_url.trim()) return
-    if (form.provider !== 'github' && form.provider !== 'gitlab') {
+    if (
+      form.provider !== 'github' &&
+      form.provider !== 'gitlab' &&
+      form.provider !== 'forgejo' &&
+      form.provider !== 'gitea' &&
+      form.provider !== 'bitbucket'
+    ) {
       setRepoBranches([])
       return
     }
@@ -1344,6 +1350,9 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
               >
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
+                <option value="bitbucket">Bitbucket</option>
+                <option value="forgejo">Forgejo</option>
+                <option value="gitea">Gitea</option>
                 <option value="generic">{t('admin.genericHttpsGit')}</option>
               </select>
             </label>
@@ -1362,7 +1371,10 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
             <label className="field">
               <span>{t('admin.automationBranch')}</span>
               {repoForm.provider === 'github' ||
-              repoForm.provider === 'gitlab' ? (
+              repoForm.provider === 'gitlab' ||
+              repoForm.provider === 'forgejo' ||
+              repoForm.provider === 'gitea' ||
+              repoForm.provider === 'bitbucket' ? (
                 <div className="form-row" style={{ gap: '0.5rem' }}>
                   <select
                     value={
@@ -1543,24 +1555,68 @@ export function Settings({ activeProjectId = null }: SettingsProps) {
                 <p className="muted">{t('admin.automationRepoNeedProject')}</p>
               ) : (
                 projectsForAutomation.map((p, index) => (
-                  <label key={p.id} className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={repoForm.project_ids.includes(p.id)}
-                      onChange={() => toggleRepoProject(p.id)}
-                      {...listItemProps(
-                        TestIds.settingsAutomationProjectCheckbox,
-                        {
-                          entityId: p.id,
-                          entityKey: p.key,
-                          index,
-                        },
-                      )}
-                    />
-                    <span>
-                      {p.key} — {p.name}
-                    </span>
-                  </label>
+                  <div key={p.id} className="check-row">
+                    <label className="check-row">
+                      <input
+                        type="checkbox"
+                        checked={repoForm.project_ids.includes(p.id)}
+                        onChange={() => toggleRepoProject(p.id)}
+                        {...listItemProps(
+                          TestIds.settingsAutomationProjectCheckbox,
+                          {
+                            entityId: p.id,
+                            entityKey: p.key,
+                            index,
+                          },
+                        )}
+                      />
+                      <span>
+                        {p.key} — {p.name}
+                      </span>
+                    </label>
+                    {repoForm.id && repoForm.project_ids.includes(p.id) ? (
+                      <button
+                        type="button"
+                        className="btn secondary"
+                        disabled={repoBusy}
+                        onClick={() => {
+                          void (async () => {
+                            setRepoBusy(true)
+                            setError(null)
+                            try {
+                              await api.setProjectDefaultAutomationRepo(
+                                p.id,
+                                repoForm.id!,
+                              )
+                              setRepoInfo(
+                                t('settings.automationDefaultSet', {
+                                  project: p.key,
+                                }),
+                              )
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : String(err),
+                              )
+                            } finally {
+                              setRepoBusy(false)
+                            }
+                          })()
+                        }}
+                        {...listItemProps(
+                          TestIds.settingsAutomationDefaultButton,
+                          {
+                            entityId: p.id,
+                            entityKey: p.key,
+                            index,
+                          },
+                        )}
+                      >
+                        {t('settings.automationMakeDefault')}
+                      </button>
+                    ) : null}
+                  </div>
                 ))
               )}
             </fieldset>

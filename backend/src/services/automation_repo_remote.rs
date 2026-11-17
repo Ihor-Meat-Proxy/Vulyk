@@ -47,6 +47,19 @@ pub enum HostKind {
         api_base: String,
         project_path: String,
     },
+    /// Forgejo / Gitea (`/api/v1`) — GitHub-like repo paths, Gitea archive URL.
+    Gitea {
+        api_base: String,
+        owner: String,
+        repo: String,
+    },
+    /// Bitbucket Cloud (`/2.0`) — zip via html host `/get/{ref}.zip`.
+    Bitbucket {
+        api_base: String,
+        html_base: String,
+        workspace: String,
+        repo_slug: String,
+    },
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -142,6 +155,54 @@ pub(crate) fn parse_remote_shape(provider: &str, remote_url: &str) -> AppResult<
             Ok(HostKind::GitLab {
                 api_base,
                 project_path: path.to_string(),
+            })
+        }
+        "forgejo" | "gitea" => {
+            let mut parts = path.splitn(2, '/');
+            let owner = parts.next().unwrap_or("").to_string();
+            let repo = parts.next().unwrap_or("").trim_end_matches('/').to_string();
+            if owner.is_empty() || repo.is_empty() {
+                return Err(AppError::BadRequest(
+                    "Forgejo/Gitea remote must look like https://host/owner/repo".into(),
+                ));
+            }
+            Ok(HostKind::Gitea {
+                api_base: format!("{scheme}://{authority}/api/v1"),
+                owner,
+                repo,
+            })
+        }
+        "bitbucket" => {
+            let mut parts = path.splitn(2, '/');
+            let workspace = parts.next().unwrap_or("").to_string();
+            let repo_slug = parts
+                .next()
+                .unwrap_or("")
+                .trim_end_matches('/')
+                .to_string();
+            if workspace.is_empty() || repo_slug.is_empty() {
+                return Err(AppError::BadRequest(
+                    "Bitbucket remote must look like https://bitbucket.org/workspace/repo".into(),
+                ));
+            }
+            let (api_base, html_base) =
+                if host == "bitbucket.org" || host == "www.bitbucket.org" {
+                    (
+                        "https://api.bitbucket.org/2.0".into(),
+                        format!("{scheme}://bitbucket.org"),
+                    )
+                } else {
+                    // Bitbucket Server / Data Center style API root.
+                    (
+                        format!("{scheme}://{authority}/rest/api/1.0"),
+                        format!("{scheme}://{authority}"),
+                    )
+                };
+            Ok(HostKind::Bitbucket {
+                api_base,
+                html_base,
+                workspace,
+                repo_slug,
             })
         }
         _ => Err(AppError::BadRequest(format!(
@@ -337,6 +398,80 @@ pub async fn check_branch_head(
                 etag: new_etag,
             })
         }
+        HostKind::Gitea {
+            api_base,
+            owner,
+            repo,
+        } => {
+            let enc_branch = urlencoding::encode(branch);
+            let url = format!("{api_base}/repos/{owner}/{repo}/branches/{enc_branch}");
+            let (status, headers, bytes) = api_get(
+                &client,
+                &url,
+                ApiGetOpts {
+                    token,
+                    accept: "application/json",
+                    etag,
+                },
+            )
+            .await?;
+            let new_etag = header_etag(&headers);
+            if status.as_u16() == 304 {
+                return Ok(HeadCheck::NotModified {
+                    etag: new_etag.or_else(|| etag.map(|s| s.to_string())),
+                });
+            }
+            let body: Value = serde_json::from_slice(&bytes)
+                .map_err(|e| AppError::BadRequest(format!("gitea branch JSON: {e}")))?;
+            let commit_sha = body
+                .pointer("/commit/id")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| AppError::BadRequest("gitea branch missing commit.id".into()))?
+                .to_string();
+            Ok(HeadCheck::Modified {
+                commit_sha,
+                etag: new_etag,
+            })
+        }
+        HostKind::Bitbucket {
+            api_base,
+            workspace,
+            repo_slug,
+            ..
+        } => {
+            let enc_branch = urlencoding::encode(branch);
+            let url = format!(
+                "{api_base}/repositories/{workspace}/{repo_slug}/commits/{enc_branch}?pagelen=1"
+            );
+            let (status, headers, bytes) = api_get(
+                &client,
+                &url,
+                ApiGetOpts {
+                    token,
+                    accept: "application/json",
+                    etag,
+                },
+            )
+            .await?;
+            let new_etag = header_etag(&headers);
+            if status.as_u16() == 304 {
+                return Ok(HeadCheck::NotModified {
+                    etag: new_etag.or_else(|| etag.map(|s| s.to_string())),
+                });
+            }
+            let body: Value = serde_json::from_slice(&bytes)
+                .map_err(|e| AppError::BadRequest(format!("bitbucket commits JSON: {e}")))?;
+            let commit_sha = body
+                .pointer("/values/0/hash")
+                .and_then(|v| v.as_str())
+                .or_else(|| body.get("hash").and_then(|v| v.as_str()))
+                .ok_or_else(|| AppError::BadRequest("bitbucket commit missing hash".into()))?
+                .to_string();
+            Ok(HeadCheck::Modified {
+                commit_sha,
+                etag: new_etag,
+            })
+        }
     }
 }
 
@@ -441,6 +576,117 @@ pub async fn list_branches(
                 }
             }
         }
+        HostKind::Gitea {
+            api_base,
+            owner,
+            repo,
+        } => {
+            let mut page = 1u32;
+            loop {
+                let url =
+                    format!("{api_base}/repos/{owner}/{repo}/branches?limit=50&page={page}");
+                let (_, _, bytes) = api_get(
+                    &client,
+                    &url,
+                    ApiGetOpts {
+                        token,
+                        accept: "application/json",
+                        etag: None,
+                    },
+                )
+                .await?;
+                let page_entries: Vec<Value> = serde_json::from_slice(&bytes)
+                    .map_err(|e| AppError::BadRequest(format!("gitea branches JSON: {e}")))?;
+                if page_entries.is_empty() {
+                    break;
+                }
+                for b in page_entries {
+                    let name = b
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let commit_sha = b
+                        .pointer("/commit/id")
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string);
+                    let is_new = !seen_set.is_empty() && !seen_set.contains(name.as_str());
+                    out.push(RemoteBranch {
+                        name,
+                        commit_sha,
+                        is_new,
+                    });
+                }
+                page += 1;
+                if page > 20 {
+                    break;
+                }
+            }
+        }
+        HostKind::Bitbucket {
+            api_base,
+            workspace,
+            repo_slug,
+            ..
+        } => {
+            let mut url = format!(
+                "{api_base}/repositories/{workspace}/{repo_slug}/refs/branches?pagelen=100"
+            );
+            for _ in 0..20u32 {
+                let (_, _, bytes) = api_get(
+                    &client,
+                    &url,
+                    ApiGetOpts {
+                        token,
+                        accept: "application/json",
+                        etag: None,
+                    },
+                )
+                .await?;
+                let body: Value = serde_json::from_slice(&bytes)
+                    .map_err(|e| AppError::BadRequest(format!("bitbucket branches JSON: {e}")))?;
+                let values = body
+                    .get("values")
+                    .and_then(|v| v.as_array())
+                    .cloned()
+                    .unwrap_or_default();
+                if values.is_empty() {
+                    break;
+                }
+                for b in values {
+                    let name = b
+                        .get("name")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    if name.is_empty() {
+                        continue;
+                    }
+                    let commit_sha = b
+                        .pointer("/target/hash")
+                        .and_then(|v| v.as_str())
+                        .map(str::to_string);
+                    let is_new = !seen_set.is_empty() && !seen_set.contains(name.as_str());
+                    out.push(RemoteBranch {
+                        name,
+                        commit_sha,
+                        is_new,
+                    });
+                }
+                let next = body
+                    .get("next")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if next.is_empty() {
+                    break;
+                }
+                url = next;
+            }
+        }
     }
     out.sort_by(|a, b| a.name.cmp(&b.name));
     Ok(out)
@@ -495,6 +741,29 @@ pub async fn index_from_archive(
                 "application/octet-stream",
             )
         }
+        HostKind::Gitea {
+            api_base,
+            owner,
+            repo,
+        } => (
+            format!(
+                "{api_base}/repos/{owner}/{repo}/archive/{}.zip",
+                urlencoding::encode(branch)
+            ),
+            "application/octet-stream",
+        ),
+        HostKind::Bitbucket {
+            html_base,
+            workspace,
+            repo_slug,
+            ..
+        } => (
+            format!(
+                "{html_base}/{workspace}/{repo_slug}/get/{}.zip",
+                urlencoding::encode(branch)
+            ),
+            "application/octet-stream",
+        ),
     };
 
     let mut last_err = None;
@@ -843,6 +1112,44 @@ mod tests {
                 assert_eq!(project_path, "group/sub/repo");
             }
             _ => panic!("expected gitlab"),
+        }
+    }
+
+    #[test]
+    fn parses_gitea_and_forgejo_url() {
+        let h = parse_remote_shape("gitea", "https://git.example.com/acme/demo.git").unwrap();
+        match h {
+            HostKind::Gitea {
+                owner,
+                repo,
+                api_base,
+            } => {
+                assert_eq!(owner, "acme");
+                assert_eq!(repo, "demo");
+                assert_eq!(api_base, "https://git.example.com/api/v1");
+            }
+            _ => panic!("expected gitea"),
+        }
+        let h2 = parse_remote_shape("forgejo", "https://code.example.org/org/app").unwrap();
+        assert!(matches!(h2, HostKind::Gitea { .. }));
+    }
+
+    #[test]
+    fn parses_bitbucket_cloud_url() {
+        let h = parse_remote_shape("bitbucket", "https://bitbucket.org/ws/demo.git").unwrap();
+        match h {
+            HostKind::Bitbucket {
+                workspace,
+                repo_slug,
+                api_base,
+                html_base,
+            } => {
+                assert_eq!(workspace, "ws");
+                assert_eq!(repo_slug, "demo");
+                assert_eq!(api_base, "https://api.bitbucket.org/2.0");
+                assert_eq!(html_base, "https://bitbucket.org");
+            }
+            _ => panic!("expected bitbucket"),
         }
     }
 

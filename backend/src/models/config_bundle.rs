@@ -144,10 +144,14 @@ pub struct ConfigIntegration {
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct ConfigAutomationRepo {
     pub project_key: String,
+    #[serde(default)]
+    pub name: Option<String>,
     pub provider: String,
     pub remote_url: String,
     pub branch: Option<String>,
     pub subpath: Option<String>,
+    #[serde(default)]
+    pub is_default: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]

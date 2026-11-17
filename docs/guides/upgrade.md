@@ -240,9 +240,21 @@ Setup Job is **post-install only** (not re-run on every upgrade).
 ### API image packages
 
 The `vulyk-api` runtime image installs **`git`** so the **generic** automation-repo
-provider can shallow-clone. GitHub/GitLab providers index via a single archive
-download and do not need it. Redeploy the API image on upgrade.
+provider can shallow-clone. GitHub / GitLab / Bitbucket / Forgejo / Gitea
+providers index via a single archive download and do not need it. Redeploy the
+API image on upgrade.
 Details: [automation-repo.md](../automation-repo.md#upgrade-notes).
+
+### Multi-repo providers (0.6.0)
+
+Forward migration `20261117110500_multi_repo_providers.sql` widens
+`automation_repos.provider` to include `bitbucket`, `forgejo`, and `gitea`, and
+backfills any legacy singular `project_id` rows that are missing a
+`project_automation_repos` junction (including promoting a default when none is
+set). Applied automatically by `install.sh upgrade` / Helm migrate Job. No new
+`.env` keys. Existing single-repo installs keep working; Settings can attach
+several remotes per project and mark a default. Config-bundle export now lists
+all linked remotes (not only the legacy `automation_repos.project_id` column).
 
 ### Automation repo Actions CI columns
 
