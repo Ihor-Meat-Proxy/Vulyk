@@ -162,3 +162,98 @@ pub struct AskTestsResponse {
     pub model: String,
     pub answer: String,
 }
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct DiffPreviewRequest {
+    pub repo_id: Uuid,
+    /// Compare base (e.g. `main`). Ignored when `pull_number` is set (uses PR target).
+    #[serde(default)]
+    pub base_ref: Option<String>,
+    /// Compare head (branch or SHA). Ignored when `pull_number` is set (uses PR head).
+    #[serde(default)]
+    pub head_ref: Option<String>,
+    /// Open PR/MR number (GitHub/Gitea/Forgejo) or MR iid (GitLab).
+    pub pull_number: Option<i64>,
+    #[serde(default)]
+    pub include_paths: Vec<String>,
+    #[serde(default)]
+    pub exclude_paths: Vec<String>,
+    /// Soft token budget for the preview selection (default 8000).
+    pub token_budget: Option<i64>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct DiffPreviewResponse {
+    pub base_ref: String,
+    pub head_ref: String,
+    pub base_sha: Option<String>,
+    pub head_sha: Option<String>,
+    pub pull_number: Option<i64>,
+    pub pull_url: Option<String>,
+    pub files: Vec<crate::services::automation_repo_diff::DiffFileEntry>,
+    pub selected_files: Vec<crate::services::automation_repo_diff::DiffFileEntry>,
+    pub total_approx_tokens: i64,
+    pub selected_approx_tokens: i64,
+    pub token_budget: i64,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct GenerateCasesFromDiffRequest {
+    pub repo_id: Uuid,
+    #[serde(default)]
+    pub base_ref: Option<String>,
+    #[serde(default)]
+    pub head_ref: Option<String>,
+    pub pull_number: Option<i64>,
+    #[serde(default)]
+    pub include_paths: Vec<String>,
+    #[serde(default)]
+    pub exclude_paths: Vec<String>,
+    pub token_budget: Option<i64>,
+    #[serde(default = "default_count")]
+    pub count: u32,
+    pub suite_id: Option<Uuid>,
+    #[serde(default = "default_persist_true")]
+    pub persist: bool,
+    pub config_id: Option<Uuid>,
+    /// Extra free-text guidance appended after the diff.
+    #[serde(default)]
+    pub extra_instructions: String,
+}
+
+fn default_persist_true() -> bool {
+    true
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, sqlx::FromRow)]
+pub struct CaseGenerationSource {
+    pub case_id: Uuid,
+    pub source: String,
+    pub repo_id: Option<Uuid>,
+    pub provider: String,
+    pub pull_number: Option<i32>,
+    pub pull_url: Option<String>,
+    pub base_ref: String,
+    pub head_ref: String,
+    pub commit_sha: Option<String>,
+    pub included_paths: Vec<String>,
+    #[serde(default)]
+    #[schema(value_type = Object)]
+    pub meta: serde_json::Value,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct GenerateCasesFromDiffResponse {
+    pub provider: String,
+    pub model: String,
+    pub drafts: Vec<GeneratedCaseDraft>,
+    pub persisted: Vec<crate::models::TestCaseDetail>,
+    pub generation: Option<CaseGenerationSource>,
+    pub selected_files: Vec<crate::services::automation_repo_diff::DiffFileEntry>,
+    pub selected_approx_tokens: i64,
+    pub head_sha: Option<String>,
+    pub base_ref: String,
+    pub head_ref: String,
+    pub pull_number: Option<i64>,
+    pub pull_url: Option<String>,
+}

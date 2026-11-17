@@ -93,11 +93,20 @@ pub async fn load_case_detail(pool: &sqlx::PgPool, case: TestCase) -> AppResult<
     let steps = load_steps(pool, case.id).await?;
     let tags = load_tags(pool, case.id).await?;
     let custom_fields = load_custom_fields(pool, case.id).await?;
+    let generation = sqlx::query_as::<_, crate::models::CaseGenerationSource>(
+        r#"SELECT case_id, source, repo_id, provider, pull_number, pull_url,
+                  base_ref, head_ref, commit_sha, included_paths, meta
+           FROM case_generation_sources WHERE case_id = $1"#,
+    )
+    .bind(case.id)
+    .fetch_optional(pool)
+    .await?;
     Ok(TestCaseDetail {
         case,
         steps,
         tags,
         custom_fields,
+        generation,
     })
 }
 

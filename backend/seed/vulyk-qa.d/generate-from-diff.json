@@ -1,0 +1,78 @@
+{
+  "feature": "generate-from-diff",
+  "suites": [
+    {
+      "name": {
+        "en": "Generate from PR/branch diff",
+        "uk": "Генерація з diff PR/гілки",
+        "fr": "Génération depuis un diff PR/branche",
+        "es": "Generación desde diff de PR/rama",
+        "de": "Erzeugung aus PR-/Branch-Diff"
+      },
+      "children": [],
+      "cases": [
+        {
+          "title": {
+            "en": "Generate cases from an open pull request diff",
+            "uk": "Згенерувати кейси з diff відкритого pull request",
+            "fr": "Generate cases from an open pull request diff",
+            "es": "Generate cases from an open pull request diff",
+            "de": "Generate cases from an open pull request diff"
+          },
+          "description": {
+            "en": "On Generate, pick a linked GitHub/GitLab/Forgejo/Gitea repo, select an open PR/MR, preview changed files with token budget, exclude noise, and generate draft cases that record PR/branch/commit provenance.",
+            "uk": "На сторінці Generate оберіть пов’язаний репозиторій, відкритий PR/MR, перегляньте змінені файли в межах бюджету токенів і згенеруйте чернетки з джерелом PR/гілка/коміт.",
+            "fr": "On Generate, pick a linked GitHub/GitLab/Forgejo/Gitea repo, select an open PR/MR, preview changed files with token budget, exclude noise, and generate draft cases that record PR/branch/commit provenance.",
+            "es": "On Generate, pick a linked GitHub/GitLab/Forgejo/Gitea repo, select an open PR/MR, preview changed files with token budget, exclude noise, and generate draft cases that record PR/branch/commit provenance.",
+            "de": "On Generate, pick a linked GitHub/GitLab/Forgejo/Gitea repo, select an open PR/MR, preview changed files with token budget, exclude noise, and generate draft cases that record PR/branch/commit provenance."
+          },
+          "precondition": {
+            "en": "Signed in with llm_assist; project has a linked hosted automation repo with a token.",
+            "uk": "Увійшли з llm_assist; у проєкті є пов’язаний hosted automation-репозиторій з токеном.",
+            "fr": "Signed in with llm_assist; project has a linked hosted automation repo with a token.",
+            "es": "Signed in with llm_assist; project has a linked hosted automation repo with a token.",
+            "de": "Signed in with llm_assist; project has a linked hosted automation repo with a token."
+          },
+          "priority": "high",
+          "status": "ready",
+          "tags": ["ai", "generate", "diff"],
+          "steps": [
+            {
+              "action": {
+                "en": "Open Generate and the Cases from a PR or branch diff section",
+                "uk": "Відкрити Generate і розділ кейсів з diff PR або гілки"
+              },
+              "expected_result": {
+                "en": "Repo and pull/branch controls are visible",
+                "uk": "Елементи керування репозиторієм і PR/гілкою видимі"
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Preview changed files and exclude at least one path",
+                "uk": "Переглянути змінені файли й виключити хоча б один шлях"
+              },
+              "expected_result": {
+                "en": "Token budget updates and the excluded file is unchecked",
+                "uk": "Бюджет токенів оновлюється, виключений файл знято з вибору"
+              },
+              "data": { "en": "", "uk": "" }
+            },
+            {
+              "action": {
+                "en": "Generate and save drafts from the diff",
+                "uk": "Згенерувати й зберегти чернетки з diff"
+              },
+              "expected_result": {
+                "en": "Drafts persist and case detail shows generation provenance",
+                "uk": "Чернетки збережено, у деталях кейсу видно джерело генерації"
+              },
+              "data": { "en": "", "uk": "" }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

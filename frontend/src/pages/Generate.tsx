@@ -4,8 +4,11 @@ import {
   api,
   type AutomationRepo,
   type ContextFileRef,
+  type DiffFileEntry,
+  type DiffPreviewResponse,
   type GeneratedCaseDraft,
   type LlmConfig,
+  type RemotePullRequest,
   type TestCase,
 } from '../api'
 import {
@@ -16,7 +19,7 @@ import {
 import { DocsLink } from '../components/DocsLink'
 import { useProjectPermissions } from '../hooks/useProjectPermissions'
 import { useI18n } from '../i18n'
-import { TestIds, testIdProps } from '../testing'
+import { TestIds, listItemProps, testIdProps } from '../testing'
 
 type Props = {
   projectId: string | null
@@ -56,6 +59,17 @@ export function Generate({ projectId }: Props) {
   const [codeConfigId, setCodeConfigId] = useState('')
   const [linkedRepos, setLinkedRepos] = useState<AutomationRepo[]>([])
   const [repoId, setRepoId] = useState('')
+  const [diffRepoId, setDiffRepoId] = useState('')
+  const [diffMode, setDiffMode] = useState<'pull' | 'branch'>('pull')
+  const [pulls, setPulls] = useState<RemotePullRequest[]>([])
+  const [pullNumber, setPullNumber] = useState('')
+  const [baseRef, setBaseRef] = useState('main')
+  const [headRef, setHeadRef] = useState('')
+  const [diffPreview, setDiffPreview] = useState<DiffPreviewResponse | null>(
+    null,
+  )
+  const [excludedPaths, setExcludedPaths] = useState<string[]>([])
+  const [diffDrafts, setDiffDrafts] = useState<GeneratedCaseDraft[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -77,16 +91,53 @@ export function Generate({ projectId }: Props) {
       .listAutomationReposForProject(projectId)
       .then((list) => {
         setLinkedRepos(list)
+        const preferred =
+          list.find((r) => r.is_default)?.id ?? list[0]?.id ?? ''
         setRepoId((cur) => {
           if (cur && list.some((r) => r.id === cur)) return cur
-          return list[0]?.id ?? ''
+          return preferred
         })
+        setDiffRepoId((cur) => {
+          if (cur && list.some((r) => r.id === cur)) return cur
+          return preferred
+        })
+        const def = list.find((r) => r.id === preferred)
+        if (def?.branch) setBaseRef(def.branch)
       })
       .catch(() => {
         setLinkedRepos([])
         setRepoId('')
+        setDiffRepoId('')
       })
   }, [projectId])
+
+  useEffect(() => {
+    if (!diffRepoId || diffMode !== 'pull') {
+      setPulls([])
+      setPullNumber('')
+      return
+    }
+    let cancelled = false
+    void api
+      .listAutomationRepoPulls(diffRepoId)
+      .then((list) => {
+        if (cancelled) return
+        setPulls(list)
+        setPullNumber((cur) => {
+          if (cur && list.some((p) => String(p.number) === cur)) return cur
+          return list[0] ? String(list[0].number) : ''
+        })
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPulls([])
+          setPullNumber('')
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [diffRepoId, diffMode])
 
   // Prefill from Cases page: ?cases=id1,id2
   useEffect(() => {
@@ -165,6 +216,102 @@ export function Generate({ projectId }: Props) {
           provider: res.provider,
           model: res.model,
           persisted: String(res.persisted.length),
+        }),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const restDiffRepos = useMemo(
+    () =>
+      linkedRepos.filter((r) =>
+        ['github', 'gitlab', 'forgejo', 'gitea'].includes(r.provider),
+      ),
+    [linkedRepos],
+  )
+
+  const toggleExcludePath = (path: string) => {
+    setExcludedPaths((cur) =>
+      cur.includes(path) ? cur.filter((p) => p !== path) : [...cur, path],
+    )
+  }
+
+  const onPreviewDiff = async () => {
+    if (!projectId || !diffRepoId) return
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const body =
+        diffMode === 'pull'
+          ? {
+              repo_id: diffRepoId,
+              pull_number: Number(pullNumber),
+              exclude_paths: excludedPaths,
+            }
+          : {
+              repo_id: diffRepoId,
+              base_ref: baseRef,
+              head_ref: headRef,
+              exclude_paths: excludedPaths,
+            }
+      const preview = await api.previewDiff(projectId, body)
+      setDiffPreview(preview)
+      setNotice(
+        t('generate.diffPreviewNotice', {
+          files: String(preview.files.length),
+          tokens: String(preview.selected_approx_tokens),
+          budget: String(preview.token_budget),
+        }),
+      )
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const onGenerateFromDiff = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!projectId || !diffRepoId) return
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const body =
+        diffMode === 'pull'
+          ? {
+              repo_id: diffRepoId,
+              pull_number: Number(pullNumber),
+              exclude_paths: excludedPaths,
+              persist: true,
+              count: 3,
+              config_id: caseConfigId || undefined,
+            }
+          : {
+              repo_id: diffRepoId,
+              base_ref: baseRef,
+              head_ref: headRef,
+              exclude_paths: excludedPaths,
+              persist: true,
+              count: 3,
+              config_id: caseConfigId || undefined,
+            }
+      const res = await api.generateCasesFromDiff(projectId, body)
+      setDiffDrafts(res.drafts)
+      setNotice(
+        t('generate.diffCasesNotice', {
+          count: String(res.drafts.length),
+          provider: res.provider,
+          model: res.model,
+          persisted: String(res.persisted.length),
+          ref: res.pull_number
+            ? `#${res.pull_number}`
+            : `${res.base_ref}…${res.head_ref}`,
+          sha: res.head_sha ? res.head_sha.slice(0, 8) : '—',
         }),
       )
     } catch (err) {
@@ -289,6 +436,179 @@ export function Generate({ projectId }: Props) {
         {drafts.length > 0 && (
           <ul className="plain-list">
             {drafts.map((d) => (
+              <li key={d.key}>
+                <strong>{d.key}</strong> — {d.title}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section
+        className="admin-section"
+        {...testIdProps(TestIds.generateDiffSection)}
+      >
+        <h3>{t('generate.casesFromDiff')}</h3>
+        <p className="muted">{t('generate.casesFromDiffHelp')}</p>
+        {restDiffRepos.length === 0 ? (
+          <p className="muted">{t('generate.diffRepoNone')}</p>
+        ) : (
+          <form
+            className="stack-form"
+            onSubmit={(e) => void onGenerateFromDiff(e)}
+          >
+            <label className="field">
+              <span>{t('generate.repoPicker')}</span>
+              <select
+                value={diffRepoId}
+                onChange={(e) => {
+                  setDiffRepoId(e.target.value)
+                  setDiffPreview(null)
+                  setExcludedPaths([])
+                }}
+                {...testIdProps(TestIds.generateDiffRepoSelect)}
+              >
+                {restDiffRepos.map((repo) => (
+                  <option key={repo.id} value={repo.id}>
+                    {repoOptionLabel(repo)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>{t('generate.diffMode')}</span>
+              <select
+                value={diffMode}
+                onChange={(e) => {
+                  setDiffMode(e.target.value as 'pull' | 'branch')
+                  setDiffPreview(null)
+                }}
+                {...testIdProps(TestIds.generateDiffModeSelect)}
+              >
+                <option value="pull">{t('generate.diffModePull')}</option>
+                <option value="branch">{t('generate.diffModeBranch')}</option>
+              </select>
+            </label>
+            {diffMode === 'pull' ? (
+              <label className="field">
+                <span>{t('generate.diffPull')}</span>
+                <select
+                  value={pullNumber}
+                  onChange={(e) => {
+                    setPullNumber(e.target.value)
+                    setDiffPreview(null)
+                  }}
+                  required
+                  {...testIdProps(TestIds.generateDiffPullSelect)}
+                >
+                  {pulls.length === 0 && (
+                    <option value="">{t('generate.diffPullEmpty')}</option>
+                  )}
+                  {pulls.map((p) => (
+                    <option key={p.number} value={p.number}>
+                      #{p.number} {p.title} ({p.source_branch} →{' '}
+                      {p.target_branch})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <div className="form-row">
+                <label className="field">
+                  <span>{t('generate.diffBase')}</span>
+                  <input
+                    value={baseRef}
+                    onChange={(e) => setBaseRef(e.target.value)}
+                    required
+                    {...testIdProps(TestIds.generateDiffBaseInput)}
+                  />
+                </label>
+                <label className="field">
+                  <span>{t('generate.diffHead')}</span>
+                  <input
+                    value={headRef}
+                    onChange={(e) => setHeadRef(e.target.value)}
+                    required
+                    {...testIdProps(TestIds.generateDiffHeadInput)}
+                  />
+                </label>
+              </div>
+            )}
+            <div className="form-row">
+              <button
+                type="button"
+                className="btn secondary"
+                disabled={
+                  busy ||
+                  !diffRepoId ||
+                  (diffMode === 'pull' ? !pullNumber : !headRef.trim())
+                }
+                onClick={() => void onPreviewDiff()}
+                {...testIdProps(TestIds.generateDiffPreviewButton)}
+              >
+                {t('generate.diffPreview')}
+              </button>
+              <button
+                type="submit"
+                disabled={
+                  busy ||
+                  !diffRepoId ||
+                  (diffMode === 'pull' ? !pullNumber : !headRef.trim())
+                }
+                {...testIdProps(TestIds.generateDiffSubmitButton)}
+              >
+                {t('generate.diffGenerate')}
+              </button>
+            </div>
+            {diffPreview && (
+              <>
+                <p
+                  className="muted"
+                  {...testIdProps(TestIds.generateDiffBudget)}
+                >
+                  {t('generate.diffBudget', {
+                    selected: String(diffPreview.selected_approx_tokens),
+                    total: String(diffPreview.total_approx_tokens),
+                    budget: String(diffPreview.token_budget),
+                    sha: diffPreview.head_sha
+                      ? diffPreview.head_sha.slice(0, 8)
+                      : '—',
+                  })}
+                </p>
+                <ul
+                  className="plain-list"
+                  {...testIdProps(TestIds.generateDiffFileList)}
+                >
+                  {diffPreview.files.map((f: DiffFileEntry, index) => (
+                    <li key={f.path}>
+                      <label className="check-row">
+                        <input
+                          type="checkbox"
+                          checked={!excludedPaths.includes(f.path)}
+                          onChange={() => toggleExcludePath(f.path)}
+                          {...listItemProps(TestIds.generateDiffFileCheckbox, {
+                            entityId: f.path,
+                            entityKey: f.path,
+                            index,
+                          })}
+                        />
+                        <code>{f.path}</code>
+                        <span className="muted">
+                          {' '}
+                          · {f.status} · +{f.additions}/-{f.deletions} · ~
+                          {f.approx_tokens} tok
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </form>
+        )}
+        {diffDrafts.length > 0 && (
+          <ul className="plain-list">
+            {diffDrafts.map((d) => (
               <li key={d.key}>
                 <strong>{d.key}</strong> — {d.title}
               </li>

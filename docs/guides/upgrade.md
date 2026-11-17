@@ -256,6 +256,12 @@ set). Applied automatically by `install.sh upgrade` / Helm migrate Job. No new
 several remotes per project and mark a default. Config-bundle export now lists
 all linked remotes (not only the legacy `automation_repos.project_id` column).
 
+### AI generate from PR/branch diff (0.6.0)
+
+Forward migration `20261117114000_case_generation_sources.sql` adds
+`case_generation_sources` to record PR/branch/commit provenance for cases
+created from a diff. Applied automatically on upgrade; no `.env` changes.
+
 ### Automation repo Actions CI columns
 
 Forward migration `20261027140000_automation_repo_actions_ci.sql` adds encrypted

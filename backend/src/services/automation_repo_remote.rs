@@ -240,13 +240,13 @@ pub fn rate_limit_error(headers: &reqwest::header::HeaderMap, body: &str) -> App
     }
 }
 
-struct ApiGetOpts<'a> {
-    token: Option<&'a str>,
-    accept: &'a str,
-    etag: Option<&'a str>,
+pub(crate) struct ApiGetOpts<'a> {
+    pub token: Option<&'a str>,
+    pub accept: &'a str,
+    pub etag: Option<&'a str>,
 }
 
-async fn api_get(
+pub(crate) async fn api_get(
     client: &reqwest::Client,
     url: &str,
     opts: ApiGetOpts<'_>,

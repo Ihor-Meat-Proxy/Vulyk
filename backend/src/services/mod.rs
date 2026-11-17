@@ -1,4 +1,5 @@
 pub mod automation_repo;
+pub mod automation_repo_diff;
 pub mod automation_repo_index;
 pub mod automation_repo_poll;
 pub mod automation_repo_remote;
