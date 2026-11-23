@@ -178,6 +178,16 @@ docker-outside-of-docker, GitHub CLI). Open the repo in VS Code / Cursor
 ./scripts/check-devcontainer.sh
 ```
 
+## Major dependency migrations (#234)
+
+| Package | Decision | Notes |
+| --- | --- | --- |
+| sqlx | **0.9** | `AssertSqlSafe` + migrator table name (#300) |
+| quick-xml | **0.42** | String local names / attrs in JUnit ingest (#301) |
+| rand | **0.10** | `rand::rng()` + `Rng`; jwt still pulls 0.8 (#302) |
+| ESLint / `@eslint/js` / react-hooks | **10 / 10 / 7** | Pin `settings.react.version`; classic hooks rules (#303) |
+| TypeScript | **stay ~5.8** | `typescript-eslint@8` peer `typescript <6.1.0`; ignore majors in Dependabot until peers widen |
+
 ## Related
 
 - [ci-checks.md](ci-checks.md) - workflow index
