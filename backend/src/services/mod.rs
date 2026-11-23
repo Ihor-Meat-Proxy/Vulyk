@@ -23,4 +23,5 @@ pub mod reports;
 pub mod results;
 pub mod run_reports;
 pub mod runs;
+pub mod shared_steps;
 pub mod suites;

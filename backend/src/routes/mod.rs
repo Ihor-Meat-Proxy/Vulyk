@@ -29,6 +29,7 @@ pub mod requirements;
 pub mod runs;
 pub mod sample_data;
 pub mod setup;
+pub mod shared_steps;
 pub mod sso_admin;
 pub mod suites;
 pub mod tags;
@@ -61,6 +62,7 @@ pub fn app_router(state: AppState) -> Router {
         .merge(suites::router())
         .merge(cases::router())
         .merge(tags::router())
+        .merge(shared_steps::router())
         .merge(custom_fields::router())
         .merge(option_lists::router())
         .merge(config_export::router())

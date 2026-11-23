@@ -6,7 +6,7 @@
     "license": {
       "name": "AGPL-3.0"
     },
-    "version": "0.5.1"
+    "version": "0.6.0"
   },
   "servers": [
     {
@@ -2645,6 +2645,46 @@
         ]
       }
     },
+    "/api/v1/automation-repos/{id}/pulls": {
+      "get": {
+        "tags": [
+          "automation-repo"
+        ],
+        "summary": "List repo pulls",
+        "operationId": "list_repo_pulls",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RemotePullRequest"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/automation-repos/{id}/reindex": {
       "post": {
         "tags": [
@@ -3834,6 +3874,53 @@
                   "items": {
                     "$ref": "#/components/schemas/AutomationRepoPublic"
                   }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/automation-repos/default": {
+      "put": {
+        "tags": [
+          "automation-repo"
+        ],
+        "summary": "Set project default repo",
+        "operationId": "set_project_default_repo",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetProjectDefaultRepo"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutomationRepoPublic"
                 }
               }
             }
@@ -7481,6 +7568,53 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/llm/diff-preview": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Diff preview",
+        "operationId": "diff_preview",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiffPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiffPreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/llm/generate-cases": {
       "post": {
         "tags": [
@@ -7517,6 +7651,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GenerateCasesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/llm/generate-cases-from-diff": {
+      "post": {
+        "tags": [
+          "llm"
+        ],
+        "summary": "Generate cases from diff",
+        "operationId": "generate_cases_from_diff",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateCasesFromDiffRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GenerateCasesFromDiffResponse"
                 }
               }
             }
@@ -10560,6 +10741,237 @@
         ]
       }
     },
+    "/api/v1/projects/{project_id}/shared-steps": {
+      "get": {
+        "tags": [
+          "shared_steps"
+        ],
+        "summary": "List shared steps",
+        "operationId": "list_shared_steps",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shared steps with usage counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedStepSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "shared_steps"
+        ],
+        "summary": "Create shared step",
+        "operationId": "create_shared_step",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSharedStep"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedStepDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/ProblemConflict"
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/shared-steps/{shared_step_id}": {
+      "get": {
+        "tags": [
+          "shared_steps"
+        ],
+        "summary": "Get shared step",
+        "operationId": "get_shared_step",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "shared_step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shared step with lines",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedStepDetail"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "shared_steps"
+        ],
+        "summary": "Update shared step",
+        "operationId": "update_shared_step",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "shared_step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSharedStep"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharedStepDetail"
+                }
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/ProblemConflict"
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "shared_steps"
+        ],
+        "summary": "Delete shared step",
+        "operationId": "delete_shared_step",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "shared_step_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProblemConflict"
+          }
+        },
+        "security": [
+          {
+            "bearer_auth": []
+          }
+        ]
+      }
+    },
     "/api/v1/projects/{project_id}/suites": {
       "get": {
         "tags": [
@@ -12858,6 +13270,13 @@
           "index_status": {
             "type": "string"
           },
+          "is_default": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "When listing for a project: whether this repo is that project's default."
+          },
           "last_index_error": {
             "type": [
               "string",
@@ -13652,6 +14071,70 @@
           "total": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "CaseGenerationSource": {
+        "type": "object",
+        "required": [
+          "case_id",
+          "source",
+          "provider",
+          "base_ref",
+          "head_ref",
+          "included_paths"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "case_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "commit_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "head_ref": {
+            "type": "string"
+          },
+          "included_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "meta": {
+            "type": "object"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "pull_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "pull_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "repo_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string"
           }
         }
       },
@@ -14503,6 +14986,18 @@
         ],
         "properties": {
           "branch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_default": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "name": {
             "type": [
               "string",
               "null"
@@ -16804,11 +17299,28 @@
           }
         }
       },
-      "CreateStep": {
+      "CreateSharedStep": {
         "type": "object",
         "required": [
-          "action"
+          "name"
         ],
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateSharedStepLine"
+            }
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "CreateSharedStepLine": {
+        "type": "object",
         "properties": {
           "action": {
             "type": "string"
@@ -16818,6 +17330,28 @@
           },
           "expected_result": {
             "type": "string"
+          }
+        }
+      },
+      "CreateStep": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "expected_result": {
+            "type": "string"
+          },
+          "shared_step_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Reference a shared step in the same project. The step is expanded into one\ncase step per shared step line; `action` / `expected_result` / `data` are ignored.\nConsecutive entries with the same id expand once (safe to echo fetched steps)."
           }
         }
       },
@@ -17226,6 +17760,205 @@
           }
         }
       },
+      "DiffCompareResult": {
+        "type": "object",
+        "required": [
+          "base_ref",
+          "head_ref",
+          "files",
+          "total_approx_tokens"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "base_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffFileEntry"
+            }
+          },
+          "head_ref": {
+            "type": "string"
+          },
+          "head_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_approx_tokens": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DiffFileEntry": {
+        "type": "object",
+        "required": [
+          "path",
+          "status",
+          "additions",
+          "deletions",
+          "approx_tokens"
+        ],
+        "properties": {
+          "additions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "approx_tokens": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Approximate whitespace-split token count of the patch (0 when patch omitted)."
+          },
+          "deletions": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "patch": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "DiffPreviewRequest": {
+        "type": "object",
+        "required": [
+          "repo_id"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compare base (e.g. `main`). Ignored when `pull_number` is set (uses PR target)."
+          },
+          "exclude_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "head_ref": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Compare head (branch or SHA). Ignored when `pull_number` is set (uses PR head)."
+          },
+          "include_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "pull_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Open PR/MR number (GitHub/Gitea/Forgejo) or MR iid (GitLab)."
+          },
+          "repo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "token_budget": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Soft token budget for the preview selection (default 8000)."
+          }
+        }
+      },
+      "DiffPreviewResponse": {
+        "type": "object",
+        "required": [
+          "base_ref",
+          "head_ref",
+          "files",
+          "selected_files",
+          "total_approx_tokens",
+          "selected_approx_tokens",
+          "token_budget"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "base_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffFileEntry"
+            }
+          },
+          "head_ref": {
+            "type": "string"
+          },
+          "head_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pull_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "pull_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "selected_approx_tokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "selected_files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffFileEntry"
+            }
+          },
+          "token_budget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total_approx_tokens": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "DispatchCiRequest": {
         "type": "object",
         "properties": {
@@ -17564,6 +18297,160 @@
             "type": "array",
             "items": {
               "type": "string"
+            }
+          }
+        }
+      },
+      "GenerateCasesFromDiffRequest": {
+        "type": "object",
+        "required": [
+          "repo_id"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "config_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "exclude_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "extra_instructions": {
+            "type": "string",
+            "description": "Extra free-text guidance appended after the diff."
+          },
+          "head_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "include_paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "persist": {
+            "type": "boolean"
+          },
+          "pull_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "repo_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "suite_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "token_budget": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "GenerateCasesFromDiffResponse": {
+        "type": "object",
+        "required": [
+          "provider",
+          "model",
+          "drafts",
+          "persisted",
+          "selected_files",
+          "selected_approx_tokens",
+          "base_ref",
+          "head_ref"
+        ],
+        "properties": {
+          "base_ref": {
+            "type": "string"
+          },
+          "drafts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeneratedCaseDraft"
+            }
+          },
+          "generation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CaseGenerationSource"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "head_ref": {
+            "type": "string"
+          },
+          "head_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "model": {
+            "type": "string"
+          },
+          "persisted": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TestCaseDetail"
+            }
+          },
+          "provider": {
+            "type": "string"
+          },
+          "pull_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "pull_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "selected_approx_tokens": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "selected_files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DiffFileEntry"
             }
           }
         }
@@ -18834,6 +19721,14 @@
         "properties": {
           "artifacts": {
             "type": "object"
+          },
+          "automation_repo_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Optional linked automation repository (must belong to the project)."
           },
           "branch": {
             "type": [
@@ -20878,6 +21773,52 @@
           }
         }
       },
+      "RemotePullRequest": {
+        "type": "object",
+        "required": [
+          "number",
+          "title",
+          "state",
+          "source_branch",
+          "target_branch"
+        ],
+        "properties": {
+          "head_sha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "html_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "number": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source_branch": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "target_branch": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "RemoteRequirement": {
         "type": "object",
         "required": [
@@ -22370,6 +23311,19 @@
           "value": {}
         }
       },
+      "SetProjectDefaultRepo": {
+        "type": "object",
+        "description": "Mark one linked automation repo as the default for a project.",
+        "required": [
+          "repo_id"
+        ],
+        "properties": {
+          "repo_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "SetRepoProjects": {
         "type": "object",
         "required": [
@@ -22404,6 +23358,147 @@
           },
           "setup_required": {
             "type": "boolean"
+          }
+        }
+      },
+      "SharedStep": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "description",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SharedStepDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SharedStep"
+          },
+          {
+            "type": "object",
+            "required": [
+              "lines",
+              "usage_count"
+            ],
+            "properties": {
+              "lines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SharedStepLine"
+                }
+              },
+              "usage_count": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          }
+        ]
+      },
+      "SharedStepLine": {
+        "type": "object",
+        "required": [
+          "id",
+          "shared_step_id",
+          "position",
+          "action",
+          "expected_result",
+          "data"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "data": {
+            "type": "string"
+          },
+          "expected_result": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shared_step_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "SharedStepSummary": {
+        "type": "object",
+        "description": "List row: shared step plus the number of distinct cases that reference it.",
+        "required": [
+          "id",
+          "project_id",
+          "name",
+          "description",
+          "created_at",
+          "updated_at",
+          "line_count",
+          "usage_count"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "line_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "usage_count": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -22931,6 +24026,17 @@
             "items": {
               "$ref": "#/components/schemas/CustomFieldValue"
             }
+          },
+          "generation": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CaseGenerationSource",
+                "description": "Present when the case was AI-generated from a PR/branch diff (#256)."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "steps": {
             "type": "array",
@@ -23523,6 +24629,14 @@
           "position": {
             "type": "integer",
             "format": "int32"
+          },
+          "shared_step_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Set when this step was expanded from a shared step library block (#235)."
           }
         }
       },
@@ -24787,6 +25901,33 @@
           }
         }
       },
+      "UpdateSharedStep": {
+        "type": "object",
+        "description": "Partial update. When `lines` is present, all existing lines are replaced.",
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "lines": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/CreateSharedStepLine"
+            }
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "UpdateSsoProviderRequest": {
         "type": "object",
         "properties": {
@@ -25716,6 +26857,10 @@
     {
       "name": "tags",
       "description": "Case tags"
+    },
+    {
+      "name": "shared_steps",
+      "description": "Reusable shared step library (project-scoped)"
     },
     {
       "name": "custom_fields",

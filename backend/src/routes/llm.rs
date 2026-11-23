@@ -1170,6 +1170,7 @@ async fn parse_case_drafts(
                             .unwrap_or("")
                             .into(),
                         data: s.get("data").and_then(|v| v.as_str()).unwrap_or("").into(),
+                        shared_step_id: None,
                     })
                     .collect::<Vec<_>>()
             })

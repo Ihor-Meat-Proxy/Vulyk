@@ -1233,6 +1233,7 @@ mod tests {
                     action: "Відкрити сторінку експорту".into(),
                     expected_result: "PDF завантажується".into(),
                     data: String::new(),
+                    shared_step_id: None,
                 }],
                 tags: vec![Tag {
                     id: Uuid::nil(),

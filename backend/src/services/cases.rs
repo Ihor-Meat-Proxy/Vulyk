@@ -59,7 +59,7 @@ pub async fn ensure_case_in_project(
 
 pub async fn load_steps(pool: &sqlx::PgPool, case_id: Uuid) -> AppResult<Vec<TestStep>> {
     let steps = sqlx::query_as::<_, TestStep>(
-        r#"SELECT id, case_id, position, action, expected_result, data
+        r#"SELECT id, case_id, position, action, expected_result, data, shared_step_id
            FROM test_steps WHERE case_id = $1 ORDER BY position"#,
     )
     .bind(case_id)
@@ -110,6 +110,10 @@ pub async fn load_case_detail(pool: &sqlx::PgPool, case: TestCase) -> AppResult<
     })
 }
 
+/// Replace all steps of a case. A step with `shared_step_id` expands into one
+/// row per shared step line (same project as the case), tagged with that id.
+/// Consecutive entries with the same `shared_step_id` collapse into a single
+/// expansion so echoing back a fetched step list does not duplicate blocks.
 pub async fn replace_steps(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     case_id: Uuid,
@@ -120,23 +124,84 @@ pub async fn replace_steps(
         .execute(&mut **tx)
         .await?;
 
+    let mut project_id: Option<Uuid> = None;
+    let mut prev_shared: Option<Uuid> = None;
     let mut out = Vec::with_capacity(steps.len());
-    for (idx, step) in steps.iter().enumerate() {
-        let row = sqlx::query_as::<_, TestStep>(
-            r#"INSERT INTO test_steps (case_id, position, action, expected_result, data)
-               VALUES ($1, $2, $3, $4, $5)
-               RETURNING id, case_id, position, action, expected_result, data"#,
-        )
-        .bind(case_id)
-        .bind(idx as i32)
-        .bind(&step.action)
-        .bind(&step.expected_result)
-        .bind(&step.data)
-        .fetch_one(&mut **tx)
-        .await?;
-        out.push(row);
+    for step in steps {
+        let is_repeat = step.shared_step_id.is_some() && step.shared_step_id == prev_shared;
+        prev_shared = step.shared_step_id;
+        if is_repeat {
+            continue;
+        }
+        let Some(shared_step_id) = step.shared_step_id else {
+            let row = insert_step(
+                tx,
+                case_id,
+                out.len() as i32,
+                &step.action,
+                &step.expected_result,
+                &step.data,
+                None,
+            )
+            .await?;
+            out.push(row);
+            continue;
+        };
+        let project_id = match project_id {
+            Some(id) => id,
+            None => {
+                let id: Uuid =
+                    sqlx::query_scalar("SELECT project_id FROM test_cases WHERE id = $1")
+                        .bind(case_id)
+                        .fetch_one(&mut **tx)
+                        .await?;
+                project_id = Some(id);
+                id
+            }
+        };
+        let lines =
+            crate::services::shared_steps::lines_for_expansion(tx, project_id, shared_step_id)
+                .await?;
+        for line in lines {
+            let row = insert_step(
+                tx,
+                case_id,
+                out.len() as i32,
+                &line.action,
+                &line.expected_result,
+                &line.data,
+                Some(shared_step_id),
+            )
+            .await?;
+            out.push(row);
+        }
     }
     Ok(out)
+}
+
+async fn insert_step(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    case_id: Uuid,
+    position: i32,
+    action: &str,
+    expected_result: &str,
+    data: &str,
+    shared_step_id: Option<Uuid>,
+) -> AppResult<TestStep> {
+    Ok(sqlx::query_as::<_, TestStep>(
+        r#"INSERT INTO test_steps
+             (case_id, position, action, expected_result, data, shared_step_id)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, case_id, position, action, expected_result, data, shared_step_id"#,
+    )
+    .bind(case_id)
+    .bind(position)
+    .bind(action)
+    .bind(expected_result)
+    .bind(data)
+    .bind(shared_step_id)
+    .fetch_one(&mut **tx)
+    .await?)
 }
 
 pub async fn resolve_tag_ids(
@@ -227,7 +292,7 @@ pub async fn snapshot_case(
     change_summary: &str,
 ) -> AppResult<()> {
     let steps = sqlx::query_as::<_, TestStep>(
-        r#"SELECT id, case_id, position, action, expected_result, data
+        r#"SELECT id, case_id, position, action, expected_result, data, shared_step_id
            FROM test_steps WHERE case_id = $1 ORDER BY position"#,
     )
     .bind(case.id)

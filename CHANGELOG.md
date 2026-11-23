@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Shared steps library API** — project-scoped reusable step blocks under
+  `/api/v1/projects/{project_id}/shared-steps` (CRUD with `usage_count`).
+  Case steps accept `shared_step_id`, which expands the block's lines into the
+  case (each expanded step keeps `shared_step_id`). Deleting a shared step that
+  any case still uses returns 409. Migration `20261123181000_shared_steps.sql`
+  (Part of #235).
+- **Supply-chain hardening (#294)** — Dependabot cooldown + security fast path,
+  locked installs / npm `min-release-age` override, Dependabot dep scan + review
+  gate, **keyless cosign + SBOM** on Release GHCR images with opt-in
+  `install.sh --verify-images`, contributor **Dev Container**, and
+  [`docs/dev/supply-chain.md`](docs/dev/supply-chain.md) (#295–#299).
+
 ### Changed
 
 - **sqlx 0.9** — bump from 0.8; wrap audited dynamic SQL (`format!` with fixed
@@ -26,15 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **#234 majors** — sqlx / quick-xml / rand / ESLint migrated; **TypeScript 7
   skipped** (typescript-eslint peer `<6.1.0`); Dependabot ignores `typescript`
-  majors under `/frontend` until peers allow.
-
-### Added
-
-- **Supply-chain hardening (#294)** — Dependabot cooldown + security fast path,
-  locked installs / npm `min-release-age` override, Dependabot dep scan + review
-  gate, **keyless cosign + SBOM** on Release GHCR images with opt-in
-  `install.sh --verify-images`, contributor **Dev Container**, and
-  [`docs/dev/supply-chain.md`](docs/dev/supply-chain.md) (#295–#299).
+  majors under `/frontend` until peers allow. Cookie 0.18.3 / url 2.5.9 for
+  RUSTSEC-2026-0594 / 0592.
 
 ## [0.6.0] - 2026-11-17
 

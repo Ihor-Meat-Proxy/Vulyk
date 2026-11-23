@@ -1101,7 +1101,7 @@ pub async fn create_result(
     if body.steps.is_empty() {
         if let Some(cid) = case_id {
             let case_steps = sqlx::query_as::<_, TestStep>(
-                r#"SELECT id, case_id, position, action, expected_result, data
+                r#"SELECT id, case_id, position, action, expected_result, data, shared_step_id
                    FROM test_steps WHERE case_id = $1 ORDER BY position"#,
             )
             .bind(cid)
