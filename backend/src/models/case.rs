@@ -40,6 +40,9 @@ pub struct TestStep {
     pub action: String,
     pub expected_result: String,
     pub data: String,
+    /// Set when this step was expanded from a shared step library block (#235).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shared_step_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -57,11 +60,17 @@ pub struct TestCaseDetail {
 
 #[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct CreateStep {
+    #[serde(default)]
     pub action: String,
     #[serde(default)]
     pub expected_result: String,
     #[serde(default)]
     pub data: String,
+    /// Reference a shared step in the same project. The step is expanded into one
+    /// case step per shared step line; `action` / `expected_result` / `data` are ignored.
+    /// Consecutive entries with the same id expand once (safe to echo fetched steps).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub shared_step_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

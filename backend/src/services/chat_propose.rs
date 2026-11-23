@@ -178,11 +178,13 @@ fn mock_propose(
                     action: "Execute the described scenario".into(),
                     expected_result: "Expected outcome observed".into(),
                     data: String::new(),
+                    shared_step_id: None,
                 },
                 CreateStep {
                     action: "Verify side effects".into(),
                     expected_result: "System state matches acceptance".into(),
                     data: String::new(),
+                    shared_step_id: None,
                 },
             ],
         }],
@@ -562,6 +564,7 @@ pub async fn confirm_proposal(
                 action: "Execute scenario".into(),
                 expected_result: "Expected result".into(),
                 data: String::new(),
+                shared_step_id: None,
             }]
         } else {
             draft.steps.clone()
@@ -724,7 +727,7 @@ async fn load_case_detail_tx(
     .fetch_one(&mut **tx)
     .await?;
     let steps = sqlx::query_as(
-        r#"SELECT id, case_id, position, action, expected_result, data
+        r#"SELECT id, case_id, position, action, expected_result, data, shared_step_id
            FROM test_steps WHERE case_id = $1 ORDER BY position"#,
     )
     .bind(case_id)

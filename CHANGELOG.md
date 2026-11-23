@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Shared steps library API** — project-scoped reusable step blocks under
+  `/api/v1/projects/{project_id}/shared-steps` (CRUD with `usage_count`).
+  Case steps accept `shared_step_id`, which expands the block's lines into the
+  case (each expanded step keeps `shared_step_id`). Deleting a shared step that
+  any case still uses returns 409. Migration `20261123181000_shared_steps.sql`
+  (Part of #235).
+
 ### Changed
 
 - **sqlx 0.9** — bump from 0.8; wrap audited dynamic SQL (`format!` with fixed
